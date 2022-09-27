@@ -2,40 +2,30 @@
 #define __DATAFRAME_IMPL_HPP__
 
 template<typename DataType>
-DataFrame<DataType>::DataFrame(const DataFrame& rhs) {
+DataSet<DataType>::DataSet(const DataSet& rhs) {
   *this = rhs;
 }
 
 template<typename DataType>
-DataFrame<DataType>::DataFrame(DataFrame&& rhs) {
+DataSet<DataType>::DataSet(DataSet&& rhs) {
   *this = std::move(rhs);
 }
 
 template<typename DataType>
-DataFrame<DataType>::DataFrame(std::string Xpath, std::string ypath, bool header) {
+DataSet<DataType>::DataSet(std::string Xpath, std::string ypath, bool header) {
   read_csv(Xpath, ypath, header);
 }
 
 template<typename DataType>
 std::pair<int, int>
-DataFrame<DataType>::shape() const {
+DataSet<DataType>::shape() const {
   return std::make_pair(m_, n_);
-}
-
-template<typename DataType>
-DataFrame<DataType>::DataFrame(const DataVecVec& data, const YVec& y) {
-  int m = data.size(), n = data[0].size();
-
-  data_ = data;
-  y_ = y;
-  m_ = data_.size();
-  n_ = data_[0].size();
 }
 
 template<typename DataType>
 template<typename ContainerType>
 void
-DataFrame<DataType>::reduce_rows(typename ContainerType::iterator b, typename ContainerType::iterator e) {
+DataSet<DataType>::reduce_rows(typename ContainerType::iterator b, typename ContainerType::iterator e) {
   assert (std::distance(b,e) <= m_);
   
   DataVecVec newData;
@@ -52,19 +42,19 @@ DataFrame<DataType>::reduce_rows(typename ContainerType::iterator b, typename Co
 template<typename DataType>
 template<typename ContainerType>
 void
-DataFrame<DataType>::reduce_columns(typename ContainerType::iterator b, typename ContainerType::iterator e) {
+DataSet<DataType>::reduce_columns(typename ContainerType::iterator b, typename ContainerType::iterator e) {
   ;
 }
 
 template<typename DataType>
-std::pair<typename DataFrame<DataType>::DataVecVec, typename DataFrame<DataType>::DataVec>
-DataFrame<DataType>::reduce_data(const DataVecVec& d, 
-				 const DataVec& y,
-				 std::vector<int> filt,
-				 bool reduceRows) {
+std::pair<typename DataSet<DataType>::DataVecVec, typename DataSet<DataType>::YVec>
+DataSet<DataType>::reduce_data(const DataVecVec& d, 
+			       const YVec& y,
+			       std::vector<int> filt,
+			       bool reduceRows) {
   int n = d[0].size();
   DataVecVec newData;
-  DataVec newy;
+  YVec newy;
 
   if (reduceRows) {
     for (size_t i=0; i<filt.size(); ++i) {
@@ -73,14 +63,14 @@ DataFrame<DataType>::reduce_data(const DataVecVec& d,
     }
   }
   else {
-    for (size_t i=0; i<n; ++i) {
-      DataVec row;
+    for (int i=0; i<n; ++i) {
+      YVec row;
       for (size_t j=0; j<filt.size(); ++j) {
 	row.push_back(d[i][filt[j]]);
       }
       newData.push_back(row);
     }
-    for(size_t i=0; i<n; ++i) {
+    for(size_t i=0; i<filt.size(); ++i) {
       newy.push_back(y[filt[i]]);
     }
   }
@@ -90,30 +80,33 @@ DataFrame<DataType>::reduce_data(const DataVecVec& d,
 
 template<typename DataType>
 void
-DataFrame<DataType>::reduce_rows(std::vector<int> rows) {
+DataSet<DataType>::reduce_rows(std::vector<int> rows) {
 
   assert (rows.size() <= m_);
 
-  auto newData = reduce_data(data_, rows, true);
-  this->setData(newData);
+  auto newPair = reduce_data(data_, rows, true);
+  this->setData(newPair.first);
+  this->sety(newPair.second);
 
 }
 
 template<typename DataType>
 void
-DataFrame<DataType>::reduce_columns(std::vector<int> columns) {
+DataSet<DataType>::reduce_columns(std::vector<int> columns) {
   
   assert (columns.size() <= n_);
 
-  auto newData = reduce_data(data_, columns, false);
-  this->setData(newData);
+  auto newPair = reduce_data(data_, columns, false);
+  this->setData(newPair.first);
+  this->sety(newPair.second);
 }
 
 template<typename DataType>
-DataFrame<DataType>&
-DataFrame<DataType>::operator=(const DataFrame& rhs) {
+DataSet<DataType>&
+DataSet<DataType>::operator=(const DataSet& rhs) {
   if (this != &rhs) {
     data_ = rhs.data_;
+    y_ = rhs.y_;
     m_ = rhs.m_;
     n_ = rhs.n_;
   }
@@ -121,10 +114,11 @@ DataFrame<DataType>::operator=(const DataFrame& rhs) {
 }
 
 template<typename DataType>
-DataFrame<DataType>&
-DataFrame<DataType>::operator=(DataFrame &&rhs) {
+DataSet<DataType>&
+DataSet<DataType>::operator=(DataSet &&rhs) {
   if (this != &rhs) {
     data_ = std::exchange(rhs.data_, DataVecVec{});
+    y_ = std::exchange(rhs.y_, YVec{});
     m_ = std::exchange(rhs.m_, 0);
     n_ = std::exchange(rhs.n_, 0);
   }
@@ -133,7 +127,7 @@ DataFrame<DataType>::operator=(DataFrame &&rhs) {
 
 template<typename DataType>
 void
-DataFrame<DataType>::read_csv(std::string Xpath, 
+DataSet<DataType>::read_csv(std::string Xpath, 
 			      std::string ypath,
 			      bool header) {
   
@@ -170,32 +164,32 @@ DataFrame<DataType>::read_csv(std::string Xpath,
  }
  
 template<typename DataType>
-typename DataFrame<DataType>::DataVec
-DataFrame<DataType>::gety() const {
+typename DataSet<DataType>::DataVec
+DataSet<DataType>::gety() const {
   return y_;
  }
 
 template<typename DataType>
 void
-DataFrame<DataType>::sety(const DataVec& y) {
+DataSet<DataType>::sety(const DataVec& y) {
   y_ = y;
  }
 
 template<typename DataType>
 void
-DataFrame<DataType>::sety(DataVec&& y) {
+DataSet<DataType>::sety(DataVec&& y) {
   y_ = std::exchange(y, DataVec{});
  }
 
 template<typename DataType>
-typename DataFrame<DataType>::DataVecVec
-DataFrame<DataType>::getData() const {
+typename DataSet<DataType>::DataVecVec
+DataSet<DataType>::getData() const {
   return data_;
 }
 
 template<typename DataType>
 void
-DataFrame<DataType>::setData(const DataVecVec& data) {
+DataSet<DataType>::setData(const DataVecVec& data) {
   data_ = data;
   m_ = data.size();
   n_ = data[0].size();
@@ -203,7 +197,7 @@ DataFrame<DataType>::setData(const DataVecVec& data) {
 
 template<typename DataType>
 void
-DataFrame<DataType>::setData(DataVecVec&& data) {
+DataSet<DataType>::setData(DataVecVec&& data) {
   auto shape = data.shape();
   data_ = std::exchange(data, DataVecVec{});
   m_ = std::exchange(shape.first, 0);
@@ -212,13 +206,13 @@ DataFrame<DataType>::setData(DataVecVec&& data) {
 
 template<typename DataType>
 std::vector<DataType>
-DataFrame<DataType>::operator[](std::size_t ind1) {
+DataSet<DataType>::operator[](std::size_t ind1) {
   return data_[ind1];
 }
 
 template<typename DataType>
-std::ostream& operator<<(std::ostream& out, const DataFrame<DataType>& rhs) {
-  typename DataFrame<DataType>::DataVecVec rhsData = rhs.getData();
+std::ostream& operator<<(std::ostream& out, const DataSet<DataType>& rhs) {
+  typename DataSet<DataType>::DataVecVec rhsData = rhs.getData();
 
   for (auto const& row : rhsData) {
     for (auto const& item : row) {

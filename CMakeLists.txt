@@ -14,14 +14,24 @@ set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
+set(CMAKE_CXX_STANDARD 14)	
+add_definitions(-DIS_CXX_14)	
+message(STATUS "C++14-compliant CXX")
+
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-add_library(dataframe OBJECT dataframe.cpp)
-add_library(pmlb OBJECT pmlb.cpp)
-add_library(processor processor.cpp)
+find_package(OpenMP)
+find_package(Armadillo REQUIRED)
+include_directories(${ARMADILLO_INCLUDE_DIRS})
 
+add_library(dataset OBJECT dataset.cpp)
+add_library(pmlb OBJECT pmlb.cpp)
+add_library(processor OBJECT processor.cpp)
+add_library(decision_tree OBJECT decision_tree.cpp)
+add_library(gradientboostclassifier gradientboostclassifier.cpp)
+			  
 add_executable(pmlb_driver pmlb_driver.cpp)
-target_link_libraries(pmlb_driver dataframe pmlb)
+target_link_libraries(pmlb_driver PUBLIC ${ARMADILLO_LIBRARiES} "${OpenMP_CXX_FLAGS}")

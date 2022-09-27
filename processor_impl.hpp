@@ -3,7 +3,7 @@
 
 template<typename DataType>
 void
-SplitProcessor<DataType>::split(DataFrame<DataType>* d, float r) {
+SplitProcessor<DataType>::split(DataSet<DataType>* d, float r) {
   int targetNumRows;
   std::random_device rnd_device;
   std::mt19937 mersenne_engine{rnd_device()};
@@ -41,49 +41,61 @@ SplitProcessor<DataType>::split(DataFrame<DataType>* d, float r) {
 
 
   // d->reduce_rows(newInd);
-  auto trainPair = d->reduce_data(d->getData(),
-				  d->gety(),
-				  newInd,
-				  true);
-  auto testPair = d->reduce_data(d->getData(),
-				 d->gety(),
-				 newIndComp,
-				 true);
-
-  X_train = trainPair.first; y_train = trainPair.second;
-  X_test = testPair.first; y_test = testPair.second;
+  std::pair<typename DataSet<DataType>::DataVecVec, 
+    typename DataSet<DataType>::YVec> trainPair = d->reduce_data(d->getData(),
+								 d->gety(),
+								 newInd,
+								 true);
+  std::pair<typename DataSet<DataType>::DataVecVec, 
+    typename DataSet<DataType>::YVec> testPair = d->reduce_data(d->getData(),
+								d->gety(),
+								newIndComp,
+								true);
   
+  train_ = DataSet<DataType>(trainPair.first, trainPair.second);
+  test_ = DataSet<DataType>(testPair.first, testPair.second);
 }
 
 template<typename DataType>
 void
 SplitProcessor<DataType>::generate(DataElement* d) {
-  split(dynamic_cast<DataFrame<DataType>*>(d), r_);
-  ;
+  split(dynamic_cast<DataSet<DataType>*>(d), r_);
 }
 
 template<typename DataType>
-typename DataFrame<DataType>::DataVecVec
+typename DataSet<DataType>::DataVecVec
 SplitProcessor<DataType>::getX_train() const {
-  return X_train;
+  return train_.getData();
 }
 
 template<typename DataType>
-typename DataFrame<DataType>::DataVec
+typename DataSet<DataType>::DataVec
 SplitProcessor<DataType>::gety_train() const {
-  return y_train;
+  return train_.gety();
 }
 
 template<typename DataType>
-typename DataFrame<DataType>::DataVecVec
+typename DataSet<DataType>::DataVecVec
 SplitProcessor<DataType>::getX_test() const {
-  return X_test;
+  return test_.getData();
 }
 
 template<typename DataType>
-typename DataFrame<DataType>::DataVec
+typename DataSet<DataType>::DataVec
 SplitProcessor<DataType>::gety_test() const {
-  return y_test;
+  return test_.gety();
+}
+
+template<typename DataType>
+DataSet<DataType>
+SplitProcessor<DataType>::get_train_data() const {
+  return train_;
+}
+
+template<typename DataType>
+DataSet<DataType>
+SplitProcessor<DataType>::get_test_data() const {
+  return test_;
 }
 
 #endif

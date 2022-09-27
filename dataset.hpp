@@ -22,27 +22,30 @@
 #include "dataelement.hpp"
 
 template<typename DataType>
-class DataFrame : public DataElement {
+class DataSet : public DataElement {
 
 public:
   using DataVec = std::vector<DataType>;
-  using YVec = DataVec;
   using DataVecVec = std::vector<DataVec>;
+  using YVec = DataVec;
 
 public:
   using size_type = typename std::vector<DataType>::size_type;
   using ColNameType = std::string;
 
-  DataFrame() = default;
-  DataFrame(std::string, std::string, bool);
+  DataSet() = default;
+  DataSet(std::string, std::string, bool);
 
-  DataFrame(const DataVecVec&, const YVec&);
-  DataFrame(const DataVecVec&, std::vector<int>, bool);
+  DataSet(const DataVecVec& data, const YVec& y) : 
+    data_{data},
+    y_{y},
+    m_{data_.size()},
+    n_{data[0].size()} {}
 
-  DataFrame(const DataFrame&);
-  DataFrame(DataFrame&&);
-  DataFrame &operator=(const DataFrame&);
-  DataFrame &operator=(DataFrame&&);
+  DataSet(const DataSet&);
+  DataSet(DataSet&&);
+  DataSet &operator=(const DataSet&);
+  DataSet &operator=(DataSet&&);
 
   DataVecVec getData() const;
   void setData(const DataVecVec& data);
@@ -52,13 +55,16 @@ public:
   void sety(const DataVec&);
   void sety(DataVec&&);
 
+  int getm() const { return m_; }
+  int getn() const { return n_; }
+
   void reduce_rows(std::vector<int>);
   void reduce_columns(std::vector<int>);
   template<typename ContainerType>
   void reduce_rows(typename ContainerType::iterator, typename ContainerType::iterator);
   template<typename ContainerType>
   void reduce_columns(typename ContainerType::iterator, typename ContainerType::iterator);
-  std::pair<DataVecVec, DataVec> reduce_data(const DataVecVec&, 
+  std::pair<DataVecVec, YVec> reduce_data(const DataVecVec&, 
 					     const DataVec&,
 					     std::vector<int>, 
 					     bool);
@@ -68,6 +74,8 @@ public:
   std::pair<int, int> shape() const;
 
 private:
+  void read_csv(std::string, std::string, bool);
+
   using ColNameDict = 
     std::unordered_map<ColNameType,
 		       size_type,
@@ -75,15 +83,14 @@ private:
   using ColNameList = 
     std::vector<std::pair<ColNameType, size_type>>;
 
-  void read_csv(std::string, std::string, bool);
-
   DataVecVec data_ {};
-  DataVec y_ {};
+  YVec y_ {};
   ColNameDict column_tb_ {};
   ColNameList column_list_ {};
   std::size_t m_, n_;
+
 };
 
-#include "dataframe_impl.hpp"
+#include "dataset_impl.hpp"
 
 #endif

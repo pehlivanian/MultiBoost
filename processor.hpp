@@ -10,7 +10,7 @@
 #include <functional>
 
 #include "visitor.hpp"
-#include "dataframe.hpp"
+#include "dataset.hpp"
 
 template<typename DataType>
 class SplitProcessor : public Visitor {
@@ -18,20 +18,21 @@ public:
   SplitProcessor() : r_{.8} {};
   SplitProcessor(float r) : r_{r} {}
 
-  void split(DataFrame<DataType>*, float);
+  void split(DataSet<DataType>*, float);
 
-  typename DataFrame<DataType>::DataVecVec getX_train() const;
-  typename DataFrame<DataType>::DataVec gety_train() const;
-  typename DataFrame<DataType>::DataVecVec getX_test() const;
-  typename DataFrame<DataType>::DataVec gety_test() const;
+  DataSet<DataType> get_train_data() const;
+  DataSet<DataType> get_test_data() const;
+
+  typename DataSet<DataType>::DataVecVec getX_train() const;
+  typename DataSet<DataType>::DataVec gety_train() const;
+  typename DataSet<DataType>::DataVecVec getX_test() const;
+  typename DataSet<DataType>::DataVec gety_test() const;
 private:
   void generate(DataElement*);
   
   float r_;
-  typename DataFrame<DataType>::DataVecVec X_train;
-  typename DataFrame<DataType>::DataVecVec X_test;
-  typename DataFrame<DataType>::DataVec y_train;
-  typename DataFrame<DataType>::DataVec y_test;
+  DataSet<DataType> train_;
+  DataSet<DataType> test_;
 };
 
 #include "processor_impl.hpp"
