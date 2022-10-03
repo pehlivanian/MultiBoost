@@ -17,6 +17,7 @@
 #include "pmlb.hpp"
 #include "processor.hpp"
 #include "decision_tree.hpp"
+#include "loss.hpp"
 #include "gradientboostclassifier.hpp"
 
 #endif

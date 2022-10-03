@@ -7,6 +7,8 @@ using namespace mlpack::data;
 using namespace mlpack::util;
 using namespace std;
 
+using namespace LossMeasures;
+
 auto main(int argc, char **argv) -> int {
 
   /* 
@@ -35,27 +37,23 @@ auto main(int argc, char **argv) -> int {
 
   */
   mat dataset;
-  Row<size_t> labels, predictions;
+  rowvec labels, predictions;
 
   if (!data::Load("/home/charles/Data/test_X.csv", dataset))
     throw std::runtime_error("Could not load test_X.csv");
   if (!data::Load("/home/charles/Data/test_y.csv", labels))
     throw std::runtime_error("Could not load test_y.csv");
 
-  DecisionTree<GiniGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true> r(dataset,
-												  labels,
-												  7, // number of classes
-												  10, // number of trees
-												  3); // minimum leaf size
+  std::cout << "dataset size: " << dataset.n_rows << " x " << dataset.n_cols << std::endl;
+  std::cout << "labels size:  " << labels.n_rows << " x " << labels.n_cols << std::endl;
 
-  cout << "dataset: " << dataset.n_rows << " : " << dataset.n_cols << endl;
-  cout << "labels: " << labels.n_rows << " : " << labels.n_cols << endl;
-  
-  r.Classify(dataset, predictions);
-  const double trainError = arma::accu(predictions != labels) * 100. / labels.n_elem;
-  cout << "Training error: " << trainError << "%." << endl;
-  
-  auto gradientBoostClassifier = GradientBoostClassifier<double>(dataset, labels, 100);
+  bool symmetrize = true;
+
+  auto gradientBoostClassifier = GradientBoostClassifier<double>(dataset, 
+								 labels, 
+								 lossFunction::MSE,
+								 100, 
+								 symmetrize);
 
   return 0;
 }
