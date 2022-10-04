@@ -66,10 +66,10 @@ GradientBoostClassifier<DataType>::init_() {
   colMask_ = linspace<uvec>(0, -1+n_, n_);
 
   if (loss_ == lossFunction::BinomialDeviance) {
-    lossFn_ = std::make_unique<BinomialDevianceLoss<DataType>>();
+    lossFn_ = new BinomialDevianceLoss<DataType>();
   }
   else if (loss_ == lossFunction::MSE) {
-    lossFn_ = std::make_unique<MSELoss<DataType>>();
+    lossFn_ = new MSELoss<DataType>();
   }
 
   // fit
@@ -121,20 +121,50 @@ GradientBoostClassifier<DataType>::fit() {
   int colRatio = static_cast<size_t>(m_ * col_subsample_ratio_);
   rowMask_ = subsampleRows(rowRatio);
   colMask_ = subsampleCols(colRatio);
-  cout << "ratios: " << rowRatio << " : "  << colRatio << endl;
   auto dataset_slice = dataset_.submat(rowMask_, colMask_);
+  
+  // Doesn't seem like there's a better way to do this
+  size_t slice_size = colMask_.n_rows;
+  Row<DataType> labels_slice(slice_size);
+  for (size_t i=0; i<slice_size; ++i) {
+    labels_slice.col(i) = labels_.col(colMask_(i));
+  }
+  
 
-  rowvec coeffs = generate_coefficients(dataset_slice);
+  rowvec coeffs = generate_coefficients(dataset_slice, labels_slice);
+}
+
+template<typename DataType>
+void
+GradientBoostClassifier<DataType>::Classify(const mat& dataset, Row<DataType>& labels) {
+  rowvec prediction = zeros<rowvec>(dataset.n_cols);
+  for( auto const& classifier : classifiers_) {
+    rowvec predictions;
+    classifier->Classify_(dataset, predictions);
+    prediction += predictions;
+  }
+  labels = prediction;
+
+  /*
+    std::cout << "labels_\n";
+    labels_.submat(rowMask_, colMask_).print(std::cout);
+    std::cout << "prediction\n";
+    prediction.print(std::cout);sub
+  */
+  
 }
 
 template<typename DataType>
 rowvec
-GradientBoostClassifier<DataType>::generate_coefficients(const mat& dataset) {
+GradientBoostClassifier<DataType>::generate_coefficients(const mat& dataset, const Row<DataType>& labels) {
 
-  
+  rowvec yhat;
+  Predict(dataset, yhat);
 
-  rowvec r = linspace<rowvec>(0, -1+n_, n_);
-  return r;
+  rowvec g, h;
+  lossFn_->loss(yhat, labels, &g);
+
+  return g;
 }
 
 #endif

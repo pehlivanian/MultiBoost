@@ -108,7 +108,6 @@ public:
   using Partition = std::vector<int>;
   using PartitionList = std::vector<Partition>;
   using RegularizationList = std::vector<DataType>;
-  // using ClassifierList = std::vector<std::unique_ptr<ClassifierBase<DataType>>>;
   using ClassifierList = std::vector<std::unique_ptr<DecisionTreeRegressorClassifier<DataType>>>;
   using Leaves = Row<DataType>;
   using LeavesValues = std::vector<Leaves>;
@@ -127,8 +126,11 @@ public:
     loss_{loss},
     labels_{labels},
     row_subsample_ratio_{1.},
-    col_subsample_ratio_{.75},
+    col_subsample_ratio_{.75}, // .75
     current_classifier_ind_{0} { init_(); }
+
+  void Classify(const mat&, Row<DataType>&);
+  void Predict(const mat& dataset, Row<DataType>& labels) { Classify(dataset, labels); }
 
 private:
   void init_();
@@ -139,7 +141,7 @@ private:
   void symmetrizeLabels();
   void fit();
 
-  rowvec generate_coefficients(const  mat& dataset);
+  rowvec generate_coefficients(const mat&, const Row<DataType>&);
 
   void setNextClassifier(const ClassifierBase<DataType>&);
   int steps_;
@@ -147,7 +149,7 @@ private:
   Row<DataType> labels_;
 
   lossFunction loss_;
-  std::unique_ptr<LossFunction<DataType>> lossFn_;
+  LossFunction<DataType>* lossFn_;
 
   double row_subsample_ratio_;
   double col_subsample_ratio_;

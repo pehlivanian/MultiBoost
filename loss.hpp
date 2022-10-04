@@ -24,20 +24,20 @@ namespace LossMeasures {
   };
 
 
-Eigen::VectorXd static_cast_eigen(rowvec& rhs) {
-  Eigen::VectorXd lhs = Eigen::Map<Eigen::VectorXd>(rhs.memptr(), rhs.n_cols);
+Eigen::VectorXd static_cast_eigen(const rowvec& rhs) {
+  Eigen::VectorXd lhs = Eigen::Map<Eigen::VectorXd>(const_cast<double*>(rhs.memptr()), rhs.n_cols);
   return lhs;
 }
 
-rowvec static_cast_arma(Eigen::VectorXd& rhs) {
-  rowvec lhs = rowvec(rhs.data(), rhs.size(), false, false);
+rowvec static_cast_arma(const Eigen::VectorXd& rhs) {
+  rowvec lhs = rowvec(const_cast<double*>(rhs.data()), rhs.size(), false, false);
   return lhs;		      
 }
 
 template<typename DataType>
 class LossFunction {
 public:
-  DataType loss(rowvec&, rowvec*);
+  virtual DataType loss(const rowvec&, const rowvec&, rowvec*) = 0;
 private:
   virtual autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) = 0;
 };
@@ -46,6 +46,7 @@ template<typename DataType>
 class BinomialDevianceLoss : public LossFunction<DataType> {
 public:
   BinomialDevianceLoss() = default;
+  DataType loss(const rowvec&, const rowvec&, rowvec*) override;
 private:
   autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
 };
@@ -54,6 +55,7 @@ template<typename DataType>
 class MSELoss : public LossFunction<DataType> {
 public:
   MSELoss() = default;
+  DataType loss(const rowvec&, const rowvec&, rowvec*) override;
 private:
   autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
 };

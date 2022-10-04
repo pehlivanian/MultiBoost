@@ -5,16 +5,33 @@ using namespace LossMeasures;
 
 template<typename DataType>
 DataType
-LossFunction<DataType>::loss(rowvec& yhat, rowvec* grad) {
+BinomialDevianceLoss<DataType>::loss(const rowvec& yhat, const rowvec& y, rowvec* grad) {
   autodiff::real u;
   ArrayXreal yhatr = static_cast_eigen(yhat).eval();
-  
-  std::function<autodiff::real(const ArrayXreal&)> loss_ = std::bind(&LossFunction<DataType>::loss_reverse, yhatr, _1);
+  ArrayXreal yr = static_cast_eigen(y).eval();
+
+  std::function<autodiff::real(const ArrayXreal&)> loss_ = std::bind(&BinomialDevianceLoss<DataType>::loss_reverse, this, yr, _1);
   Eigen::VectorXd grad_tmp = gradient(loss_, wrt(yhatr), at(yhatr), u);
+  
   *grad = static_cast_arma(grad_tmp);
 
   return static_cast<DataType>(u.val());
+}
+
+template<typename DataType>
+DataType
+MSELoss<DataType>::loss(const rowvec& yhat, const rowvec& y, rowvec* grad) {
+// LossFunction<DataType>::loss(Eigen::VectorXd& yhat, Eigen::VectorXd& y, rowvec* grad) {
+  autodiff::real u;
+  ArrayXreal yhatr = static_cast_eigen(yhat).eval();
+  ArrayXreal yr = static_cast_eigen(y).eval();
+
+  std::function<autodiff::real(const ArrayXreal&)> loss_ = std::bind(&MSELoss<DataType>::loss_reverse, this, yr, _1);
+  Eigen::VectorXd grad_tmp = gradient(loss_, wrt(yhatr), at(yhatr), u);
   
+  *grad = static_cast_arma(grad_tmp);
+
+  return static_cast<DataType>(u.val());
 }
 
 template<typename DataType>
