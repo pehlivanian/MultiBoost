@@ -1,6 +1,7 @@
 #ifndef __LOSS_HPP__
 #define __LOSS_HPP__
 
+#include <iostream>
 #include <functional>
 #include <exception>
 #include <mlpack/core.hpp>
@@ -37,7 +38,7 @@ rowvec static_cast_arma(const Eigen::VectorXd& rhs) {
 template<typename DataType>
 class LossFunction {
 public:
-  virtual DataType loss(const rowvec&, const rowvec&, rowvec*) = 0;
+  virtual DataType loss(const rowvec&, const rowvec&, rowvec*, rowvec*) = 0;
 private:
   virtual autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) = 0;
 };
@@ -46,7 +47,9 @@ template<typename DataType>
 class BinomialDevianceLoss : public LossFunction<DataType> {
 public:
   BinomialDevianceLoss() = default;
-  DataType loss(const rowvec&, const rowvec&, rowvec*) override;
+  DataType loss(const rowvec&, const rowvec&, rowvec*, rowvec*) override;
+  DataType gradient_(const rowvec&, const rowvec&, rowvec*);
+  void hessian_(const rowvec&, const rowvec&, rowvec*);
 private:
   autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
 };
@@ -55,7 +58,9 @@ template<typename DataType>
 class MSELoss : public LossFunction<DataType> {
 public:
   MSELoss() = default;
-  DataType loss(const rowvec&, const rowvec&, rowvec*) override;
+  DataType loss(const rowvec&, const rowvec&, rowvec*, rowvec*) override;
+  DataType gradient_(const rowvec&, const rowvec&, rowvec*);
+  void hessian_(const rowvec&, const rowvec&, rowvec*);
 private:
   autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
 };

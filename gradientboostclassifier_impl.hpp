@@ -1,6 +1,9 @@
 #ifndef __GRADIENTBOOSTCLASSIFIER_IMPL_HPP__
 #define __GRADIENTBOOSTCLASSIFIER_IMPL_HPP__
 
+using namespace PartitionSize;
+using namespace LearningRate;
+
 std::vector<int> _shuffle(int sz) {
   std::vector<int> ind(sz), r(sz);
   std::iota(ind.begin(), ind.end(), 0);
@@ -115,8 +118,7 @@ GradientBoostClassifier<DataType>::symmetrizeLabels() {
 
 template<typename DataType>
 void
-GradientBoostClassifier<DataType>::fit() {
-
+GradientBoostClassifier<DataType>::fit_step(std::size_t stepNum) {
   int rowRatio = static_cast<size_t>(n_ * row_subsample_ratio_);
   int colRatio = static_cast<size_t>(m_ * col_subsample_ratio_);
   rowMask_ = subsampleRows(rowRatio);
@@ -131,7 +133,44 @@ GradientBoostClassifier<DataType>::fit() {
   }
   
 
-  rowvec coeffs = generate_coefficients(dataset_slice, labels_slice);
+  std::pair<rowvec, rowvec> coeffs = generate_coefficients(dataset_slice, labels_slice);
+
+  std::size_t partitionSize = computePartitionSize(stepNum);
+  double learningRate = computeLearningRate(stepNum);
+
+  // Leaves best_leaves = computeOptimalSplit(stepNum);
+
+  
+
+}
+/*
+template<typename DataType>
+Leaves
+GradientBoostClassifier<DataType>::computeOptimalSplit(mat dataset,
+						       std::size_t stepNum, 
+						       std::size_t partitionSize) {
+
+  // We should implement several methods here
+  // XXX
+  auto dp = DPSolver(colMask_.n_rows,
+		     partitionSize,
+		     true,
+		     true,
+		     0.0,
+		     1.0,
+		     false,
+		     true);
+
+  auto dp_opt = dp.get_optimal_subsets_extern();
+}
+*/
+template<typename DataType>
+void
+GradientBoostClassifier<DataType>::fit() {
+
+  for (std::size_t stepNum=1; stepNum<=steps_; ++stepNum)
+    fit_step(stepNum);
+
 }
 
 template<typename DataType>
@@ -155,16 +194,60 @@ GradientBoostClassifier<DataType>::Classify(const mat& dataset, Row<DataType>& l
 }
 
 template<typename DataType>
-rowvec
+double
+GradientBoostClassifier<DataType>::computeLearningRate(std::size_t stepNum) {
+  if (learningRateMethod_ == RateMethod::FIXED) {
+    return learningRate_;
+  } else if (learningRateMethod_ == RateMethod::DECREASING) {
+    double A = learningRate_, B = -log(.5) / static_cast<double>(steps_);
+    return A * exp(-B * (-1 + stepNum));
+  } else if (learningRateMethod_ == RateMethod::INCREASING) {
+    double A = learningRate_, B = log(2.) / static_cast<double>(steps_);
+    return A * exp(B * (-1 + stepNum));
+  }
+}
+template<typename DataType>
+std::size_t
+GradientBoostClassifier<DataType>::computePartitionSize(std::size_t stepNum) {
+  if (partitionSizeMethod_ == SizeMethod::FIXED) {
+    return partitionSize_;
+  } else if (partitionSizeMethod_ == SizeMethod::FIXED_PROPORTION) {
+    return static_cast<double>(partitionSize_) * row_subsample_ratio_ * colMask_.n_rows;
+  } else if (partitionSizeMethod_ == SizeMethod::DECREASING) {
+    double A = m_, B = log(colMask_.n_rows)/steps_;
+    return std::max(1, static_cast<int>(A * exp(-B * (-1 + stepNum))));
+  } else if (partitionSizeMethod_ == SizeMethod::INCREASING) {
+    double A = 2., B = log(colMask_.n_rows)/static_cast<double>(steps_);
+    return std::max(1, static_cast<int>(A * exp(B * (-1 + stepNum))));
+  } else if (partitionSizeMethod_ == SizeMethod::RANDOM) {
+    // to be implemented
+    // XXX
+    ;
+  }
+}
+
+template<typename DataType>
+std::pair<rowvec, rowvec>
 GradientBoostClassifier<DataType>::generate_coefficients(const mat& dataset, const Row<DataType>& labels) {
 
   rowvec yhat;
   Predict(dataset, yhat);
 
   rowvec g, h;
-  lossFn_->loss(yhat, labels, &g);
+  lossFn_->loss(yhat, labels, &g, &h);
+  
+  /*
+  std::cout << "labels size: " << labels.n_rows << " x " << labels.n_cols << std::endl;
+  labels.print(std::cout);
+  std::cout << "yhat size: " << yhat.n_rows << " x " << yhat.n_cols << std::endl;  
+  yhat.print(std::cout);
+  std::cout << "g size: " << g.n_rows << " x " << g.n_cols << std::endl;
+  g.print(std::cout);
+  std::cout << "h size: " << h.n_rows << " x " << h.n_cols << std::endl;
+  h.print(std::cout);
+  */
 
-  return g;
+  return std::make_pair(g, h);
 }
 
 #endif

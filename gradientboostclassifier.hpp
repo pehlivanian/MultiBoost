@@ -2,6 +2,7 @@
 #define __GRADIENTBOOSTCLASSIFIER_HPP__
 
 #include <list>
+#include <utility>
 #include <memory>
 #include <random>
 #include <algorithm>
@@ -30,6 +31,24 @@ using namespace mlpack::data;
 using namespace mlpack::util;
 
 using namespace LossMeasures;
+
+namespace PartitionSize {
+  enum class SizeMethod { 
+    FIXED = 0,
+      FIXED_PROPORTION = 1,
+      DECREASING = 2,
+      INCREASING = 3,
+      RANDOM = 4,
+  };
+} // namespace Partition
+
+namespace LearningRate {
+  enum class RateMethod {
+    FIXED = 0,
+      INCREASING = 1,
+      DECREASING = 2,
+  };
+} // namespace LarningRate
 
 // Helpers for gdb
 template<class mat>
@@ -118,15 +137,19 @@ public:
   GradientBoostClassifier<DataType>(const mat& dataset, 
 				    const Row<DataType>& labels, 
 				    lossFunction loss,
+				    std::size_t partitionSize,
+				    double learningRate,
 				    int steps,
 				    bool symmetrizeLabels) : 
     steps_{steps},
     symmetrized_{symmetrizeLabels},
     dataset_{dataset},
     loss_{loss},
+    partitionSize_{partitionSize},
+    learningRate_{learningRate},
     labels_{labels},
     row_subsample_ratio_{1.},
-    col_subsample_ratio_{.75}, // .75
+    col_subsample_ratio_{.0002}, // .75
     current_classifier_ind_{0} { init_(); }
 
   void Classify(const mat&, Row<DataType>&);
@@ -140,16 +163,25 @@ private:
   uvec subsampleCols(size_t);
   void symmetrizeLabels();
   void fit();
+  void fit_step(std::size_t);
+  double computeLearningRate(std::size_t);
+  std::size_t computePartitionSize(std::size_t);
 
-  rowvec generate_coefficients(const mat&, const Row<DataType>&);
+  std::pair<rowvec,rowvec>  generate_coefficients(const mat&, const Row<DataType>&);
 
   void setNextClassifier(const ClassifierBase<DataType>&);
   int steps_;
   mat dataset_;
   Row<DataType> labels_;
+  std::size_t partitionSize_;
 
   lossFunction loss_;
   LossFunction<DataType>* lossFn_;
+  
+  double learningRate_;
+
+  PartitionSize::SizeMethod partitionSizeMethod_ = PartitionSize::SizeMethod::FIXED;
+  LearningRate::RateMethod learningRateMethod_ = LearningRate::RateMethod::FIXED;
 
   double row_subsample_ratio_;
   double col_subsample_ratio_;
