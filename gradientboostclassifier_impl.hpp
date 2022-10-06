@@ -4,21 +4,6 @@
 using namespace PartitionSize;
 using namespace LearningRate;
 
-std::vector<int> _shuffle(int sz) {
-  std::vector<int> ind(sz), r(sz);
-  std::iota(ind.begin(), ind.end(), 0);
-  
-  std::vector<std::vector<int>::iterator> v(static_cast<int>(ind.size()));
-  std::iota(v.begin(), v.end(), ind.begin());
-
-  std::shuffle(v.begin(), v.end(), std::mt19937{std::random_device{}()});
-  
-  for (int i=0; i<v.size(); ++i) {
-    r[i] = *(v[i]);
-  }
-    
-}
-
 template<typename DataType>
 Row<DataType> 
 GradientBoostClassifier<DataType>::_constantLeaf() const {
@@ -138,32 +123,53 @@ GradientBoostClassifier<DataType>::fit_step(std::size_t stepNum) {
   std::size_t partitionSize = computePartitionSize(stepNum);
   double learningRate = computeLearningRate(stepNum);
 
-  // Leaves best_leaves = computeOptimalSplit(stepNum);
+  Leaves best_leaves = computeOptimalSplit(coeffs.first, coeffs.second, dataset_slice, stepNum, partitionSize);
 
   
 
 }
-/*
+
 template<typename DataType>
-Leaves
-GradientBoostClassifier<DataType>::computeOptimalSplit(mat dataset,
+typename GradientBoostClassifier<DataType>::Leaves
+GradientBoostClassifier<DataType>::computeOptimalSplit(rowvec& g,
+						       rowvec& h,
+						       mat dataset,
 						       std::size_t stepNum, 
 						       std::size_t partitionSize) {
 
   // We should implement several methods here
   // XXX
-  auto dp = DPSolver(colMask_.n_rows,
-		     partitionSize,
-		     true,
-		     true,
-		     0.0,
-		     1.0,
-		     false,
-		     true);
+  std::cout << "dataset size:  " << colMask_.n_rows << std::endl;
+  std::cout << "partitionSize: " << partitionSize << std::endl;
 
-  auto dp_opt = dp.get_optimal_subsets_extern();
+  std::vector<float> gv = arma::conv_to<std::vector<float>>::from(g);
+  std::vector<float> hv = arma::conv_to<std::vector<float>>::from(h);
+
+  int n = colMask_.n_rows, T = partitionSize;
+  bool risk_partitioning_objective = true;
+  bool use_rational_optimization = true;
+  bool sweep_down = false;
+  float gamma = 0.;
+  float reg_power=1;
+  bool find_optimal_t = false;
+
+  /*
+    auto dp = DPSolver(n, T, gv, hv,
+    objective_fn::Gaussian,
+    use_rational_optimization,
+    gamma,
+    reg_power,
+    sweep_down,
+    find_optimal_t
+    );
+    
+    auto dp_opt = dp.get_optimal_subsets_extern();
+  */
+
+  rowvec r;
+  return r;
 }
-*/
+
 template<typename DataType>
 void
 GradientBoostClassifier<DataType>::fit() {

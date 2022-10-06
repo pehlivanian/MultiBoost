@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.6)
 
 project(InductiveBoost)
 
-# set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 include(GNUInstallDirs)
 
@@ -38,13 +38,12 @@ add_library(pmlb OBJECT pmlb.cpp)
 add_library(processor OBJECT processor.cpp)
 add_library(decision_tree OBJECT decision_tree.cpp)
 add_library(loss OBJECT loss.cpp)
-target_link_libraries(loss PUBLIC autodiff::autodiff Eigen3::Eigen ${ARMADILLO_LIBRARiES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
+target_link_libraries(loss PUBLIC autodiff::autodiff Eigen3::Eigen ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
 add_library(LTSS OBJECT LTSS.cpp)
 add_library(DP OBJECT DP.cpp)
-target_link_libraries(DP PUBLIC Eigen3::Eigen LTSS)
-add_library(gradientboostclassifier gradientboostclassifier.cpp)
-target_link_libraries(gradientboostclassifier PUBLIC Eigen3::Eigen DP)
+target_link_libraries(DP PUBLIC LTSS Eigen3::Eigen)
+add_library(gradientboostclassifier OBJECT gradientboostclassifier.cpp)
+target_link_libraries(gradientboostclassifier PUBLIC autodiff::autodiff Eigen3::Eigen {ARMADILLO_LIBRARIES} DP LTSS)
 			  
 add_executable(pmlb_driver pmlb_driver.cpp)
-target_link_libraries(pmlb_driver PUBLIC autodiff::autodiff Eigen3::Eigen ${ARMADILLO_LIBRARiES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
-set_target_properties(pmlb_driver PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF)
+target_link_libraries(pmlb_driver PUBLIC autodiff::autodiff Eigen3::Eigen ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})

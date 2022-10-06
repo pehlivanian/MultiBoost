@@ -18,8 +18,8 @@ BinomialDevianceLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, r
   rowvec f = exp(-y % yhat);
   *grad = (-y % f)/(1 + f);
   
-  ArrayXreal yhatr = static_cast_eigen(yhat).eval();
-  ArrayXreal yr = static_cast_eigen(y).eval();
+  ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
+  ArrayXreal yr = LossUtils::static_cast_eigen(y).eval();
 
   return static_cast<DataType>(loss_reverse(yr, yhatr).val());
 }
@@ -29,13 +29,13 @@ DataType
 BinomialDevianceLoss<DataType>::loss(const rowvec& yhat, const rowvec& y, rowvec* grad, rowvec* hess) {
   if (AUTODIFF_) {
     autodiff::real u;
-    ArrayXreal yhatr = static_cast_eigen(yhat).eval();
-    ArrayXreal yr = static_cast_eigen(y).eval();
+    ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
+    ArrayXreal yr = LossUtils::static_cast_eigen(y).eval();
     
     Eigen::VectorXd grad_tmp;
     std::function<autodiff::real(const ArrayXreal&)> loss_ = std::bind(&BinomialDevianceLoss<DataType>::loss_reverse, this, yr, _1);
     grad_tmp = gradient(loss_, wrt(yhatr), at(yhatr), u);
-    *grad = static_cast_arma(grad_tmp);
+    *grad = LossUtils::static_cast_arma(grad_tmp);
     return static_cast<DataType>(u.val());
   } else {
     DataType r = gradient_(yhat, y, grad);
@@ -56,8 +56,8 @@ DataType
 MSELoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
   *grad = -2 * (y - yhat);
 
-  ArrayXreal yhatr = static_cast_eigen(yhat).eval();
-  ArrayXreal yr = static_cast_eigen(y).eval();
+  ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
+  ArrayXreal yr = LossUtils::static_cast_eigen(y).eval();
 
   return static_cast<DataType>(loss_reverse(yr, yhatr).val());
 }
@@ -67,13 +67,13 @@ DataType
 MSELoss<DataType>::loss(const rowvec& yhat, const rowvec& y, rowvec* grad, rowvec* hess) {
   if (AUTODIFF_) {
     autodiff::real u;
-    ArrayXreal yhatr = static_cast_eigen(yhat).eval();
-    ArrayXreal yr = static_cast_eigen(y).eval();
+    ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
+    ArrayXreal yr = LossUtils::static_cast_eigen(y).eval();
     
     Eigen::VectorXd grad_tmp;
     std::function<autodiff::real(const ArrayXreal&)> loss_ = std::bind(&MSELoss<DataType>::loss_reverse, this, yr, _1);
     grad_tmp = gradient(loss_, wrt(yhatr), at(yhatr), u);
-    *grad = static_cast_arma(grad_tmp);
+    *grad = LossUtils::static_cast_arma(grad_tmp);
     return static_cast<DataType>(u.val());
   } else {
     DataType r = gradient_(yhat, y, grad);

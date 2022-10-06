@@ -23,6 +23,9 @@
 #include "dataset.hpp"
 #include "decision_tree.hpp"
 #include "loss.hpp"
+// #include "score.hpp"
+// #include "LTSS.hpp"
+// #include "DP.hpp"
 
 using namespace arma;
 using namespace mlpack;
@@ -30,7 +33,8 @@ using namespace mlpack::tree;
 using namespace mlpack::data;
 using namespace mlpack::util;
 
-using namespace LossMeasures;
+// using namespace Objectives;
+// using namespace LossMeasures;
 
 namespace PartitionSize {
   enum class SizeMethod { 
@@ -61,6 +65,23 @@ void print_row(Row row) {
   row.print(std::cout);
 }
 
+class PartitionUtils {
+public:
+  static std::vector<int> _shuffle(int sz) {
+    std::vector<int> ind(sz), r(sz);
+    std::iota(ind.begin(), ind.end(), 0);
+    
+    std::vector<std::vector<int>::iterator> v(static_cast<int>(ind.size()));
+    std::iota(v.begin(), v.end(), ind.begin());
+    
+    std::shuffle(v.begin(), v.end(), std::mt19937{std::random_device{}()});
+    
+    for (int i=0; i<v.size(); ++i) {
+      r[i] = *(v[i]);
+    }
+}
+
+};
 
 template<typename DataType>
 class ClassifierBase {
@@ -168,6 +189,7 @@ private:
   std::size_t computePartitionSize(std::size_t);
 
   std::pair<rowvec,rowvec>  generate_coefficients(const mat&, const Row<DataType>&);
+  Leaves computeOptimalSplit(rowvec&, rowvec&, mat, std::size_t, std::size_t);
 
   void setNextClassifier(const ClassifierBase<DataType>&);
   int steps_;

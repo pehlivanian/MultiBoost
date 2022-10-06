@@ -115,11 +115,7 @@ private:
   int optimal_num_clusters_OLS_;
   std::unique_ptr<ParametricContext> context_;
   std::unique_ptr<LTSSSolver> LTSSSolver_;
-
-  void _init() { 
-    create();
-    optimize();
-  }
+  
   void create();
   void createContext();
   void create_multiple_clustering_case();
@@ -131,6 +127,10 @@ private:
   float compute_score(int, int);
   float compute_ambient_score(float, float);
   void find_optimal_t();
+  void _init() { 
+    create();
+    optimize();
+  }
 };
 
 

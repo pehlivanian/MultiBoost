@@ -13,6 +13,20 @@ using namespace autodiff;
 using namespace std::placeholders;
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
+
+class LossUtils {
+public:
+  static Eigen::VectorXd static_cast_eigen(const rowvec& rhs) {
+    Eigen::VectorXd lhs = Eigen::Map<Eigen::VectorXd>(const_cast<double*>(rhs.memptr()), rhs.n_cols);
+    return lhs;
+  }
+  
+  static rowvec static_cast_arma(const Eigen::VectorXd& rhs) {
+    rowvec lhs = rowvec(const_cast<double*>(rhs.data()), rhs.size(), false, false);
+    return lhs;		      
+  }  
+};
+
 namespace LossMeasures { 
   enum class lossFunction {  MSE = 0,
 			     BinomialDeviance = 1,
@@ -23,17 +37,6 @@ namespace LossMeasures {
       return "General LossFunction exception";
     };
   };
-
-
-Eigen::VectorXd static_cast_eigen(const rowvec& rhs) {
-  Eigen::VectorXd lhs = Eigen::Map<Eigen::VectorXd>(const_cast<double*>(rhs.memptr()), rhs.n_cols);
-  return lhs;
-}
-
-rowvec static_cast_arma(const Eigen::VectorXd& rhs) {
-  rowvec lhs = rowvec(const_cast<double*>(rhs.data()), rhs.size(), false, false);
-  return lhs;		      
-}
 
 template<typename DataType>
 class LossFunction {
