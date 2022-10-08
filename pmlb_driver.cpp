@@ -45,7 +45,7 @@ auto main(int argc, char **argv) -> int {
     throw std::runtime_error("Could not load test_y.csv");
 
   uvec rowMask = linspace<uvec>(0, -1+dataset.n_rows, dataset.n_rows);
-  uvec colMask = linspace<uvec>(0, -1+5000, 5000);
+  uvec colMask = linspace<uvec>(0, -1+10000, 10000);
 
   dataset = dataset.submat(rowMask, colMask);
   labels = labels.submat(zeros<uvec>(1), colMask);
