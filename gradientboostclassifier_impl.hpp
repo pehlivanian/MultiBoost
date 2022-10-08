@@ -24,8 +24,6 @@ GradientBoostClassifier<DataType>::init_() {
     // Make labels members of {-1,1}
     symmetrizeLabels();
   }
-  // regularisations
-  regularizations_ = RegularizationList(steps_, DataType{0});
 
   // leaf values
   leaves_ = LeavesValues(steps_);
@@ -33,25 +31,28 @@ GradientBoostClassifier<DataType>::init_() {
     l = std::vector<DataType>(m_, 0.);
 
   // partitions
-  std::vector<int> part{m_};
-  std::iota(part.begin(), part.end(), 0);
-  partitions_.push_back(part);
+  std::vector<int> subset{m_};
+  std::iota(subset.begin(), subset.end(), 0);
+  std::vector<std::vector<int>> partition{1, subset};
+  partitions_.push_back(partition);
 
   // classifiers
   // XXX
   // Out of the box currently
   Row<DataType> constantLabels = _constantLeaf();
   classifiers_.push_back(std::make_unique<DecisionTreeRegressorClassifier<DataType>>(dataset_, constantLabels));
+  leaves_.push_back(constantLabels);
 
   // first prediction
-  current_classifier_ind_ = 0;
   Row<DataType> prediction;
   classifiers_[current_classifier_ind_]->Classify_(dataset_, prediction);
   predictions_.push_back(prediction);
 
-  // XXX
   rowMask_ = linspace<uvec>(0, -1+m_, m_);
   colMask_ = linspace<uvec>(0, -1+n_, n_);
+  
+  rowMasks_.push_back(rowMask_);
+  colMasks_.push_back(colMask_);
 
   if (loss_ == lossFunction::BinomialDeviance) {
     lossFn_ = new BinomialDevianceLoss<DataType>();
@@ -60,8 +61,37 @@ GradientBoostClassifier<DataType>::init_() {
     lossFn_ = new MSELoss<DataType>();
   }
 
+  current_classifier_ind_ = 0;
+
   // fit
   fit();
+}
+
+template<typename DataType>
+void
+GradientBoostClassifier<DataType>::Predict(const mat& dataset, Row<DataType>& prediction) {
+
+  prediction = zeros<Row<DataType>>(m_);
+  for (const auto& step : predictions_) {
+    prediction %= step;
+  }
+
+  /*
+    prediction = zeros<Row<DataType>>(m_);
+    
+    uvec rm, cm;
+    for (size_t i=0; i<classifiers_.size(); ++i) {
+    std::tie(rm, cm) = std::make_tuple(rowMasks_[i], colMasks_[i]);
+    auto dataset_slice = dataset_.submat(rowMask_, colMask_);
+    Row<DataType> p;
+    classifiers_[i]->Classify_(dataset_slice, p);
+    
+    for (size_t i=0; i<colMask_.n_rows; ++i) {
+    prediction.col(colMask_(i)) += p.col(i);
+    }    
+    }
+  */
+
 }
 
 template<typename DataType>
@@ -83,14 +113,14 @@ GradientBoostClassifier<DataType>::relabel(const Row<DataType>& label,
 template<typename DataType>
 uvec
 GradientBoostClassifier<DataType>::subsampleRows(size_t numRows) {
-  uvec r = randperm(numRows);
+  uvec r = sort(randperm(n_, numRows));
   return r;
 }
 
 template<typename DataType>
 uvec
 GradientBoostClassifier<DataType>::subsampleCols(size_t numCols) {
-  uvec r = randperm(numCols);
+  uvec r = sort(randperm(m_, numCols));
   return r;
 }
 
@@ -110,22 +140,72 @@ GradientBoostClassifier<DataType>::fit_step(std::size_t stepNum) {
   colMask_ = subsampleCols(colRatio);
   auto dataset_slice = dataset_.submat(rowMask_, colMask_);
   
-  // Doesn't seem like there's a better way to do this
+  // Apply row reduction with colMask_
   size_t slice_size = colMask_.n_rows;
   Row<DataType> labels_slice(slice_size);
   for (size_t i=0; i<slice_size; ++i) {
     labels_slice.col(i) = labels_.col(colMask_(i));
   }
-  
+  rowMasks_.push_back(rowMask_);
+  colMasks_.push_back(colMask_);
 
-  std::pair<rowvec, rowvec> coeffs = generate_coefficients(dataset_slice, labels_slice);
+  // Generate coefficients g, h
+  std::pair<rowvec, rowvec> coeffs = generate_coefficients(dataset_slice, labels_slice, colMask_);
 
+  // Compute partition size
   std::size_t partitionSize = computePartitionSize(stepNum);
+
+  // Compute learning rate
   double learningRate = computeLearningRate(stepNum);
 
+  // Compute leaves
   Leaves best_leaves = computeOptimalSplit(coeffs.first, coeffs.second, dataset_slice, stepNum, partitionSize);
+  Leaves allLeaves = zeros<Row<DataType>>(m_);
 
+  // Find classifier fit for leaves choice;
+  // POST_EXTRAPOLATE
+  // PRE_EXTRAPOLATE
+  using dtr = DecisionTreeRegressorClassifier<DataType>;
+  Row<DataType> prediction;
+  std::unique_ptr<dtr> classifier;
+
+  // XXX
+  // For debugging; put back in the condition scope
+  Row<DataType> prediction_slice;
+
+  if (POST_EXTRAPOLATE_) {
+
+    // Fit on restricted {dataset_slice, best_leaves}
+    prediction = zeros<Row<DataType>>(m_);
+    classifier.reset(new dtr(dataset_slice, best_leaves));
+    // std::unique_ptr<dtr> classifier(new dtr(dataset_slice, best_leaves));
+    classifier->Classify_(dataset_slice, prediction_slice);
+
+    // Zero-pad to extend to all of dataset
+    prediction(colMask_) = prediction_slice;
+
+  } 
   
+  else if (PRE_EXTRAPOLATE_) {
+
+    // Zero pad labels first
+    allLeaves(colMask_) = best_leaves;
+
+    // Fit classifier on {dataset, padded best_leaves}
+    classifier.reset(new dtr(dataset_, allLeaves));
+    // std::unique_ptr<dtr> classifier(new dtr(dataset_, allLeaves));
+    classifier->Classify_(dataset_, prediction);
+  }
+
+  classifiers_.push_back(std::move(classifier));
+  predictions_.push_back(prediction);
+  current_classifier_ind_++;
+
+  std::cout << "PREDICTIONS\n";
+  colMask_.print(std::cout);
+  dataset_slice.print(std::cout);
+  best_leaves.print(std::cout);
+  prediction_slice.print(std::cout);
 
 }
 
@@ -150,22 +230,52 @@ GradientBoostClassifier<DataType>::computeOptimalSplit(rowvec& g,
   bool use_rational_optimization = true;
   bool sweep_down = false;
   double gamma = 0.;
-  double reg_power=1;
+  double reg_power=1.;
   bool find_optimal_t = false;
 
+  std::cout << "Finding optimal partition...\n";
   auto dp = DPSolver(n, T, gv, hv,
 		     objective_fn::Gaussian,
-		     use_rational_optimization,
-		     gamma,
-		     reg_power,
-		     sweep_down,
-		     find_optimal_t
+		     true,
+		     true,
+		     0.,
+		     1.,
+		     false,
+		     false
 		     );
   
-  auto dp_opt = dp.get_optimal_subsets_extern();
+  auto subsets = dp.get_optimal_subsets_extern();
+  std::cout << "...optimal partition found\n";
 
-  rowvec r;
-  return r;
+
+  rowvec leaf_values = arma::zeros<rowvec>(n);
+  for (const auto& subset : subsets) {
+    uvec ind = arma::conv_to<uvec>::from(subset);
+    DataType val = -1. * learningRate_ * sum(g(ind))/sum(h(ind));
+    for (auto i: ind) {
+      leaf_values(i) = val;
+    }
+  }
+
+  leaves_.push_back(leaf_values);
+  partitions_.push_back(subsets);
+
+  return leaf_values;
+    
+    /*
+      g.print(std::cout);
+      h.print(std::cout);
+      ind.print(std::cout);
+      leaf_values.print(std::cout);
+      std::cout << learningRate_ << std::endl;
+      std::cout << val << std::endl;
+      }
+      
+      partitions_.push_back(subsets);
+      classifiers_.push_back(std::make_unique<DecisionTreeRegressorClassifier<DataType>>(dataset, leaf_values, 1));  
+      predictions_.push_back(prediction);
+    */
+
 }
 
 template<typename DataType>
@@ -180,21 +290,7 @@ GradientBoostClassifier<DataType>::fit() {
 template<typename DataType>
 void
 GradientBoostClassifier<DataType>::Classify(const mat& dataset, Row<DataType>& labels) {
-  rowvec prediction = zeros<rowvec>(dataset.n_cols);
-  for( auto const& classifier : classifiers_) {
-    rowvec predictions;
-    classifier->Classify_(dataset, predictions);
-    prediction += predictions;
-  }
-  labels = prediction;
-
-  /*
-    std::cout << "labels_\n";
-    labels_.submat(rowMask_, colMask_).print(std::cout);
-    std::cout << "prediction\n";
-    prediction.print(std::cout);sub
-  */
-  
+  Predict(dataset, labels);
 }
 
 template<typename DataType>
@@ -232,24 +328,25 @@ GradientBoostClassifier<DataType>::computePartitionSize(std::size_t stepNum) {
 
 template<typename DataType>
 std::pair<rowvec, rowvec>
-GradientBoostClassifier<DataType>::generate_coefficients(const mat& dataset, const Row<DataType>& labels) {
+GradientBoostClassifier<DataType>::generate_coefficients(const mat& dataset, const Row<DataType>& labels, const uvec& colMask) {
 
   rowvec yhat;
   Predict(dataset, yhat);
 
+  Row<DataType> yhat_slice = yhat.submat(zeros<uvec>(1), colMask);
+
   rowvec g, h;
-  lossFn_->loss(yhat, labels, &g, &h);
+  lossFn_->loss(yhat_slice, labels, &g, &h);
   
-  /*
+  std::cout << "GENERATE COEFFICIENTS\n";
   std::cout << "labels size: " << labels.n_rows << " x " << labels.n_cols << std::endl;
   labels.print(std::cout);
-  std::cout << "yhat size: " << yhat.n_rows << " x " << yhat.n_cols << std::endl;  
-  yhat.print(std::cout);
+  std::cout << "yhat_slice size: " << yhat_slice.n_rows << " x " << yhat_slice.n_cols << std::endl;  
+  yhat_slice.print(std::cout);
   std::cout << "g size: " << g.n_rows << " x " << g.n_cols << std::endl;
   g.print(std::cout);
   std::cout << "h size: " << h.n_rows << " x " << h.n_cols << std::endl;
   h.print(std::cout);
-  */
 
   return std::make_pair(g, h);
 }

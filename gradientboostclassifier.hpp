@@ -95,14 +95,23 @@ public:
 template<typename DataType>
 class DecisionTreeRegressorClassifier : public ClassifierBase<DataType> {
 public:
-  using Classifier = DecisionTreeRegressor<MSEGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
-  
-  DecisionTreeRegressorClassifier(const mat& dataset, 
+  using Classifier = DecisionTreeRegressor<MADGain>;
+  DecisionTreeRegressorClassifier(const mat& dataset,
 				  rowvec& labels,
-				  unsigned long minLeafSize=10,
-				  double minGainSplit=1.e-7,
-				  unsigned long maxDepth=10) :
+				  unsigned long minLeafSize=1,
+				  double minGainSplit=0.0) :
+    classifier_{dataset, labels, minLeafSize, minGainSplit} {}
+  /*
+    Doesn't work that well
+    using Classifier = DecisionTreeRegressor<MSEGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
+    
+    DecisionTreeRegressorClassifier(const mat& dataset, 
+    rowvec& labels,
+    unsigned long minLeafSize=10,
+    double minGainSplit=1.e-7,
+    unsigned long maxDepth=10) :
     classifier_{dataset, labels, minLeafSize, minGainSplit, maxDepth} {}
+  */
   
   void Classify_(const mat& dataset, rowvec& labels) {
     classifier_.Predict(dataset, labels);
@@ -145,15 +154,16 @@ template<typename DataType>
 class GradientBoostClassifier {
 public:
 
-  using Partition = std::vector<int>;
+  using Partition = std::vector<std::vector<int>>;
   using PartitionList = std::vector<Partition>;
-  using RegularizationList = std::vector<DataType>;
-  using ClassifierList = std::vector<std::unique_ptr<DecisionTreeRegressorClassifier<DataType>>>;
+  using Classifier = DecisionTreeRegressorClassifier<DataType>;
+  using ClassifierList = std::vector<std::unique_ptr<Classifier>>;
   using Leaves = Row<DataType>;
   using LeavesValues = std::vector<Leaves>;
   using LeavesMap = std::unordered_map<DataType, int>;
   using Prediction = Row<DataType>;
   using PredictionList = std::vector<Prediction>;
+  using MaskList = std::vector<uvec>;
   
   GradientBoostClassifier<DataType>(const mat& dataset, 
 				    const Row<DataType>& labels, 
@@ -170,11 +180,12 @@ public:
     learningRate_{learningRate},
     labels_{labels},
     row_subsample_ratio_{1.},
-    col_subsample_ratio_{.0002}, // .75
+    col_subsample_ratio_{.15},
+    // col_subsample_ratio_{.0002}, // .75
     current_classifier_ind_{0} { init_(); }
 
   void Classify(const mat&, Row<DataType>&);
-  void Predict(const mat& dataset, Row<DataType>& labels) { Classify(dataset, labels); }
+  void Predict(const mat&, Row<DataType>&);
 
 private:
   void init_();
@@ -188,7 +199,7 @@ private:
   double computeLearningRate(std::size_t);
   std::size_t computePartitionSize(std::size_t);
 
-  std::pair<rowvec,rowvec>  generate_coefficients(const mat&, const Row<DataType>&);
+  std::pair<rowvec,rowvec>  generate_coefficients(const mat&, const Row<DataType>&, const uvec&);
   Leaves computeOptimalSplit(rowvec&, rowvec&, mat, std::size_t, std::size_t);
 
   void setNextClassifier(const ClassifierBase<DataType>&);
@@ -220,11 +231,15 @@ private:
   ClassifierList classifiers_;
   PartitionList partitions_;
   PredictionList predictions_;
-  RegularizationList regularizations_;
+  MaskList rowMasks_;
+  MaskList colMasks_;
 
   std::mt19937 mersenne_engine_{std::random_device{}()};
 
   bool symmetrized_;
+
+  bool PRE_EXTRAPOLATE_ = false;
+  bool POST_EXTRAPOLATE_ = true;
 };
 
 #include "gradientboostclassifier_impl.hpp"

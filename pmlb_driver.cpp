@@ -52,9 +52,9 @@ auto main(int argc, char **argv) -> int {
   auto gradientBoostClassifier = GradientBoostClassifier<double>(dataset, 
 								 labels, 
 								 lossFunction::BinomialDeviance,
-								 10,
+								 2,
 								 .25,
-								 100,
+								 3,
 								 symmetrize);
 
   return 0;
