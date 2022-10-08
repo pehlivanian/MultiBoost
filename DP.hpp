@@ -2,10 +2,15 @@
 #define __DP_HPP__
 
 #include <list>
+#include <algorithm>
 #include <utility>
 #include <vector>
 #include <iostream>
+#include <iomanip>
 #include <iterator>
+#include <limits>
+#include <string>
+#include <exception>
 #include <memory>
 #include <algorithm>
 #include <numeric>
@@ -19,24 +24,27 @@
   #include "port_utils.hpp"
 #endif
 
+#include "utils.hpp"
 #include "score.hpp"
 #include "LTSS.hpp"
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
 using namespace Objectives;
+using namespace Utils;
 
+template<typename DataType>
 class DPSolver {
-  using all_scores = std::pair<std::vector<std::vector<int> >, float>;
+  using all_scores = std::pair<std::vector<std::vector<int> >, DataType>;
   using all_part_scores = std::vector<all_scores>;
 public:
-  DPSolver(std::vector<float> a,
-	   std::vector<float> b,
+  DPSolver(std::vector<DataType> a,
+	   std::vector<DataType> b,
 	   int T,
 	   objective_fn parametric_dist=objective_fn::Gaussian,
 	   bool risk_partitioning_objective=false,
 	   bool use_rational_optimization=false,
-	   float gamma=0.,
+	   DataType gamma=0.,
 	   int reg_power=1.,
 	   bool sweep_down=false,
 	   bool find_optimal_t=false
@@ -59,12 +67,12 @@ public:
 
   DPSolver(int n,
 	   int T,
-	   std::vector<float> a,
-	   std::vector<float> b,
+	   std::vector<DataType> a,
+	   std::vector<DataType> b,
 	   objective_fn parametric_dist=objective_fn::Gaussian,
 	   bool risk_partitioning_objective=false,
 	   bool use_rational_optimization=false,
-	   float gamma=0.,
+	   DataType gamma=0.,
 	   int reg_power=1.,
 	   bool sweep_down=false,
 	   bool find_optimal_t=false
@@ -86,8 +94,8 @@ public:
   { _init(); }
 
   std::vector<std::vector<int> > get_optimal_subsets_extern() const;
-  float get_optimal_score_extern() const;
-  std::vector<float> get_score_by_subset_extern() const;
+  DataType get_optimal_score_extern() const;
+  std::vector<DataType> get_score_by_subset_extern() const;
   all_part_scores get_all_subsets_and_scores_extern() const;
   int get_optimal_num_clusters_OLS_extern() const;
   void print_maxScore_();
@@ -96,25 +104,27 @@ public:
 private:
   int n_;
   int T_;
-  std::vector<float> a_;
-  std::vector<float> b_;
-  std::vector<std::vector<float> > maxScore_, maxScore_sec_;
+  std::vector<DataType> a_;
+  std::vector<DataType> b_;
+  std::vector<std::vector<DataType> > maxScore_, maxScore_sec_;
   std::vector<std::vector<int> > nextStart_, nextStart_sec_;
   std::vector<int> priority_sortind_;
-  float optimal_score_;
+  DataType optimal_score_;
   std::vector<std::vector<int> > subsets_;
-  std::vector<float> score_by_subset_;
+  std::vector<DataType> score_by_subset_;
   objective_fn parametric_dist_;
   bool risk_partitioning_objective_;
   bool use_rational_optimization_;
-  float gamma_;
+  DataType gamma_;
   int reg_power_;
   bool sweep_down_;
   bool find_optimal_t_;
   all_part_scores subsets_and_scores_;
   int optimal_num_clusters_OLS_;
   std::unique_ptr<ParametricContext> context_;
-  std::unique_ptr<LTSSSolver> LTSSSolver_;
+  // XXX
+  // Doesn't seem like it's needed
+  std::unique_ptr<LTSSSolver<DataType>> LTSSSolver_;
   
   void create();
   void createContext();
@@ -122,10 +132,10 @@ private:
   all_scores optimize_for_fixed_S(int);
   void optimize();
   void optimize_multiple_clustering_case();
-  void sort_by_priority(std::vector<float>&, std::vector<float>&);
-  void reorder_subsets(std::vector<std::vector<int> >&, std::vector<float>&);
-  float compute_score(int, int);
-  float compute_ambient_score(float, float);
+  void sort_by_priority(std::vector<DataType>&, std::vector<DataType>&);
+  void reorder_subsets(std::vector<std::vector<int> >&, std::vector<DataType>&);
+  DataType compute_score(int, int);
+  DataType compute_ambient_score(DataType, DataType);
   void find_optimal_t();
   void _init() { 
     create();
@@ -133,5 +143,6 @@ private:
   }
 };
 
+#include "DP_impl.hpp"
 
 #endif

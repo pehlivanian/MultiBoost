@@ -23,9 +23,9 @@
 #include "dataset.hpp"
 #include "decision_tree.hpp"
 #include "loss.hpp"
-// #include "score.hpp"
-// #include "LTSS.hpp"
-// #include "DP.hpp"
+#include "score.hpp"
+#include "LTSS.hpp"
+#include "DP.hpp"
 
 using namespace arma;
 using namespace mlpack;
@@ -33,8 +33,8 @@ using namespace mlpack::tree;
 using namespace mlpack::data;
 using namespace mlpack::util;
 
-// using namespace Objectives;
-// using namespace LossMeasures;
+using namespace Objectives;
+using namespace LossMeasures;
 
 namespace PartitionSize {
   enum class SizeMethod { 

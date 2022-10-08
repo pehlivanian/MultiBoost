@@ -142,29 +142,27 @@ GradientBoostClassifier<DataType>::computeOptimalSplit(rowvec& g,
   std::cout << "dataset size:  " << colMask_.n_rows << std::endl;
   std::cout << "partitionSize: " << partitionSize << std::endl;
 
-  std::vector<float> gv = arma::conv_to<std::vector<float>>::from(g);
-  std::vector<float> hv = arma::conv_to<std::vector<float>>::from(h);
+  std::vector<double> gv = arma::conv_to<std::vector<double>>::from(g);
+  std::vector<double> hv = arma::conv_to<std::vector<double>>::from(h);
 
   int n = colMask_.n_rows, T = partitionSize;
   bool risk_partitioning_objective = true;
   bool use_rational_optimization = true;
   bool sweep_down = false;
-  float gamma = 0.;
-  float reg_power=1;
+  double gamma = 0.;
+  double reg_power=1;
   bool find_optimal_t = false;
 
-  /*
-    auto dp = DPSolver(n, T, gv, hv,
-    objective_fn::Gaussian,
-    use_rational_optimization,
-    gamma,
-    reg_power,
-    sweep_down,
-    find_optimal_t
-    );
-    
-    auto dp_opt = dp.get_optimal_subsets_extern();
-  */
+  auto dp = DPSolver(n, T, gv, hv,
+		     objective_fn::Gaussian,
+		     use_rational_optimization,
+		     gamma,
+		     reg_power,
+		     sweep_down,
+		     find_optimal_t
+		     );
+  
+  auto dp_opt = dp.get_optimal_subsets_extern();
 
   rowvec r;
   return r;
