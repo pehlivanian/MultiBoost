@@ -83,7 +83,6 @@ DPSolver<DataType>::create() {
     }
   }
 
-  std::cout << "PRECOMPUTE PARTIAL SUMS BEGIN..." << std::endl;
   // Precompute partial sums
   std::vector<std::vector<DataType> > partialSums;
   partialSums = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(n_, 0.));
@@ -114,7 +113,6 @@ DPSolver<DataType>::create() {
 	break;
     }
   }
-  std::cout << "...PRECOMPUTE PARTIAL SUMS END" << std::endl;
 }
 
 template<typename DataType>

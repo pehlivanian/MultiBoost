@@ -45,6 +45,15 @@ BinomialDevianceLoss<DataType>::loss(const rowvec& yhat, const rowvec& y, rowvec
 }
 
 template<typename DataType>
+DataType
+BinomialDevianceLoss<DataType>::loss(const rowvec& yhat, const rowvec& y) {
+  ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
+  ArrayXreal yr = LossUtils::static_cast_eigen(y).eval();
+  DataType r = static_cast<DataType>(loss_reverse(yhatr, yr).val());
+  return r;
+}
+
+template<typename DataType>
 void
 MSELoss<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
   rowvec f(y.n_cols, arma::fill::ones);
@@ -60,6 +69,15 @@ MSELoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) 
   ArrayXreal yr = LossUtils::static_cast_eigen(y).eval();
 
   return static_cast<DataType>(loss_reverse(yr, yhatr).val());
+}
+
+template<typename DataType>
+DataType
+MSELoss<DataType>::loss(const rowvec& yhat, const rowvec& y) {
+  ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
+  ArrayXreal yr = LossUtils::static_cast_eigen(y).eval();
+  DataType r = static_cast<DataType>(loss_reverse(yhatr, yr).val());
+  return r;
 }
 
 template<typename DataType>

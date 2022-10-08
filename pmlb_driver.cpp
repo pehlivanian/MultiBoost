@@ -44,17 +44,20 @@ auto main(int argc, char **argv) -> int {
   if (!data::Load("/home/charles/Data/test_y.csv", labels))
     throw std::runtime_error("Could not load test_y.csv");
 
-  std::cout << "dataset size: " << dataset.n_rows << " x " << dataset.n_cols << std::endl;
-  std::cout << "labels size:  " << labels.n_rows << " x " << labels.n_cols << std::endl;
+  uvec rowMask = linspace<uvec>(0, -1+dataset.n_rows, dataset.n_rows);
+  uvec colMask = linspace<uvec>(0, -1+5000, 5000);
+
+  dataset = dataset.submat(rowMask, colMask);
+  labels = labels.submat(zeros<uvec>(1), colMask);
 
   bool symmetrize = true;
 
   auto gradientBoostClassifier = GradientBoostClassifier<double>(dataset, 
 								 labels, 
 								 lossFunction::BinomialDeviance,
-								 2,
+								 5,
 								 .25,
-								 3,
+								 500,
 								 symmetrize);
 
   return 0;

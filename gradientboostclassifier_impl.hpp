@@ -69,12 +69,18 @@ GradientBoostClassifier<DataType>::init_() {
 
 template<typename DataType>
 void
-GradientBoostClassifier<DataType>::Predict(const mat& dataset, Row<DataType>& prediction) {
-
+GradientBoostClassifier<DataType>::Predict(Row<DataType>& prediction) {
   prediction = zeros<Row<DataType>>(m_);
   for (const auto& step : predictions_) {
-    prediction %= step;
+    prediction += step;
   }
+}
+template<typename DataType>
+void
+GradientBoostClassifier<DataType>::Predict(Row<DataType>& prediction, const uvec& colMask) {
+
+  Predict(prediction);
+  prediction = prediction.submat(zeros<uvec>(1), colMask);
 
   /*
     prediction = zeros<Row<DataType>>(m_);
@@ -93,6 +99,14 @@ GradientBoostClassifier<DataType>::Predict(const mat& dataset, Row<DataType>& pr
   */
 
 }
+
+template<typename DataType>
+void
+GradientBoostClassifier<DataType>::Predict(const mat& dataset, Row<DataType>& prediction) {
+  // More involved
+  ;
+}
+
 
 template<typename DataType>
 typename GradientBoostClassifier<DataType>::LeavesMap
@@ -138,14 +152,10 @@ GradientBoostClassifier<DataType>::fit_step(std::size_t stepNum) {
   int colRatio = static_cast<size_t>(m_ * col_subsample_ratio_);
   rowMask_ = subsampleRows(rowRatio);
   colMask_ = subsampleCols(colRatio);
-  auto dataset_slice = dataset_.submat(rowMask_, colMask_);
-  
-  // Apply row reduction with colMask_
-  size_t slice_size = colMask_.n_rows;
-  Row<DataType> labels_slice(slice_size);
-  for (size_t i=0; i<slice_size; ++i) {
-    labels_slice.col(i) = labels_.col(colMask_(i));
-  }
+
+  mat dataset_slice = dataset_.submat(rowMask_, colMask_);  
+  Row<DataType> labels_slice = labels_.submat(zeros<uvec>(1), colMask_);
+
   rowMasks_.push_back(rowMask_);
   colMasks_.push_back(colMask_);
 
@@ -201,11 +211,15 @@ GradientBoostClassifier<DataType>::fit_step(std::size_t stepNum) {
   predictions_.push_back(prediction);
   current_classifier_ind_++;
 
-  std::cout << "PREDICTIONS\n";
-  colMask_.print(std::cout);
-  dataset_slice.print(std::cout);
-  best_leaves.print(std::cout);
-  prediction_slice.print(std::cout);
+  // colMask_.print(std::cout);
+  // dataset_slice.print(std::cout);
+  
+  /*
+    std::cout << "PREDICTIONS\n";
+    for (size_t i=500; i<600; ++i) {
+    std::cout << best_leaves(i) << " : " << prediction_slice(i) << std::endl;
+    }
+  */
 
 }
 
@@ -219,9 +233,6 @@ GradientBoostClassifier<DataType>::computeOptimalSplit(rowvec& g,
 
   // We should implement several methods here
   // XXX
-  std::cout << "dataset size:  " << colMask_.n_rows << std::endl;
-  std::cout << "partitionSize: " << partitionSize << std::endl;
-
   std::vector<double> gv = arma::conv_to<std::vector<double>>::from(g);
   std::vector<double> hv = arma::conv_to<std::vector<double>>::from(h);
 
@@ -262,28 +273,27 @@ GradientBoostClassifier<DataType>::computeOptimalSplit(rowvec& g,
 
   return leaf_values;
     
-    /*
-      g.print(std::cout);
-      h.print(std::cout);
-      ind.print(std::cout);
-      leaf_values.print(std::cout);
-      std::cout << learningRate_ << std::endl;
-      std::cout << val << std::endl;
-      }
-      
-      partitions_.push_back(subsets);
-      classifiers_.push_back(std::make_unique<DecisionTreeRegressorClassifier<DataType>>(dataset, leaf_values, 1));  
-      predictions_.push_back(prediction);
-    */
-
 }
 
 template<typename DataType>
 void
 GradientBoostClassifier<DataType>::fit() {
 
-  for (std::size_t stepNum=1; stepNum<=steps_; ++stepNum)
+  for (std::size_t stepNum=1; stepNum<=steps_; ++stepNum) {
     fit_step(stepNum);
+    
+    Row<DataType> yhat;
+    Predict(yhat);
+    DataType r = lossFn_->loss(yhat, labels_);
+    std::cout << "STEP: " << stepNum << " LOSS: " << r << std::endl;
+
+    /*
+      std::cout << "LABELS\n";
+      labels_.print(std::cout);
+      std::cout << "YHAT\n";
+      yhat.print(std::cout);
+    */
+  }
 
 }
 
@@ -331,13 +341,12 @@ std::pair<rowvec, rowvec>
 GradientBoostClassifier<DataType>::generate_coefficients(const mat& dataset, const Row<DataType>& labels, const uvec& colMask) {
 
   rowvec yhat;
-  Predict(dataset, yhat);
-
-  Row<DataType> yhat_slice = yhat.submat(zeros<uvec>(1), colMask);
+  Predict(yhat, colMask);
 
   rowvec g, h;
-  lossFn_->loss(yhat_slice, labels, &g, &h);
+  lossFn_->loss(yhat, labels, &g, &h);
   
+  /* 
   std::cout << "GENERATE COEFFICIENTS\n";
   std::cout << "labels size: " << labels.n_rows << " x " << labels.n_cols << std::endl;
   labels.print(std::cout);
@@ -347,6 +356,7 @@ GradientBoostClassifier<DataType>::generate_coefficients(const mat& dataset, con
   g.print(std::cout);
   std::cout << "h size: " << h.n_rows << " x " << h.n_cols << std::endl;
   h.print(std::cout);
+  */
 
   return std::make_pair(g, h);
 }

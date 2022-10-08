@@ -180,11 +180,13 @@ public:
     learningRate_{learningRate},
     labels_{labels},
     row_subsample_ratio_{1.},
-    col_subsample_ratio_{.15},
+    col_subsample_ratio_{.25},
     // col_subsample_ratio_{.0002}, // .75
     current_classifier_ind_{0} { init_(); }
 
   void Classify(const mat&, Row<DataType>&);
+  void Predict(Row<DataType>&);
+  void Predict(Row<DataType>&, const uvec&);
   void Predict(const mat&, Row<DataType>&);
 
 private:
