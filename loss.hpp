@@ -41,34 +41,35 @@ namespace LossMeasures {
 template<typename DataType>
 class LossFunction {
 public:
-  virtual DataType loss(const rowvec&, const rowvec&, rowvec*, rowvec*) = 0;
-  virtual DataType loss(const rowvec&, const rowvec&) = 0;
+  DataType loss(const rowvec&, const rowvec&, rowvec*, rowvec*);
+  DataType loss(const rowvec& yhat, const rowvec& y) { return loss_reverse_arma(yhat, y); }
 private:
   virtual autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) = 0;
+  virtual DataType loss_reverse_arma(const rowvec&, const rowvec&) = 0;
+  virtual DataType gradient_(const rowvec&, const rowvec&, rowvec*) = 0;
+  virtual void hessian_(const rowvec&, const rowvec&, rowvec*) = 0;
 };
 
 template<typename DataType>
 class BinomialDevianceLoss : public LossFunction<DataType> {
 public:
   BinomialDevianceLoss() = default;
-  DataType loss(const rowvec&, const rowvec&, rowvec*, rowvec*) override;
-  DataType loss(const rowvec&, const rowvec&) override;
-  DataType gradient_(const rowvec&, const rowvec&, rowvec*);
-  void hessian_(const rowvec&, const rowvec&, rowvec*);
 private:
   autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
+  DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
+  DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
+  void hessian_(const rowvec&, const rowvec&, rowvec*) override;
 };
 
 template<typename DataType>
 class MSELoss : public LossFunction<DataType> {
 public:
   MSELoss() = default;
-  DataType loss(const rowvec&, const rowvec&, rowvec*, rowvec*) override;
-  DataType loss(const rowvec&, const rowvec&) override;
-  DataType gradient_(const rowvec&, const rowvec&, rowvec*);
-  void hessian_(const rowvec&, const rowvec&, rowvec*);
 private:
-  autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
+   autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
+  DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
+  DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
+  void hessian_(const rowvec&, const rowvec&, rowvec*) override;
 };
 
 }
