@@ -26,9 +26,7 @@ GradientBoostClassifier<DataType>::init_() {
   }
 
   // leaf values
-  leaves_ = LeavesValues(steps_);
-  for(Leaves &l : leaves_) 
-    l = std::vector<DataType>(m_, 0.);
+  leaves_.push_back(std::vector<DataType>(m_, 0));
 
   // partitions
   std::vector<int> subset{m_};
@@ -63,8 +61,6 @@ GradientBoostClassifier<DataType>::init_() {
 
   current_classifier_ind_ = 0;
 
-  // fit
-  fit();
 }
 
 template<typename DataType>
@@ -103,27 +99,16 @@ GradientBoostClassifier<DataType>::Predict(Row<DataType>& prediction, const uvec
 template<typename DataType>
 void
 GradientBoostClassifier<DataType>::Predict(const mat& dataset, Row<DataType>& prediction) {
-  // More involved
-  ;
-}
 
+  prediction = zeros<Row<DataType>>(dataset.n_cols);
 
-template<typename DataType>
-typename GradientBoostClassifier<DataType>::LeavesMap
-GradientBoostClassifier<DataType>::relabel(const Row<DataType>& label,
-					   Row<std::size_t>& newLabel) {
-  std::unordered_map<DataType, int> leavesMap;
-  Row<DataType> uniqueVals = unique(label);
-  for(auto it=uniqueVals.begin(); it!=uniqueVals.end(); ++it) {
-    uvec ind = find(label == *(it));
-    std::size_t equiv = std::distance(it, uniqueVals.end());
-    newLabel.elem(ind).fill(equiv);
-    leavesMap.insert(std::make_pair(*(it), static_cast<int>(equiv)));
+  for (const auto& classifier : classifiers_) {
+    Row<DataType> predictionStep;
+    classifier->Classify_(dataset, predictionStep);
+    prediction += predictionStep;    
   }
-  
-  return leavesMap;
 }
-	
+
 template<typename DataType>
 uvec
 GradientBoostClassifier<DataType>::subsampleRows(size_t numRows) {
@@ -286,13 +271,6 @@ GradientBoostClassifier<DataType>::fit() {
     Predict(yhat);
     DataType r = lossFn_->loss(yhat, labels_);
     std::cout << "STEP: " << stepNum << " LOSS: " << r << std::endl;
-
-    /*
-      std::cout << "LABELS\n";
-      labels_.print(std::cout);
-      std::cout << "YHAT\n";
-      yhat.print(std::cout);
-    */
   }
 
 }

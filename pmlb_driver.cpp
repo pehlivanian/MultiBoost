@@ -44,11 +44,11 @@ auto main(int argc, char **argv) -> int {
   if (!data::Load("/home/charles/Data/test_y.csv", labels))
     throw std::runtime_error("Could not load test_y.csv");
 
-  uvec rowMask = linspace<uvec>(0, -1+dataset.n_rows, dataset.n_rows);
-  uvec colMask = linspace<uvec>(0, -1+10000, 10000);
+  // uvec rowMask = linspace<uvec>(0, -1+dataset.n_rows, dataset.n_rows);
+  // uvec colMask = linspace<uvec>(0, -1+10000, 10000);
 
-  dataset = dataset.submat(rowMask, colMask);
-  labels = labels.submat(zeros<uvec>(1), colMask);
+  // dataset = dataset.submat(rowMask, colMask);
+  // labels = labels.submat(zeros<uvec>(1), colMask);
 
   bool symmetrize = true;
 
@@ -59,6 +59,18 @@ auto main(int argc, char **argv) -> int {
 								 .25,
 								 500,
 								 symmetrize);
+
+  gradientBoostClassifier.fit();
+  gradientBoostClassifier.Predict(dataset, predictions);
+
+  Row<double> labels_p = gradientBoostClassifier.getLabels();
+  size_t offset = 4844;
+  std::cout << "IN SAMPLE PREDICTIONS\n";
+  for (size_t i=0; i<100; ++i) {
+    size_t ind = i+offset;
+    std::cout << labels_p(ind) << " : " << predictions(ind) << std::endl;
+  }
+  
 
   return 0;
 }

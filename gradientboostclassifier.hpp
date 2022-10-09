@@ -159,8 +159,7 @@ public:
   using Classifier = DecisionTreeRegressorClassifier<DataType>;
   using ClassifierList = std::vector<std::unique_ptr<Classifier>>;
   using Leaves = Row<DataType>;
-  using LeavesValues = std::vector<Leaves>;
-  using LeavesMap = std::unordered_map<DataType, int>;
+  using LeavesList = std::vector<Leaves>;
   using Prediction = Row<DataType>;
   using PredictionList = std::vector<Prediction>;
   using MaskList = std::vector<uvec>;
@@ -184,19 +183,22 @@ public:
     // col_subsample_ratio_{.0002}, // .75
     current_classifier_ind_{0} { init_(); }
 
+  void fit();
+
   void Classify(const mat&, Row<DataType>&);
   void Predict(Row<DataType>&);
   void Predict(Row<DataType>&, const uvec&);
   void Predict(const mat&, Row<DataType>&);
 
+  mat getDataset() const { return dataset_; }
+  Row<DataType> getLabels() const { return labels_; }
+
 private:
   void init_();
-  LeavesMap relabel(const Row<DataType>&, Row<std::size_t>&);
   Row<DataType> _constantLeaf() const;
   uvec subsampleRows(size_t);
   uvec subsampleCols(size_t);
   void symmetrizeLabels();
-  void fit();
   void fit_step(std::size_t);
   double computeLearningRate(std::size_t);
   std::size_t computePartitionSize(std::size_t);
@@ -229,7 +231,7 @@ private:
 
   int current_classifier_ind_;
 
-  LeavesValues leaves_;
+  LeavesList leaves_;
   ClassifierList classifiers_;
   PartitionList partitions_;
   PredictionList predictions_;
