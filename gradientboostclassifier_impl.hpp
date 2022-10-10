@@ -106,6 +106,10 @@ GradientBoostClassifier<DataType>::Predict(const mat& dataset, Row<DataType>& pr
     Row<DataType> predictionStep;
     classifier->Classify_(dataset, predictionStep);
     prediction += predictionStep;    
+  }  
+  
+  if (symmetrized_) {
+    deSymmetrize(prediction);
   }
 }
 
@@ -126,8 +130,13 @@ GradientBoostClassifier<DataType>::subsampleCols(size_t numCols) {
 template<typename DataType>
 void
 GradientBoostClassifier<DataType>::symmetrizeLabels() {
-  for (auto &el : labels_)
-    el = 2*el - 1;
+  labels_ = sign(2 * labels_ - 1);
+}
+
+template<typename DataType>
+void
+GradientBoostClassifier<DataType>::deSymmetrize(Row<DataType>& prediction) {
+  prediction = (1 + sign(prediction)) / 2.;
 }
 
 template<typename DataType>
@@ -158,8 +167,6 @@ GradientBoostClassifier<DataType>::fit_step(std::size_t stepNum) {
   Leaves allLeaves = zeros<Row<DataType>>(m_);
 
   // Find classifier fit for leaves choice;
-  // POST_EXTRAPOLATE
-  // PRE_EXTRAPOLATE
   using dtr = DecisionTreeRegressorClassifier<DataType>;
   Row<DataType> prediction;
   std::unique_ptr<dtr> classifier;
@@ -168,7 +175,7 @@ GradientBoostClassifier<DataType>::fit_step(std::size_t stepNum) {
   // For debugging; put back in the condition scope
   Row<DataType> prediction_slice;
 
-  if (POST_EXTRAPOLATE_) {
+  if (postExtrapolate_) {
 
     // Fit on restricted {dataset_slice, best_leaves}
     prediction = zeros<Row<DataType>>(m_);
@@ -181,7 +188,7 @@ GradientBoostClassifier<DataType>::fit_step(std::size_t stepNum) {
 
   } 
   
-  else if (PRE_EXTRAPOLATE_) {
+  else if (preExtrapolate_) {
 
     // Zero pad labels first
     allLeaves(colMask_) = best_leaves;
@@ -229,10 +236,9 @@ GradientBoostClassifier<DataType>::computeOptimalSplit(rowvec& g,
   double reg_power=1.;
   bool find_optimal_t = false;
 
-  std::cout << "Finding optimal partition...\n";
   auto dp = DPSolver(n, T, gv, hv,
-		     objective_fn::Gaussian,
-		     true,
+		     objective_fn::RationalScore,
+		     false,
 		     true,
 		     0.,
 		     1.,
@@ -241,8 +247,17 @@ GradientBoostClassifier<DataType>::computeOptimalSplit(rowvec& g,
 		     );
   
   auto subsets = dp.get_optimal_subsets_extern();
-  std::cout << "...optimal partition found\n";
-
+  
+  bool USE_FIRST_SUBSET = true;
+  size_t NUM_SUBSETS = 1;
+  std::vector<std::vector<int>> v;
+  if (USE_FIRST_SUBSET) {
+    if (g.n_elem > 1) {
+      for (size_t i=partitionSize-1; i>(partitionSize-1-NUM_SUBSETS); --i) 
+	v.push_back(subsets[i]);
+      subsets = v;
+    }
+  }
 
   rowvec leaf_values = arma::zeros<rowvec>(n);
   for (const auto& subset : subsets) {

@@ -28,9 +28,6 @@ public:
 };
 
 namespace LossMeasures { 
-  enum class lossFunction {  MSE = 0,
-			     BinomialDeviance = 1,
-			     };
 
   struct lossFunctionException : public std::exception {
     const char* what() const throw() {
@@ -66,11 +63,15 @@ class MSELoss : public LossFunction<DataType> {
 public:
   MSELoss() = default;
 private:
-   autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
+  autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
   DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
   DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
   void hessian_(const rowvec&, const rowvec&, rowvec*) override;
 };
+
+  enum class lossFunction {  MSE = 0,
+			     BinomialDeviance = 1,
+			       };
 
 }
 #include "loss_impl.hpp"

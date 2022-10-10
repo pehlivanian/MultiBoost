@@ -36,41 +36,57 @@ auto main(int argc, char **argv) -> int {
     The mlpack way
 
   */
-  mat dataset;
-  rowvec labels, predictions;
 
-  if (!data::Load("/home/charles/Data/test_X.csv", dataset))
-    throw std::runtime_error("Could not load test_X.csv");
-  if (!data::Load("/home/charles/Data/test_y.csv", labels))
-    throw std::runtime_error("Could not load test_y.csv");
+  /*
+    uvec rowMask = linspace<uvec>(0, -1+dataset.n_rows, dataset.n_rows);
+    uvec colMask = linspace<uvec>(0, -1+10000, 10000);
+    dataset = dataset.submat(rowMask, colMask);
+    labels = labels.submat(zeros<uvec>(1), colMask);
+    
+  */
 
-  // uvec rowMask = linspace<uvec>(0, -1+dataset.n_rows, dataset.n_rows);
-  // uvec colMask = linspace<uvec>(0, -1+10000, 10000);
+  /*
+    uvec rowMask = linspace<uvec>(0, -1+dataset.n_rows, dataset.n_rows);
+    uvec colMask = linspace<uvec>(0, -1+1000, 1000);
+    dataset = dataset.submat(rowMask, colMask);
+    labels = labels.submat(zeros<uvec>(1), colMask);
+  */  
 
-  // dataset = dataset.submat(rowMask, colMask);
-  // labels = labels.submat(zeros<uvec>(1), colMask);
+  mat dataset, trainDataset, testDataset;
+  rowvec labels, trainLabels, testLabels, trainPrediction, testPrediction;
+
+  ClassifierContext::Context context;
+  context.loss = lossFunction::BinomialDeviance;
+  context.partitionSize = 5;
+  context.learningRate = .025;
+  context.steps = 5000;
+  context.symmetrizeLabels = true;
+  context.rowSubsampleRatio = 1.;
+  context.colSubsampleRatio = .05;
+  context.preExtrapolate = true;
+  context.postExtrapolate = false;
+  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
+  context.learningRateMethod = LearningRate::RateMethod::FIXED;
+  
+  if (!data::Load("/home/charles/Data/breast_cancer_X.csv", dataset))
+    throw std::runtime_error("Could not load file");
+  if (!data::Load("/home/charles/Data/breast_cancer_y.csv", labels))
+    throw std::runtime_error("Could not load flare_y.csv");
+
+  data::Split(dataset, labels, trainDataset, testDataset, trainLabels, testLabels, 0.2);
 
   bool symmetrize = true;
 
-  auto gradientBoostClassifier = GradientBoostClassifier<double>(dataset, 
-								 labels, 
-								 lossFunction::BinomialDeviance,
-								 5,
-								 .25,
-								 500,
-								 symmetrize);
+  auto gradientBoostClassifier = GradientBoostClassifier<double>(dataset, labels, context);
 
   gradientBoostClassifier.fit();
-  gradientBoostClassifier.Predict(dataset, predictions);
-
-  Row<double> labels_p = gradientBoostClassifier.getLabels();
-  size_t offset = 4844;
-  std::cout << "IN SAMPLE PREDICTIONS\n";
-  for (size_t i=0; i<100; ++i) {
-    size_t ind = i+offset;
-    std::cout << labels_p(ind) << " : " << predictions(ind) << std::endl;
-  }
+  gradientBoostClassifier.Predict(trainDataset, trainPrediction);
+  gradientBoostClassifier.Predict(testDataset, testPrediction);
+    
+  const double trainError = accu(trainPrediction != trainLabels) * 100. / trainLabels.n_elem;
+  const double testError = accu(testPrediction != testLabels) * 100. / testLabels.n_elem;
+  std::cout << "TRAINING ERROR: " << trainError << "%." << std::endl;
+  std::cout << "TEST ERROR    : " << testError << "%." << std::endl;
   
-
   return 0;
 }

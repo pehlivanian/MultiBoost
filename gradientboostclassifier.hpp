@@ -54,6 +54,22 @@ namespace LearningRate {
   };
 } // namespace LarningRate
 
+namespace ClassifierContext {
+  struct Context {
+    lossFunction loss;
+    std::size_t partitionSize;
+    double learningRate;
+    int steps;
+    bool symmetrizeLabels;
+    double rowSubsampleRatio;
+    double colSubsampleRatio;
+    bool preExtrapolate;
+    bool postExtrapolate;
+    PartitionSize::SizeMethod partitionSizeMethod;
+    LearningRate::RateMethod learningRateMethod;
+  };
+} // namespace ClassifierContext
+
 // Helpers for gdb
 template<class mat>
 void print_matrix(mat matrix) {
@@ -171,17 +187,38 @@ public:
 				    double learningRate,
 				    int steps,
 				    bool symmetrizeLabels) : 
+    dataset_{dataset},
+    labels_{labels},
     steps_{steps},
     symmetrized_{symmetrizeLabels},
-    dataset_{dataset},
     loss_{loss},
     partitionSize_{partitionSize},
     learningRate_{learningRate},
-    labels_{labels},
     row_subsample_ratio_{1.},
-    col_subsample_ratio_{.25},
-    // col_subsample_ratio_{.0002}, // .75
-    current_classifier_ind_{0} { init_(); }
+    col_subsample_ratio_{.05},
+    preExtrapolate_{false},
+    postExtrapolate_{true},
+    current_classifier_ind_{0} 
+  { init_(); }
+
+  GradientBoostClassifier<DataType>(const mat& dataset, 
+				    const Row<DataType>& labels,
+				    ClassifierContext::Context context) :
+    dataset_{dataset},
+    labels_{labels},
+    loss_{context.loss},
+    partitionSize_{context.partitionSize},
+    learningRate_{context.learningRate},
+    steps_{context.steps},
+    symmetrized_{context.symmetrizeLabels},
+    row_subsample_ratio_{context.rowSubsampleRatio},
+    col_subsample_ratio_{context.colSubsampleRatio},
+    preExtrapolate_{context.preExtrapolate},
+    postExtrapolate_{context.postExtrapolate},
+    partitionSizeMethod_{context.partitionSizeMethod},
+    learningRateMethod_{context.learningRateMethod},
+    current_classifier_ind_{0} 
+  { init_(); }
 
   void fit();
 
@@ -199,6 +236,7 @@ private:
   uvec subsampleRows(size_t);
   uvec subsampleCols(size_t);
   void symmetrizeLabels();
+  void deSymmetrize(Row<DataType>&);
   void fit_step(std::size_t);
   double computeLearningRate(std::size_t);
   std::size_t computePartitionSize(std::size_t);
@@ -217,8 +255,8 @@ private:
   
   double learningRate_;
 
-  PartitionSize::SizeMethod partitionSizeMethod_ = PartitionSize::SizeMethod::FIXED;
-  LearningRate::RateMethod learningRateMethod_ = LearningRate::RateMethod::FIXED;
+  PartitionSize::SizeMethod partitionSizeMethod_;
+  LearningRate::RateMethod learningRateMethod_;
 
   double row_subsample_ratio_;
   double col_subsample_ratio_;
@@ -242,8 +280,8 @@ private:
 
   bool symmetrized_;
 
-  bool PRE_EXTRAPOLATE_ = false;
-  bool POST_EXTRAPOLATE_ = true;
+  bool preExtrapolate_;
+  bool postExtrapolate_;
 };
 
 #include "gradientboostclassifier_impl.hpp"
