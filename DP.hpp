@@ -90,7 +90,7 @@ public:
     sweep_down_{sweep_down},
     find_optimal_t_{find_optimal_t},
     optimal_num_clusters_OLS_{0}
- 
+  
   { _init(); }
 
   std::vector<std::vector<int> > get_optimal_subsets_extern() const;

@@ -58,6 +58,7 @@ namespace ClassifierContext {
   struct Context {
     lossFunction loss;
     std::size_t partitionSize;
+    double partitionRatio = .5;
     double learningRate;
     int steps;
     bool symmetrizeLabels;
@@ -71,15 +72,17 @@ namespace ClassifierContext {
 } // namespace ClassifierContext
 
 // Helpers for gdb
-template<class mat>
-void print_matrix(mat matrix) {
+template<class Matrix>
+void print_matrix(Matrix matrix) {
   matrix.print(std::cout);
 }
 
 template<class Row>
-void print_row(Row row) {
+void print_vector(Row row) {
   row.print(std::cout);
 }
+template void print_matrix<arma::mat>(arma::mat matrix);
+template void print_vector<arma::rowvec>(arma::rowvec row);
 
 class PartitionUtils {
 public:
@@ -111,12 +114,23 @@ public:
 template<typename DataType>
 class DecisionTreeRegressorClassifier : public ClassifierBase<DataType> {
 public:
-  using Classifier = DecisionTreeRegressor<MADGain>;
+  // Different flavors
+  using Classifier = DecisionTreeRegressor<MADGain, BestBinaryNumericSplit>;
+  // using Classifier = DecisionTreeRegressor<MADGain>;
+  // using Classifier = DecisionTreeRegressor<>;
+  // using Classifier = DecisionTreeRegressor<MSEGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
+  // using Classifier = DecisionTreeRegressor<InformationGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
+
+  const unsigned long minLeafSize = 1;
+  const double minGainSplit = 0.0;
+  const unsigned long maxDepth = 100;
+
   DecisionTreeRegressorClassifier(const mat& dataset,
 				  rowvec& labels,
-				  unsigned long minLeafSize=1,
-				  double minGainSplit=0.0) :
-    classifier_{dataset, labels, minLeafSize, minGainSplit} {}
+				  unsigned long minLeafSize=5,
+				  double minGainSplit=0.,
+				  unsigned long maxDepth=5) :
+    classifier_{dataset, labels, minLeafSize, minGainSplit, maxDepth} {}
   /*
     Doesn't work that well
     using Classifier = DecisionTreeRegressor<MSEGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
@@ -140,23 +154,53 @@ private:
 template<typename DataType>
 class DecisionTreeClassifier : public ClassifierBase<DataType> {
 public:
+
+  using LeavesMap = std::unordered_map<std::size_t, DataType>;
+
   // Doesn't have a predict method which rerturns floats
-  using Classifier = DecisionTree<GiniGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
+  // using Classifier = DecisionTree<GiniGain, 
+  //                      BestBinaryNumericSplit, 
+  //			  AllCategoricalSplit, 
+  //			  AllDimensionSelect, 
+  //			  true>;
+  using Classifier = DecisionTree<GiniGain, BestBinaryNumericSplit>;
   
-  DecisionTreeClassifier(const mat& dataset, Row<DataType>& labels) :
-    classifier_{dataset, labels, 7, 10, 3} {}
+  DecisionTreeClassifier(const mat& dataset, Row<DataType>& labels, std::size_t numClasses) 
+  {    
+    Row<std::size_t> labels_t(labels.n_cols);
+    leavesMap_ = _encode(labels, labels_t);
+    classifier_ = Classifier{dataset, labels_t, numClasses, 1, 0.}; 
+
+    // Check error
+    /*
+      Row<std::size_t> prediction;
+      classifier_.Classify(dataset, prediction);
+      const double trainError = arma::accu(prediction != labels_t) * 100. / labels_t.n_elem;
+      cout << "Training error: " << trainError << "%." << endl;
+    */
+    
+  }
     
   void Classify_(const mat& dataset, Row<DataType>& labels) {
-    classifier_.Classify(dataset, labels);
+    Row<std::size_t> labels_t;
+    classifier_.Classify(dataset, labels_t);
+    labels = Row<DataType>(labels_t.n_cols);
+    _decode(labels_t, labels);
   }
+
 private:
   Classifier classifier_;
+  LeavesMap leavesMap_;
+
+  LeavesMap _encode(const Row<DataType>&, Row<std::size_t>&);
+  void _decode(const Row<std::size_t>&, Row<DataType>&);
+  
 };
 
 template<typename DataType>
 class LeafOnlyClassifier : public ClassifierBase<DataType> {
 public:
-  LeafOnlyClassifier(Row<DataType> leaves) :
+  LeafOnlyClassifier(const mat& dataset, const Row<DataType>& leaves) :
     leaves_{leaves} {}
 
   void Classify_(const mat& dataset, Row<DataType>& labels) {
@@ -172,7 +216,8 @@ public:
 
   using Partition = std::vector<std::vector<int>>;
   using PartitionList = std::vector<Partition>;
-  using Classifier = DecisionTreeRegressorClassifier<DataType>;
+  // using Classifier = DecisionTreeRegressorClassifier<DataType>;
+  using Classifier = DecisionTreeClassifier<DataType>;
   using ClassifierList = std::vector<std::unique_ptr<Classifier>>;
   using Leaves = Row<DataType>;
   using LeavesList = std::vector<Leaves>;
@@ -208,6 +253,7 @@ public:
     labels_{labels},
     loss_{context.loss},
     partitionSize_{context.partitionSize},
+    partitionRatio_{context.partitionRatio},
     learningRate_{context.learningRate},
     steps_{context.steps},
     symmetrized_{context.symmetrizeLabels},
@@ -218,13 +264,32 @@ public:
     partitionSizeMethod_{context.partitionSizeMethod},
     learningRateMethod_{context.learningRateMethod},
     current_classifier_ind_{0} 
-  { init_(); }
+  { 
+    init_(); 
+  }
+
+  GradientBoostClassifier<DataType>(const mat& dataset_is,
+				    const Row<DataType>& labels_is,
+				    const mat& dataset_oos,
+				    const Row<DataType>& labels_oos,
+				    ClassifierContext::Context context) : 
+    GradientBoostClassifier<DataType>(dataset_is, labels_is, context)
+  {
+    hasOOSData_ = true;
+    dataset_oos_ = dataset_oos;
+    labels_oos_ = labels_oos;
+  }
 
   void fit();
 
   void Classify(const mat&, Row<DataType>&);
+
+  // 3 Predict methods
+  // predict on member dataset; loop through and sum step prediction vectors
   void Predict(Row<DataType>&);
+  // predict on subset of dataset defined by uvec; sum step prediction vectors
   void Predict(Row<DataType>&, const uvec&);
+  // predict OOS, loop through and call Classify_ on individual classifiers, sum
   void Predict(const mat&, Row<DataType>&);
 
   mat getDataset() const { return dataset_; }
@@ -233,9 +298,11 @@ public:
 private:
   void init_();
   Row<DataType> _constantLeaf() const;
+  Row<DataType> _randomLeaf() const;
   uvec subsampleRows(size_t);
   uvec subsampleCols(size_t);
   void symmetrizeLabels();
+  void symmetrize(Row<DataType>&);
   void deSymmetrize(Row<DataType>&);
   void fit_step(std::size_t);
   double computeLearningRate(std::size_t);
@@ -248,7 +315,10 @@ private:
   int steps_;
   mat dataset_;
   Row<DataType> labels_;
+  mat dataset_oos_;
+  Row<DataType> labels_oos_;
   std::size_t partitionSize_;
+  double partitionRatio_;
 
   lossFunction loss_;
   LossFunction<DataType>* lossFn_;
@@ -277,11 +347,17 @@ private:
   MaskList colMasks_;
 
   std::mt19937 mersenne_engine_{std::random_device{}()};
+  std::default_random_engine default_engine_;
+  std::uniform_int_distribution<std::size_t> partitionDist_{1, 
+      static_cast<std::size_t>(m_ * col_subsample_ratio_)};
+  // call by partitionDist_(default_engine_)
 
   bool symmetrized_;
 
   bool preExtrapolate_;
   bool postExtrapolate_;
+
+  bool hasOOSData_;
 };
 
 #include "gradientboostclassifier_impl.hpp"

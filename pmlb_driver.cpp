@@ -57,27 +57,33 @@ auto main(int argc, char **argv) -> int {
 
   ClassifierContext::Context context;
   context.loss = lossFunction::BinomialDeviance;
-  context.partitionSize = 5;
-  context.learningRate = .025;
-  context.steps = 5000;
+  // context.loss = lossFunction::MSE;
+  context.partitionSize = 10;
+  context.partitionRatio = .25;
+  context.learningRate = .01;
+  context.steps = 10000;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
-  context.colSubsampleRatio = .05;
-  context.preExtrapolate = true;
-  context.postExtrapolate = false;
-  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
+  context.colSubsampleRatio = .4;
+  context.preExtrapolate = false;
+  context.postExtrapolate = true;
+  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED_PROPORTION;
   context.learningRateMethod = LearningRate::RateMethod::FIXED;
-  
-  if (!data::Load("/home/charles/Data/breast_cancer_X.csv", dataset))
-    throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/breast_cancer_y.csv", labels))
-    throw std::runtime_error("Could not load flare_y.csv");
 
+
+  if (!data::Load("/home/charles/Data/german_X.csv", dataset))
+    throw std::runtime_error("Could not load file");
+  if (!data::Load("/home/charles/Data/german_y.csv", labels))
+    throw std::runtime_error("Could not load file");
   data::Split(dataset, labels, trainDataset, testDataset, trainLabels, testLabels, 0.2);
 
   bool symmetrize = true;
 
-  auto gradientBoostClassifier = GradientBoostClassifier<double>(dataset, labels, context);
+  auto gradientBoostClassifier = GradientBoostClassifier<double>(trainDataset, 
+								 trainLabels, 
+								 testDataset,
+								 testLabels,
+								 context);
 
   gradientBoostClassifier.fit();
   gradientBoostClassifier.Predict(trainDataset, trainPrediction);
@@ -87,6 +93,6 @@ auto main(int argc, char **argv) -> int {
   const double testError = accu(testPrediction != testLabels) * 100. / testLabels.n_elem;
   std::cout << "TRAINING ERROR: " << trainError << "%." << std::endl;
   std::cout << "TEST ERROR    : " << testError << "%." << std::endl;
-  
+
   return 0;
 }
