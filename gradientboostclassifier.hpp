@@ -9,8 +9,8 @@
 #include <functional>
 #include <iostream>
 #include <vector>
-#include <random>
 #include <unordered_map>
+#include <cassert>
 
 #include <mlpack/core.hpp>
 #include <mlpack/methods/decision_tree/decision_tree.hpp>
@@ -19,6 +19,7 @@
 #include <mlpack/methods/decision_tree/gini_gain.hpp>
 #include <mlpack/methods/decision_tree/random_dimension_select.hpp>
 #include <mlpack/methods/decision_tree/multiple_random_dimension_select.hpp>
+#include <mlpack/methods/random_forest/random_forest.hpp>
 
 #include "dataset.hpp"
 #include "decision_tree.hpp"
@@ -98,17 +99,18 @@ public:
     for (int i=0; i<v.size(); ++i) {
       r[i] = *(v[i]);
     }
-}
-
+  }
 };
 
 template<typename DataType>
 class ClassifierBase {
 public:
+
   ClassifierBase() = default;
   ~ClassifierBase() = default;
 
   virtual void Classify_(const mat& dataset, Row<DataType>& labels) = 0;
+
 };
 
 template<typename DataType>
@@ -152,11 +154,46 @@ private:
 };
 
 template<typename DataType>
+class RandomForestClassifier : public ClassifierBase<DataType> {
+public:
+  
+  using LeavesMap = std::unordered_map<std::size_t, DataType>;
+  using Classifier = RandomForest<>;
+
+  RandomForestClassifier(const mat& dataset, Row<DataType>& labels, std::size_t numClasses) {    
+    Row<std::size_t> labels_t(labels.n_cols);
+    leavesMap_ = encode(labels, labels_t);
+    classifier_ = Classifier{dataset, labels_t, numClasses, 5, 3}; 
+  }
+  
+  void Classify_(const mat& dataset, Row<DataType>& labels) {
+    Row<std::size_t> labels_t;
+    classifier_.Classify(dataset, labels_t);
+    labels = Row<DataType>(labels_t.n_cols);
+    decode(labels_t, labels);
+
+    // Check error
+    /*
+      Row<std::size_t> prediction;
+      classifier_.Classify(dataset, prediction);
+      const double trainError = arma::accu(prediction != labels_t) * 100. / labels_t.n_elem;
+      cout << "Training error: " << trainError << "%." << endl;
+    */
+  }
+  
+private:
+  LeavesMap encode(const Row<DataType>&, Row<std::size_t>&);
+  void decode(const Row<std::size_t>&, Row<DataType>&);
+
+  Classifier classifier_;
+  LeavesMap leavesMap_;
+};
+
+template<typename DataType>
 class DecisionTreeClassifier : public ClassifierBase<DataType> {
 public:
 
   using LeavesMap = std::unordered_map<std::size_t, DataType>;
-
   // Doesn't have a predict method which rerturns floats
   // using Classifier = DecisionTree<GiniGain, 
   //                      BestBinaryNumericSplit, 
@@ -168,7 +205,7 @@ public:
   DecisionTreeClassifier(const mat& dataset, Row<DataType>& labels, std::size_t numClasses) 
   {    
     Row<std::size_t> labels_t(labels.n_cols);
-    leavesMap_ = _encode(labels, labels_t);
+    leavesMap_ = encode(labels, labels_t);
     classifier_ = Classifier{dataset, labels_t, numClasses, 1, 0.}; 
 
     // Check error
@@ -185,16 +222,16 @@ public:
     Row<std::size_t> labels_t;
     classifier_.Classify(dataset, labels_t);
     labels = Row<DataType>(labels_t.n_cols);
-    _decode(labels_t, labels);
+    decode(labels_t, labels);
   }
 
 private:
+  LeavesMap encode(const Row<DataType>&, Row<std::size_t>&);
+  void decode(const Row<std::size_t>&, Row<DataType>&);
+
   Classifier classifier_;
   LeavesMap leavesMap_;
 
-  LeavesMap _encode(const Row<DataType>&, Row<std::size_t>&);
-  void _decode(const Row<std::size_t>&, Row<DataType>&);
-  
 };
 
 template<typename DataType>
@@ -214,11 +251,12 @@ template<typename DataType>
 class GradientBoostClassifier {
 public:
 
-  using Partition = std::vector<std::vector<int>>;
-  using PartitionList = std::vector<Partition>;
   // using Classifier = DecisionTreeRegressorClassifier<DataType>;
   using Classifier = DecisionTreeClassifier<DataType>;
-  using ClassifierList = std::vector<std::unique_ptr<Classifier>>;
+
+  using Partition = std::vector<std::vector<int>>;
+  using PartitionList = std::vector<Partition>;
+  using ClassifierList = std::vector<std::unique_ptr<ClassifierBase<DataType>>>;
   using Leaves = Row<DataType>;
   using LeavesList = std::vector<Leaves>;
   using Prediction = Row<DataType>;
@@ -298,7 +336,7 @@ public:
 private:
   void init_();
   Row<DataType> _constantLeaf() const;
-  Row<DataType> _randomLeaf() const;
+  Row<DataType> _randomLeaf(std::size_t numVals=20) const;
   uvec subsampleRows(size_t);
   uvec subsampleCols(size_t);
   void symmetrizeLabels();
@@ -336,6 +374,9 @@ private:
 
   int n_;
   int m_;
+
+  double a_;
+  double b_;
 
   int current_classifier_ind_;
 
