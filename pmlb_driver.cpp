@@ -58,22 +58,22 @@ auto main(int argc, char **argv) -> int {
   ClassifierContext::Context context;
   context.loss = lossFunction::BinomialDeviance;
   // context.loss = lossFunction::MSE;
-  context.partitionSize = 10;
-  context.partitionRatio = .25;
+  context.partitionSize = 4;
+  context.partitionRatio = .15;
   context.learningRate = .01;
   context.steps = 10000;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
-  context.colSubsampleRatio = .4;
+  context.colSubsampleRatio = .15;
   context.preExtrapolate = false;
   context.postExtrapolate = true;
   context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED_PROPORTION;
   context.learningRateMethod = LearningRate::RateMethod::FIXED;
 
 
-  if (!data::Load("/home/charles/Data/german_X.csv", dataset))
+  if (!data::Load("/home/charles/Data/haberman_X.csv", dataset))
     throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/german_y.csv", labels))
+  if (!data::Load("/home/charles/Data/haberman_y.csv", labels))
     throw std::runtime_error("Could not load file");
   data::Split(dataset, labels, trainDataset, testDataset, trainLabels, testLabels, 0.2);
 
