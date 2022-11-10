@@ -4,25 +4,23 @@
 using namespace PartitionSize;
 using namespace LearningRate;
 
-
-template<typename DataType>
-typename RandomForestClassifier<DataType>::LeavesMap
-RandomForestClassifier<DataType>::encode(const Row<DataType>& labels_d, Row<std::size_t>& labels_t) {
-  LeavesMap leavesMap;
+template<typename DataType, typename ClassifierType, typename... Args>
+void
+DiscreteClassifierBase<DataType, ClassifierType, Args...>::encode(const Row<DataType>& labels_d, 
+								  Row<std::size_t>& labels_t) {
   Row<DataType> uniqueVals = unique(labels_d);
   for (auto it=uniqueVals.begin(); it!=uniqueVals.end(); ++it) {
     uvec ind = find(labels_d == *it);
     std::size_t equiv = std::distance(it, uniqueVals.end()) - 1;
     labels_t.elem(ind).fill(equiv);
-    leavesMap.insert(std::make_pair(static_cast<std::size_t>(equiv), (*it)));
+    leavesMap_.insert(std::make_pair(static_cast<std::size_t>(equiv), (*it)));
   }
-  return leavesMap;
 }
 
-template<typename DataType>
+template<typename DataType, typename ClassifierType, typename... Args>
 void
-RandomForestClassifier<DataType>::decode(const Row<std::size_t>& labels_t,
-					  Row<DataType>& labels_d) {
+DiscreteClassifierBase<DataType, ClassifierType, Args...>::decode(const Row<std::size_t>& labels_t,
+								  Row<DataType>& labels_d) {
   Row<std::size_t> uniqueVals = unique(labels_t);
   for (auto it=uniqueVals.begin(); it!=uniqueVals.end(); ++it) {
     uvec ind = find(labels_t == *it);
@@ -31,32 +29,23 @@ RandomForestClassifier<DataType>::decode(const Row<std::size_t>& labels_t,
   }
 }
 
-template<typename DataType>
-typename DecisionTreeClassifier<DataType>::LeavesMap
-DecisionTreeClassifier<DataType>::encode(const Row<DataType>& labels_d, Row<std::size_t>& labels_t) {
-  LeavesMap leavesMap;
-  Row<DataType> uniqueVals = unique(labels_d);
-  for (auto it=uniqueVals.begin(); it!=uniqueVals.end(); ++it) {
-    uvec ind = find(labels_d == *it);
-    std::size_t equiv = std::distance(it, uniqueVals.end()) - 1;
-    labels_t.elem(ind).fill(equiv);
-    leavesMap.insert(std::make_pair(static_cast<std::size_t>(equiv), (*it)));
-  }
-  return leavesMap;
-}
-
-template<typename DataType>
+template<typename DataType, typename ClassifierType, typename... Args>
 void
-DecisionTreeClassifier<DataType>::decode(const Row<std::size_t>& labels_t,
-					  Row<DataType>& labels_d) {
-  Row<std::size_t> uniqueVals = unique(labels_t);
-  for (auto it=uniqueVals.begin(); it!=uniqueVals.end(); ++it) {
-    uvec ind = find(labels_t == *it);
-    DataType equiv = leavesMap_[*it];
-    labels_d.elem(ind).fill(equiv);
-  }
+DiscreteClassifierBase<DataType, ClassifierType, Args...>::Classify_(const mat& dataset, Row<DataType>& labels) {
+  Row<std::size_t> labels_t;
+  std::unique_ptr<ClassifierType> classifier = ClassifierBase<DataType, ClassifierType, Args...>::getClassifier();
+  classifier->Classify(dataset, labels_t);
+  labels = Row<DataType>(labels_t.n_cols);
+  decode(labels_t, labels);
+  
+  // Check error
+  /*
+    Row<std::size_t> prediction;
+    classifier_.Classify(dataset, prediction);
+    const double trainError = arma::accu(prediction != labels_t) * 100. / labels_t.n_elem;
+    cout << "Training error: " << trainError << "%." << endl;
+  */  
 }
-
 
 template<typename DataType>
 Row<DataType> 
@@ -116,17 +105,7 @@ GradientBoostClassifier<DataType>::init_() {
   
 
   // first prediction
-  // DecisionTreeRegressorClassifier
-  // classifiers_.push_back(std::make_unique<DecisionTreeRegressorClassifier<DataType>>(dataset_, randomLabels));
-  
-  // DecisionTreeClassifier
-  classifiers_.push_back(std::make_unique<DecisionTreeClassifier<DataType>>(dataset_, randomLabels, partitionSize_));
-
-  // RandomForestClassifier
-  // classifiers_.push_back(std::make_unique<RandomForestClassifier<DataType>>(dataset_, randomLabels, partitionSize_));
-
-  // LeafOnlyClassifier - unclear how to get OOS predictions
-  // classifiers_.push_back(std::make_unique<LeafOnlyClassifier<DataType>>(dataset_, randomLabels));
+  classifiers_.push_back(std::make_unique<GradientBoostClassifier<DataType>::ClassifierType>(dataset_, randomLabels, partitionSize_, 0., 10));
 
   leaves_.push_back(randomLabels);
 
@@ -288,8 +267,10 @@ GradientBoostClassifier<DataType>::fit_step(std::size_t stepNum) {
 
   // Find classifier fit for leaves choice
   // using dtr = DecisionTreeRegressorClassifier<DataType>;
-  using dtr = DecisionTreeClassifier<DataType>;
+  // using dtr = DecisionTreeClassifier<DataType>;
   // using dtr = RandomForestClassifier<DataType>;
+  using dtr = GradientBoostClassifier<DataType>::ClassifierType;
+
   Row<DataType> prediction;
   std::unique_ptr<dtr> classifier;
 
@@ -305,7 +286,7 @@ GradientBoostClassifier<DataType>::fit_step(std::size_t stepNum) {
     // Fit classifier on restricted {dataset_slice, best_leaves}
     prediction = zeros<Row<DataType>>(m_);
 
-    classifier.reset(new dtr(dataset_slice, best_leaves, partitionSize + 1));
+    classifier.reset(new dtr(dataset_slice, best_leaves, partitionSize + 1, 0., 10));
     // std::unique_ptr<dtr> classifier(new dtr(dataset_slice, best_leaves));
     classifier->Classify_(dataset_slice, prediction_slice);
 
@@ -323,7 +304,7 @@ GradientBoostClassifier<DataType>::fit_step(std::size_t stepNum) {
     // Zero pad labels first
     allLeaves(colMask_) = best_leaves;
 
-    classifier.reset(new dtr(dataset_, allLeaves, partitionSize + 1));
+    classifier.reset(new dtr(dataset_, allLeaves, partitionSize + 1, 0., 10));
     // std::unique_ptr<dtr> classifier(new dtr(dataset_, allLeaves));
     classifier->Classify_(dataset_, prediction);
 
