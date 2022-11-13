@@ -52,8 +52,8 @@ auto main(int argc, char **argv) -> int {
     labels = labels.submat(zeros<uvec>(1), colMask);
   */  
 
-  mat dataset, trainDataset, testDataset;
-  rowvec labels, trainLabels, testLabels, trainPrediction, testPrediction;
+  Mat<double> dataset, trainDataset, testDataset;
+  Row<std::size_t> labels, trainLabels, testLabels, trainPrediction, testPrediction;
 
   ClassifierContext::Context context;
   context.loss = lossFunction::BinomialDeviance;
@@ -64,26 +64,26 @@ auto main(int argc, char **argv) -> int {
   context.steps = 10000;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
-  context.colSubsampleRatio = .15;
+  context.colSubsampleRatio = .45;
   context.preExtrapolate = false;
   context.postExtrapolate = true;
-  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED_PROPORTION;
+  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
   context.learningRateMethod = LearningRate::RateMethod::FIXED;
 
 
-  if (!data::Load("/home/charles/Data/haberman_X.csv", dataset))
+  if (!data::Load("/home/charles/Data/german_X.csv", dataset))
     throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/haberman_y.csv", labels))
+  if (!data::Load("/home/charles/Data/german_y.csv", labels))
     throw std::runtime_error("Could not load file");
   data::Split(dataset, labels, trainDataset, testDataset, trainLabels, testLabels, 0.2);
 
   bool symmetrize = true;
 
-  auto gradientBoostClassifier = GradientBoostClassifier<double>(trainDataset, 
-								 trainLabels, 
-								 testDataset,
-								 testLabels,
-								 context);
+  auto gradientBoostClassifier = GradientBoostClassifier(trainDataset, 
+							 trainLabels, 
+							 testDataset,
+							 testLabels,
+							 context);
 
   gradientBoostClassifier.fit();
   gradientBoostClassifier.Predict(trainDataset, trainPrediction);

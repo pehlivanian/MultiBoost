@@ -39,7 +39,7 @@ using namespace LossMeasures;
 
 namespace PartitionSize {
   enum class SizeMethod { 
-    FIXED = 0,
+      FIXED = 0,
       FIXED_PROPORTION = 1,
       DECREASING = 2,
       INCREASING = 3,
@@ -50,8 +50,8 @@ namespace PartitionSize {
 namespace LearningRate {
   enum class RateMethod {
     FIXED = 0,
-      INCREASING = 1,
-      DECREASING = 2,
+    INCREASING = 1,
+    DECREASING = 2,
   };
 } // namespace LarningRate
 
@@ -101,22 +101,32 @@ public:
       r[i] = *(v[i]);
     }
   }
+
+  static std::vector<std::vector<int>> _fullPartition(int sz) {
+    std::vector<int> subset{sz};
+    std::iota(subset.begin(), subset.end(), 0);
+    std::vector<std::vector<int>> p{1, subset};
+    return p;
+  }
 };
 
 /**********************/
 /* CLASSIFIER CLASSES */
 /**********************/
 
-using DecisionTreeRegressorType = DecisionTreeRegressor<MADGain, BestBinaryNumericSplit>;
-using RandomForestClassifierType = RandomForest<>;
-// using DecisionTreeClassifierType = DecisionTree<GiniGain, BestBinaryNumericSplit>;
+namespace ClassifierTypes {
+  using DecisionTreeRegressorType = DecisionTreeRegressor<MADGain, BestBinaryNumericSplit>;
+  using RandomForestClassifierType = RandomForest<>;
+  using DecisionTreeClassifierType = DecisionTree<>;
 
-using DecisionTreeClassifierType = DecisionTree<>;
-// using DecisionTreeClassifierType = DecisionTree<GiniGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
-// using DecisionTreeClassifierType = DecisionTreeRegressor<MADGain>;
-// using DecisionTreeClassifierType = DecisionTreeRegressor<>;
-// using DecisionTreeClassifierType = DecisionTreeRegressor<MSEGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
-// using DecisionTreeClassifierType = DecisionTreeRegressor<InformationGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
+  // using DecisionTreeClassifierType = DecisionTree<GiniGain, BestBinaryNumericSplit>;
+  // using DecisionTreeClassifierType = DecisionTree<GiniGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
+  // using DecisionTreeClassifierType = DecisionTreeRegressor<MADGain>;
+  // using DecisionTreeClassifierType = DecisionTreeRegressor<>;
+  // using DecisionTreeClassifierType = DecisionTreeRegressor<MSEGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
+  // using DecisionTreeClassifierType = DecisionTreeRegressor<InformationGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
+  
+};
 
 template<typename DataType, typename ClassifierType, typename... Args>
 class ClassifierBase {
@@ -126,14 +136,6 @@ public:
   ClassifierBase() = default;
   ~ClassifierBase() = default;
 
-  std::unique_ptr<ClassifierType> getClassifier() const { return classifier_; }
-  void setClassifier(const mat& dataset, Row<DataType>& labels, Args&&... args) { 
-    classifier_.reset(new ClassifierType(dataset, labels, std::forward<Args...> (args)...)); 
-  }
-
-private:
-  std::unique_ptr<ClassifierType> classifier_;
-
 };
 
 template<typename DataType, typename ClassifierType, typename... Args>
@@ -141,22 +143,40 @@ class DiscreteClassifierBase : public ClassifierBase<DataType, ClassifierType, A
 public:
   using LeavesMap = std::unordered_map<std::size_t, DataType>;
 
-  DiscreteClassifierBase(const mat& dataset, Row<DataType>& labels, Args... args) :
+  DiscreteClassifierBase(const mat& dataset, Row<DataType>& labels, Args&&... args) : 
     ClassifierBase<DataType, ClassifierType, Args...>()
   {
-    Row<std::size_t> labels_t(labels.n_cols);
-    encode(labels, labels_t);
-    this->setClassifier(dataset, labels_t, args...);
+    dataset_ = dataset;
+    labels_t_ = Row<std::size_t>(labels.n_cols);
+    encode(labels, labels_t_);
+    setClassifier(dataset_, labels_t_, std::forward<Args>(args)...);
+    
+    // Check error
+    Row<std::size_t> prediction;
+    classifier_->Classify(dataset, prediction);
+    const double trainError = arma::accu(prediction != labels_t_) * 100. / labels_t_.n_elem;
+    for (size_t i=0; i<25; ++i)
+      std::cout << labels_t_[i] << " ::(1) " << prediction[i] << std::endl;
+    std::cout << "dataset size:    " << dataset.n_rows << " x " << dataset.n_cols << std::endl;
+    std::cout << "prediction size: " << prediction.n_rows << " x " << prediction.n_cols << std::endl;
+    std::cout << "Training error (1): " << trainError << "%." << std::endl;
+  
   }
+
   ~DiscreteClassifierBase() = default;
 
+  void setClassifier(const mat&, Row<std::size_t>&, Args&&...);
   void Classify_(const mat&, Row<DataType>&);
 
 private:
-  virtual void encode(const Row<DataType>&, Row<std::size_t>&);
-  virtual void decode(const Row<std::size_t>&, Row<DataType>&);
-  
+  void encode(const Row<DataType>&, Row<std::size_t>&); 
+  void decode(const Row<std::size_t>&, Row<DataType>&);
+
+  mat dataset_;
+  Row<std::size_t> labels_t_;
   LeavesMap leavesMap_;
+  std::unique_ptr<ClassifierType> classifier_;
+
 };
 
 template<typename DataType, typename ClassifierType, typename... Args>
@@ -165,64 +185,74 @@ public:
   ContinuousClassifierBase(const mat& dataset, Row<DataType>& labels, Args&&... args) : 
     ClassifierBase<DataType, ClassifierType, Args...>() 
   {
-    setClassifier(dataset, labels, args...);
+    setClassifier(dataset, labels, std::forward<Args>(args)...);
   }
   ~ContinuousClassifierBase() = default;
   
-  void Classify_(const mat& dataset, rowvec& labels) {
-    std::unique_ptr<ClassifierType> classifier = ClassifierBase<DataType, ClassifierType>::getClassifier();
-    classifier->Predict(dataset, labels);
-  }
-  
+  void setClassifier(const mat&, Row<DataType>&, Args&&...);
+  void Classify_(const mat&, Row<DataType>&);
+
+private:
+  std::unique_ptr<ClassifierType> classifier_;
 };
 
-template<typename DataType>
-class RandomForestClassifier : public DiscreteClassifierBase<DataType, 
-							     RandomForestClassifierType,
+class RandomForestClassifier : public DiscreteClassifierBase<std::size_t, 
+							     ClassifierTypes::RandomForestClassifierType,
 							     std::size_t,
 							     std::size_t> {
 public:
   
-  // using LeavesMap = std::unordered_map<std::size_t, DataType>;
-
   RandomForestClassifier(const mat& dataset, 
-			 Row<DataType>& labels, 
+			 Row<std::size_t>& labels, 
 			 std::size_t numClasses,
-			 std::size_t minLeafSize) :
-    DiscreteClassifierBase<DataType, RandomForestClassifierType, std::size_t, std::size_t>(dataset, labels, numClasses, minLeafSize)
+			 std::size_t minLeafSize) : 
+    DiscreteClassifierBase<std::size_t, 
+			   ClassifierTypes::RandomForestClassifierType, 
+			   std::size_t, 
+			   std::size_t>(dataset, 
+					labels, 
+					std::move(numClasses),
+					std::move(minLeafSize))
   {}
   
 };
 
-template<typename DataType>
-class DecisionTreeClassifier : public DiscreteClassifierBase<DataType, 
-							     DecisionTreeClassifierType,
+class DecisionTreeClassifier : public DiscreteClassifierBase<double, 
+							     ClassifierTypes::DecisionTreeClassifierType,
 							     std::size_t,
-							     double,
-							     std::size_t> {
+							     std::size_t,
+							     double> {
 public:
   DecisionTreeClassifier(const mat& dataset, 
-			 Row<DataType>& labels, 
+			 Row<double>& labels, 
 			 std::size_t numClasses,
-			 double minGainSplit,
-			 std::size_t maxDepth) :
-    DiscreteClassifierBase<DataType, DecisionTreeClassifierType, std::size_t, double, std::size_t>(dataset, 
-												   labels, 
-												   numClasses, 
-												   minGainSplit, 
-												   maxDepth)
-  {}
+			 std::size_t maxDepth,
+			 double minGainSplit) : 
+    DiscreteClassifierBase<double, 
+			   ClassifierTypes::DecisionTreeClassifierType, 
+			   std::size_t, 
+			   std::size_t,
+			   double>(dataset, 
+				   labels, 
+				   std::move(numClasses), 
+				   std::move(maxDepth), 
+				   std::move(minGainSplit))
+    {
+      std::cout << "Instantiating DecisionTreeClassifier with:" << std::endl;
+      std::cout << "numClasses: " << numClasses
+		<< " maxDepth: " << maxDepth
+		<< " minGainSplit: " << minGainSplit << std::endl;
+    }
+    
+  };
 
-};
-
-template<typename DataType>
-class DecisionTreeRegressorClassifier : public ContinuousClassifierBase<DataType, 
-									DecisionTreeRegressorType,
+class DecisionTreeRegressorClassifier : public ContinuousClassifierBase<double, 
+									ClassifierTypes::DecisionTreeRegressorType,
 									unsigned long,
 									double,
 									unsigned long> {
 public:
-  
+
   const unsigned long minLeafSize = 1;
   const double minGainSplit = 0.0;
   const unsigned long maxDepth = 100;
@@ -231,56 +261,66 @@ public:
 				  rowvec& labels,
 				  unsigned long minLeafSize=5,
 				  double minGainSplit=0.,
-				  unsigned long maxDepth=5) :
-    ContinuousClassifierBase<DataType, 
-			     DecisionTreeRegressorType,
+				  unsigned long maxDepth=5) : 
+    ContinuousClassifierBase<double, 
+			     ClassifierTypes::DecisionTreeRegressorType,
 			     unsigned long,
 			     double,
-			     unsigned long>(dataset, labels, minLeafSize, minGainSplit, maxDepth)
+			     unsigned long>(dataset, 
+					    labels, 
+					    std::move(minLeafSize), 
+					    std::move(minGainSplit), 
+					    std::move(maxDepth))
   {}
-
+  
 };
 
 
-template<typename DataType>
 class LeafOnlyClassifier {
 public:
-  LeafOnlyClassifier(const mat& dataset, const Row<DataType>& leaves)
+  LeafOnlyClassifier(const mat& dataset, const Row<double>& leaves)
   {
-    leaves_ = Row<DataType>{leaves}; 
+    leaves_ = Row<double>{leaves}; 
   }
   
-  void Classify_(const mat& dataset, Row<DataType>& labels) {
+  void Classify_(const mat& dataset, Row<double>& labels) {
     labels = leaves_;
   }
 private:
-  Row<DataType> leaves_;
+  Row<double> leaves_;
 };
 
-template<typename DataType>
+template<typename T>
+struct classifier_traits {
+  using datatype = double;
+  using labeltype = std::size_t;
+};
+
+
 class GradientBoostClassifier {
 public:
 
-  using ClassifierType = DecisionTreeClassifier<DataType>;
+  using ClassifierType = DecisionTreeClassifier;
+  using DataType = classifier_traits<ClassifierType>::datatype;
+  using LabelType = classifier_traits<ClassifierType>::labeltype;
 
   using Partition = std::vector<std::vector<int>>;
   using PartitionList = std::vector<Partition>;
   using ClassifierList = std::vector<std::unique_ptr<ClassifierType>>;
-  using Leaves = Row<DataType>;
+  using Leaves = Row<double>;
   using LeavesList = std::vector<Leaves>;
-  using Prediction = Row<DataType>;
+  using Prediction = Row<double>;
   using PredictionList = std::vector<Prediction>;
   using MaskList = std::vector<uvec>;
   
-  GradientBoostClassifier<DataType>(const mat& dataset, 
-				    const Row<DataType>& labels, 
-				    lossFunction loss,
-				    std::size_t partitionSize,
-				    double learningRate,
-				    int steps,
-				    bool symmetrizeLabels) : 
+  GradientBoostClassifier(const mat& dataset, 
+			  const Row<LabelType>& labels, 
+			  lossFunction loss,
+			  std::size_t partitionSize,
+			  double learningRate,
+			  int steps,
+			  bool symmetrizeLabels) : 
     dataset_{dataset},
-    labels_{labels},
     steps_{steps},
     symmetrized_{symmetrizeLabels},
     loss_{loss},
@@ -291,13 +331,16 @@ public:
     preExtrapolate_{false},
     postExtrapolate_{true},
     current_classifier_ind_{0} 
-  { init_(); }
+  { 
+    labels_ = conv_to<Row<double>>::from(labels);    
+    init_(); 
+  }
 
-  GradientBoostClassifier<DataType>(const mat& dataset, 
-				    const Row<DataType>& labels,
-				    ClassifierContext::Context context) :
+  GradientBoostClassifier(const mat& dataset, 
+			  const Row<LabelType>& labels,
+			  ClassifierContext::Context context) :
     dataset_{dataset},
-    labels_{labels},
+    labels_{conv_to<Row<double>>::from(labels)},
     loss_{context.loss},
     partitionSize_{context.partitionSize},
     partitionRatio_{context.partitionRatio},
@@ -315,60 +358,65 @@ public:
     init_(); 
   }
 
-  GradientBoostClassifier<DataType>(const mat& dataset_is,
-				    const Row<DataType>& labels_is,
-				    const mat& dataset_oos,
-				    const Row<DataType>& labels_oos,
-				    ClassifierContext::Context context) : 
-    GradientBoostClassifier<DataType>(dataset_is, labels_is, context)
+  GradientBoostClassifier(const mat& dataset_is,
+			  const Row<LabelType>& labels_is,
+			  const mat& dataset_oos,
+			  const Row<LabelType>& labels_oos,
+			  ClassifierContext::Context context) : 
+    GradientBoostClassifier(dataset_is, labels_is, context)
   {
     hasOOSData_ = true;
     dataset_oos_ = dataset_oos;
-    labels_oos_ = labels_oos;
+    labels_oos_ = conv_to<Row<double>>::from(labels_oos);
   }
 
   void fit();
 
-  void Classify(const mat&, Row<DataType>&);
+  void Classify(const mat&, Row<double>&);
 
   // 3 Predict methods
   // predict on member dataset; loop through and sum step prediction vectors
-  void Predict(Row<DataType>&);
+  void Predict(Row<double>&);
   // predict on subset of dataset defined by uvec; sum step prediction vectors
-  void Predict(Row<DataType>&, const uvec&);
+  void Predict(Row<double>&, const uvec&);
   // predict OOS, loop through and call Classify_ on individual classifiers, sum
-  void Predict(const mat&, Row<DataType>&);
+  void Predict(const mat&, Row<double>&);
+
+  // overloaded versions of above
+  void Predict(Row<LabelType>&);
+  void Predict(Row<LabelType>&, const uvec&);
+  void Predict(const mat&, Row<LabelType>&);
 
   mat getDataset() const { return dataset_; }
-  Row<DataType> getLabels() const { return labels_; }
+  Row<double> getLabels() const { return labels_; }
 
 private:
   void init_();
-  Row<DataType> _constantLeaf() const;
-  Row<DataType> _randomLeaf(std::size_t numVals=20) const;
+  Row<double> _constantLeaf() const;
+  Row<double> _randomLeaf(std::size_t numVals=20) const;
   uvec subsampleRows(size_t);
   uvec subsampleCols(size_t);
   void symmetrizeLabels();
-  void symmetrize(Row<DataType>&);
-  void deSymmetrize(Row<DataType>&);
+  void symmetrize(Row<double>&);
+  void deSymmetrize(Row<double>&);
   void fit_step(std::size_t);
   double computeLearningRate(std::size_t);
-  std::size_t computePartitionSize(std::size_t);
+  std::size_t computePartitionSize(std::size_t, const uvec&);
 
-  std::pair<rowvec,rowvec>  generate_coefficients(const mat&, const Row<DataType>&, const uvec&);
-  Leaves computeOptimalSplit(rowvec&, rowvec&, mat, std::size_t, std::size_t);
+  std::pair<rowvec,rowvec>  generate_coefficients(const Row<double>&, const uvec&);
+  Leaves computeOptimalSplit(rowvec&, rowvec&, mat, std::size_t, std::size_t, const uvec&);
 
   void setNextClassifier(const ClassifierType&);
   int steps_;
   mat dataset_;
-  Row<DataType> labels_;
+  Row<double> labels_;
   mat dataset_oos_;
-  Row<DataType> labels_oos_;
+  Row<double> labels_oos_;
   std::size_t partitionSize_;
   double partitionRatio_;
 
   lossFunction loss_;
-  LossFunction<DataType>* lossFn_;
+  LossFunction<double>* lossFn_;
   
   double learningRate_;
 
@@ -377,9 +425,6 @@ private:
 
   double row_subsample_ratio_;
   double col_subsample_ratio_;
-
-  uvec rowMask_;
-  uvec colMask_;
 
   int n_;
   int m_;

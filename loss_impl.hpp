@@ -3,12 +3,16 @@
 
 using namespace LossMeasures;
 
-const bool AUTODIFF_ = false;
+const bool AUTODIFF_ON = false;
 
 template<typename DataType>
 DataType
 LossFunction<DataType>::loss(const rowvec& yhat, const rowvec& y, rowvec* grad, rowvec* hess) {
-  if (AUTODIFF_) {
+  if (AUTODIFF_ON) { 
+    // Slooooooowwww...
+    // Since we only need gradient, hessian of quadratic approximation to loss and not
+    // some deep neural network composition, we can usually compute and 
+    // hard-code these for a given loss function, the approach we take here.
     autodiff::real u;
     ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
     ArrayXreal yr = LossUtils::static_cast_eigen(y).eval();
