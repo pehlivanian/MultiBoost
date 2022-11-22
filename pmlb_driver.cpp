@@ -55,25 +55,29 @@ auto main(int argc, char **argv) -> int {
   Mat<double> dataset, trainDataset, testDataset;
   Row<std::size_t> labels, trainLabels, testLabels, trainPrediction, testPrediction;
 
-  ClassifierContext::Context context;
+  ClassifierContext::Context context{};
   context.loss = lossFunction::BinomialDeviance;
   // context.loss = lossFunction::MSE;
-  context.partitionSize = 4;
+  context.partitionSize = 40;
   context.partitionRatio = .15;
   context.learningRate = .01;
-  context.steps = 10000;
+  context.steps = 50000;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
-  context.colSubsampleRatio = .45;
+  context.colSubsampleRatio = .25; // .75
   context.preExtrapolate = false;
   context.postExtrapolate = true;
-  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
-  context.learningRateMethod = LearningRate::RateMethod::FIXED;
+  context.partitionSizeMethod = PartitionSize::SizeMethod::MULTISCALE;
+  context.learningRateMethod = LearningRate::RateMethod::DECREASING;
+
+  context.minLeafSize = 1;
+  context.maxDepth = 10;
+  context.minimumGainSplit = 0.;
 
 
-  if (!data::Load("/home/charles/Data/german_X.csv", dataset))
+  if (!data::Load("/home/charles/Data/Hill_Valley_without_noise_X.csv", dataset))
     throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/german_y.csv", labels))
+  if (!data::Load("/home/charles/Data/Hill_Valley_without_noise_y.csv", labels))
     throw std::runtime_error("Could not load file");
   data::Split(dataset, labels, trainDataset, testDataset, trainLabels, testLabels, 0.2);
 

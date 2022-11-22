@@ -44,6 +44,7 @@ namespace PartitionSize {
       DECREASING = 2,
       INCREASING = 3,
       RANDOM = 4,
+      MULTISCALE = 5
   };
 } // namespace Partition
 
@@ -57,6 +58,15 @@ namespace LearningRate {
 
 namespace ClassifierContext {
   struct Context {
+    Context(std::size_t minLeafSize=1,
+	    double minimumGainSplit=0.0,
+	    std::size_t maxDepth=100,
+	    std::size_t numTrees=10) : 
+      minLeafSize{minLeafSize},
+      minimumGainSplit{minimumGainSplit},
+      maxDepth{maxDepth},
+      numTrees{numTrees} {}
+      
     lossFunction loss;
     std::size_t partitionSize;
     double partitionRatio = .5;
@@ -69,6 +79,10 @@ namespace ClassifierContext {
     bool postExtrapolate;
     PartitionSize::SizeMethod partitionSizeMethod;
     LearningRate::RateMethod learningRateMethod;
+    std::size_t minLeafSize;
+    double minimumGainSplit;
+    std::size_t maxDepth;
+    std::size_t numTrees;
   };
 } // namespace ClassifierContext
 
@@ -152,14 +166,16 @@ public:
     setClassifier(dataset_, labels_t_, std::forward<Args>(args)...);
     
     // Check error
-    Row<std::size_t> prediction;
-    classifier_->Classify(dataset, prediction);
-    const double trainError = arma::accu(prediction != labels_t_) * 100. / labels_t_.n_elem;
-    for (size_t i=0; i<25; ++i)
+    /*
+      Row<std::size_t> prediction;
+      classifier_->Classify(dataset, prediction);
+      const double trainError = arma::accu(prediction != labels_t_) * 100. / labels_t_.n_elem;
+      for (size_t i=0; i<25; ++i)
       std::cout << labels_t_[i] << " ::(1) " << prediction[i] << std::endl;
-    std::cout << "dataset size:    " << dataset.n_rows << " x " << dataset.n_cols << std::endl;
-    std::cout << "prediction size: " << prediction.n_rows << " x " << prediction.n_cols << std::endl;
-    std::cout << "Training error (1): " << trainError << "%." << std::endl;
+      std::cout << "dataset size:    " << dataset.n_rows << " x " << dataset.n_cols << std::endl;
+      std::cout << "prediction size: " << prediction.n_rows << " x " << prediction.n_cols << std::endl;
+      std::cout << "Training error (1): " << trainError << "%." << std::endl;
+    */
   
   }
 
@@ -196,22 +212,26 @@ private:
   std::unique_ptr<ClassifierType> classifier_;
 };
 
-class RandomForestClassifier : public DiscreteClassifierBase<std::size_t, 
+class RandomForestClassifier : public DiscreteClassifierBase<double, 
 							     ClassifierTypes::RandomForestClassifierType,
+							     std::size_t,
 							     std::size_t,
 							     std::size_t> {
 public:
   
   RandomForestClassifier(const mat& dataset, 
-			 Row<std::size_t>& labels, 
+			 Row<double>& labels, 
 			 std::size_t numClasses,
+			 std::size_t numTrees,
 			 std::size_t minLeafSize) : 
-    DiscreteClassifierBase<std::size_t, 
+    DiscreteClassifierBase<double, 
 			   ClassifierTypes::RandomForestClassifierType, 
+			   std::size_t,
 			   std::size_t, 
 			   std::size_t>(dataset, 
 					labels, 
 					std::move(numClasses),
+					std::move(numTrees),
 					std::move(minLeafSize))
   {}
   
@@ -221,28 +241,27 @@ class DecisionTreeClassifier : public DiscreteClassifierBase<double,
 							     ClassifierTypes::DecisionTreeClassifierType,
 							     std::size_t,
 							     std::size_t,
-							     double> {
+							     double,
+							     std::size_t> {
 public:
   DecisionTreeClassifier(const mat& dataset, 
-			 Row<double>& labels, 
+			 Row<double>& labels,
 			 std::size_t numClasses,
-			 std::size_t maxDepth,
-			 double minGainSplit) : 
+			 std::size_t minLeafSize,
+			 double minimumGainSplit,
+			 std::size_t maxDepth) : 
     DiscreteClassifierBase<double, 
 			   ClassifierTypes::DecisionTreeClassifierType, 
 			   std::size_t, 
 			   std::size_t,
-			   double>(dataset, 
-				   labels, 
-				   std::move(numClasses), 
-				   std::move(maxDepth), 
-				   std::move(minGainSplit))
-    {
-      std::cout << "Instantiating DecisionTreeClassifier with:" << std::endl;
-      std::cout << "numClasses: " << numClasses
-		<< " maxDepth: " << maxDepth
-		<< " minGainSplit: " << minGainSplit << std::endl;
-    }
+			   double,
+			   std::size_t>(dataset, 
+					labels, 
+					std::move(numClasses), 
+					std::move(minLeafSize),
+					std::move(minimumGainSplit), 
+					std::move(maxDepth))
+    {}
     
   };
 
@@ -301,6 +320,7 @@ class GradientBoostClassifier {
 public:
 
   using ClassifierType = DecisionTreeClassifier;
+  // using ClassifierType = RandomForestClassifier;
   using DataType = classifier_traits<ClassifierType>::datatype;
   using LabelType = classifier_traits<ClassifierType>::labeltype;
 
@@ -330,7 +350,7 @@ public:
     col_subsample_ratio_{.05},
     preExtrapolate_{false},
     postExtrapolate_{true},
-    current_classifier_ind_{0} 
+    current_classifier_ind_{0}
   { 
     labels_ = conv_to<Row<double>>::from(labels);    
     init_(); 
@@ -353,7 +373,11 @@ public:
     postExtrapolate_{context.postExtrapolate},
     partitionSizeMethod_{context.partitionSizeMethod},
     learningRateMethod_{context.learningRateMethod},
-    current_classifier_ind_{0} 
+    current_classifier_ind_{0},
+    minLeafSize_{context.minLeafSize},
+    minimumGainSplit_{context.minimumGainSplit},
+    maxDepth_{context.maxDepth},
+    numTrees_{context.numTrees}
   { 
     init_(); 
   }
@@ -433,6 +457,11 @@ private:
   double b_;
 
   int current_classifier_ind_;
+
+  std::size_t minLeafSize_;
+  double minimumGainSplit_;
+  std::size_t maxDepth_;
+  std::size_t numTrees_;
 
   LeavesList leaves_;
   ClassifierList classifiers_;

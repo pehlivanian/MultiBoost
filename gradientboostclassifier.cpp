@@ -17,7 +17,7 @@ Row<double>
 GradientBoostClassifier::_randomLeaf(std::size_t numVals) const {
   
   // Look how clumsy this is
-  Row<double> range = linspace<Row<double>>(0, 1, numVals+2);
+  Row<double> range = linspace<Row<double>>(-1, 1, numVals+2);
   std::default_random_engine eng;
   std::uniform_int_distribution<std::size_t> dist{1, numVals};
   Row<double> r(dataset_.n_cols, arma::fill::none);
@@ -53,7 +53,8 @@ GradientBoostClassifier::init_() {
   // classifiers
   // Row<GradientBoostClassifier::DataType> constantLabels = _constantLeaf();
   Row<double> randomLabels = _randomLeaf(partitionSize_);
-  classifiers_.push_back(std::make_unique<GradientBoostClassifier::ClassifierType>(dataset_, labels_, partitionSize_, 100, 0.));
+  classifiers_.push_back(std::make_unique<GradientBoostClassifier::ClassifierType>(dataset_, labels_, partitionSize_, minLeafSize_, minimumGainSplit_, maxDepth_));
+  // classifiers_.push_back(std::make_unique<GradientBoostClassifier::ClassifierType>(dataset_, labels_, partitionSize_+1, numTrees_, minLeafSize_));
 
   // first leaves
   leaves_.push_back(randomLabels);
@@ -149,9 +150,16 @@ void
 GradientBoostClassifier::Predict(const mat& dataset, Row<GradientBoostClassifier::LabelType>& prediction) {
   using row_d = Row<GradientBoostClassifier::DataType>;
   using row_t = Row<GradientBoostClassifier::LabelType>;
-  row_d prediction_d = conv_to<row_d>::from(prediction);
-  Predict(dataset, prediction);
+
+  row_d prediction_d;
+  Predict(dataset, prediction_d);
+
+  if (symmetrized_) {
+    deSymmetrize(prediction_d);
+  }
+
   prediction = conv_to<row_t>::from(prediction_d);
+
 }
 
 
@@ -234,7 +242,12 @@ GradientBoostClassifier::fit_step(std::size_t stepNum) {
     // Fit classifier on restricted {dataset_slice, best_leaves}
     prediction = zeros<Row<GradientBoostClassifier::DataType>>(m_);
 
-    classifier.reset(new cls(dataset_slice, best_leaves, std::move(partitionSize + 1), std::move(100), std::move(0.)));
+    classifier.reset(new cls(dataset_slice, 
+			     best_leaves, 
+			     std::move(partitionSize), 
+			     std::move(minLeafSize_), 
+			     std::move(minimumGainSplit_), 
+			     std::move(maxDepth_)));
     classifier->Classify_(dataset_slice, prediction_slice);
 
     // Zero-pad to extend to all of dataset
@@ -251,7 +264,12 @@ GradientBoostClassifier::fit_step(std::size_t stepNum) {
     // Zero pad labels first
     allLeaves(colMask) = best_leaves;
 
-    classifier.reset(new cls(dataset_, allLeaves, std::move(partitionSize + 1), std::move(100), std::move(0.)));
+    classifier.reset(new cls(dataset_, 
+			     allLeaves, 
+			     std::move(partitionSize), 
+			     std::move(minLeafSize_),
+			     std::move(minimumGainSplit_),
+			     std::move(maxDepth_)));
     classifier->Classify_(dataset_, prediction);
 
   }
@@ -311,13 +329,17 @@ GradientBoostClassifier::computeOptimalSplit(rowvec& g,
   // Use subset of subsets
   // =====================
   bool USE_FIRST_SUBSET = false;
-  size_t NUM_SUBSETS = 2;
+  size_t NUM_SUBSETS = 3;
   std::vector<std::vector<int>> v;
   if (USE_FIRST_SUBSET) {
     if (g.n_elem > 1) {
-      // for (size_t i=partitionSize-1; i>(partitionSize-1-NUM_SUBSETS); --i) 
+      if (stepNum%2) {
 	for (size_t i=0; i<NUM_SUBSETS; ++i)
+	  v.push_back(subsets[i]);
+      } else {
+      for (size_t i=partitionSize-1; i>(partitionSize-1-NUM_SUBSETS); --i) 
 	v.push_back(subsets[i]);
+      }
       subsets = v;
     }
   }
@@ -404,6 +426,9 @@ GradientBoostClassifier::computePartitionSize(std::size_t stepNum, const uvec& c
   // stepNum is in range [1,...,context.steps]
 
   std::size_t partitionSize;
+  double lowRatio = .01;
+  double highRatio = .99;
+  int attach = 1000;
 
   if (partitionSizeMethod_ == SizeMethod::FIXED) {
     return partitionSize_;
@@ -418,6 +443,16 @@ GradientBoostClassifier::computePartitionSize(std::size_t stepNum, const uvec& c
   } else if (partitionSizeMethod_ == SizeMethod::RANDOM) {
     partitionSize = partitionDist_(default_engine_);
     ;
+  } else if (partitionSizeMethod_ == SizeMethod::MULTISCALE) {
+    if ((stepNum%attach) < (attach/2)) {
+      partitionSize = static_cast<std::size_t>(lowRatio * row_subsample_ratio_ * colMask.n_rows);
+      partitionSize = partitionSize >= 1 ? partitionSize : 1;
+      // std::cout << "stepNum: " << stepNum << " PARTITIONSIZE: " << partitionSize << std::endl;
+    } else {
+      partitionSize = static_cast<std::size_t>(highRatio * row_subsample_ratio_ * colMask.n_rows);
+      partitionSize = partitionSize >= 1 ? partitionSize : 1;
+      // std::cout << "stepNum: " << stepNum << " PARTITIONSIZE: " << partitionSize << std::endl;
+    }
   }
 
   return partitionSize;

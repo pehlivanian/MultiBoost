@@ -33,14 +33,16 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::Classify_(const mat& 
   decode(labels_t, labels);
   
   // Check error
-  Row<std::size_t> prediction;
-  classifier_->Classify(dataset_, prediction);
-  const double trainError = arma::accu(prediction != labels_t_) * 100. / labels_t_.n_elem;
-  for (size_t i=0; i<25; ++i)
+  /*
+    Row<std::size_t> prediction;
+    classifier_->Classify(dataset_, prediction);
+    const double trainError = arma::accu(prediction != labels_t_) * 100. / labels_t_.n_elem;
+    for (size_t i=0; i<25; ++i)
     std::cout << labels_t_[i] << " ::(2) " << prediction[i] << std::endl;
-  std::cout << "dataset size:    " << dataset.n_rows << " x " << dataset.n_cols << std::endl;
-  std::cout << "prediction size: " << prediction.n_rows << " x " << prediction.n_cols << std::endl;
-  std::cout << "Training error (2): " << trainError << "%." << std::endl;
+    std::cout << "dataset size:    " << dataset.n_rows << " x " << dataset.n_cols << std::endl;
+    std::cout << "prediction size: " << prediction.n_rows << " x " << prediction.n_cols << std::endl;
+    std::cout << "Training error (2): " << trainError << "%." << std::endl;
+  */
   
 }
 
