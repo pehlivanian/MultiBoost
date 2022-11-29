@@ -14,6 +14,12 @@ using namespace std::placeholders;
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
+
+enum class lossFunction {  MSE = 0,
+			   BinomialDeviance = 1,
+			};
+
+
 class LossUtils {
 public:
   static Eigen::VectorXd static_cast_eigen(const rowvec& rhs) {
@@ -40,6 +46,7 @@ class LossFunction {
 public:
   DataType loss(const rowvec&, const rowvec&, rowvec*, rowvec*);
   DataType loss(const rowvec& yhat, const rowvec& y) { return loss_reverse_arma(yhat, y); }
+  virtual LossFunction* create() = 0;
 private:
   virtual autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) = 0;
   virtual DataType loss_reverse_arma(const rowvec&, const rowvec&) = 0;
@@ -51,6 +58,7 @@ template<typename DataType>
 class BinomialDevianceLoss : public LossFunction<DataType> {
 public:
   BinomialDevianceLoss() = default;
+  BinomialDevianceLoss<DataType>* create() { return new BinomialDevianceLoss<DataType>(); }
 private:
   autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
   DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
@@ -62,6 +70,7 @@ template<typename DataType>
 class MSELoss : public LossFunction<DataType> {
 public:
   MSELoss() = default;
+  MSELoss<DataType>* create() { return new MSELoss(); }
 private:
   autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
   DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
@@ -69,11 +78,8 @@ private:
   void hessian_(const rowvec&, const rowvec&, rowvec*) override;
 };
 
-  enum class lossFunction {  MSE = 0,
-			     BinomialDeviance = 1,
-			       };
+} // namespace LossMeasures
 
-}
 #include "loss_impl.hpp"
 
 #endif

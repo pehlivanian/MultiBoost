@@ -58,16 +58,16 @@ auto main(int argc, char **argv) -> int {
   ClassifierContext::Context context{};
   context.loss = lossFunction::BinomialDeviance;
   // context.loss = lossFunction::MSE;
-  context.partitionSize = 40;
-  context.partitionRatio = .15;
+  context.partitionSize = 10;
+  context.partitionRatio = .25;
   context.learningRate = .01;
   context.steps = 50000;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
-  context.colSubsampleRatio = .25; // .75
+  context.colSubsampleRatio = .5; // .75
   context.preExtrapolate = false;
   context.postExtrapolate = true;
-  context.partitionSizeMethod = PartitionSize::SizeMethod::MULTISCALE;
+  context.partitionSizeMethod = PartitionSize::SizeMethod::INCREASING;
   context.learningRateMethod = LearningRate::RateMethod::DECREASING;
 
   context.minLeafSize = 1;
@@ -75,9 +75,9 @@ auto main(int argc, char **argv) -> int {
   context.minimumGainSplit = 0.;
 
 
-  if (!data::Load("/home/charles/Data/Hill_Valley_without_noise_X.csv", dataset))
+  if (!data::Load("/home/charles/Data/colic_X.csv", dataset))
     throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/Hill_Valley_without_noise_y.csv", labels))
+  if (!data::Load("/home/charles/Data/colic_y.csv", labels))
     throw std::runtime_error("Could not load file");
   data::Split(dataset, labels, trainDataset, testDataset, trainLabels, testLabels, 0.2);
 
