@@ -61,11 +61,13 @@ namespace ClassifierContext {
     Context(std::size_t minLeafSize=1,
 	    double minimumGainSplit=0.0,
 	    std::size_t maxDepth=100,
-	    std::size_t numTrees=10) : 
+	    std::size_t numTrees=10,
+	    bool recursiveFit=false) : 
       minLeafSize{minLeafSize},
       minimumGainSplit{minimumGainSplit},
       maxDepth{maxDepth},
-      numTrees{numTrees} {}
+      numTrees{numTrees},
+      recursiveFit{recursiveFit} {}
       
     lossFunction loss;
     std::size_t partitionSize;
@@ -77,6 +79,7 @@ namespace ClassifierContext {
     double colSubsampleRatio;
     bool preExtrapolate;
     bool postExtrapolate;
+    bool recursiveFit;
     PartitionSize::SizeMethod partitionSizeMethod;
     LearningRate::RateMethod learningRateMethod;
     std::size_t minLeafSize;
@@ -294,21 +297,6 @@ public:
   
 };
 
-
-class LeafOnlyClassifier {
-public:
-  LeafOnlyClassifier(const mat& dataset, const Row<double>& leaves)
-  {
-    leaves_ = Row<double>{leaves}; 
-  }
-  
-  void Classify_(const mat& dataset, Row<double>& labels) {
-    labels = leaves_;
-  }
-private:
-  Row<double> leaves_;
-};
-
 template<typename T>
 struct classifier_traits {
   using datatype = double;
@@ -350,7 +338,8 @@ public:
     col_subsample_ratio_{.05},
     preExtrapolate_{false},
     postExtrapolate_{true},
-    current_classifier_ind_{0}
+    current_classifier_ind_{0},
+    hasOOSData_{false}
   { 
     labels_ = conv_to<Row<double>>::from(labels);    
     init_(); 
@@ -371,16 +360,47 @@ public:
     col_subsample_ratio_{context.colSubsampleRatio},
     preExtrapolate_{context.preExtrapolate},
     postExtrapolate_{context.postExtrapolate},
+    recursiveFit_{context.recursiveFit},
     partitionSizeMethod_{context.partitionSizeMethod},
     learningRateMethod_{context.learningRateMethod},
     current_classifier_ind_{0},
     minLeafSize_{context.minLeafSize},
     minimumGainSplit_{context.minimumGainSplit},
     maxDepth_{context.maxDepth},
-    numTrees_{context.numTrees}
+    numTrees_{context.numTrees},
+    hasOOSData_{false}
   { 
     init_(); 
   }
+
+  GradientBoostClassifier(const mat& dataset,
+			  const Row<double>& labels,
+			  ClassifierContext::Context context) :
+    dataset_{dataset},
+    labels_{labels},
+    loss_{context.loss},
+    partitionSize_{context.partitionSize},
+    partitionRatio_{context.partitionRatio},
+    learningRate_{context.learningRate},
+    steps_{context.steps},
+    symmetrized_{context.symmetrizeLabels},
+    row_subsample_ratio_{context.rowSubsampleRatio},
+    col_subsample_ratio_{context.colSubsampleRatio},
+    preExtrapolate_{context.preExtrapolate},
+    postExtrapolate_{context.postExtrapolate},
+    recursiveFit_{context.recursiveFit},
+    partitionSizeMethod_{context.partitionSizeMethod},
+    learningRateMethod_{context.learningRateMethod},
+    current_classifier_ind_{0},
+    minLeafSize_{context.minLeafSize},
+    minimumGainSplit_{context.minimumGainSplit},
+    maxDepth_{context.maxDepth},
+    numTrees_{context.numTrees},
+    hasOOSData_{false}
+  { 
+    init_(); 
+  }
+
 
   GradientBoostClassifier(const mat& dataset_is,
 			  const Row<LabelType>& labels_is,
@@ -421,13 +441,15 @@ private:
   uvec subsampleRows(size_t);
   uvec subsampleCols(size_t);
   void symmetrizeLabels();
+  Row<DataType> uniqueCloseAndReplace(Row<DataType>&);
   void symmetrize(Row<double>&);
   void deSymmetrize(Row<double>&);
   void fit_step(std::size_t);
   double computeLearningRate(std::size_t);
   std::size_t computePartitionSize(std::size_t, const uvec&);
 
-  std::pair<rowvec,rowvec>  generate_coefficients(const Row<double>&, const uvec&);
+  std::pair<rowvec,rowvec> generate_coefficients(const Row<double>&, const uvec&);
+  std::pair<rowvec,rowvec> generate_coefficients(const Row<double>&, const Row<double>&, const uvec&);
   Leaves computeOptimalSplit(rowvec&, rowvec&, mat, std::size_t, std::size_t, const uvec&);
 
   void setNextClassifier(const ClassifierType&);
@@ -463,7 +485,6 @@ private:
   std::size_t maxDepth_;
   std::size_t numTrees_;
 
-  LeavesList leaves_;
   ClassifierList classifiers_;
   PartitionList partitions_;
   PredictionList predictions_;
@@ -480,6 +501,7 @@ private:
 
   bool preExtrapolate_;
   bool postExtrapolate_;
+  bool recursiveFit_;
 
   bool hasOOSData_;
 };

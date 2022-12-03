@@ -58,26 +58,26 @@ auto main(int argc, char **argv) -> int {
   ClassifierContext::Context context{};
   context.loss = lossFunction::BinomialDeviance;
   // context.loss = lossFunction::MSE;
-  context.partitionSize = 10;
-  context.partitionRatio = .25;
-  context.learningRate = .01;
+  context.partitionSize = 16;
+  context.partitionRatio = .45;
+  context.learningRate = .001;
   context.steps = 50000;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .5; // .75
-  context.preExtrapolate = false;
-  context.postExtrapolate = true;
-  context.partitionSizeMethod = PartitionSize::SizeMethod::INCREASING;
+  context.preExtrapolate = true;
+  context.postExtrapolate = false;
+  context.recursiveFit = true;
+  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
   context.learningRateMethod = LearningRate::RateMethod::DECREASING;
-
   context.minLeafSize = 1;
   context.maxDepth = 10;
   context.minimumGainSplit = 0.;
 
 
-  if (!data::Load("/home/charles/Data/colic_X.csv", dataset))
+  if (!data::Load("/home/charles/Data/cleve_X.csv", dataset))
     throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/colic_y.csv", labels))
+  if (!data::Load("/home/charles/Data/cleve_y.csv", labels))
     throw std::runtime_error("Could not load file");
   data::Split(dataset, labels, trainDataset, testDataset, trainLabels, testLabels, 0.2);
 
