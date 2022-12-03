@@ -304,13 +304,12 @@ struct classifier_traits {
 };
 
 
+template<typename ClassifierType>
 class GradientBoostClassifier {
 public:
 
-  using ClassifierType = DecisionTreeClassifier;
-  // using ClassifierType = RandomForestClassifier;
-  using DataType = classifier_traits<ClassifierType>::datatype;
-  using LabelType = classifier_traits<ClassifierType>::labeltype;
+  using DataType = typename classifier_traits<ClassifierType>::datatype;
+  using LabelType = typename classifier_traits<ClassifierType>::labeltype;
 
   using Partition = std::vector<std::vector<int>>;
   using PartitionList = std::vector<Partition>;
@@ -414,15 +413,15 @@ public:
 
   void fit();
 
-  void Classify(const mat&, Row<double>&);
+  void Classify(const mat&, Row<GradientBoostClassifier<ClassifierType>::DataType>&);
 
   // 3 Predict methods
   // predict on member dataset; loop through and sum step prediction vectors
-  void Predict(Row<double>&);
+  void Predict(Row<GradientBoostClassifier<ClassifierType>::DataType>&);
   // predict on subset of dataset defined by uvec; sum step prediction vectors
-  void Predict(Row<double>&, const uvec&);
+  void Predict(Row<GradientBoostClassifier<ClassifierType>::DataType>&, const uvec&);
   // predict OOS, loop through and call Classify_ on individual classifiers, sum
-  void Predict(const mat&, Row<double>&);
+  void Predict(const mat&, Row<GradientBoostClassifier<ClassifierType>::DataType>&);
 
   // overloaded versions of above
   void Predict(Row<LabelType>&);
@@ -440,14 +439,14 @@ private:
   uvec subsampleCols(size_t);
   void symmetrizeLabels();
   Row<DataType> uniqueCloseAndReplace(Row<DataType>&);
-  void symmetrize(Row<double>&);
-  void deSymmetrize(Row<double>&);
+  void symmetrize(Row<GradientBoostClassifier<ClassifierType>::DataType>&);
+  void deSymmetrize(Row<GradientBoostClassifier<ClassifierType>::DataType>&);
   void fit_step(std::size_t);
   double computeLearningRate(std::size_t);
   std::size_t computePartitionSize(std::size_t, const uvec&);
 
-  std::pair<rowvec,rowvec> generate_coefficients(const Row<double>&, const uvec&);
-  std::pair<rowvec,rowvec> generate_coefficients(const Row<double>&, const Row<double>&, const uvec&);
+  std::pair<rowvec,rowvec> generate_coefficients(const Row<GradientBoostClassifier<ClassifierType>::DataType>&, const uvec&);
+  std::pair<rowvec,rowvec> generate_coefficients(const Row<GradientBoostClassifier<ClassifierType>::DataType>&, const Row<GradientBoostClassifier<ClassifierType>::DataType>&, const uvec&);
   Leaves computeOptimalSplit(rowvec&, rowvec&, mat, std::size_t, std::size_t, const uvec&);
 
   void setNextClassifier(const ClassifierType&);

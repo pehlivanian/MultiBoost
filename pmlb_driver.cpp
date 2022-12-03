@@ -81,11 +81,13 @@ auto main(int argc, char **argv) -> int {
 
   bool symmetrize = true;
 
-  auto gradientBoostClassifier = GradientBoostClassifier(trainDataset, 
-							 trainLabels, 
-							 testDataset,
-							 testLabels,
-							 context);
+  using Cls = DecisionTreeClassifier;
+
+  auto gradientBoostClassifier = GradientBoostClassifier<Cls>(trainDataset, 
+							      trainLabels, 
+							      testDataset,
+							      testLabels,
+							      context);
 
   gradientBoostClassifier.fit();
   gradientBoostClassifier.Predict(trainDataset, trainPrediction);
