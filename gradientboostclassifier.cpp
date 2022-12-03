@@ -45,8 +45,12 @@ GradientBoostClassifier::init_() {
 							      
 
   // Make labels members of {-1,1}
+  assert(!(symmetrized_ && removeRedundantLabels_));
+
   if (symmetrized_) {
     symmetrizeLabels();
+  } else if (removeRedundantLabels_) {
+    auto uniqueVals = uniqueCloseAndReplace(labels_);
   }
 
   // Short-circuit recursive calls; likely only one iteration needed
@@ -149,27 +153,12 @@ GradientBoostClassifier::Predict(const mat& dataset, Row<GradientBoostClassifier
 
   prediction = zeros<Row<GradientBoostClassifier::DataType>>(dataset.n_cols);
 
-  if (true) {
-    for (const auto& classifier : classifiers_) {
-      Row<GradientBoostClassifier::DataType> predictionStep;
-      classifier->Classify_(dataset, predictionStep);
-      prediction += predictionStep;    
-    }  
-  }
-  else if (false) {
-    uvec rm, cm;
-    for (size_t i=0; i<classifiers_.size(); ++i) {
-      std::tie(rm, cm) = std::make_tuple(rowMasks_[i], colMasks_[i]);
-      auto dataset_slice = dataset.submat(rm, cm);
-      Row<GradientBoostClassifier::DataType> p;
-      classifiers_[i]->Classify_(dataset_slice, p);
-      
-      for (std::size_t i=0; i<cm.n_rows; ++i) {
-	prediction.col(cm(i)) += p.col(i);
-      }
-    }
-    
-  }
+  for (const auto& classifier : classifiers_) {
+    Row<GradientBoostClassifier::DataType> predictionStep;
+    classifier->Classify_(dataset, predictionStep);
+    prediction += predictionStep;    
+  }  
+
   if (symmetrized_) {
     deSymmetrize(prediction);
   }
@@ -257,15 +246,15 @@ GradientBoostClassifier::symmetrizeLabels() {
     // labels_ = sign(labels_);
     a_ = 1.; b_ = 1.;
     labels_ = ones<Row<double>>(labels_.n_elem);
-  } else if (uniqueVals_.size() == 2) {
-    double m = *std::min_element(uniqueVals_.cbegin(), uniqueVals_.cend());
-    double M = *std::max_element(uniqueVals_.cbegin(), uniqueVals_.cend());
+  } else if (uniqueVals.size() == 2) {
+    double m = *std::min_element(uniqueVals.cbegin(), uniqueVals.cend());
+    double M = *std::max_element(uniqueVals.cbegin(), uniqueVals.cend());
     a_ = 2./static_cast<double>(M-m);
     b_ = static_cast<double>(m+M)/static_cast<double>(m-M);
     labels_ = sign(a_*labels_ + b_);
       // labels_ = sign(2 * labels_ - 1);      
   } else {
-    assert(uniqueVals_.size() == 2);
+    assert(uniqueVals.size() == 2);
   }
     
 }
@@ -317,9 +306,6 @@ GradientBoostClassifier::fit_step(std::size_t stepNum) {
 
   if (recursiveFit_) {
 
-    // XXX
-    // preExtrapolate_ flavor
-
     // Reduce partition size
     std::size_t subPartitionSize = static_cast<std::size_t>(partitionSize/2);
 
@@ -346,8 +332,6 @@ GradientBoostClassifier::fit_step(std::size_t stepNum) {
     context.symmetrizeLabels = true;
     context.rowSubsampleRatio = row_subsample_ratio_;
     context.colSubsampleRatio = col_subsample_ratio_;
-    context.preExtrapolate = preExtrapolate_;
-    context.postExtrapolate = postExtrapolate_;
     context.recursiveFit = true;
     context.partitionSizeMethod = partitionSizeMethod_;
     context.learningRateMethod = learningRateMethod_;    
@@ -371,40 +355,18 @@ GradientBoostClassifier::fit_step(std::size_t stepNum) {
     // classifiers_.emplace_back(std::move(classifier));
     // predictions_.emplace_back(prediction);
     // current_classifier_ind_++;
-
+    
     // subClassifier->Classify_(dataset_, prediction);
 
-
-  } else if (postExtrapolate_) {
-
-    // Compute optimal leaf choice on restricted dataset
-    Leaves best_leaves = computeOptimalSplit(coeffs.first, coeffs.second, dataset_slice, stepNum, partitionSize, colMask);
-    
-    // Fit classifier on restricted {dataset_slice, best_leaves}
-    prediction = zeros<row_d>(m_);
-
-    classifier.reset(new cls(dataset_slice, 
-			     best_leaves, 
-			     std::move(partitionSize), 
-			     std::move(minLeafSize_), 
-			     std::move(minimumGainSplit_), 
-			     std::move(maxDepth_)));
-    classifier->Classify_(dataset_slice, prediction_slice);
-
-    // Zero-pad to extend to all of dataset
-    prediction(colMask) = prediction_slice;
-
-  } 
+  } else {
   
-  else if (preExtrapolate_) {
-    
     // Compute optimal leaf choice on unrestricted dataset
     Leaves best_leaves = computeOptimalSplit(coeffs.first, coeffs.second, dataset_, stepNum, partitionSize, colMask);
     
     // Fit classifier on {dataset, padded best_leaves}
     // Zero pad labels first
     allLeaves(colMask) = best_leaves;
-
+    
     classifier.reset(new cls(dataset_, 
 			     allLeaves, 
 			     std::move(partitionSize+1), // Since 0 is an additional class value
@@ -414,11 +376,11 @@ GradientBoostClassifier::fit_step(std::size_t stepNum) {
     classifier->Classify_(dataset_, prediction);
 
   }
-
+  
   classifiers_.emplace_back(std::move(classifier));
   predictions_.emplace_back(prediction);
   current_classifier_ind_++;
-
+  
   // colMask.print(std::cout);
   // dataset_slice.print(std::cout);
   

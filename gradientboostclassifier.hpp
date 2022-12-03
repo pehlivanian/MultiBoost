@@ -67,6 +67,7 @@ namespace ClassifierContext {
       minimumGainSplit{minimumGainSplit},
       maxDepth{maxDepth},
       numTrees{numTrees},
+      removeRedundantLabels{false},
       recursiveFit{recursiveFit} {}
       
     lossFunction loss;
@@ -75,10 +76,9 @@ namespace ClassifierContext {
     double learningRate;
     int steps;
     bool symmetrizeLabels;
+    bool removeRedundantLabels;
     double rowSubsampleRatio;
     double colSubsampleRatio;
-    bool preExtrapolate;
-    bool postExtrapolate;
     bool recursiveFit;
     PartitionSize::SizeMethod partitionSizeMethod;
     LearningRate::RateMethod learningRateMethod;
@@ -327,17 +327,17 @@ public:
 			  std::size_t partitionSize,
 			  double learningRate,
 			  int steps,
-			  bool symmetrizeLabels) : 
+			  bool symmetrizeLabels,
+			  bool removeRedundantLabels) : 
     dataset_{dataset},
     steps_{steps},
     symmetrized_{symmetrizeLabels},
+    removeRedundantLabels_{removeRedundantLabels},
     loss_{loss},
     partitionSize_{partitionSize},
     learningRate_{learningRate},
     row_subsample_ratio_{1.},
     col_subsample_ratio_{.05},
-    preExtrapolate_{false},
-    postExtrapolate_{true},
     current_classifier_ind_{0},
     hasOOSData_{false}
   { 
@@ -356,10 +356,9 @@ public:
     learningRate_{context.learningRate},
     steps_{context.steps},
     symmetrized_{context.symmetrizeLabels},
+    removeRedundantLabels_{context.removeRedundantLabels},
     row_subsample_ratio_{context.rowSubsampleRatio},
     col_subsample_ratio_{context.colSubsampleRatio},
-    preExtrapolate_{context.preExtrapolate},
-    postExtrapolate_{context.postExtrapolate},
     recursiveFit_{context.recursiveFit},
     partitionSizeMethod_{context.partitionSizeMethod},
     learningRateMethod_{context.learningRateMethod},
@@ -384,10 +383,9 @@ public:
     learningRate_{context.learningRate},
     steps_{context.steps},
     symmetrized_{context.symmetrizeLabels},
+    removeRedundantLabels_{context.removeRedundantLabels},
     row_subsample_ratio_{context.rowSubsampleRatio},
     col_subsample_ratio_{context.colSubsampleRatio},
-    preExtrapolate_{context.preExtrapolate},
-    postExtrapolate_{context.postExtrapolate},
     recursiveFit_{context.recursiveFit},
     partitionSizeMethod_{context.partitionSizeMethod},
     learningRateMethod_{context.learningRateMethod},
@@ -498,9 +496,8 @@ private:
   // call by partitionDist_(default_engine_)
 
   bool symmetrized_;
+  bool removeRedundantLabels_;
 
-  bool preExtrapolate_;
-  bool postExtrapolate_;
   bool recursiveFit_;
 
   bool hasOOSData_;

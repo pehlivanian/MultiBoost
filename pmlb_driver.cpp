@@ -58,16 +58,14 @@ auto main(int argc, char **argv) -> int {
   ClassifierContext::Context context{};
   context.loss = lossFunction::BinomialDeviance;
   // context.loss = lossFunction::MSE;
-  context.partitionSize = 16;
+  context.partitionSize = 5;
   context.partitionRatio = .45;
-  context.learningRate = .001;
+  context.learningRate = .005;
   context.steps = 50000;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .5; // .75
-  context.preExtrapolate = true;
-  context.postExtrapolate = false;
-  context.recursiveFit = true;
+  context.recursiveFit = false;
   context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
   context.learningRateMethod = LearningRate::RateMethod::DECREASING;
   context.minLeafSize = 1;
