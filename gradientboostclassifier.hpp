@@ -152,6 +152,7 @@ public:
 
   ClassifierBase() = default;
   ~ClassifierBase() = default;
+  virtual void Classify_(const mat&, Row<DataType>&) = 0;
 
 };
 
@@ -185,7 +186,7 @@ public:
   ~DiscreteClassifierBase() = default;
 
   void setClassifier(const mat&, Row<std::size_t>&, Args&&...);
-  void Classify_(const mat&, Row<DataType>&);
+  void Classify_(const mat&, Row<DataType>&) override;
 
 private:
   void encode(const Row<DataType>&, Row<std::size_t>&); 
@@ -209,7 +210,7 @@ public:
   ~ContinuousClassifierBase() = default;
   
   void setClassifier(const mat&, Row<DataType>&, Args&&...);
-  void Classify_(const mat&, Row<DataType>&);
+  void Classify_(const mat&, Row<DataType>&) override;
 
 private:
   std::unique_ptr<ClassifierType> classifier_;
@@ -303,6 +304,30 @@ struct classifier_traits {
   using labeltype = std::size_t;
 };
 
+/*
+template<typename... Args>
+struct pack {};
+
+template<class DataType, class ClassifierType, class... Args>
+struct A {
+  using args = pack<Args...>;
+};
+
+template<>
+struct A<double, DecisionTreeClassifier> {
+  using args = pack<std::size_t, std::size_t, double, std::size_t>;
+};
+*/
+
+template<typename DataType, typename ClassifierType, typename... Args>
+struct A {
+  using Tuple = std::tuple<Args...>;
+};
+
+template<>
+struct A<double, DecisionTreeClassifier> {
+  using Tuple = std::tuple<std::size_t, std::size_t, double, std::size_t>;
+};
 
 template<typename ClassifierType>
 class GradientBoostClassifier {
@@ -313,6 +338,7 @@ public:
 
   using Partition = std::vector<std::vector<int>>;
   using PartitionList = std::vector<Partition>;
+  // using ClassifierList = std::vector<std::unique_ptr<ClassifierBase<DataType, ClassifierType, typename A<DataType, ClassifierType>::Tuple>>>;
   using ClassifierList = std::vector<std::unique_ptr<ClassifierType>>;
   using Leaves = Row<double>;
   using LeavesList = std::vector<Leaves>;
@@ -337,7 +363,6 @@ public:
     learningRate_{learningRate},
     row_subsample_ratio_{1.},
     col_subsample_ratio_{.05},
-    current_classifier_ind_{0},
     hasOOSData_{false}
   { 
     labels_ = conv_to<Row<double>>::from(labels);    
@@ -361,7 +386,6 @@ public:
     recursiveFit_{context.recursiveFit},
     partitionSizeMethod_{context.partitionSizeMethod},
     learningRateMethod_{context.learningRateMethod},
-    current_classifier_ind_{0},
     minLeafSize_{context.minLeafSize},
     minimumGainSplit_{context.minimumGainSplit},
     maxDepth_{context.maxDepth},
@@ -388,7 +412,6 @@ public:
     recursiveFit_{context.recursiveFit},
     partitionSizeMethod_{context.partitionSizeMethod},
     learningRateMethod_{context.learningRateMethod},
-    current_classifier_ind_{0},
     minLeafSize_{context.minLeafSize},
     minimumGainSplit_{context.minimumGainSplit},
     maxDepth_{context.maxDepth},
@@ -413,23 +436,28 @@ public:
 
   void fit();
 
-  void Classify(const mat&, Row<GradientBoostClassifier<ClassifierType>::DataType>&);
+  void Classify(const mat&, Row<DataType>&);
 
   // 3 Predict methods
   // predict on member dataset; loop through and sum step prediction vectors
-  void Predict(Row<GradientBoostClassifier<ClassifierType>::DataType>&);
+  void Predict(Row<DataType>&);
   // predict on subset of dataset defined by uvec; sum step prediction vectors
-  void Predict(Row<GradientBoostClassifier<ClassifierType>::DataType>&, const uvec&);
+  void Predict(Row<DataType>&, const uvec&);
   // predict OOS, loop through and call Classify_ on individual classifiers, sum
-  void Predict(const mat&, Row<GradientBoostClassifier<ClassifierType>::DataType>&);
+  void Predict(const mat&, Row<DataType>&);
 
   // overloaded versions of above
   void Predict(Row<LabelType>&);
   void Predict(Row<LabelType>&, const uvec&);
   void Predict(const mat&, Row<LabelType>&);
 
+  virtual void Classify_(const mat& dataset, Row<DataType>& prediction) { 
+    Predict(dataset, prediction); 
+  }
+
   mat getDataset() const { return dataset_; }
   Row<double> getLabels() const { return labels_; }
+  void printStats(int);
 
 private:
   void init_();
@@ -439,14 +467,14 @@ private:
   uvec subsampleCols(size_t);
   void symmetrizeLabels();
   Row<DataType> uniqueCloseAndReplace(Row<DataType>&);
-  void symmetrize(Row<GradientBoostClassifier<ClassifierType>::DataType>&);
-  void deSymmetrize(Row<GradientBoostClassifier<ClassifierType>::DataType>&);
+  void symmetrize(Row<DataType>&);
+  void deSymmetrize(Row<DataType>&);
   void fit_step(std::size_t);
   double computeLearningRate(std::size_t);
   std::size_t computePartitionSize(std::size_t, const uvec&);
 
-  std::pair<rowvec,rowvec> generate_coefficients(const Row<GradientBoostClassifier<ClassifierType>::DataType>&, const uvec&);
-  std::pair<rowvec,rowvec> generate_coefficients(const Row<GradientBoostClassifier<ClassifierType>::DataType>&, const Row<GradientBoostClassifier<ClassifierType>::DataType>&, const uvec&);
+  std::pair<rowvec,rowvec> generate_coefficients(const Row<DataType>&, const uvec&);
+  std::pair<rowvec,rowvec> generate_coefficients(const Row<DataType>&, const Row<DataType>&, const uvec&);
   Leaves computeOptimalSplit(rowvec&, rowvec&, mat, std::size_t, std::size_t, const uvec&);
 
   void setNextClassifier(const ClassifierType&);
@@ -474,8 +502,6 @@ private:
 
   double a_;
   double b_;
-
-  int current_classifier_ind_;
 
   std::size_t minLeafSize_;
   double minimumGainSplit_;
