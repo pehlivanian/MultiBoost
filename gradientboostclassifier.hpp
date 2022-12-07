@@ -10,6 +10,7 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include <type_traits>
 #include <cassert>
 
 #include <mlpack/core.hpp>
@@ -68,7 +69,9 @@ namespace ClassifierContext {
       maxDepth{maxDepth},
       numTrees{numTrees},
       removeRedundantLabels{false},
-      recursiveFit{recursiveFit} {}
+      recursiveFit{recursiveFit},
+      hasOOSData{false} 
+    {}
       
     lossFunction loss;
     std::size_t partitionSize;
@@ -86,6 +89,9 @@ namespace ClassifierContext {
     double minimumGainSplit;
     std::size_t maxDepth;
     std::size_t numTrees;
+    bool hasOOSData;
+    mat dataset_oos;
+    Row<double> labels_oos;
   };
 } // namespace ClassifierContext
 
@@ -145,7 +151,7 @@ namespace ClassifierTypes {
   
 };
 
-template<typename DataType, typename ClassifierType, typename... Args>
+template<typename DataType, typename ClassifierType>
 class ClassifierBase {
 public:
   using data_type = DataType;
@@ -157,12 +163,12 @@ public:
 };
 
 template<typename DataType, typename ClassifierType, typename... Args>
-class DiscreteClassifierBase : public ClassifierBase<DataType, ClassifierType, Args...> {
+class DiscreteClassifierBase : public ClassifierBase<DataType, ClassifierType> {
 public:
   using LeavesMap = std::unordered_map<std::size_t, DataType>;
 
   DiscreteClassifierBase(const mat& dataset, Row<DataType>& labels, Args&&... args) : 
-    ClassifierBase<DataType, ClassifierType, Args...>()
+    ClassifierBase<DataType, ClassifierType>()
   {
     dataset_ = dataset;
     labels_t_ = Row<std::size_t>(labels.n_cols);
@@ -200,10 +206,10 @@ private:
 };
 
 template<typename DataType, typename ClassifierType, typename... Args>
-class ContinuousClassifierBase : public ClassifierBase<DataType, ClassifierType, Args...> {
+class ContinuousClassifierBase : public ClassifierBase<DataType, ClassifierType> {
 public:  
   ContinuousClassifierBase(const mat& dataset, Row<DataType>& labels, Args&&... args) : 
-    ClassifierBase<DataType, ClassifierType, Args...>() 
+    ClassifierBase<DataType, ClassifierType>() 
   {
     setClassifier(dataset, labels, std::forward<Args>(args)...);
   }
@@ -301,45 +307,29 @@ public:
 template<typename T>
 struct classifier_traits {
   using datatype = double;
-  using labeltype = std::size_t;
-};
-
-/*
-template<typename... Args>
-struct pack {};
-
-template<class DataType, class ClassifierType, class... Args>
-struct A {
-  using args = pack<Args...>;
+  using integrallabeltype = std::size_t;
+  using classifier = ClassifierTypes::DecisionTreeClassifierType;
 };
 
 template<>
-struct A<double, DecisionTreeClassifier> {
-  using args = pack<std::size_t, std::size_t, double, std::size_t>;
-};
-*/
-
-template<typename DataType, typename ClassifierType, typename... Args>
-struct A {
-  using Tuple = std::tuple<Args...>;
+struct classifier_traits<DecisionTreeClassifier> {
+  using datatype = double;
+  using integrallabeltype = std::size_t;
+  using classifier = ClassifierTypes::DecisionTreeClassifierType;
 };
 
-template<>
-struct A<double, DecisionTreeClassifier> {
-  using Tuple = std::tuple<std::size_t, std::size_t, double, std::size_t>;
-};
 
 template<typename ClassifierType>
 class GradientBoostClassifier {
 public:
 
   using DataType = typename classifier_traits<ClassifierType>::datatype;
-  using LabelType = typename classifier_traits<ClassifierType>::labeltype;
+  using IntegralLabelType = typename classifier_traits<ClassifierType>::integrallabeltype;
+  using Classifier = typename classifier_traits<ClassifierType>::classifier;
 
   using Partition = std::vector<std::vector<int>>;
   using PartitionList = std::vector<Partition>;
-  // using ClassifierList = std::vector<std::unique_ptr<ClassifierBase<DataType, ClassifierType, typename A<DataType, ClassifierType>::Tuple>>>;
-  using ClassifierList = std::vector<std::unique_ptr<ClassifierType>>;
+  using ClassifierList = std::vector<std::unique_ptr<ClassifierBase<DataType, Classifier>>>;
   using Leaves = Row<double>;
   using LeavesList = std::vector<Leaves>;
   using Prediction = Row<double>;
@@ -347,30 +337,7 @@ public:
   using MaskList = std::vector<uvec>;
   
   GradientBoostClassifier(const mat& dataset, 
-			  const Row<LabelType>& labels, 
-			  lossFunction loss,
-			  std::size_t partitionSize,
-			  double learningRate,
-			  int steps,
-			  bool symmetrizeLabels,
-			  bool removeRedundantLabels) : 
-    dataset_{dataset},
-    steps_{steps},
-    symmetrized_{symmetrizeLabels},
-    removeRedundantLabels_{removeRedundantLabels},
-    loss_{loss},
-    partitionSize_{partitionSize},
-    learningRate_{learningRate},
-    row_subsample_ratio_{1.},
-    col_subsample_ratio_{.05},
-    hasOOSData_{false}
-  { 
-    labels_ = conv_to<Row<double>>::from(labels);    
-    init_(); 
-  }
-
-  GradientBoostClassifier(const mat& dataset, 
-			  const Row<LabelType>& labels,
+			  const Row<std::size_t>& labels,
 			  ClassifierContext::Context context) :
     dataset_{dataset},
     labels_{conv_to<Row<double>>::from(labels)},
@@ -389,15 +356,19 @@ public:
     minLeafSize_{context.minLeafSize},
     minimumGainSplit_{context.minimumGainSplit},
     maxDepth_{context.maxDepth},
-    numTrees_{context.numTrees},
-    hasOOSData_{false}
+    numTrees_{context.numTrees}
   { 
+    if (hasOOSData_ = context.hasOOSData) {
+      dataset_oos_ = context.dataset_oos;
+      labels_oos_ = conv_to<Row<double>>::from(context.labels_oos);      
+    }
     init_(); 
   }
 
   GradientBoostClassifier(const mat& dataset,
 			  const Row<double>& labels,
 			  ClassifierContext::Context context) :
+
     dataset_{dataset},
     labels_{labels},
     loss_{context.loss},
@@ -415,24 +386,15 @@ public:
     minLeafSize_{context.minLeafSize},
     minimumGainSplit_{context.minimumGainSplit},
     maxDepth_{context.maxDepth},
-    numTrees_{context.numTrees},
-    hasOOSData_{false}
+    numTrees_{context.numTrees}
   { 
+    if (hasOOSData_ = context.hasOOSData) {
+      dataset_oos_ = context.dataset_oos;
+      labels_oos_ = labels;
+    }
     init_(); 
   }
-
-
-  GradientBoostClassifier(const mat& dataset_is,
-			  const Row<LabelType>& labels_is,
-			  const mat& dataset_oos,
-			  const Row<LabelType>& labels_oos,
-			  ClassifierContext::Context context) : 
-    GradientBoostClassifier(dataset_is, labels_is, context)
-  {
-    hasOOSData_ = true;
-    dataset_oos_ = dataset_oos;
-    labels_oos_ = conv_to<Row<double>>::from(labels_oos);
-  }
+    
 
   void fit();
 
@@ -447,9 +409,9 @@ public:
   void Predict(const mat&, Row<DataType>&);
 
   // overloaded versions of above
-  void Predict(Row<LabelType>&);
-  void Predict(Row<LabelType>&, const uvec&);
-  void Predict(const mat&, Row<LabelType>&);
+  void Predict(Row<IntegralLabelType>&);
+  void Predict(Row<IntegralLabelType>&, const uvec&);
+  void Predict(const mat&, Row<IntegralLabelType>&);
 
   virtual void Classify_(const mat& dataset, Row<DataType>& prediction) { 
     Predict(dataset, prediction); 

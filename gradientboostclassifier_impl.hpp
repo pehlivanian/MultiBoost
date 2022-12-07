@@ -60,7 +60,7 @@ ContinuousClassifierBase<DataType, ClassifierType, Args...>::Classify_(const mat
 }
 
 template<typename DataType, typename ClassifierType, typename... Args>
-void
+ void
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::setClassifier(const mat& dataset, Row<std::size_t>& labels, Args&&... args) {
   classifier_.reset(new ClassifierType(dataset, labels, std::forward<Args>(args)...));
 }
@@ -119,7 +119,14 @@ GradientBoostClassifier<ClassifierType>::init_() {
 
   // classifiers
   row_d constantLabels = _constantLeaf();
-  classifiers_.emplace_back(std::make_unique<ClassifierType>(dataset_, labels_, partitionSize_, minLeafSize_, minimumGainSplit_, maxDepth_));
+  // classifiers_.emplace_back(std::make_unique<ClassifierType>(dataset_, labels_, partitionSize_, minLeafSize_, minimumGainSplit_, maxDepth_));
+  std::unique_ptr<ClassifierBase<DataType, Classifier>> cPtr = std::make_unique<ClassifierType>(dataset_,
+												labels_,
+												partitionSize_,
+												minLeafSize_,
+												minimumGainSplit_,
+												maxDepth_);
+  classifiers_.push_back(std::move(cPtr));
   // classifiers_.emplace_back(std::make_unique<ClassifierType>(dataset_, labels_, partitionSize_+1, numTrees_, minLeafSize_));
 
   // first prediction
@@ -183,23 +190,25 @@ GradientBoostClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataTyp
 
 template<typename ClassifierType>
 void
-GradientBoostClassifier<ClassifierType>::Predict(Row<LabelType>& prediction) {
+GradientBoostClassifier<ClassifierType>::Predict(Row<typename GradientBoostClassifier<ClassifierType>::IntegralLabelType>& prediction) {
   row_d prediction_d = conv_to<row_d>::from(prediction);
   Predict(prediction_d);
   prediction = conv_to<row_t>::from(prediction_d);
 }
 
+
 template<typename ClassifierType>
 void
-GradientBoostClassifier<ClassifierType>::Predict(Row<LabelType>& prediction, const uvec& colMask) {
+GradientBoostClassifier<ClassifierType>::Predict(Row<typename GradientBoostClassifier<ClassifierType>::IntegralLabelType>& prediction, const uvec& colMask) {
   row_d prediction_d = conv_to<row_d>::from(prediction);
   Predict(prediction_d, colMask);
   prediction = conv_to<row_t>::from(prediction_d);
 }
 
+
 template<typename ClassifierType>
 void
-GradientBoostClassifier<ClassifierType>::Predict(const mat& dataset, Row<LabelType>& prediction) {
+GradientBoostClassifier<ClassifierType>::Predict(const mat& dataset, Row<typename GradientBoostClassifier<ClassifierType>::IntegralLabelType>& prediction) {
   row_d prediction_d;
   Predict(dataset, prediction_d);
 
@@ -618,8 +627,8 @@ GradientBoostClassifier<ClassifierType>::generate_coefficients(const Row<DataTyp
 template<typename ClassifierType>
 std::pair<rowvec, rowvec>
 GradientBoostClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& yhat,
-					       const Row<DataType>& y,
-					       const uvec& colMask) {
+									 const Row<DataType>& y,
+									 const uvec& colMask) {
   rowvec g, h;
   lossFn_->loss(yhat, y, &g, &h);
 

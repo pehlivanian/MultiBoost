@@ -55,6 +55,12 @@ auto main(int argc, char **argv) -> int {
   Mat<double> dataset, trainDataset, testDataset;
   Row<std::size_t> labels, trainLabels, testLabels, trainPrediction, testPrediction;
 
+  if (!data::Load("/home/charles/Data/cleve_X.csv", dataset))
+    throw std::runtime_error("Could not load file");
+  if (!data::Load("/home/charles/Data/cleve_y.csv", labels))
+    throw std::runtime_error("Could not load file");
+  data::Split(dataset, labels, trainDataset, testDataset, trainLabels, testLabels, 0.2);
+  
   ClassifierContext::Context context{};
   context.loss = lossFunction::BinomialDeviance;
   // context.loss = lossFunction::MSE;
@@ -71,23 +77,14 @@ auto main(int argc, char **argv) -> int {
   context.minLeafSize = 1;
   context.maxDepth = 10;
   context.minimumGainSplit = 0.;
+  context.hasOOSData = true;
+  context.dataset_oos = testDataset;
+  context.labels_oos = conv_to<Row<double>>::from(testLabels);
 
 
-  if (!data::Load("/home/charles/Data/cleve_X.csv", dataset))
-    throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/cleve_y.csv", labels))
-    throw std::runtime_error("Could not load file");
-  data::Split(dataset, labels, trainDataset, testDataset, trainLabels, testLabels, 0.2);
-
-  bool symmetrize = true;
-
-  using Cls = DecisionTreeClassifier;
-
-  auto gradientBoostClassifier = GradientBoostClassifier<Cls>(trainDataset, 
-							      trainLabels, 
-							      testDataset,
-							      testLabels,
-							      context);
+  auto gradientBoostClassifier = GradientBoostClassifier<DecisionTreeClassifier>(trainDataset, 
+										 trainLabels, 
+										 context);
 
   gradientBoostClassifier.fit();
   gradientBoostClassifier.Predict(trainDataset, trainPrediction);
