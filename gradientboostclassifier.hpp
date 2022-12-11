@@ -126,7 +126,7 @@ public:
   }
 
   static std::vector<std::vector<int>> _fullPartition(int sz) {
-    std::vector<int> subset{sz};
+    std::vector<int> subset(sz);
     std::iota(subset.begin(), subset.end(), 0);
     std::vector<std::vector<int>> p{1, subset};
     return p;
@@ -154,12 +154,8 @@ namespace ClassifierTypes {
 template<typename DataType, typename ClassifierType>
 class ClassifierBase {
 public:
-  using data_type = DataType;
-
-  ClassifierBase() = default;
-  ~ClassifierBase() = default;
   virtual void Classify_(const mat&, Row<DataType>&) = 0;
-
+  virtual void purge() = 0;
 };
 
 template<typename DataType, typename ClassifierType, typename... Args>
@@ -193,6 +189,7 @@ public:
 
   void setClassifier(const mat&, Row<std::size_t>&, Args&&...);
   void Classify_(const mat&, Row<DataType>&) override;
+  void purge() override;
 
 private:
   void encode(const Row<DataType>&, Row<std::size_t>&); 
@@ -217,6 +214,7 @@ public:
   
   void setClassifier(const mat&, Row<DataType>&, Args&&...);
   void Classify_(const mat&, Row<DataType>&) override;
+  void purge() override {};
 
 private:
   std::unique_ptr<ClassifierType> classifier_;
@@ -320,7 +318,8 @@ struct classifier_traits<DecisionTreeClassifier> {
 
 
 template<typename ClassifierType>
-class GradientBoostClassifier {
+class GradientBoostClassifier : public ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+						      typename classifier_traits<ClassifierType>::classifier> {
 public:
 
   using DataType = typename classifier_traits<ClassifierType>::datatype;
@@ -420,6 +419,8 @@ public:
   mat getDataset() const { return dataset_; }
   Row<double> getLabels() const { return labels_; }
   void printStats(int);
+  void purge();
+  
 
 private:
   void init_();
