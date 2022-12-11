@@ -158,6 +158,11 @@ public:
   virtual void purge() = 0;
 };
 
+template<typename ClassifierType>
+class AggregatorBase {
+  ;
+};
+
 template<typename DataType, typename ClassifierType, typename... Args>
 class DiscreteClassifierBase : public ClassifierBase<DataType, ClassifierType> {
 public:
@@ -166,10 +171,9 @@ public:
   DiscreteClassifierBase(const mat& dataset, Row<DataType>& labels, Args&&... args) : 
     ClassifierBase<DataType, ClassifierType>()
   {
-    dataset_ = dataset;
     labels_t_ = Row<std::size_t>(labels.n_cols);
     encode(labels, labels_t_);
-    setClassifier(dataset_, labels_t_, std::forward<Args>(args)...);
+    setClassifier(dataset, labels_t_, std::forward<Args>(args)...);
     
     // Check error
     /*
@@ -195,7 +199,6 @@ private:
   void encode(const Row<DataType>&, Row<std::size_t>&); 
   void decode(const Row<std::size_t>&, Row<DataType>&);
 
-  mat dataset_;
   Row<std::size_t> labels_t_;
   LeavesMap leavesMap_;
   std::unique_ptr<ClassifierType> classifier_;

@@ -24,9 +24,9 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::encode(const Row<Data
 template<typename DataType, typename ClassifierType, typename... Args>
 void
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::purge() {
-  dataset_.clear();
-  labels_t_.clear();
-  // leavesMap_.clear();
+  labels_t_ = ones<Row<std::size_t>>(0);
+
+  // labels_t_.clear();
 }
 
 template<typename DataType, typename ClassifierType, typename... Args>
@@ -511,12 +511,21 @@ GradientBoostClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
 template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::purge() {
-  dataset_.clear();
-  labels_.clear();
-  labels_oos_.clear();
-  partitions_.clear();
-  rowMasks_.clear();
-  colMasks_.clear();
+  dataset_ = ones<mat>(0,0);
+  labels_ = ones<Row<double>>(0);
+  dataset_oos_ = ones<mat>(0,0);
+  labels_oos_ = ones<Row<double>>(0);
+  std::vector<Partition>().swap(partitions_);
+  std::vector<uvec>().swap(rowMasks_);
+  std::vector<uvec>().swap(colMasks_);
+
+  // dataset_.clear();
+  // labels_.clear();
+  // dataset_oos_.clear();
+  // labels_oos_.clear();
+  // partitions_.clear();
+  // rowMasks_.clear();
+  // colMasks_.clear();
 }
 
 template<typename ClassifierType>

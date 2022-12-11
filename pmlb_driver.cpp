@@ -64,10 +64,10 @@ auto main(int argc, char **argv) -> int {
   ClassifierContext::Context context{};
   context.loss = lossFunction::BinomialDeviance;
   // context.loss = lossFunction::MSE;
-  context.partitionSize = 5;
-  context.partitionRatio = .45;
-  context.learningRate = .005;
-  context.steps = 50000;
+  context.partitionSize = 4;
+  context.partitionRatio = .25;
+  context.learningRate = .01;
+  context.steps = 10000;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .5; // .75
