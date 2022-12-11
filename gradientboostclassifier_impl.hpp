@@ -26,7 +26,7 @@ void
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::purge() {
   dataset_.clear();
   labels_t_.clear();
-  leavesMap_.clear();
+  // leavesMap_.clear();
 }
 
 template<typename DataType, typename ClassifierType, typename... Args>
@@ -126,19 +126,20 @@ GradientBoostClassifier<ClassifierType>::init_() {
 
   // classifiers
   row_d constantLabels = _constantLeaf();
-  // classifiers_.emplace_back(std::make_unique<ClassifierType>(dataset_, labels_, partitionSize_, minLeafSize_, minimumGainSplit_, maxDepth_));
-  std::unique_ptr<ClassifierBase<DataType, Classifier>> cPtr = std::make_unique<ClassifierType>(dataset_,
-												labels_,
-												partitionSize_,
-												minLeafSize_,
-												minimumGainSplit_,
-												maxDepth_);
+  std::unique_ptr<ClassifierType> classifier;
+  classifier.reset(new ClassifierType(dataset_, 
+				      labels_,
+				      partitionSize_,
+				      minLeafSize_,
+				      minimumGainSplit_,
+				      maxDepth_));
+
   // first prediction
   Row<DataType> prediction;
-  cPtr->Classify_(dataset_, prediction);
+  classifier->Classify_(dataset_, prediction);
 
-  // cPtr->purge();
-  classifiers_.push_back(std::move(cPtr));
+  classifier->purge();
+  classifiers_.push_back(std::move(classifier));
   predictions_.emplace_back(prediction);
 
   uvec rowMask = linspace<uvec>(0, -1+n_, n_);
@@ -390,7 +391,7 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     auto classifier = new GradientBoostClassifier(dataset_, allLeaves, context);
     
     classifier->fit();
-    classifier->Predict(dataset_, prediction);
+    classifier->Classify_(dataset_, prediction);
 
     std::cout << "FIT\n";
 
@@ -512,9 +513,9 @@ void
 GradientBoostClassifier<ClassifierType>::purge() {
   dataset_.clear();
   labels_.clear();
-  // labels_oos_.clear();
-  // partitions_.clear();
-  // rowMasks_.clear();
+  labels_oos_.clear();
+  partitions_.clear();
+  rowMasks_.clear();
   colMasks_.clear();
 }
 
