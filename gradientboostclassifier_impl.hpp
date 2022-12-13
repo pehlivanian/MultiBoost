@@ -156,8 +156,10 @@ GradientBoostClassifier<ClassifierType>::init_() {
     lossFn_ = new MSELoss<double>();
   }
 
-  if (partitionSize_ == 1)
-    steps_ = 0;
+  if (partitionSize_ == 1) {
+    recursiveFit_ = false;
+    // steps_ = 0;
+  }
 
 }
 
@@ -372,7 +374,7 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     context.partitionRatio = partitionRatio_;
     // context.learningRate = learningRate_;
     context.learningRate = learningRate_;
-    context.steps = 10;
+    context.steps = std::log(subPartitionSize);
     context.symmetrizeLabels = false;
     context.removeRedundantLabels = true;
     context.rowSubsampleRatio = row_subsample_ratio_;
@@ -392,8 +394,6 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     
     classifier->fit();
     classifier->Classify_(dataset_, prediction);
-
-    std::cout << "FIT\n";
 
     classifier->purge();
     classifiers_.emplace_back(std::move(classifier));
@@ -541,16 +541,19 @@ GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
 
   double error_is = accu(yhat != labels_) * 100. / labels_.n_elem;
       
+  /*
   std::cout << "STEP: " << stepNum 
 	    << " IS LOSS: " << r
 	    << " IS ERROR: " << error_is << "%" << std::endl;
+  */
       
   if (hasOOSData_) {
     Row<DataType> yhat_oos;
     Predict(dataset_oos_, yhat_oos);
     deSymmetrize(yhat_oos); symmetrize(yhat_oos);
     double error_oos = accu(yhat_oos != labels_oos_) * 100. / labels_oos_.n_elem;
-    std::cout << "OOS ERROR: " << error_oos << "%" << std::endl;
+    std::cout << "STEP: " << stepNum
+	      << " OOS ERROR: " << error_oos << "%" << std::endl;
   }
 }
 
