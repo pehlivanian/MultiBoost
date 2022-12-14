@@ -55,9 +55,9 @@ auto main(int argc, char **argv) -> int {
   Mat<double> dataset, trainDataset, testDataset;
   Row<std::size_t> labels, trainLabels, testLabels, trainPrediction, testPrediction;
 
-  if (!data::Load("/home/charles/Data/parity5+5_X.csv", dataset))
+  if (!data::Load("/home/charles/Data/profb_X.csv", dataset))
     throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/parity5+5_y.csv", labels))
+  if (!data::Load("/home/charles/Data/profb_y.csv", labels))
     throw std::runtime_error("Could not load file");
   data::Split(dataset, labels, trainDataset, testDataset, trainLabels, testLabels, 0.2);
   

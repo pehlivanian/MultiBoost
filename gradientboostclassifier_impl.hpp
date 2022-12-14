@@ -101,6 +101,16 @@ GradientBoostClassifier<ClassifierType>::_randomLeaf(std::size_t numVals) const 
 
 template<typename ClassifierType>
 void
+GradientBoostClassifier<ClassifierType>::updateClassifiers(std::unique_ptr<ClassifierBase<DataType, Classifier>>&& classifier,
+							   Row<DataType>& prediction) {
+  latestPrediction_ += prediction;
+  classifier->purge();
+  classifiers_.push_back(std::move(classifier));
+  // predictions_.emplace_back(prediction);
+}
+
+template<typename ClassifierType>
+void
 GradientBoostClassifier<ClassifierType>::init_() {
   
   // Note these are flipped
@@ -136,18 +146,15 @@ GradientBoostClassifier<ClassifierType>::init_() {
 
   // first prediction
   Row<DataType> prediction;
+  latestPrediction_ = zeros<Row<DataType>>(dataset_.n_cols);
   classifier->Classify_(dataset_, prediction);
 
-  classifier->purge();
-  classifiers_.push_back(std::move(classifier));
-  predictions_.emplace_back(prediction);
+  // update classifier, predictions
+  updateClassifiers(std::move(classifier), prediction);
 
-  uvec rowMask = linspace<uvec>(0, -1+n_, n_);
   uvec colMask = linspace<uvec>(0, -1+m_, m_);
   
-  rowMasks_.emplace_back(rowMask);
   colMasks_.emplace_back(colMask);
-
   
   if (loss_ == lossFunction::BinomialDeviance) {
     lossFn_ = new BinomialDevianceLoss<double>();
@@ -166,10 +173,13 @@ GradientBoostClassifier<ClassifierType>::init_() {
 template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::Predict(Row<DataType>& prediction) {
-  prediction = zeros<Row<double>>(m_);
-  for (const auto& step : predictions_) {
+  /*
+    prediction = zeros<Row<double>>(m_);
+    for (const auto& step : predictions_) {
     prediction += step;
-  }
+    }
+  */
+  prediction = latestPrediction_;
 }
 
 template<typename ClassifierType>
@@ -234,6 +244,7 @@ template<typename ClassifierType>
 uvec
 GradientBoostClassifier<ClassifierType>::subsampleRows(size_t numRows) {
   uvec r = sort(randperm(n_, numRows));
+  // uvec r = randperm(n_, numRows);
   return r;
 }
 
@@ -241,6 +252,7 @@ template<typename ClassifierType>
 uvec
 GradientBoostClassifier<ClassifierType>::subsampleCols(size_t numCols) {
   uvec r = sort(randperm(m_, numCols));
+  // uvec r = randperm(m_, numCols);
   return r;
 }
 
@@ -319,19 +331,18 @@ GradientBoostClassifier<ClassifierType>::deSymmetrize(Row<DataType>& prediction)
 template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
-  int rowRatio = static_cast<size_t>(n_ * row_subsample_ratio_);
-  int colRatio = static_cast<size_t>(m_ * col_subsample_ratio_);
-  uvec rowMask = subsampleRows(rowRatio);
-  uvec colMask = subsampleCols(colRatio);
 
-  rowMasks_.push_back(rowMask);
-  colMasks_.push_back(colMask);
+  if (!reuseColMask_) {
+    int colRatio = static_cast<size_t>(m_ * col_subsample_ratio_);
+    colMask_ = subsampleCols(colRatio);
+  }
 
-  mat dataset_slice = dataset_.submat(rowMask, colMask);  
-  row_d labels_slice = labels_.submat(zeros<uvec>(1), colMask);
+  colMasks_.push_back(colMask_);
+
+  row_d labels_slice = labels_.submat(zeros<uvec>(1), colMask_);
 
   // Compute partition size
-  std::size_t partitionSize = computePartitionSize(stepNum, colMask);
+  std::size_t partitionSize = computePartitionSize(stepNum, colMask_);
 
   // Compute learning rate
   double learningRate = computeLearningRate(stepNum);
@@ -354,7 +365,7 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
 
     // Generate coefficients g, h
-    std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask);
+    std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
 
     // Regenerate coefficients with full colMask
     // coeffs = generate_coefficients(labels_, subColMask);    
@@ -362,9 +373,9 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     // Leaves best_leaves = computeOptimalSplit(coeffs.first, coeffs.second, dataset_, stepNum, subPartitionSize, subColMask);
     // allLeaves = best_leaves;
 
-    Leaves best_leaves = computeOptimalSplit(coeffs.first, coeffs.second, dataset_, stepNum, subPartitionSize, colMask);
+    Leaves best_leaves = computeOptimalSplit(coeffs.first, coeffs.second, dataset_, stepNum, subPartitionSize, colMask_);
 
-    allLeaves(colMask) = best_leaves;
+    allLeaves(colMask_) = best_leaves;
 
     ClassifierContext::Context context{};
 
@@ -373,12 +384,16 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     context.partitionSize = subPartitionSize + 1;
     context.partitionRatio = partitionRatio_;
     // context.learningRate = learningRate_;
-    context.learningRate = learningRate_;
+    context.learningRate = std::min(1., 2.*learningRate_);
     context.steps = std::log(subPartitionSize);
     context.symmetrizeLabels = false;
     context.removeRedundantLabels = true;
     context.rowSubsampleRatio = row_subsample_ratio_;
     context.colSubsampleRatio = col_subsample_ratio_;
+    // context.rowSubsampleRatio = 1.;
+    // context.colSubsampleRatio = 1.;
+    context.reuseColMask = true;
+    context.colMask = colMask_;
     context.recursiveFit = true;
     context.partitionSizeMethod = partitionSizeMethod_;
     context.learningRateMethod = learningRateMethod_;    
@@ -390,27 +405,27 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     // aside from the fact that it is of double type, it may have more 
     // than one class. So we don't want to symmetrize, but we want 
     // to remap the redundant values.
-    auto classifier = new GradientBoostClassifier(dataset_, allLeaves, context);
+    // auto classifier = new GradientBoostClassifier(dataset_, allLeaves, context);
+    std::unique_ptr<GradientBoostClassifier<ClassifierType>> classifier;
+    classifier.reset(new GradientBoostClassifier<ClassifierType>(dataset_, allLeaves, context));
     
     classifier->fit();
     classifier->Classify_(dataset_, prediction);
 
-    classifier->purge();
-    classifiers_.emplace_back(std::move(classifier));
-    predictions_.emplace_back(prediction);
+    updateClassifiers(std::move(classifier), prediction);
 
   } 
   if (true) {
 
     // Generate coefficients g, h
-    std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask);
+    std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
 
     // Compute optimal leaf choice on unrestricted dataset
-    Leaves best_leaves = computeOptimalSplit(coeffs.first, coeffs.second, dataset_, stepNum, partitionSize, colMask);
+    Leaves best_leaves = computeOptimalSplit(coeffs.first, coeffs.second, dataset_, stepNum, partitionSize, colMask_);
     
     // Fit classifier on {dataset, padded best_leaves}
     // Zero pad labels first
-    allLeaves(colMask) = best_leaves;
+    allLeaves(colMask_) = best_leaves;
     
     classifier.reset(new ClassifierType(dataset_, 
 					allLeaves, 
@@ -422,20 +437,9 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
   }
   
-  classifier->purge();
-  classifiers_.emplace_back(std::move(classifier));
-  predictions_.emplace_back(prediction);
-  
-  // colMask.print(std::cout);
-  // dataset_slice.print(std::cout);
-  
-  /*
-    std::cout << "EDICTIONS\n";
-    for (size_t i=500; i<600; ++i) {
-    std::cout << best_leaves(i) << " : " << prediction_slice(i) << std::endl;
-    }
-  */
 
+  updateClassifiers(std::move(classifier), prediction);
+  
 }
 
 template<typename ClassifierType>
@@ -474,25 +478,6 @@ GradientBoostClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
   
   auto subsets = dp.get_optimal_subsets_extern();
   
-  // Use subset of subsets
-  // =====================
-  bool USE_FIRST_SUBSET = false;
-  size_t NUM_SUBSETS = 3;
-  std::vector<std::vector<int>> v;
-  if (USE_FIRST_SUBSET) {
-    if (g.n_elem > 1) {
-      if (stepNum%2) {
-	for (size_t i=0; i<NUM_SUBSETS; ++i)
-	  v.push_back(subsets[i]);
-      } else {
-      for (size_t i=partitionSize-1; i>(partitionSize-1-NUM_SUBSETS); --i) 
-	v.push_back(subsets[i]);
-      }
-      subsets = v;
-    }
-  }
-  // =====================
-
   rowvec leaf_values = arma::zeros<rowvec>(n);
   for (const auto& subset : subsets) {
     uvec ind = arma::conv_to<uvec>::from(subset);
@@ -516,7 +501,6 @@ GradientBoostClassifier<ClassifierType>::purge() {
   dataset_oos_ = ones<mat>(0,0);
   labels_oos_ = ones<Row<double>>(0);
   std::vector<Partition>().swap(partitions_);
-  std::vector<uvec>().swap(rowMasks_);
   std::vector<uvec>().swap(colMasks_);
 
   // dataset_.clear();
@@ -524,7 +508,6 @@ GradientBoostClassifier<ClassifierType>::purge() {
   // dataset_oos_.clear();
   // labels_oos_.clear();
   // partitions_.clear();
-  // rowMasks_.clear();
   // colMasks_.clear();
 }
 
@@ -539,12 +522,11 @@ GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
     symmetrize(yhat);
   }
 
-  double error_is = accu(yhat != labels_) * 100. / labels_.n_elem;
-      
   /*
-  std::cout << "STEP: " << stepNum 
-	    << " IS LOSS: " << r
-	    << " IS ERROR: " << error_is << "%" << std::endl;
+    double error_is = accu(yhat != labels_) * 100. / labels_.n_elem;      
+    std::cout << "STEP: " << stepNum 
+    << " IS LOSS: " << r
+    << " IS ERROR: " << error_is << "%" << std::endl;
   */
       
   if (hasOOSData_) {

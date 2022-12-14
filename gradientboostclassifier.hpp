@@ -70,7 +70,8 @@ namespace ClassifierContext {
       numTrees{numTrees},
       removeRedundantLabels{false},
       recursiveFit{recursiveFit},
-      hasOOSData{false} 
+      hasOOSData{false},
+      reuseColMask{false}
     {}
       
     lossFunction loss;
@@ -90,8 +91,10 @@ namespace ClassifierContext {
     std::size_t maxDepth;
     std::size_t numTrees;
     bool hasOOSData;
+    bool reuseColMask;
     mat dataset_oos;
     Row<double> labels_oos;
+    uvec colMask;
   };
 } // namespace ClassifierContext
 
@@ -358,11 +361,15 @@ public:
     minLeafSize_{context.minLeafSize},
     minimumGainSplit_{context.minimumGainSplit},
     maxDepth_{context.maxDepth},
-    numTrees_{context.numTrees}
+    numTrees_{context.numTrees},
+    reuseColMask_{context.reuseColMask}
   { 
     if (hasOOSData_ = context.hasOOSData) {
       dataset_oos_ = context.dataset_oos;
       labels_oos_ = conv_to<Row<double>>::from(context.labels_oos);      
+    }
+    if (reuseColMask_ = context.reuseColMask) {
+      colMask_ = context.colMask;
     }
     init_(); 
   }
@@ -388,11 +395,15 @@ public:
     minLeafSize_{context.minLeafSize},
     minimumGainSplit_{context.minimumGainSplit},
     maxDepth_{context.maxDepth},
-    numTrees_{context.numTrees}
+    numTrees_{context.numTrees},
+    reuseColMask_{context.reuseColMask}
   { 
     if (hasOOSData_ = context.hasOOSData) {
       dataset_oos_ = context.dataset_oos;
       labels_oos_ = labels;
+    }
+    if (reuseColMask_ = context.reuseColMask) {
+      colMask_ = context.colMask;
     }
     init_(); 
   }
@@ -438,6 +449,7 @@ private:
   void fit_step(std::size_t);
   double computeLearningRate(std::size_t);
   std::size_t computePartitionSize(std::size_t, const uvec&);
+  void updateClassifiers(std::unique_ptr<ClassifierBase<DataType, Classifier>>&&, Row<DataType>&);
 
   std::pair<rowvec,rowvec> generate_coefficients(const Row<DataType>&, const uvec&);
   std::pair<rowvec,rowvec> generate_coefficients(const Row<DataType>&, const Row<DataType>&, const uvec&);
@@ -451,6 +463,7 @@ private:
   Row<double> labels_oos_;
   std::size_t partitionSize_;
   double partitionRatio_;
+  Row<DataType> latestPrediction_;
 
   lossFunction loss_;
   LossFunction<double>* lossFn_;
@@ -462,6 +475,8 @@ private:
 
   double row_subsample_ratio_;
   double col_subsample_ratio_;
+
+  uvec colMask_;
 
   int n_;
   int m_;
@@ -477,7 +492,6 @@ private:
   ClassifierList classifiers_;
   PartitionList partitions_;
   PredictionList predictions_;
-  MaskList rowMasks_;
   MaskList colMasks_;
 
   std::mt19937 mersenne_engine_{std::random_device{}()};
@@ -488,6 +502,7 @@ private:
 
   bool symmetrized_;
   bool removeRedundantLabels_;
+  bool reuseColMask_;
 
   bool recursiveFit_;
 
