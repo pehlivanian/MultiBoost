@@ -492,7 +492,6 @@ private:
   ClassifierList classifiers_;
   PartitionList partitions_;
   PredictionList predictions_;
-  MaskList colMasks_;
 
   std::mt19937 mersenne_engine_{std::random_device{}()};
   std::default_random_engine default_engine_;

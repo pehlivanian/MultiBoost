@@ -154,13 +154,14 @@ GradientBoostClassifier<ClassifierType>::init_() {
 
   uvec colMask = linspace<uvec>(0, -1+m_, m_);
   
-  colMasks_.emplace_back(colMask);
-  
   if (loss_ == lossFunction::BinomialDeviance) {
     lossFn_ = new BinomialDevianceLoss<double>();
   }
   else if (loss_ == lossFunction::MSE) {
     lossFn_ = new MSELoss<double>();
+  }
+  else if (loss_ == lossFunction::Savage) {
+    lossFn_ = new SavageLoss<double>();
   }
 
   if (partitionSize_ == 1) {
@@ -337,8 +338,6 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     colMask_ = subsampleCols(colRatio);
   }
 
-  colMasks_.push_back(colMask_);
-
   row_d labels_slice = labels_.submat(zeros<uvec>(1), colMask_);
 
   // Compute partition size
@@ -382,7 +381,8 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     // context.loss = loss_;
     context.loss = lossFunction::MSE;
     context.partitionSize = subPartitionSize + 1;
-    context.partitionRatio = partitionRatio_;
+    // context.partitionRatio = partitionRatio_;
+    context.partitionRatio = std::min(1., 2*partitionRatio_);
     // context.learningRate = learningRate_;
     context.learningRate = std::min(1., 2.*learningRate_);
     context.steps = std::log(subPartitionSize);
@@ -394,7 +394,7 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     // context.colSubsampleRatio = 1.;
     context.reuseColMask = true;
     context.colMask = colMask_;
-    context.recursiveFit = true;
+    context.recursiveFit = false;
     context.partitionSizeMethod = partitionSizeMethod_;
     context.learningRateMethod = learningRateMethod_;    
     context.minLeafSize = minLeafSize_;
@@ -501,14 +501,12 @@ GradientBoostClassifier<ClassifierType>::purge() {
   dataset_oos_ = ones<mat>(0,0);
   labels_oos_ = ones<Row<double>>(0);
   std::vector<Partition>().swap(partitions_);
-  std::vector<uvec>().swap(colMasks_);
 
   // dataset_.clear();
   // labels_.clear();
   // dataset_oos_.clear();
   // labels_oos_.clear();
   // partitions_.clear();
-  // colMasks_.clear();
 }
 
 template<typename ClassifierType>

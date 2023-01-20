@@ -15,8 +15,9 @@ using namespace std::placeholders;
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
 
-enum class lossFunction {  MSE = 0,
-			   BinomialDeviance = 1,
+enum class lossFunction {    MSE = 0,
+			     BinomialDeviance = 1,
+			     Savage = 2,
 			};
 
 
@@ -73,6 +74,18 @@ public:
   MSELoss<DataType>* create() { return new MSELoss(); }
 private:
   autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
+  DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
+  DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
+  void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+};
+
+template<typename DataType>
+class SavageLoss : public LossFunction<DataType> {
+public:
+  SavageLoss() = default;
+  SavageLoss<DataType>* create() { return new SavageLoss<DataType>(); }
+private:
+  autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
   DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
   DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
   void hessian_(const rowvec&, const rowvec&, rowvec*) override;

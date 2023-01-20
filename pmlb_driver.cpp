@@ -13,28 +13,27 @@ auto main(int argc, char **argv) -> int {
 
   /* 
      Old way
-     
-     std::string Xpath = "/home/charles/Data/test_X.csv";
-     std::string ypath = "/home/charles/Data/test_y.csv";
-     auto df = DataSet<float>(Xpath, ypath, false);
-     std::size_t ind1 = 4, ind2 = 2;
-     
-     auto shape = df.shape();
-     
-     std::cout << "COMPLETE." << std::endl;
-     std::cout << "SIZE: (" << shape.first << ", " 
-     << shape.second << ")" << std::endl;
-     std::cout << "df[" << ind1 << "][" << ind2
-     << "]: " << df[ind1][ind2] << std::endl;
-     
-     auto splitter = SplitProcessor<float>(.8);
+  std::string Xpath = "/home/charles/Data/hungarian_X.csv";
+  std::string ypath = "/home/charles/Data/hungarian_y.csv";
+  auto df = DataSet<float>(Xpath, ypath, false);
+  std::size_t ind1 = 4, ind2 = 2;
   
-     df.accept(splitter);
+  auto shape = df.shape();
+  
+  std::cout << "COMPLETE." << std::endl;
+  std::cout << "SIZE: (" << shape.first << ", " 
+	    << shape.second << ")" << std::endl;
+  std::cout << "df[" << ind1 << "][" << ind2
+	    << "]: " << df[ind1][ind2] << std::endl;
+  
+  auto splitter = SplitProcessor<float>(.8);
+  
+  df.accept(splitter);
   */
+    
 
   /*
     The mlpack way
-
   */
 
   /*
@@ -51,23 +50,25 @@ auto main(int argc, char **argv) -> int {
     dataset = dataset.submat(rowMask, colMask);
     labels = labels.submat(zeros<uvec>(1), colMask);
   */  
-
+  
   Mat<double> dataset, trainDataset, testDataset;
   Row<std::size_t> labels, trainLabels, testLabels, trainPrediction, testPrediction;
 
-  if (!data::Load("/home/charles/Data/profb_X.csv", dataset))
+  if (!data::Load("/home/charles/Data/hungarian_X.csv", dataset))
     throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/profb_y.csv", labels))
+  if (!data::Load("/home/charles/Data/hungarian_y.csv", labels))
     throw std::runtime_error("Could not load file");
+
   data::Split(dataset, labels, trainDataset, testDataset, trainLabels, testLabels, 0.2);
   
   ClassifierContext::Context context{};
+  // context.loss = lossFunction::Savage;
   context.loss = lossFunction::BinomialDeviance;
   // context.loss = lossFunction::MSE;
   context.partitionSize = 32;
   context.partitionRatio = .25;
   context.learningRate = .005;
-  context.steps = 10000;
+  context.steps = 1000;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .5; // .75
