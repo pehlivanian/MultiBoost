@@ -14,7 +14,7 @@
 
 #include "utils.hpp"
 #include "port_utils.hpp"
-#include "score.hpp"
+#include "score2.hpp"
 
 using namespace Utils;
 using namespace Objectives;
@@ -54,7 +54,7 @@ private:
   DataType optimal_score_;
   std::vector<int> subset_;
   objective_fn parametric_dist_;
-  std::unique_ptr<ParametricContext> context_;
+  std::unique_ptr<ParametricContext<DataType>> context_;
 
   void _init() { create(); optimize(); }
   void create();

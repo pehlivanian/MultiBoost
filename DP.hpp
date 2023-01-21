@@ -25,7 +25,7 @@
 #endif
 
 #include "utils.hpp"
-#include "score.hpp"
+#include "score2.hpp"
 #include "LTSS.hpp"
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
@@ -121,7 +121,7 @@ private:
   bool find_optimal_t_;
   all_part_scores subsets_and_scores_;
   int optimal_num_clusters_OLS_;
-  std::unique_ptr<ParametricContext> context_;
+  std::unique_ptr<ParametricContext<DataType>> context_;
   // XXX
   // Doesn't seem like it's needed
   std::unique_ptr<LTSSSolver<DataType>> LTSSSolver_;

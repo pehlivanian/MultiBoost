@@ -25,7 +25,7 @@
 #include "dataset.hpp"
 #include "decision_tree.hpp"
 #include "loss.hpp"
-#include "score.hpp"
+#include "score2.hpp"
 #include "LTSS.hpp"
 #include "DP.hpp"
 

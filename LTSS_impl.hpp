@@ -38,21 +38,21 @@ LTSSSolver<DataType>::createContext() {
   // create reference to score function
   // always use multiple clustering objective
   if (parametric_dist_ == objective_fn::Gaussian) {
-    context_ = std::make_unique<GaussianContext>(a_, 
+    context_ = std::make_unique<GaussianContext<DataType>>(a_, 
 						 b_, 
 						 n_, 
 						 false,
 						 false);
   }
   else if (parametric_dist_ == objective_fn::Poisson) {
-    context_ = std::make_unique<PoissonContext>(a_, 
+    context_ = std::make_unique<PoissonContext<DataType>>(a_, 
 						b_, 
 						n_,
 						false,
 						false);
   }
   else if (parametric_dist_ == objective_fn::RationalScore) {
-    context_ = std::make_unique<RationalScoreContext>(a_,
+    context_ = std::make_unique<RationalScoreContext<DataType>>(a_,
 						      b_,
 						      n_,
 						      false,

@@ -32,21 +32,21 @@ void
 DPSolver<DataType>::createContext() {
   // create reference to score function
   if (parametric_dist_ == objective_fn::Gaussian) {
-    context_ = std::make_unique<GaussianContext>(a_, 
+    context_ = std::make_unique<GaussianContext<DataType>>(a_, 
 						 b_, 
 						 n_, 
 						 risk_partitioning_objective_,
 						 use_rational_optimization_);
   }
   else if (parametric_dist_ == objective_fn::Poisson) {
-    context_ = std::make_unique<PoissonContext>(a_, 
+    context_ = std::make_unique<PoissonContext<DataType>>(a_, 
 						b_, 
 						n_,
 						risk_partitioning_objective_,
 						use_rational_optimization_);
   }
   else if (parametric_dist_ == objective_fn::RationalScore) {
-    context_ = std::make_unique<RationalScoreContext>(a_, 
+    context_ = std::make_unique<RationalScoreContext<DataType>>(a_, 
 						      b_, 
 						      n_,
 						      risk_partitioning_objective_,
@@ -83,15 +83,6 @@ DPSolver<DataType>::create() {
     }
   }
 
-  // Precompute partial sums
-  std::vector<std::vector<DataType> > partialSums;
-  partialSums = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(n_, 0.));
-  for (int i=0; i<n_; ++i) {
-    for (int j=i; j<n_; ++j) {
-      partialSums[i][j] = compute_score(i, j);
-    }
-  }
-
   // Fill in column-by-column from the left
   DataType score;
   DataType maxScore;
@@ -100,7 +91,7 @@ DPSolver<DataType>::create() {
     for (int i=0; i<n_; ++i) {
       maxScore = std::numeric_limits<DataType>::lowest();
       for (int k=i+1; k<=(n_-(j-1)); ++k) {
-	score = partialSums[i][k] + maxScore_[k][j-1];
+	score = compute_score(i,k) + maxScore_[k][j-1];
 	if (score > maxScore) {
 	  maxScore = score;
 	  maxNextStart = k;
@@ -306,7 +297,7 @@ DPSolver<DataType>::print_nextStart_() {
 template<typename DataType>
 DataType
 DPSolver<DataType>::compute_score(int i, int j) {
-  return context_->compute_score(i, j);
+  return context_->get_score(i, j);
 }
 
 template<typename DataType>

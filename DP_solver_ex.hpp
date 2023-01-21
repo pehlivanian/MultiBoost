@@ -6,7 +6,7 @@
 #include <iterator>
 #include <random>
 
-#include "score.hpp"
+#include "score2.hpp"
 #include "DP.hpp"
 #include "LTSS.hpp"
 
