@@ -68,7 +68,7 @@ auto main(int argc, char **argv) -> int {
   context.partitionSize = 32;
   context.partitionRatio = .25;
   context.learningRate = .005;
-  context.steps = 10000;
+  context.steps = 1000;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .5; // .75

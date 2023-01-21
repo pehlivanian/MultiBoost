@@ -4,7 +4,7 @@
 template<typename DataType>
 DataType
 LTSSSolver<DataType>::compute_score(int i, int j) {
-  return context_->compute_score(i, j);
+  return context_->get_score(i, j);
 }
 
 template<typename DataType>
@@ -61,6 +61,8 @@ LTSSSolver<DataType>::createContext() {
   else {
     throw distributionException();
   }
+
+  context_->init();
 }
 
 template<typename DataType>

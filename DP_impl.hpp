@@ -55,6 +55,8 @@ DPSolver<DataType>::createContext() {
   else {
     throw distributionException();
   }
+
+  context_->init();
 }
 
 template<typename DataType>

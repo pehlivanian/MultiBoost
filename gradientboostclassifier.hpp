@@ -57,7 +57,7 @@ namespace LearningRate {
   };
 } // namespace LarningRate
 
-namespace ClassifierContext {
+namespace ClassifierContext{
   struct Context {
     Context(std::size_t minLeafSize=1,
 	    double minimumGainSplit=0.0,

@@ -1,70 +1,57 @@
 #ifndef __SCORE2_IMPL_HPP__
 #define __SCORE2_IMPL_HPP__
 
-const int NUMTHREADS = 6;
+namespace {
+  const int NUMTHREADS = 8;
+}
 
 namespace Objectives {
-
   template<typename DataType>
-  void
-  ParametricContext<DataType>::compute_scores_parallel() {
-
-    const int numThreads = std::min(n_-2, NUMTHREADS);
-
-    a_sums_ = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(n_+1, std::numeric_limits<DataType>::lowest()));
-    b_sums_ = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(n_+1, std::numeric_limits<DataType>::lowest()));
-    partialSums_ = std::vector<std::vector<DataType>>(n_, std::vector<DataType>(n_+1, 0.));
-  
-    for (int i=0; i<n_; ++i) {
-      a_sums_[i][i] = 0.;
-      b_sums_[i][i] = 0.;
-    }
-
-    auto task_ab_block = [this](int ind1, int ind2) {
-      for (int i=ind1; i<ind2; ++i) {
-	for (int j=i+1; j<=this->n_; ++j) {
-	  this->a_sums_[i][j] = this->a_sums_[i][j-1] + this->a_[j-1];
-	  this->b_sums_[i][j] = this->b_sums_[i][j-1] + this->b_[j-1];
-	  this->partialSums_[i][j] = this->compute_score(i, j);
-	}
-      }
-    };
-
-    int blockSize = static_cast<DataType>(n_)/static_cast<DataType>(numThreads);
-    int startOfBlock = 0, endOfBlock = startOfBlock + blockSize;
-  
-    std::vector<std::thread> threads;
-
-    while (endOfBlock < n_) {
-      threads.emplace_back(task_ab_block, startOfBlock, endOfBlock);
-      startOfBlock = endOfBlock; endOfBlock+= blockSize;
-    }
-    threads.emplace_back(task_ab_block, startOfBlock, n_);
-  
-    for (auto it=threads.begin(); it!=threads.end(); ++it)
-      it->join();
-
+  DataType
+  ParametricContext<DataType>::get_score(int i, int j) const {
+    return partialSums_[i][j]; 
   }
 
   template<typename DataType>
-  void 
-  ParametricContext<DataType>::compute_scores() {
-    a_sums_ = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(n_+1, std::numeric_limits<DataType>::lowest()));
-    b_sums_ = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(n_+1, std::numeric_limits<DataType>::lowest()));
-    partialSums_ = std::vector<std::vector<DataType>>(n_, std::vector<DataType>(n_+1, 0.));
-  
-    for (int i=0; i<n_; ++i) {
-      a_sums_[i][i] = 0.;
-      b_sums_[i][i] = 0.;
-    }
-  
-    for (int i=0; i<n_; ++i) {
-      for (int j=i+1; j<=n_; ++j) {
-	a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
-	b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
-	partialSums_[i][j] = this->compute_score(i, j);
-      }
-    }  
+  DataType
+  ParametricContext<DataType>::get_ambient_score(DataType a, DataType b) const {
+    return compute_ambient_score(a, b);
+  }
+
+  template<typename DataType>
+  std::vector<std::vector<DataType>> 
+  ParametricContext<DataType>::get_scores() const {
+    return partialSums_;
+  }
+
+  template<typename DataType>
+  std::string 
+  ParametricContext<DataType>::getName() const { 
+    return name_;
+  }
+
+  template<typename DataType>
+  bool 
+  ParametricContext<DataType>::getRiskPartitioningObjective() const {
+    return risk_partitioning_objective_;
+  }
+
+  template<typename DataType>
+  bool 
+  ParametricContext<DataType>::getUseRationalOptimization() const {
+    return use_rational_optimization_;
+  }
+
+  template<typename DataType>
+  std::vector<std::vector<DataType>>
+  ParametricContext<DataType>::get_partial_sums_a() const {
+    return a_sums_;
+  }
+
+  template<typename DataType>
+  std::vector<std::vector<DataType>>
+  ParametricContext<DataType>::get_partial_sums_b() const {
+    return b_sums_;
   }
 
   template<typename DataType>
@@ -147,6 +134,68 @@ namespace Objectives {
 
 
   template<typename DataType>
+  void
+  ParametricContext<DataType>::compute_scores_parallel() {
+
+    const int numThreads = std::min(n_-2, NUMTHREADS);
+
+    a_sums_ = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(n_+1, std::numeric_limits<DataType>::lowest()));
+    b_sums_ = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(n_+1, std::numeric_limits<DataType>::lowest()));
+    partialSums_ = std::vector<std::vector<DataType>>(n_, std::vector<DataType>(n_+1, 0.));
+  
+    for (int i=0; i<n_; ++i) {
+      a_sums_[i][i] = 0.;
+      b_sums_[i][i] = 0.;
+    }
+
+    auto task_ab_block = [this](int ind1, int ind2) {
+      for (int i=ind1; i<ind2; ++i) {
+	for (int j=i+1; j<=this->n_; ++j) {
+	  this->a_sums_[i][j] = this->a_sums_[i][j-1] + this->a_[j-1];
+	  this->b_sums_[i][j] = this->b_sums_[i][j-1] + this->b_[j-1];
+	  this->partialSums_[i][j] = this->compute_score(i, j);
+	}
+      }
+    };
+
+    int blockSize = static_cast<DataType>(n_)/static_cast<DataType>(numThreads);
+    int startOfBlock = 0, endOfBlock = startOfBlock + blockSize;
+  
+    std::vector<std::thread> threads;
+
+    while (endOfBlock < n_) {
+      threads.emplace_back(task_ab_block, startOfBlock, endOfBlock);
+      startOfBlock = endOfBlock; endOfBlock+= blockSize;
+    }
+    threads.emplace_back(task_ab_block, startOfBlock, n_);
+  
+    for (auto it=threads.begin(); it!=threads.end(); ++it)
+      it->join();
+
+  }
+
+  template<typename DataType>
+  void 
+  ParametricContext<DataType>::compute_scores() {
+    a_sums_ = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(n_+1, std::numeric_limits<DataType>::lowest()));
+    b_sums_ = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(n_+1, std::numeric_limits<DataType>::lowest()));
+    partialSums_ = std::vector<std::vector<DataType>>(n_, std::vector<DataType>(n_+1, 0.));
+  
+    for (int i=0; i<n_; ++i) {
+      a_sums_[i][i] = 0.;
+      b_sums_[i][i] = 0.;
+    }
+  
+    for (int i=0; i<n_; ++i) {
+      for (int j=i+1; j<=n_; ++j) {
+	a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
+	b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
+	partialSums_[i][j] = this->compute_score(i, j);
+      }
+    }  
+  }
+
+  template<typename DataType>
   DataType
   ParametricContext<DataType>::compute_score(int i, int j) {
     if (risk_partitioning_objective_) {
@@ -170,25 +219,33 @@ namespace Objectives {
 
   template<typename DataType>
   void
-  ParametricContext<DataType>::init_() {
+  ParametricContext<DataType>::init() {
     // XXX
     // compute_scores_parallel();
     compute_scores();
   }
 
+
+  ////////////////////////////////////////////
+
+
   template<typename DataType>
   DataType 
   PoissonContext<DataType>::compute_score_multclust(int i, int j) {    
-    DataType C = std::accumulate(a_.cbegin()+i, a_.cbegin()+j, 0.);
-    DataType B = std::accumulate(b_.cbegin()+i, b_.cbegin()+j, 0.);
+    auto& a = ParametricContext<DataType>::a_;
+    auto& b = ParametricContext<DataType>::b_;
+    DataType C = std::accumulate(a.cbegin()+i, a.cbegin()+j, 0.);
+    DataType B = std::accumulate(b.cbegin()+i, b.cbegin()+j, 0.);
     return (C>B)? C*std::log(C/B) + B - C : 0.;
   }
 
   template<typename DataType>
   DataType 
   PoissonContext<DataType>::compute_score_riskpart(int i, int j) {
-    DataType C = std::accumulate(a_.cbegin()+i, a_.cbegin()+j, 0.);
-    DataType B = std::accumulate(b_.cbegin()+i, b_.cbegin()+j, 0.);
+    auto& a = ParametricContext<DataType>::a_;
+    auto& b = ParametricContext<DataType>::b_;
+    DataType C = std::accumulate(a.cbegin()+i, a.cbegin()+j, 0.);
+    DataType B = std::accumulate(b.cbegin()+i, b.cbegin()+j, 0.);
     return C*std::log(C/B);
   }
  
@@ -207,30 +264,38 @@ namespace Objectives {
   template<typename DataType>
   DataType 
   PoissonContext<DataType>::compute_score_riskpart_optimized(int i, int j) {
-    DataType score = a_sums_[i][j]*std::log(a_sums_[i][j]/b_sums_[i][j]);
+    auto& a_sums = ParametricContext<DataType>::a_sums_;
+    auto& b_sums = ParametricContext<DataType>::b_sums_;
+    DataType score = a_sums[i][j]*std::log(a_sums[i][j]/b_sums[i][j]);
     return score;
   }
 
   template<typename DataType>
-  DataType 
+  DataType
   PoissonContext<DataType>::compute_score_multclust_optimized(int i, int j) {
-    DataType score = (a_sums_[i][j] > b_sums_[i][j]) ? a_sums_[i][j]*std::log(a_sums_[i][j]/b_sums_[i][j]) + b_sums_[i][j] - a_sums_[i][j]: 0.;
+    auto& a_sums = ParametricContext<DataType>::a_sums_;
+    auto& b_sums = ParametricContext<DataType>::b_sums_;
+    DataType score = (a_sums[i][j] > b_sums[i][j]) ? a_sums[i][j]*std::log(a_sums[i][j]/b_sums[i][j]) + b_sums[i][j] - a_sums[i][j]: 0.;
     return score;
   }
 
   template<typename DataType>
   DataType 
   GaussianContext<DataType>::compute_score_multclust(int i, int j) {
-    DataType C = std::accumulate(a_.cbegin()+i, a_.cbegin()+j, 0.);
-    DataType B = std::accumulate(b_.cbegin()+i, b_.cbegin()+j, 0.);
+    auto& a = ParametricContext<DataType>::a_;
+    auto& b = ParametricContext<DataType>::b_;
+    DataType C = std::accumulate(a.cbegin()+i, a.cbegin()+j, 0.);
+    DataType B = std::accumulate(b.cbegin()+i, b.cbegin()+j, 0.);
     return (C>B)? .5*(std::pow(C,2)/B + B) - C : 0.;
   }
 
   template<typename DataType>
   DataType 
   GaussianContext<DataType>::compute_score_riskpart(int i, int j) {
-    DataType C = std::accumulate(a_.cbegin()+i, a_.cbegin()+j, 0.);
-    DataType B = std::accumulate(b_.cbegin()+i, b_.cbegin()+j, 0.);
+    auto& a = ParametricContext<DataType>::a_;
+    auto& b = ParametricContext<DataType>::b_;
+    DataType C = std::accumulate(a.cbegin()+i, a.cbegin()+j, 0.);
+    DataType B = std::accumulate(b.cbegin()+i, b.cbegin()+j, 0.);
     return C*C/2./B;
   }
   
@@ -249,22 +314,28 @@ namespace Objectives {
   template<typename DataType>
   DataType 
   GaussianContext<DataType>::compute_score_multclust_optimized(int i, int j) {
-    DataType score = (a_sums_[i][j] > b_sums_[i][j]) ? .5*(std::pow(a_sums_[i][j], 2)/b_sums_[i][j] + b_sums_[i][j]) - a_sums_[i][j] : 0.;
+    auto& a_sums = ParametricContext<DataType>::a_sums_;
+    auto& b_sums = ParametricContext<DataType>::b_sums_;
+    DataType score = (a_sums[i][j] > b_sums[i][j]) ? .5*(std::pow(a_sums[i][j], 2)/b_sums[i][j] + b_sums[i][j]) - a_sums[i][j] : 0.;
     return score;
   }
    
   template<typename DataType>
   DataType 
   GaussianContext<DataType>::compute_score_riskpart_optimized(int i, int j) {
-    DataType score = a_sums_[i][j]*a_sums_[i][j]/2./b_sums_[i][j];
+    auto& a_sums = ParametricContext<DataType>::a_sums_;
+    auto& b_sums = ParametricContext<DataType>::b_sums_;
+    DataType score = a_sums[i][j]*a_sums[i][j]/2./b_sums[i][j];
     return score;
   }
 
   template<typename DataType>
   DataType 
   RationalScoreContext<DataType>::compute_score_multclust(int i, int j) {
-    DataType score = std::pow(std::accumulate(a_.cbegin()+i, a_.cbegin()+j, 0.), 2) /
-      std::accumulate(b_.cbegin()+i, b_.cbegin()+j, 0.);
+    auto& a = ParametricContext<DataType>::a_;
+    auto& b = ParametricContext<DataType>::b_;
+    DataType score = std::pow(std::accumulate(a.cbegin()+i, a.cbegin()+j, 0.), 2) /
+      std::accumulate(b.cbegin()+i, b.cbegin()+j, 0.);
     return score;
   }
 
@@ -283,7 +354,9 @@ namespace Objectives {
   template<typename DataType>
   DataType 
   RationalScoreContext<DataType>::compute_score_multclust_optimized(int i, int j) {
-    DataType score = a_sums_[i][j] * a_sums_[i][j] / b_sums_[i][j];
+    auto& a_sums = ParametricContext<DataType>::a_sums_;
+    auto& b_sums = ParametricContext<DataType>::b_sums_;
+    DataType score = a_sums[i][j] * a_sums[i][j] / b_sums[i][j];
     return score;
   }
 
@@ -298,6 +371,6 @@ namespace Objectives {
   RationalScoreContext<DataType>::compute_ambient_score_riskpart(DataType a, DataType b) {
     return a*a/b;
   }
-}
 
+}
 #endif

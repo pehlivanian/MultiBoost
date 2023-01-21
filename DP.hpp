@@ -30,7 +30,6 @@
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
-using namespace Objectives;
 using namespace Utils;
 
 template<typename DataType>
