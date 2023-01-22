@@ -65,13 +65,13 @@ auto main(int argc, char **argv) -> int {
   // context.loss = lossFunction::Savage;
   context.loss = lossFunction::BinomialDeviance;
   // context.loss = lossFunction::MSE;
-  context.partitionSize = 32;
+  context.partitionSize = 8;
   context.partitionRatio = .25;
-  context.learningRate = .005;
-  context.steps = 1000;
+  context.learningRate = .001;
+  context.steps = 50000;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
-  context.colSubsampleRatio = .5; // .75
+  context.colSubsampleRatio = .45; // .75
   context.recursiveFit = true;
   context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
   context.learningRateMethod = LearningRate::RateMethod::FIXED;
@@ -83,13 +83,13 @@ auto main(int argc, char **argv) -> int {
   context.labels_oos = conv_to<Row<double>>::from(testLabels);
 
 
-  auto gradientBoostClassifier = GradientBoostClassifier<DecisionTreeClassifier>(trainDataset, 
+  auto gradientBoostClassifier = std::make_unique<GradientBoostClassifier<DecisionTreeClassifier>>(trainDataset, 
 										 trainLabels, 
 										 context);
 
-  gradientBoostClassifier.fit();
-  gradientBoostClassifier.Predict(trainDataset, trainPrediction);
-  gradientBoostClassifier.Predict(testDataset, testPrediction);
+  gradientBoostClassifier->fit();
+  gradientBoostClassifier->Predict(trainDataset, trainPrediction);
+  gradientBoostClassifier->Predict(testDataset, testPrediction);
     
   const double trainError = accu(trainPrediction != trainLabels) * 100. / trainLabels.n_elem;
   const double testError = accu(testPrediction != testLabels) * 100. / testLabels.n_elem;

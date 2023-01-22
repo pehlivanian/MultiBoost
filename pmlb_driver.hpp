@@ -5,6 +5,7 @@
 #include <numeric>
 #include <string>
 #include <cstring>
+#include <memory>
 
 #include <mlpack/core.hpp>
 #include <mlpack/methods/decision_tree/decision_tree.hpp>

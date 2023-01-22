@@ -72,10 +72,12 @@ namespace Objectives {
     virtual DataType compute_ambient_score_multclust(DataType, DataType) = 0;
     virtual DataType compute_ambient_score_riskpart(DataType, DataType)  = 0;
 
+    void compute_partial_sums();
     void compute_partial_sums_AVX256();
     void compute_partial_sums_parallel();
-    void compute_scores_parallel();
     void compute_scores();
+    void compute_scores_AVX256();
+    void compute_scores_parallel();
 
     DataType compute_score(int, int);
     DataType compute_ambient_score(DataType, DataType);

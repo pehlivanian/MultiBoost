@@ -9,6 +9,10 @@ using namespace PartitionSize;
 using namespace LearningRate;
 using namespace LossMeasures;
 
+namespace {
+  const bool DIAGNOSTICS = false;
+}
+
 template<typename DataType, typename ClassifierType, typename... Args>
 void 
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::encode(const Row<DataType>& labels_d, Row<std::size_t>& labels_t) {
@@ -25,7 +29,6 @@ template<typename DataType, typename ClassifierType, typename... Args>
 void
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::purge() {
   labels_t_ = ones<Row<std::size_t>>(0);
-
   // labels_t_.clear();
 }
 
@@ -86,17 +89,13 @@ template<typename ClassifierType>
 row_d
 GradientBoostClassifier<ClassifierType>::_randomLeaf(std::size_t numVals) const {
   
-  // Look how clumsy this is
   row_d range = linspace<row_d>(-1, 1, numVals+2);
-  std::default_random_engine eng;
-  std::uniform_int_distribution<std::size_t> dist{1, numVals};
   row_d r(dataset_.n_cols, arma::fill::none);
-  for (size_t i=0; i<dataset_.n_cols; ++i) {
-    auto j = dist(eng);    
-    r[i] = range[j];
-  }  
-
+  std::mt19937 rng;
+  std::uniform_int_distribution<std::size_t> dist{1, numVals};
+  r.imbue([&](){ return dist(rng);});
   return r;
+
 }
 
 template<typename ClassifierType>
@@ -174,12 +173,6 @@ GradientBoostClassifier<ClassifierType>::init_() {
 template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::Predict(Row<DataType>& prediction) {
-  /*
-    prediction = zeros<Row<double>>(m_);
-    for (const auto& step : predictions_) {
-    prediction += step;
-    }
-  */
   prediction = latestPrediction_;
 }
 
@@ -342,6 +335,9 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
   // Compute partition size
   std::size_t partitionSize = computePartitionSize(stepNum, colMask_);
+  
+  if (DIAGNOSTICS)
+    std::cout << "PARTITION SIZE: " << partitionSize << std::endl;
 
   // Compute learning rate
   double learningRate = computeLearningRate(stepNum);
@@ -358,6 +354,9 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   if (recursiveFit_ && partitionSize_ > 2) {
     // Reduce partition size
     std::size_t subPartitionSize = static_cast<std::size_t>(partitionSize/2);
+
+    if (DIAGNOSTICS)
+      std::cout << "SUBPARTITION SIZE: " << subPartitionSize << std::endl;
 
     // When considering subproblems, colMask is full
     // uvec subColMask = linspace<uvec>(0, -1+m_, m_);
@@ -385,7 +384,8 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     context.partitionRatio = std::min(1., 2*partitionRatio_);
     // context.learningRate = learningRate_;
     context.learningRate = std::min(1., 2.*learningRate_);
-    context.steps = std::log(subPartitionSize);
+    // context.steps = std::log(subPartitionSize);
+    context.steps = std::log(steps_);
     context.symmetrizeLabels = false;
     context.removeRedundantLabels = true;
     context.rowSubsampleRatio = row_subsample_ratio_;
@@ -394,7 +394,7 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     // context.colSubsampleRatio = 1.;
     context.reuseColMask = true;
     context.colMask = colMask_;
-    context.recursiveFit = false;
+    context.recursiveFit = true;
     context.partitionSizeMethod = partitionSizeMethod_;
     context.learningRateMethod = learningRateMethod_;    
     context.minLeafSize = minLeafSize_;
@@ -512,7 +512,7 @@ GradientBoostClassifier<ClassifierType>::purge() {
 template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
-  Row<DataType> yhat, yhat_sym;
+  Row<DataType> yhat;
   Predict(yhat);
   double r = lossFn_->loss(yhat, labels_);
   if (symmetrized_) {
@@ -520,19 +520,24 @@ GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
     symmetrize(yhat);
   }
 
-  /*
-    double error_is = accu(yhat != labels_) * 100. / labels_.n_elem;      
-    std::cout << "STEP: " << stepNum 
-    << " IS LOSS: " << r
-    << " IS ERROR: " << error_is << "%" << std::endl;
-  */
-      
+  // Only print stats for top level of recursive call
+  if (hasOOSData_) {
+    double error_is = accu(yhat != labels_) * 100. / labels_.n_elem;
+    std::cout << "(PARTITION SIZE = " << partitionSize_
+	      << ", STEPS = " << steps_ << ")"
+	      << "STEP: " << stepNum 
+	      << " IS LOSS: " << r
+	      << " IS ERROR: " << error_is << "%" << std::endl;
+  }
+  
   if (hasOOSData_) {
     Row<DataType> yhat_oos;
     Predict(dataset_oos_, yhat_oos);
     deSymmetrize(yhat_oos); symmetrize(yhat_oos);
     double error_oos = accu(yhat_oos != labels_oos_) * 100. / labels_oos_.n_elem;
-    std::cout << "STEP: " << stepNum
+    std::cout << "(PARTITION SIZE = " << partitionSize_
+	      << ", STEPS = " << steps_ << ")"
+	      << "STEP: " << stepNum
 	      << " OOS ERROR: " << error_oos << "%" << std::endl;
   }
 }
@@ -546,10 +551,12 @@ GradientBoostClassifier<ClassifierType>::fit() {
     
     if ((stepNum%100) == 1)
       printStats(stepNum);
+    if (DIAGNOSTICS)
+      printStats(stepNum);
   }
   
   // print final stats
-  printStats(steps_);
+  // printStats(steps_);
 }
 
 template<typename ClassifierType>
@@ -575,7 +582,7 @@ GradientBoostClassifier<ClassifierType>::computeLearningRate(std::size_t stepNum
   }
 
   if ((stepNum%100)==0)
-    std::cout << "stepNum: " << stepNum << "LEARNING RATE: " << learningRate << std::endl;
+    std::cout << "stepNum: " << stepNum << " LEARNING RATE: " << learningRate << std::endl;
 
   return learningRate;
 }

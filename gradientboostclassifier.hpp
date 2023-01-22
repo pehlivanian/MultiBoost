@@ -339,7 +339,6 @@ public:
   using LeavesList = std::vector<Leaves>;
   using Prediction = Row<double>;
   using PredictionList = std::vector<Prediction>;
-  using MaskList = std::vector<uvec>;
   
   GradientBoostClassifier(const mat& dataset, 
 			  const Row<std::size_t>& labels,
