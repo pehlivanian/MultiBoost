@@ -54,12 +54,18 @@ auto main(int argc, char **argv) -> int {
   Mat<double> dataset, trainDataset, testDataset;
   Row<std::size_t> labels, trainLabels, testLabels, trainPrediction, testPrediction;
 
-  if (!data::Load("/home/charles/Data/hungarian_X.csv", dataset))
+  if (!data::Load("/home/charles/Data/glass2_X.csv", dataset))
     throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/hungarian_y.csv", labels))
+  if (!data::Load("/home/charles/Data/glass2_y.csv", labels))
     throw std::runtime_error("Could not load file");
 
   data::Split(dataset, labels, trainDataset, testDataset, trainLabels, testLabels, 0.2);
+
+  std::cout << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
+	    << trainDataset.n_rows << ")" << std::endl;
+  std::cout << "TEST DATASET: (" << testDataset.n_cols << " x " 
+	    << testDataset.n_rows << ")" << std::endl;
+  
   
   ClassifierContext::Context context{};
   // context.loss = lossFunction::Savage;

@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <type_traits>
 #include <cassert>
+#include <typeinfo>
 
 #include <mlpack/core.hpp>
 #include <mlpack/methods/decision_tree/decision_tree.hpp>
@@ -425,12 +426,14 @@ public:
   void Predict(Row<IntegralLabelType>&, const uvec&);
   void Predict(const mat&, Row<IntegralLabelType>&);
 
-  virtual void Classify_(const mat& dataset, Row<DataType>& prediction) { 
+  void Classify_(const mat& dataset, Row<DataType>& prediction) { 
     Predict(dataset, prediction); 
   }
 
   mat getDataset() const { return dataset_; }
   Row<double> getLabels() const { return labels_; }
+  ClassifierList getClassifiers() const { return classifiers_; }
+  
   void printStats(int);
   void purge();
   

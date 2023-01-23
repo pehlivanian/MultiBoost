@@ -179,7 +179,6 @@ GradientBoostClassifier<ClassifierType>::Predict(Row<DataType>& prediction) {
 template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::Predict(Row<DataType>& prediction, const uvec& colMask) {
-
   Predict(prediction);
   prediction = prediction.submat(zeros<uvec>(1), colMask);
 
@@ -385,7 +384,7 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     // context.learningRate = learningRate_;
     context.learningRate = std::min(1., 2.*learningRate_);
     // context.steps = std::log(subPartitionSize);
-    context.steps = std::log(steps_);
+    context.steps = std::max(static_cast<int>(std::log(steps_)), 1);
     context.symmetrizeLabels = false;
     context.removeRedundantLabels = true;
     context.rowSubsampleRatio = row_subsample_ratio_;
@@ -408,7 +407,7 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     // auto classifier = new GradientBoostClassifier(dataset_, allLeaves, context);
     std::unique_ptr<GradientBoostClassifier<ClassifierType>> classifier;
     classifier.reset(new GradientBoostClassifier<ClassifierType>(dataset_, allLeaves, context));
-    
+
     classifier->fit();
     classifier->Classify_(dataset_, prediction);
 
@@ -524,7 +523,7 @@ GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
   if (hasOOSData_) {
     double error_is = accu(yhat != labels_) * 100. / labels_.n_elem;
     std::cout << "(PARTITION SIZE = " << partitionSize_
-	      << ", STEPS = " << steps_ << ")"
+	      << ", STEPS = " << steps_ << ") "
 	      << "STEP: " << stepNum 
 	      << " IS LOSS: " << r
 	      << " IS ERROR: " << error_is << "%" << std::endl;
@@ -536,7 +535,7 @@ GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
     deSymmetrize(yhat_oos); symmetrize(yhat_oos);
     double error_oos = accu(yhat_oos != labels_oos_) * 100. / labels_oos_.n_elem;
     std::cout << "(PARTITION SIZE = " << partitionSize_
-	      << ", STEPS = " << steps_ << ")"
+	      << ", STEPS = " << steps_ << ") "
 	      << "STEP: " << stepNum
 	      << " OOS ERROR: " << error_oos << "%" << std::endl;
   }
