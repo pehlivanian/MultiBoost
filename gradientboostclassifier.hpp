@@ -436,7 +436,7 @@ public:
   
   void printStats(int);
   void purge();
-  
+  void save();  
 
 private:
   void init_();

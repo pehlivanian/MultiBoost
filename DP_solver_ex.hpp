@@ -1,5 +1,5 @@
 #ifndef __DP_SOLVER_EX_HPP__
-#define __DP_SOLVER_EX_DPP__
+#define __DP_SOLVER_EX_HPP__
 
 #include <iostream>
 #include <vector>

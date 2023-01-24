@@ -21,5 +21,6 @@
 #include "decision_tree.hpp"
 #include "loss.hpp"
 #include "gradientboostclassifier.hpp"
+#include "utils.hpp"
 
 #endif

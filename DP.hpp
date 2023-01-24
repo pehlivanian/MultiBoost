@@ -30,7 +30,7 @@
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
-using namespace Utils;
+using namespace IB_utils;
 
 template<typename DataType>
 class DPSolver {

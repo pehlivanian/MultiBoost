@@ -50,7 +50,6 @@ namespace Objectives {
 
     virtual ~ParametricContext() = default;
 
-
     void init();
 
     DataType get_score(int, int) const;
@@ -63,6 +62,15 @@ namespace Objectives {
 
     std::vector<std::vector<DataType>> get_partial_sums_a() const;
     std::vector<std::vector<DataType>> get_partial_sums_b() const;
+
+    // Really for testing purposes
+    void __compute_partial_sums__() { compute_partial_sums(); }
+    void __compute_partial_sums_AVX256__() { compute_partial_sums_AVX256(); }
+    void __compute_partial_sums_parallel__() { compute_partial_sums_parallel(); }
+    void __compute_scores__() { compute_scores(); }
+    void __compute_scores_parallel__() { compute_scores_parallel(); }
+    DataType __compute_score__(int i, int j) { return compute_score(i, j); }
+    DataType __compute_ambient_score__(int i, int j) { return compute_ambient_score(i, j); }
 
   protected:
     virtual DataType compute_score_multclust(int, int)		       = 0;

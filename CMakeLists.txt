@@ -37,6 +37,7 @@ find_package(autodiff)
 find_package(Armadillo REQUIRED)
 find_package(OpenMP)
 find_package(BLAS REQUIRED)
+find_package(GTest REQUIRED)
 
 include_directories(${ARMADILLO_INCLUDE_DIRS})
 include_directories(/usr/local/include/eigen3)
@@ -47,10 +48,12 @@ add_library(processor OBJECT processor.cpp)
 add_library(decision_tree OBJECT decision_tree.cpp)
 add_library(loss OBJECT loss.cpp)
 add_library(score2 OBJECT score2.cpp)
+add_library(utils OBJECT utils.cpp)
 target_link_libraries(loss PUBLIC autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
 add_library(LTSS OBJECT LTSS.cpp)
+target_link_libraries(LTSS PUBLIC utils)
 add_library(DP OBJECT DP.cpp)
-target_link_libraries(DP PUBLIC LTSS)
+target_link_libraries(DP PUBLIC LTSS utils)
 add_library(gradientboostclassifier OBJECT gradientboostclassifier.cpp)
 target_link_libraries(gradientboostclassifier PUBLIC LTSS DP autodiff::autodiff ${ARMADILLO_LIBRARIES})
 
@@ -60,4 +63,9 @@ target_link_libraries(DP_solver_ex DP LTSS pthread)
 		  
 # InductiveBoostClassifier driver on pmlb data
 add_executable(pmlb_driver pmlb_driver.cpp)
-target_link_libraries(pmlb_driver dataset pmlb processor decision_tree loss gradientboostclassifier autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
+target_link_libraries(pmlb_driver dataset pmlb processor decision_tree loss utils gradientboostclassifier autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
+# Unit tests
+add_executable(gtest_all gtest_all.cpp)
+target_link_libraries(gtest_all DP ${GTEST_LIBRARIES} pthread)

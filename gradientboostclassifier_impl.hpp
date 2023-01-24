@@ -510,6 +510,12 @@ GradientBoostClassifier<ClassifierType>::purge() {
 
 template<typename ClassifierType>
 void
+GradientBoostClassifier<ClassifierType>::save() {
+  ;
+}
+
+template<typename ClassifierType>
+void
 GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
   Row<DataType> yhat;
   Predict(yhat);

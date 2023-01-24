@@ -8,58 +8,25 @@ using namespace mlpack::util;
 using namespace std;
 
 using namespace LossMeasures;
+using namespace IB_utils;
 
 auto main(int argc, char **argv) -> int {
 
-  /* 
-     Old way
-  std::string Xpath = "/home/charles/Data/hungarian_X.csv";
-  std::string ypath = "/home/charles/Data/hungarian_y.csv";
-  auto df = DataSet<float>(Xpath, ypath, false);
-  std::size_t ind1 = 4, ind2 = 2;
-  
-  auto shape = df.shape();
-  
-  std::cout << "COMPLETE." << std::endl;
-  std::cout << "SIZE: (" << shape.first << ", " 
-	    << shape.second << ")" << std::endl;
-  std::cout << "df[" << ind1 << "][" << ind2
-	    << "]: " << df[ind1][ind2] << std::endl;
-  
-  auto splitter = SplitProcessor<float>(.8);
-  
-  df.accept(splitter);
-  */
-    
-
-  /*
-    The mlpack way
-  */
-
-  /*
-    uvec rowMask = linspace<uvec>(0, -1+dataset.n_rows, dataset.n_rows);
-    uvec colMask = linspace<uvec>(0, -1+10000, 10000);
-    dataset = dataset.submat(rowMask, colMask);
-    labels = labels.submat(zeros<uvec>(1), colMask);
-    
-  */
-
-  /*
-    uvec rowMask = linspace<uvec>(0, -1+dataset.n_rows, dataset.n_rows);
-    uvec colMask = linspace<uvec>(0, -1+1000, 1000);
-    dataset = dataset.submat(rowMask, colMask);
-    labels = labels.submat(zeros<uvec>(1), colMask);
-  */  
-  
   Mat<double> dataset, trainDataset, testDataset;
-  Row<std::size_t> labels, trainLabels, testLabels, trainPrediction, testPrediction;
+  Row<std::size_t> labels, trainLabels, testLabels;
+  Row<std::size_t> trainPrediction, testPrediction;
 
-  if (!data::Load("/home/charles/Data/glass2_X.csv", dataset))
+  if (!data::Load("/home/charles/Data/sonar_X.csv", dataset))
     throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/glass2_y.csv", labels))
+  if (!data::Load("/home/charles/Data/sonar_y.csv", labels))
     throw std::runtime_error("Could not load file");
 
-  data::Split(dataset, labels, trainDataset, testDataset, trainLabels, testLabels, 0.2);
+  data::Split(dataset, 
+	      labels, 
+	      trainDataset, 
+	      testDataset, 
+	      trainLabels, 
+	      testLabels, 0.2);
 
   std::cout << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
 	    << trainDataset.n_rows << ")" << std::endl;
@@ -89,16 +56,18 @@ auto main(int argc, char **argv) -> int {
   context.labels_oos = conv_to<Row<double>>::from(testLabels);
 
 
-  auto gradientBoostClassifier = std::make_unique<GradientBoostClassifier<DecisionTreeClassifier>>(trainDataset, 
-										 trainLabels, 
-										 context);
+  using classifier = GradientBoostClassifier<DecisionTreeClassifier>;
+  auto c = std::make_unique<classifier>(trainDataset, 
+					trainLabels, 
+					context);
+  
+  c->fit();
+  c->Predict(trainDataset, trainPrediction);
+  c->Predict(testDataset, testPrediction);
 
-  gradientBoostClassifier->fit();
-  gradientBoostClassifier->Predict(trainDataset, trainPrediction);
-  gradientBoostClassifier->Predict(testDataset, testPrediction);
-    
-  const double trainError = accu(trainPrediction != trainLabels) * 100. / trainLabels.n_elem;
-  const double testError = accu(testPrediction != testLabels) * 100. / testLabels.n_elem;
+  const double trainError = err(trainPrediction, trainLabels);
+  const double testError = err(testPrediction, testLabels);
+
   std::cout << "TRAINING ERROR: " << trainError << "%." << std::endl;
   std::cout << "TEST ERROR    : " << testError << "%." << std::endl;
 
