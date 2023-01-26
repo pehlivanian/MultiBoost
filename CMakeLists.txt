@@ -68,4 +68,4 @@ target_link_libraries(pmlb_driver dataset pmlb processor decision_tree loss util
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
 # Unit tests
 add_executable(gtest_all gtest_all.cpp)
-target_link_libraries(gtest_all DP ${GTEST_LIBRARIES} pthread)
+target_link_libraries(gtest_all utils DP ${GTEST_LIBRARIES} pthread)

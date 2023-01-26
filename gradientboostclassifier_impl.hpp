@@ -404,7 +404,6 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     // aside from the fact that it is of double type, it may have more 
     // than one class. So we don't want to symmetrize, but we want 
     // to remap the redundant values.
-    // auto classifier = new GradientBoostClassifier(dataset_, allLeaves, context);
     std::unique_ptr<GradientBoostClassifier<ClassifierType>> classifier;
     classifier.reset(new GradientBoostClassifier<ClassifierType>(dataset_, allLeaves, context));
 

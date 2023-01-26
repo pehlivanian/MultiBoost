@@ -14,6 +14,15 @@
 #include <cassert>
 #include <typeinfo>
 
+#include <cereal/types/polymorphic.hpp>
+#include <cereal/archives/portable_binary.hpp>
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/access.hpp>
+
 #include <mlpack/core.hpp>
 #include <mlpack/methods/decision_tree/decision_tree.hpp>
 #include <mlpack/methods/decision_tree/decision_tree_regressor.hpp>
@@ -61,7 +70,7 @@ namespace LearningRate {
 namespace ClassifierContext{
   struct Context {
     Context(std::size_t minLeafSize=1,
-	    double minimumGainSplit=0.0,
+	    double minimumGainSplit=.0,
 	    std::size_t maxDepth=100,
 	    std::size_t numTrees=10,
 	    bool recursiveFit=false) : 
@@ -162,11 +171,6 @@ public:
   virtual void purge() = 0;
 };
 
-template<typename ClassifierType>
-class AggregatorBase {
-  ;
-};
-
 template<typename DataType, typename ClassifierType, typename... Args>
 class DiscreteClassifierBase : public ClassifierBase<DataType, ClassifierType> {
 public:
@@ -193,11 +197,22 @@ public:
   
   }
 
+  DiscreteClassifierBase(const LeavesMap& leavesMap, std::unique_ptr<ClassifierType> classifier) : 
+    leavesMap_{leavesMap},
+    classifier_{std::move(classifier)} {}
+
+  DiscreteClassifierBase() = default;
   ~DiscreteClassifierBase() = default;
 
   void setClassifier(const mat&, Row<std::size_t>&, Args&&...);
   void Classify_(const mat&, Row<DataType>&) override;
   void purge() override;
+
+  template<class Archive>
+  void serialize(Archive &ar) {
+    ar(CEREAL_NVP(leavesMap_));
+    ar(CEREAL_NVP(classifier_));
+  }
 
 private:
   void encode(const Row<DataType>&, Row<std::size_t>&); 
@@ -217,11 +232,20 @@ public:
   {
     setClassifier(dataset, labels, std::forward<Args>(args)...);
   }
+
+  ContinuousClassifierBase(std::unique_ptr<ClassifierType> classifier) : classifier_{std::move(classifier)} {}
+
+  ContinuousClassifierBase() = default;
   ~ContinuousClassifierBase() = default;
   
   void setClassifier(const mat&, Row<DataType>&, Args&&...);
   void Classify_(const mat&, Row<DataType>&) override;
   void purge() override {};
+
+  template<class Archive>
+  void serialize(Archive &ar) {
+    ar(CEREAL_NVP(classifier_));
+  }
 
 private:
   std::unique_ptr<ClassifierType> classifier_;
@@ -233,6 +257,7 @@ class RandomForestClassifier : public DiscreteClassifierBase<double,
 							     std::size_t,
 							     std::size_t> {
 public:
+  RandomForestClassifier() = default;
   
   RandomForestClassifier(const mat& dataset, 
 			 Row<double>& labels, 
@@ -259,6 +284,8 @@ class DecisionTreeClassifier : public DiscreteClassifierBase<double,
 							     double,
 							     std::size_t> {
 public:
+  DecisionTreeClassifier() = default;
+
   DecisionTreeClassifier(const mat& dataset, 
 			 Row<double>& labels,
 			 std::size_t numClasses,
@@ -286,6 +313,7 @@ class DecisionTreeRegressorClassifier : public ContinuousClassifierBase<double,
 									double,
 									unsigned long> {
 public:
+  DecisionTreeRegressorClassifier() = default;
 
   const unsigned long minLeafSize = 1;
   const double minGainSplit = 0.0;
@@ -341,6 +369,8 @@ public:
   using Prediction = Row<double>;
   using PredictionList = std::vector<Prediction>;
   
+  GradientBoostClassifier() = default;
+
   GradientBoostClassifier(const mat& dataset, 
 			  const Row<std::size_t>& labels,
 			  ClassifierContext::Context context) :
@@ -438,6 +468,11 @@ public:
   void purge();
   void save();  
 
+  template<class Archive>
+  void serialize(Archive &ar) {
+    ar(CEREAL_NVP(classifiers_));
+  }
+
 private:
   void init_();
   Row<double> _constantLeaf() const;
@@ -509,6 +544,91 @@ private:
 
   bool hasOOSData_;
 };
+
+using DTC = ClassifierTypes::DecisionTreeClassifierType;
+using CTC = ClassifierTypes::DecisionTreeRegressorType;
+using RFC = ClassifierTypes::RandomForestClassifierType;
+using DiscreteClassifierBaseDTC = DiscreteClassifierBase<double, 
+						       DTC, 
+						       std::size_t,
+						       std::size_t,
+						       double,
+						       std::size_t>;
+using DiscreteClassifierBaseRFC = DiscreteClassifierBase<double,
+							 RFC,
+							 std::size_t,
+							 std::size_t,
+							 std::size_t>;
+using ContinuousClassifierBaseD = ContinuousClassifierBase<double, 
+							   CTC,
+							   unsigned long,
+							   double,
+							   unsigned long>;
+using GradientBoostClassifierD = GradientBoostClassifier<DTC>;
+using ClassifierBaseDD = ClassifierBase<double, DTC>;
+using ClassifierBaseRD = ClassifierBase<double, RFC>;
+using ClassifierBaseCD = ClassifierBase<double, CTC>;
+
+// Register class with cereal
+CEREAL_REGISTER_TYPE(DiscreteClassifierBaseDTC);
+CEREAL_REGISTER_TYPE(DiscreteClassifierBaseRFC);
+CEREAL_REGISTER_TYPE(ContinuousClassifierBaseD);
+
+CEREAL_REGISTER_TYPE(DecisionTreeClassifier);
+CEREAL_REGISTER_TYPE(RandomForestClassifier);
+CEREAL_REGISTER_TYPE(DecisionTreeRegressorClassifier);
+
+CEREAL_REGISTER_TYPE(GradientBoostClassifierD);
+
+// Register class hierarchy with cereal
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseDD, GradientBoostClassifierD);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseDD, DecisionTreeClassifier);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseRD, RandomForestClassifier);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseCD, DecisionTreeRegressorClassifier);
+
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseDD, DiscreteClassifierBaseDTC);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseRD, DiscreteClassifierBaseRFC);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseCD, ContinuousClassifierBaseD);
+
+template<typename DataType, typename ClassifierType, typename... Args>
+class ContinuousClassifierBase;
+
+template<typename DataType, typename ClassifierType, typename... Args>
+class DiscreteClassifierBase;
+
+template<typename DataType>
+using LeavesMap = std::unordered_map<std::size_t, DataType>;
+
+namespace cereal {
+  
+  template<typename DataType>
+  using LeavesMap = std::unordered_map<std::size_t, DataType>;
+
+  template<typename DataType, typename ClassifierType, typename... Args> 
+  struct LoadAndConstruct<ContinuousClassifierBase<DataType, ClassifierType, Args...>> {
+    template<class Archive>
+    static void load_and_construct(Archive &ar, cereal::construct<ContinuousClassifierBase<DataType, ClassifierType, Args...>> &construct) {
+      std::unique_ptr<ClassifierType> classifier;
+      ar(CEREAL_NVP(classifier));
+      construct(std::move(classifier));
+    }
+  };
+
+
+  template<typename DataType, typename ClassifierType, typename... Args>
+  struct LoadAndConstruct<DiscreteClassifierBase<DataType, ClassifierType, Args...>> {
+    template<class Archive>
+    static void load_and_construct(Archive &ar, cereal::construct<DiscreteClassifierBase<DataType, ClassifierType, Args...>> &construct) {
+      LeavesMap<DataType> leavesMap;
+      std::unique_ptr<ClassifierType> classifier;
+      ar(CEREAL_NVP(leavesMap));
+      ar(CEREAL_NVP(classifier));
+      construct(leavesMap, std::move(classifier));
+    }
+  };
+
+} // namespace cereal
+  
 
 #include "gradientboostclassifier_impl.hpp"
 

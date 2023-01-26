@@ -7,10 +7,26 @@
 #include <numeric>
 #include <limits>
 #include <cmath>
+#include <memory>
 
+#include "utils.hpp"
 #include "score2.hpp"
 #include "DP.hpp"
+#include "gradientboostclassifier.hpp"
 
+using namespace IB_utils;
+using namespace ClassifierContext;
+using namespace ClassifierTypes;
+
+using dataset_t = Mat<double>;
+using labels_t = Row<std::size_t>;
+
+void loadDatasets(dataset_t& dataset, labels_t& labels) {
+  if (!data::Load("/home/charles/Data/sonar_X.csv", dataset))
+    throw std::runtime_error("Could not load file");
+  if (!data::Load("/home/charles/Data/sonar_y.csv", labels))
+    throw std::runtime_error("Could not load file");
+}
 
 TEST(DPSolverTest, TestAVXMatchesSerial) {
   using namespace Objectives;
@@ -131,6 +147,136 @@ TEST(DPSolverTest, TestAVXPartialSumsMatchSerialPartialSums) {
       ASSERT_EQ(partialSums_serial[ind1_][ind2_], partialSums_AVX[ind1_][ind2_]);
       ASSERT_EQ(partialSums_serial[ind1_][ind2_], partialSums_parallel[ind1_][ind2_]);
     }
+  }
+}
+
+TEST(GradientBoostClassifierTest, TestAggregateClassifierSerializationRoundTrips) {
+  
+  int numTrials = 1;
+  std::vector<bool> trials(numTrials);
+
+  dataset_t dataset, trainDataset, testDataset;
+  labels_t labels, trainLabels, testLabels;
+
+  loadDatasets(dataset, labels);
+  data::Split(dataset, 
+	      labels, 
+	      trainDataset, 
+	      testDataset, 
+	      trainLabels, 
+	      testLabels, 0.2);
+
+  std::size_t minLeafSize = 1;
+  double minimumGainSplit = 0.;
+  std::size_t maxDepth = 10;
+  std::size_t partitionSize = 10;
+
+  Context context{};
+  
+  context.loss = lossFunction::BinomialDeviance;
+  context.partitionSize = partitionSize;
+  context.partitionRatio = .25;
+  context.learningRate = .01;
+  context.steps = 500;
+  context.symmetrizeLabels = true;
+  context.rowSubsampleRatio = 1.;
+  context.colSubsampleRatio = .45; // .75
+  context.recursiveFit = false;
+  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
+  context.learningRateMethod = LearningRate::RateMethod::FIXED;
+  context.minLeafSize = 1;
+  context.maxDepth = 10;
+  context.minimumGainSplit = 0.;
+  context.hasOOSData = true;
+  context.dataset_oos = testDataset;
+  context.labels_oos = conv_to<Row<double>>::from(testLabels);
+
+  using T = GradientBoostClassifier<DecisionTreeClassifier>;
+  using IArchiveType = cereal::JSONInputArchive;
+  using OArchiveType = cereal::JSONOutputArchive;
+
+  for (auto _ : trials) {
+    
+    T classifier, newClassifier;
+    classifier = T(trainDataset, trainLabels, context);
+    std::string fileName = dumps<T, IArchiveType, OArchiveType>(classifier);
+    loads<T, IArchiveType, OArchiveType>(newClassifier);
+
+    Row<std::size_t> trainPrediction, trainNewPrediction, testPrediction, testNewPrediction;
+    classifier.Predict(testDataset, testPrediction);
+    classifier.Predict(trainDataset, trainPrediction);
+    newClassifier.Predict(testDataset, testNewPrediction);
+    newClassifier.Predict(trainDataset, trainNewPrediction);
+    
+    ASSERT_EQ(testPrediction.n_elem, testNewPrediction.n_elem);
+    ASSERT_EQ(trainPrediction.n_elem, trainNewPrediction.n_elem);
+    
+    float eps = std::numeric_limits<float>::epsilon();
+    for (int i=0; i<testPrediction.n_elem; ++i)
+      ASSERT_LE(fabs(testPrediction[i]-testNewPrediction[i]), eps);
+    for (int i=0; i<trainPrediction.n_elem; ++i)
+      ASSERT_LE(fabs(trainPrediction[i]-trainNewPrediction[i]), eps);
+
+  }
+}
+
+TEST(GradientBoostClassifierTest, TestChildSerializationRoundTrips) {
+
+  int numTrials = 1;
+  std::vector<bool> trials(numTrials);
+
+  std::size_t minLeafSize = 1;
+  double minimumGainSplit = 0.;
+  std::size_t maxDepth = 10;
+  std::size_t partitionSize = 10;
+
+  dataset_t dataset, trainDataset, testDataset;
+  labels_t labels, trainLabels, testLabels;
+
+  loadDatasets(dataset, labels);
+  data::Split(dataset, 
+	      labels, 
+	      trainDataset, 
+	      testDataset, 
+	      trainLabels, 
+	      testLabels, 0.2);
+
+  using T = DecisionTreeClassifierType;
+  using IArchiveType = cereal::BinaryInputArchive;
+  using OArchiveType = cereal::BinaryOutputArchive;
+
+  for (auto _ : trials) {
+    using ClassifierType = DecisionTree<>;
+
+    T classifier, newClassifier;
+    classifier = T(trainDataset, 
+		   trainLabels,
+		   partitionSize,
+		   minLeafSize,
+		   minimumGainSplit,
+		   maxDepth);
+
+    std::string fileName = dumps<T, IArchiveType, OArchiveType>(classifier);
+    loads<T, IArchiveType, OArchiveType>(newClassifier);
+
+    ASSERT_EQ(classifier.NumChildren(), newClassifier.NumChildren());
+    ASSERT_EQ(classifier.NumClasses(), newClassifier.NumClasses());
+
+    Row<std::size_t> trainPrediction, trainNewPrediction, testPrediction, testNewPrediction;
+    classifier.Classify(testDataset, testPrediction);
+    classifier.Classify(trainDataset, trainPrediction);
+    newClassifier.Classify(testDataset, testNewPrediction);
+    newClassifier.Classify(trainDataset, trainNewPrediction);
+    
+    ASSERT_EQ(testPrediction.n_elem, testNewPrediction.n_elem);
+    ASSERT_EQ(trainPrediction.n_elem, trainNewPrediction.n_elem);
+    
+    float eps = std::numeric_limits<float>::epsilon();
+    for (int i=0; i<testPrediction.n_elem; ++i)
+      ASSERT_LE(fabs(testPrediction[i]-testNewPrediction[i]), eps);
+    for (int i=0; i<trainPrediction.n_elem; ++i)
+      ASSERT_LE(fabs(trainPrediction[i]-trainNewPrediction[i]), eps);
+
   }
 }
 
