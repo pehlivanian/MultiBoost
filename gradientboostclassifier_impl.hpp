@@ -509,9 +509,25 @@ GradientBoostClassifier<ClassifierType>::purge() {
 }
 
 template<typename ClassifierType>
+std::string
+GradientBoostClassifier<ClassifierType>::write() {
+  using CerealT = decltype(*this);
+  using CerealIArch = cereal::BinaryInputArchive;
+  using CerealOArch = cereal::BinaryOutputArchive;
+
+  std::string fileName = dumps<CerealT, CerealIArch, CerealOArch>(*this);
+  return fileName;
+}
+
+template<typename ClassifierType>
 void
-GradientBoostClassifier<ClassifierType>::save() {
-  ;
+GradientBoostClassifier<ClassifierType>::read(GradientBoostClassifier<ClassifierType>& rhs,
+					      std::string fileName) {
+  using CerealT = decltype(*this);
+  using CerealIArch = cereal::BinaryInputArchive;
+  using CerealOArch = cereal::BinaryOutputArchive;
+
+  loads<CerealT, CerealIArch, CerealOArch>(rhs, fileName);
 }
 
 template<typename ClassifierType>

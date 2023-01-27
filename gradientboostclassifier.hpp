@@ -484,7 +484,8 @@ public:
   
   void printStats(int);
   void purge();
-  void save();  
+  std::string write();  
+  void read(GradientBoostClassifier&, std::string);
 
   template<class Archive>
   void serialize(Archive &ar) {

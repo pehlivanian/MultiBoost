@@ -55,8 +55,7 @@ namespace IB_utils {
   }
 
   template<typename T, typename IArchiveType, typename OArchiveType>
-  void loads(T& t) {
-    std::string fileName = FilterFileName(typeid(T).name());
+  void loads(T& t, std::string fileName) {
     std::ifstream ifs{fileName, std::ios::binary};
     
     {
