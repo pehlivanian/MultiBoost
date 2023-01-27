@@ -431,6 +431,7 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 					std::move(minLeafSize_),
 					std::move(minimumGainSplit_),
 					std::move(maxDepth_)));
+
     classifier->Classify_(dataset_, prediction);
 
   }
@@ -524,10 +525,19 @@ GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
     symmetrize(yhat);
   }
 
+  auto now = std::chrono::system_clock::now();
+  auto UTC = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+  auto in_time_t = std::chrono::system_clock::to_time_t(now);
+  
+  std::stringstream datetime;
+  datetime << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d_%X");
+  auto suff = datetime.str();
+
   // Only print stats for top level of recursive call
   if (hasOOSData_) {
     double error_is = accu(yhat != labels_) * 100. / labels_.n_elem;
-    std::cout << "(PARTITION SIZE = " << partitionSize_
+    std::cout << suff << ": " 
+	      << "(PARTITION SIZE = " << partitionSize_
 	      << ", STEPS = " << steps_ << ") "
 	      << "STEP: " << stepNum 
 	      << " IS LOSS: " << r
@@ -539,7 +549,8 @@ GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
     Predict(dataset_oos_, yhat_oos);
     deSymmetrize(yhat_oos); symmetrize(yhat_oos);
     double error_oos = accu(yhat_oos != labels_oos_) * 100. / labels_oos_.n_elem;
-    std::cout << "(PARTITION SIZE = " << partitionSize_
+    std::cout << suff<< ": "
+	      << "(PARTITION SIZE = " << partitionSize_
 	      << ", STEPS = " << steps_ << ") "
 	      << "STEP: " << stepNum
 	      << " OOS ERROR: " << error_oos << "%" << std::endl;

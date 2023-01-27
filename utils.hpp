@@ -22,11 +22,19 @@ namespace IB_utils {
     // Take the last valid 32 characters for the filename.
     std::string fileName;
     for (auto it = inputString.rbegin(); it != inputString.rend() &&
-	   fileName.size() != 32; ++it)
+	   fileName.size() != 24; ++it)
       {
 	if (std::isalnum(*it))
 	  fileName.push_back(*it);
       }
+
+    auto now = std::chrono::system_clock::now();
+    auto UTC = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+
+    std::stringstream datetime;
+    datetime << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d_%X");
+    fileName = std::to_string(UTC) + "_" + fileName + "_" + datetime.str() + ".gar";
     
     return fileName;
   }

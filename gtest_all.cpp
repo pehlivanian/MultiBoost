@@ -150,7 +150,7 @@ TEST(DPSolverTest, TestAVXPartialSumsMatchSerialPartialSums) {
   }
 }
 
-TEST(GradientBoostClassifierTest, TestAggregateClassifierSerializationRoundTrips) {
+TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips) {
   
   int numTrials = 1;
   std::vector<bool> trials(numTrials);
@@ -177,7 +177,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierSerializationRoundTrips
   context.partitionSize = partitionSize;
   context.partitionRatio = .25;
   context.learningRate = .01;
-  context.steps = 500;
+  context.steps = 17;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .45; // .75
@@ -192,13 +192,88 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierSerializationRoundTrips
   context.labels_oos = conv_to<Row<double>>::from(testLabels);
 
   using T = GradientBoostClassifier<DecisionTreeClassifier>;
-  using IArchiveType = cereal::JSONInputArchive;
-  using OArchiveType = cereal::JSONOutputArchive;
+  using IArchiveType = cereal::XMLInputArchive;
+  using OArchiveType = cereal::XMLOutputArchive;
 
   for (auto _ : trials) {
     
     T classifier, newClassifier;
     classifier = T(trainDataset, trainLabels, context);
+    classifier.fit();
+
+    std::string fileName = dumps<T, IArchiveType, OArchiveType>(classifier);
+    loads<T, IArchiveType, OArchiveType>(newClassifier);
+
+    Row<std::size_t> trainPrediction, trainNewPrediction, testPrediction, testNewPrediction;
+    classifier.Predict(testDataset, testPrediction);
+    classifier.Predict(trainDataset, trainPrediction);
+    newClassifier.Predict(testDataset, testNewPrediction);
+    newClassifier.Predict(trainDataset, trainNewPrediction);
+    
+    ASSERT_EQ(testPrediction.n_elem, testNewPrediction.n_elem);
+    ASSERT_EQ(trainPrediction.n_elem, trainNewPrediction.n_elem);
+    
+    float eps = std::numeric_limits<float>::epsilon();
+    for (int i=0; i<testPrediction.n_elem; ++i)
+      ASSERT_LE(fabs(testPrediction[i]-testNewPrediction[i]), eps);
+    for (int i=0; i<trainPrediction.n_elem; ++i)
+      ASSERT_LE(fabs(trainPrediction[i]-trainNewPrediction[i]), eps);
+
+  }
+}
+
+TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveRoundTrips) {
+
+  std::vector<bool> trials = {true};
+  
+  dataset_t dataset, trainDataset, testDataset;
+  labels_t labels, trainLabels, testLabels;
+  
+  loadDatasets(dataset, labels);
+  data::Split(dataset, 
+	      labels, 
+	      trainDataset, 
+	      testDataset, 
+	      trainLabels, 
+	      testLabels, 0.2);
+
+  std::size_t minLeafSize = 1;
+  double minimumGainSplit = 0.;
+  std::size_t maxDepth = 10;
+  std::size_t partitionSize = 10;
+
+  Context context{};
+  
+  context.loss = lossFunction::BinomialDeviance;
+  context.partitionSize = partitionSize;
+  context.partitionRatio = .25;
+  context.learningRate = .01;
+  context.steps = 255;
+  context.symmetrizeLabels = true;
+  context.rowSubsampleRatio = 1.;
+  context.colSubsampleRatio = .45; // .75
+  context.recursiveFit = false;
+  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
+  context.learningRateMethod = LearningRate::RateMethod::FIXED;
+  context.minLeafSize = 1;
+  context.maxDepth = 10;
+  context.minimumGainSplit = 0.;
+  context.hasOOSData = true;
+  context.dataset_oos = testDataset;
+  context.labels_oos = conv_to<Row<double>>::from(testLabels);
+
+  using T = GradientBoostClassifier<DecisionTreeClassifier>;
+  using IArchiveType = cereal::XMLInputArchive;
+  using OArchiveType = cereal::XMLOutputArchive;
+
+  for (auto recursive : trials) {
+  
+    context.recursiveFit = recursive;
+    
+    T classifier, newClassifier;
+    classifier = T(trainDataset, trainLabels, context);
+    classifier.fit();
+
     std::string fileName = dumps<T, IArchiveType, OArchiveType>(classifier);
     loads<T, IArchiveType, OArchiveType>(newClassifier);
 
@@ -242,8 +317,8 @@ TEST(GradientBoostClassifierTest, TestChildSerializationRoundTrips) {
 	      testLabels, 0.2);
 
   using T = DecisionTreeClassifierType;
-  using IArchiveType = cereal::BinaryInputArchive;
-  using OArchiveType = cereal::BinaryOutputArchive;
+  using IArchiveType = cereal::XMLInputArchive;
+  using OArchiveType = cereal::XMLOutputArchive;
 
   for (auto _ : trials) {
     using ClassifierType = DecisionTree<>;

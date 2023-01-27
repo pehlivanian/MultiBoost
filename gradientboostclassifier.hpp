@@ -13,11 +13,14 @@
 #include <type_traits>
 #include <cassert>
 #include <typeinfo>
+#include <chrono>
 
 #include <cereal/types/polymorphic.hpp>
+#include <cereal/types/base_class.hpp>
 #include <cereal/archives/portable_binary.hpp>
 #include <cereal/archives/binary.hpp>
 #include <cereal/archives/json.hpp>
+#include <cereal/archives/xml.hpp>
 #include <cereal/types/memory.hpp>
 #include <cereal/types/map.hpp>
 #include <cereal/types/vector.hpp>
@@ -167,8 +170,19 @@ namespace ClassifierTypes {
 template<typename DataType, typename ClassifierType>
 class ClassifierBase {
 public:
+  ClassifierBase() = default;
+  ClassifierBase(std::string id) : id_{id} {}
   virtual void Classify_(const mat&, Row<DataType>&) = 0;
   virtual void purge() = 0;
+
+  std::string get_id() const { return id_; }
+
+  template<class Archive>
+  void serialize(Archive &ar) {
+    ar(id_);
+  }
+private:
+  std::string id_;
 };
 
 template<typename DataType, typename ClassifierType, typename... Args>
@@ -177,11 +191,12 @@ public:
   using LeavesMap = std::unordered_map<std::size_t, DataType>;
 
   DiscreteClassifierBase(const mat& dataset, Row<DataType>& labels, Args&&... args) : 
-    ClassifierBase<DataType, ClassifierType>()
+    ClassifierBase<DataType, ClassifierType>(typeid(*this).name())
   {
     labels_t_ = Row<std::size_t>(labels.n_cols);
     encode(labels, labels_t_);
     setClassifier(dataset, labels_t_, std::forward<Args>(args)...);
+    args_ = std::tuple<Args...>(args...);
     
     // Check error
     /*
@@ -210,8 +225,8 @@ public:
 
   template<class Archive>
   void serialize(Archive &ar) {
-    ar(CEREAL_NVP(leavesMap_));
-    ar(CEREAL_NVP(classifier_));
+    ar(cereal::base_class<ClassifierBase<DataType, ClassifierType>>(this), CEREAL_NVP(leavesMap_));
+    ar(cereal::base_class<ClassifierBase<DataType, ClassifierType>>(this), CEREAL_NVP(classifier_));
   }
 
 private:
@@ -221,6 +236,7 @@ private:
   Row<std::size_t> labels_t_;
   LeavesMap leavesMap_;
   std::unique_ptr<ClassifierType> classifier_;
+  std::tuple<Args...> args_;
 
 };
 
@@ -228,9 +244,10 @@ template<typename DataType, typename ClassifierType, typename... Args>
 class ContinuousClassifierBase : public ClassifierBase<DataType, ClassifierType> {
 public:  
   ContinuousClassifierBase(const mat& dataset, Row<DataType>& labels, Args&&... args) : 
-    ClassifierBase<DataType, ClassifierType>() 
+    ClassifierBase<DataType, ClassifierType>(typeid(*this).name()) 
   {
     setClassifier(dataset, labels, std::forward<Args>(args)...);
+    args_ = std::tuple<Args...>(args...);
   }
 
   ContinuousClassifierBase(std::unique_ptr<ClassifierType> classifier) : classifier_{std::move(classifier)} {}
@@ -244,11 +261,12 @@ public:
 
   template<class Archive>
   void serialize(Archive &ar) {
-    ar(CEREAL_NVP(classifier_));
+    ar(cereal::base_class<ClassifierBase<DataType, ClassifierType>>(this), CEREAL_NVP(classifier_));
   }
 
 private:
   std::unique_ptr<ClassifierType> classifier_;
+  std::tuple<Args...> args_;
 };
 
 class RandomForestClassifier : public DiscreteClassifierBase<double, 
@@ -470,7 +488,10 @@ public:
 
   template<class Archive>
   void serialize(Archive &ar) {
-    ar(CEREAL_NVP(classifiers_));
+    ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), CEREAL_NVP(classifiers_));
+    ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), symmetrized_);
+    ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), a_);
+    ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), b_);
   }
 
 private:
@@ -578,7 +599,7 @@ CEREAL_REGISTER_TYPE(DecisionTreeClassifier);
 CEREAL_REGISTER_TYPE(RandomForestClassifier);
 CEREAL_REGISTER_TYPE(DecisionTreeRegressorClassifier);
 
-CEREAL_REGISTER_TYPE(GradientBoostClassifierD);
+CEREAL_REGISTER_TYPE(GradientBoostClassifier<DecisionTreeClassifier>);
 
 // Register class hierarchy with cereal
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseDD, GradientBoostClassifierD);
