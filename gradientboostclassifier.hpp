@@ -395,6 +395,8 @@ public:
   GradientBoostClassifier(const mat& dataset, 
 			  const Row<std::size_t>& labels,
 			  ClassifierContext::Context context) :
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<double>>::from(labels)},
     loss_{context.loss},
@@ -429,7 +431,8 @@ public:
   GradientBoostClassifier(const mat& dataset,
 			  const Row<double>& labels,
 			  ClassifierContext::Context context) :
-
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     loss_{context.loss},
@@ -472,13 +475,13 @@ public:
   // predict on subset of dataset defined by uvec; sum step prediction vectors
   void Predict(Row<DataType>&, const uvec&);
   // predict OOS, loop through and call Classify_ on individual classifiers, sum
-  void Predict(const mat&, Row<DataType>&);
+  void Predict(const mat&, Row<DataType>&, bool=false);
 
   // overloaded versions for archive classifier
   // predict on member dataset from archive
-  void Predict(std::string, Row<DataType>&);
+  void Predict(std::string, Row<DataType>&, bool=false);
   // prediction OOS, loop through and call Classify_ on individual classifiers, sum
-  void Predict(std::string, const mat&, Row<DataType>&);
+  void Predict(std::string, const mat&, Row<DataType>&, bool=false);
 
   // overloaded versions of above based based on label datatype
   void Predict(Row<IntegralLabelType>&);
@@ -514,6 +517,7 @@ private:
   Row<double> _randomLeaf(std::size_t numVals=20) const;
   uvec subsampleRows(size_t);
   uvec subsampleCols(size_t);
+  void symmetrizeLabels(Row<DataType>&);
   void symmetrizeLabels();
   Row<DataType> uniqueCloseAndReplace(Row<DataType>&);
   void symmetrize(Row<DataType>&);

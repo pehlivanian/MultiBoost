@@ -30,11 +30,12 @@ namespace IB_utils {
   void readIndex(std::string path, std::vector<std::string>& fileNames) {
     std::ifstream ifs{path, std::ios::binary|std::ios::in};
     std::vector<std::string>().swap(fileNames);
-    
+    std::string fileName;
+
     if (ifs.is_open()) {
-      std::string fileName;
-      ifs >> fileName;
+      while (ifs >> fileName) {
       fileNames.push_back(fileName);
+      }
     }
     ifs.close();
   }

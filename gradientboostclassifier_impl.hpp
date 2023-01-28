@@ -122,6 +122,9 @@ GradientBoostClassifier<ClassifierType>::init_() {
 							      
 
   // Make labels members of {-1,1}
+  // Note that we pass labels_oos to this classifier for OOS testing
+  // at regular intervals, but the external labels (hence labels_oos_)
+  // may be in {0, 1} and we leave things like that.
   assert(!(symmetrized_ && removeRedundantLabels_));
   if (symmetrized_) {
     symmetrizeLabels();
@@ -186,7 +189,7 @@ GradientBoostClassifier<ClassifierType>::Predict(Row<DataType>& prediction, cons
 
 template<typename ClassifierType>
 void
-GradientBoostClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& prediction) {
+GradientBoostClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
 
   prediction = zeros<Row<DataType>>(dataset.n_cols);
 
@@ -196,7 +199,7 @@ GradientBoostClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataTyp
     prediction += predictionStep;    
   }  
 
-  if (symmetrized_) {
+  if (symmetrized_ and not ignoreSymmetrization) {
     deSymmetrize(prediction);
   }
 }
@@ -286,25 +289,31 @@ GradientBoostClassifier<ClassifierType>::uniqueCloseAndReplace(Row<DataType>& la
 
 template<typename ClassifierType>
 void
-GradientBoostClassifier<ClassifierType>::symmetrizeLabels() {
-  Row<DataType> uniqueVals = uniqueCloseAndReplace(labels_);
+GradientBoostClassifier<ClassifierType>::symmetrizeLabels(Row<DataType>& labels) {
+  Row<DataType> uniqueVals = uniqueCloseAndReplace(labels);
 
   if (uniqueVals.n_cols == 1) {
     // a_ = fabs(1./uniqueVals(0)); b_ = 0.;
-    // labels_ = sign(labels_);
+    // labels = sign(labels);
     a_ = 1.; b_ = 1.;
-    labels_ = ones<Row<double>>(labels_.n_elem);
+    labels = ones<Row<double>>(labels.n_elem);
   } else if (uniqueVals.size() == 2) {
     double m = *std::min_element(uniqueVals.cbegin(), uniqueVals.cend());
     double M = *std::max_element(uniqueVals.cbegin(), uniqueVals.cend());
     a_ = 2./static_cast<double>(M-m);
     b_ = static_cast<double>(m+M)/static_cast<double>(m-M);
-    labels_ = sign(a_*labels_ + b_);
-    // labels_ = sign(2 * labels_ - 1);      
+    labels = sign(a_*labels + b_);
+    // labels = sign(2 * labels - 1);      
   } else {
     assert(uniqueVals.size() == 2);
   }
-    
+  
+}
+
+template<typename ClassifierType>
+void
+GradientBoostClassifier<ClassifierType>::symmetrizeLabels() {
+  symmetrizeLabels(labels_);
 }
 
 template<typename ClassifierType>
@@ -532,7 +541,7 @@ GradientBoostClassifier<ClassifierType>::read(GradientBoostClassifier<Classifier
 
 template<typename ClassifierType>
 void
-GradientBoostClassifier<ClassifierType>::Predict(std::string index, const mat& dataset, Row<DataType>& prediction) {
+GradientBoostClassifier<ClassifierType>::Predict(std::string index, const mat& dataset, Row<DataType>& prediction, bool postSymmetrize) {
   std::vector<std::string> fileNames;
   readIndex(indexName_, fileNames);
 
@@ -540,20 +549,23 @@ GradientBoostClassifier<ClassifierType>::Predict(std::string index, const mat& d
   prediction = zeros<Row<DataType>>(dataset.n_cols);
   Row<DataType> predictionStep;
 
+  bool ignoreSymmetrization = true;
   for (auto & fileName : fileNames) {
     read(classifierNew, fileName);
-    classifierNew.Classify_(dataset, predictionStep);
+    classifierNew.Predict(dataset, predictionStep, ignoreSymmetrization);
     prediction += predictionStep;
   }
 
-  if (symmetrized_)
-    symmetrize(prediction);
+  if (postSymmetrize) {
+    deSymmetrize(prediction);
+  }
+
 }
 
 template<typename ClassifierType>
 void
-GradientBoostClassifier<ClassifierType>::Predict(std::string index, Row<DataType>& prediction) {
-  Predict(index, dataset_, prediction);
+GradientBoostClassifier<ClassifierType>::Predict(std::string index, Row<DataType>& prediction, bool postSymmetrize) {
+  Predict(index, dataset_, prediction, postSymmetrize);
 }
 
 template<typename ClassifierType>
@@ -561,6 +573,8 @@ void
 GradientBoostClassifier<ClassifierType>::commit() {
   auto path = write();
   fileNames_.push_back(path);
+  std::cerr << "ADDED FILENAME" << std::endl;
+  std::copy(fileNames_.begin(), fileNames_.end(),std::ostream_iterator<std::string>(std::cout, "\n"));
   indexName_ = writeIndex(fileNames_);  
 }
 
@@ -570,13 +584,8 @@ GradientBoostClassifier<ClassifierType>::checkAccuracyOfArchive() {
   Row<DataType> yhat;
   Predict(yhat); 
 
-  if (symmetrized_) {
-    deSymmetrize(yhat); 
-    symmetrize(yhat);
-  }
-  
   Row<DataType> prediction;
-  Predict(indexName_, prediction);
+  Predict(indexName_, prediction, false);
   
   float eps = std::numeric_limits<float>::epsilon();
   for (int i=0; i<prediction.n_elem; ++i) {
@@ -597,7 +606,11 @@ GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
 
   if (serialize_) {
     // Prediction from current archive
-    Predict(indexName_, yhat);
+    Predict(indexName_, yhat, false);
+    if (symmetrized_) {
+      deSymmetrize(yhat);
+      symmetrize(yhat);
+    }
     std::cout << "CLASSIFIER FROM ARCHIVE" << std::endl;
     checkAccuracyOfArchive();
     r = lossFn_->loss(yhat, labels_);
@@ -611,7 +624,6 @@ GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
     }
     std::cout << "NON-ARCHIVED CLASSIFIER" << std::endl;
   }
-
 
   auto now = std::chrono::system_clock::now();
   auto UTC = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
@@ -635,7 +647,7 @@ GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
   if (hasOOSData_) {
     Row<DataType> yhat_oos;
     if (serialize_) {
-      Predict(indexName_, dataset_oos_, yhat_oos);
+      Predict(indexName_, dataset_oos_, yhat_oos, true);
     } else {
       Predict(dataset_oos_, yhat_oos);
     }
