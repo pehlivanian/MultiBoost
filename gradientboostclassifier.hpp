@@ -14,6 +14,7 @@
 #include <cassert>
 #include <typeinfo>
 #include <chrono>
+#include <limits>
 
 #include <cereal/types/polymorphic.hpp>
 #include <cereal/types/base_class.hpp>
@@ -84,7 +85,8 @@ namespace ClassifierContext{
       removeRedundantLabels{false},
       recursiveFit{recursiveFit},
       hasOOSData{false},
-      reuseColMask{false}
+      reuseColMask{false},
+      serialize{false}
     {}
       
     lossFunction loss;
@@ -105,6 +107,7 @@ namespace ClassifierContext{
     std::size_t numTrees;
     bool hasOOSData;
     bool reuseColMask;
+    bool serialize;
     mat dataset_oos;
     Row<double> labels_oos;
     uvec colMask;
@@ -410,7 +413,8 @@ public:
     minimumGainSplit_{context.minimumGainSplit},
     maxDepth_{context.maxDepth},
     numTrees_{context.numTrees},
-    reuseColMask_{context.reuseColMask}
+    reuseColMask_{context.reuseColMask},
+    serialize_{context.serialize}
   { 
     if (hasOOSData_ = context.hasOOSData) {
       dataset_oos_ = context.dataset_oos;
@@ -444,7 +448,8 @@ public:
     minimumGainSplit_{context.minimumGainSplit},
     maxDepth_{context.maxDepth},
     numTrees_{context.numTrees},
-    reuseColMask_{context.reuseColMask}
+    reuseColMask_{context.reuseColMask},
+    serialize_{context.serialize}
   { 
     if (hasOOSData_ = context.hasOOSData) {
       dataset_oos_ = context.dataset_oos;
@@ -461,15 +466,17 @@ public:
 
   void Classify(const mat&, Row<DataType>&);
 
-  // 3 Predict methods
+  // 4 Predict methods
   // predict on member dataset; loop through and sum step prediction vectors
   void Predict(Row<DataType>&);
   // predict on subset of dataset defined by uvec; sum step prediction vectors
   void Predict(Row<DataType>&, const uvec&);
   // predict OOS, loop through and call Classify_ on individual classifiers, sum
   void Predict(const mat&, Row<DataType>&);
+  // predict on member dataset from archive
+  void Predict(std::string, Row<DataType>&);
 
-  // overloaded versions of above
+  // overloaded versions of above based based on label datatype
   void Predict(Row<IntegralLabelType>&);
   void Predict(Row<IntegralLabelType>&, const uvec&);
   void Predict(const mat&, Row<IntegralLabelType>&);
@@ -486,6 +493,7 @@ public:
   void purge();
   std::string write();  
   void read(GradientBoostClassifier&, std::string);
+  void serialize(bool);
 
   template<class Archive>
   void serialize(Archive &ar) {
@@ -523,6 +531,7 @@ private:
   std::size_t partitionSize_;
   double partitionRatio_;
   Row<DataType> latestPrediction_;
+  std::vector<std::string> fileNames_;
 
   lossFunction loss_;
   LossFunction<double>* lossFn_;
@@ -563,8 +572,11 @@ private:
   bool reuseColMask_;
 
   bool recursiveFit_;
+  bool serialize_;
 
   bool hasOOSData_;
+
+  std::string indexName_;
 };
 
 using DTC = ClassifierTypes::DecisionTreeClassifierType;

@@ -125,6 +125,9 @@ namespace IB_utils {
   template<typename T, typename IArchiveType, typename OArchiveType>
   void SerializePointerObject(T* t, T*& newT);
 
+
+  std::string writeIndex(const std::vector<std::string>&);
+  void readIndex(std::string, std::vector<std::string>&);
 }
 
 #endif

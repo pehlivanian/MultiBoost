@@ -72,7 +72,7 @@ ContinuousClassifierBase<DataType, ClassifierType, Args...>::Classify_(const mat
 }
 
 template<typename DataType, typename ClassifierType, typename... Args>
- void
+void
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::setClassifier(const mat& dataset, Row<std::size_t>& labels, Args&&... args) {
   classifier_.reset(new ClassifierType(dataset, labels, std::forward<Args>(args)...));
 }
@@ -265,8 +265,8 @@ GradientBoostClassifier<ClassifierType>::uniqueCloseAndReplace(Row<DataType>& la
     bool found = false;
     for (const auto& el : uniqueVals_) {
       if (fabs(uniqueVals[i] - el) <= eps) {
-	  found = true;
-	  uniqueByEps.push_back(std::make_pair(uniqueVals[i], el));
+	found = true;
+	uniqueByEps.push_back(std::make_pair(uniqueVals[i], el));
       }
     }
     if (!found) {
@@ -300,7 +300,7 @@ GradientBoostClassifier<ClassifierType>::symmetrizeLabels() {
     a_ = 2./static_cast<double>(M-m);
     b_ = static_cast<double>(m+M)/static_cast<double>(m-M);
     labels_ = sign(a_*labels_ + b_);
-      // labels_ = sign(2 * labels_ - 1);      
+    // labels_ = sign(2 * labels_ - 1);      
   } else {
     assert(uniqueVals.size() == 2);
   }
@@ -444,11 +444,11 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 template<typename ClassifierType>
 typename GradientBoostClassifier<ClassifierType>::Leaves
 GradientBoostClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
-					     rowvec& h,
-					     mat dataset,
-					     std::size_t stepNum, 
-					     std::size_t partitionSize,
-					     const uvec& colMask) {
+							     rowvec& h,
+							     mat dataset,
+							     std::size_t stepNum, 
+							     std::size_t partitionSize,
+							     const uvec& colMask) {
 
   // We should implement several methods here
   // XXX
@@ -482,7 +482,7 @@ GradientBoostClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
     uvec ind = arma::conv_to<uvec>::from(subset);
     double val = -1. * learningRate_ * sum(g(ind))/sum(h(ind));
     for (auto i: ind) {
-       leaf_values(i) = val;
+      leaf_values(i) = val;
     }
   }
 
@@ -532,9 +532,60 @@ GradientBoostClassifier<ClassifierType>::read(GradientBoostClassifier<Classifier
 
 template<typename ClassifierType>
 void
+GradientBoostClassifier<ClassifierType>::Predict(std::string index, Row<DataType>& prediction) {
+  std::vector<std::string> fileNames;
+  readIndex(indexName_, fileNames);
+  
+  GradientBoostClassifier<ClassifierType> classifierNew;
+  prediction = zeros<Row<DataType>>(dataset_.n_cols);
+  Row<DataType> predictionStep;
+
+  for (auto & fileName : fileNames) {
+    read(classifierNew, fileName);
+    classifierNew.Classify_(dataset_, predictionStep);
+    prediction += predictionStep;
+  }
+
+  if (symmetrized_)
+    symmetrize(prediction);
+}
+
+template<typename ClassifierType>
+void
+GradientBoostClassifier<ClassifierType>::serialize(bool checkAccuracy) {
+  Row<DataType> yhat, yhatRaw;
+  Predict(yhat); 
+
+  if (symmetrized_) {
+    deSymmetrize(yhat); 
+    symmetrize(yhat);
+  }
+  
+  auto path = write();
+  fileNames_.push_back(path);
+  indexName_ = writeIndex(fileNames_);
+  
+  if (checkAccuracy) {
+    Row<DataType> prediction;
+    Predict(indexName_, prediction);
+    
+    float eps = std::numeric_limits<float>::epsilon();
+    for (int i=0; i<prediction.n_elem; ++i) {
+      if (fabs(prediction[i] - yhat[i])) {
+	std::cerr << "VIOLATION: (i, yhat[i], prediction[i]): " 
+		  << "( " << yhat[i] 
+		  << ", " << prediction[i]
+		  << ")" << std::endl;
+      }
+    }
+  }   
+}
+
+template<typename ClassifierType>
+void
 GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
-  Row<DataType> yhat;
-  Predict(yhat);
+  Row<DataType> yhat, yhatRaw;
+  Predict(yhat); 
   double r = lossFn_->loss(yhat, labels_);
   if (symmetrized_) {
     deSymmetrize(yhat); 
@@ -571,6 +622,7 @@ GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
 	      << "STEP: " << stepNum
 	      << " OOS ERROR: " << error_oos << "%" << std::endl;
   }
+
 }
 
 template<typename ClassifierType>
@@ -580,10 +632,11 @@ GradientBoostClassifier<ClassifierType>::fit() {
   for (std::size_t stepNum=1; stepNum<=steps_; ++stepNum) {
     fit_step(stepNum);
     
-    if ((stepNum%100) == 1)
+    if ((stepNum > 5) && ((stepNum%100) == 1 || DIAGNOSTICS)) {
       printStats(stepNum);
-    if (DIAGNOSTICS)
-      printStats(stepNum);
+      if (serialize_)
+	serialize(true);
+    }
   }
   
   // print final stats
@@ -686,8 +739,8 @@ GradientBoostClassifier<ClassifierType>::generate_coefficients(const Row<DataTyp
 template<typename ClassifierType>
 std::pair<rowvec, rowvec>
 GradientBoostClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& yhat,
-									 const Row<DataType>& y,
-									 const uvec& colMask) {
+							       const Row<DataType>& y,
+							       const uvec& colMask) {
   rowvec g, h;
   lossFn_->loss(yhat, y, &g, &h);
 
