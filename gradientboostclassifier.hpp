@@ -473,8 +473,12 @@ public:
   void Predict(Row<DataType>&, const uvec&);
   // predict OOS, loop through and call Classify_ on individual classifiers, sum
   void Predict(const mat&, Row<DataType>&);
+
+  // overloaded versions for archive classifier
   // predict on member dataset from archive
   void Predict(std::string, Row<DataType>&);
+  // prediction OOS, loop through and call Classify_ on individual classifiers, sum
+  void Predict(std::string, const mat&, Row<DataType>&);
 
   // overloaded versions of above based based on label datatype
   void Predict(Row<IntegralLabelType>&);
@@ -493,7 +497,8 @@ public:
   void purge();
   std::string write();  
   void read(GradientBoostClassifier&, std::string);
-  void serialize(bool);
+  void commit();
+  void checkAccuracyOfArchive();
 
   template<class Archive>
   void serialize(Archive &ar) {

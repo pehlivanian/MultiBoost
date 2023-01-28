@@ -532,17 +532,17 @@ GradientBoostClassifier<ClassifierType>::read(GradientBoostClassifier<Classifier
 
 template<typename ClassifierType>
 void
-GradientBoostClassifier<ClassifierType>::Predict(std::string index, Row<DataType>& prediction) {
+GradientBoostClassifier<ClassifierType>::Predict(std::string index, const mat& dataset, Row<DataType>& prediction) {
   std::vector<std::string> fileNames;
   readIndex(indexName_, fileNames);
-  
+
   GradientBoostClassifier<ClassifierType> classifierNew;
-  prediction = zeros<Row<DataType>>(dataset_.n_cols);
+  prediction = zeros<Row<DataType>>(dataset.n_cols);
   Row<DataType> predictionStep;
 
   for (auto & fileName : fileNames) {
     read(classifierNew, fileName);
-    classifierNew.Classify_(dataset_, predictionStep);
+    classifierNew.Classify_(dataset, predictionStep);
     prediction += predictionStep;
   }
 
@@ -552,8 +552,22 @@ GradientBoostClassifier<ClassifierType>::Predict(std::string index, Row<DataType
 
 template<typename ClassifierType>
 void
-GradientBoostClassifier<ClassifierType>::serialize(bool checkAccuracy) {
-  Row<DataType> yhat, yhatRaw;
+GradientBoostClassifier<ClassifierType>::Predict(std::string index, Row<DataType>& prediction) {
+  Predict(index, dataset_, prediction);
+}
+
+template<typename ClassifierType>
+void
+GradientBoostClassifier<ClassifierType>::commit() {
+  auto path = write();
+  fileNames_.push_back(path);
+  indexName_ = writeIndex(fileNames_);  
+}
+
+template<typename ClassifierType>
+void
+GradientBoostClassifier<ClassifierType>::checkAccuracyOfArchive() {
+  Row<DataType> yhat;
   Predict(yhat); 
 
   if (symmetrized_) {
@@ -561,22 +575,16 @@ GradientBoostClassifier<ClassifierType>::serialize(bool checkAccuracy) {
     symmetrize(yhat);
   }
   
-  auto path = write();
-  fileNames_.push_back(path);
-  indexName_ = writeIndex(fileNames_);
+  Row<DataType> prediction;
+  Predict(indexName_, prediction);
   
-  if (checkAccuracy) {
-    Row<DataType> prediction;
-    Predict(indexName_, prediction);
-    
-    float eps = std::numeric_limits<float>::epsilon();
-    for (int i=0; i<prediction.n_elem; ++i) {
-      if (fabs(prediction[i] - yhat[i])) {
-	std::cerr << "VIOLATION: (i, yhat[i], prediction[i]): " 
-		  << "( " << yhat[i] 
+  float eps = std::numeric_limits<float>::epsilon();
+  for (int i=0; i<prediction.n_elem; ++i) {
+    if (fabs(prediction[i] - yhat[i])) {
+      std::cerr << "VIOLATION: (i, yhat[i], prediction[i]): " 
+		<< "( " << yhat[i] 
 		  << ", " << prediction[i]
-		  << ")" << std::endl;
-      }
+		<< ")" << std::endl;
     }
   }   
 }
@@ -584,13 +592,26 @@ GradientBoostClassifier<ClassifierType>::serialize(bool checkAccuracy) {
 template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
-  Row<DataType> yhat, yhatRaw;
-  Predict(yhat); 
-  double r = lossFn_->loss(yhat, labels_);
-  if (symmetrized_) {
-    deSymmetrize(yhat); 
-    symmetrize(yhat);
+  Row<DataType> yhat;
+  double r;
+
+  if (serialize_) {
+    // Prediction from current archive
+    Predict(indexName_, yhat);
+    std::cout << "CLASSIFIER FROM ARCHIVE" << std::endl;
+    checkAccuracyOfArchive();
+    r = lossFn_->loss(yhat, labels_);
+  } else {
+    // Prediction from nonarchived classifier
+    Predict(yhat); 
+    r = lossFn_->loss(yhat, labels_);
+    if (symmetrized_) {
+      deSymmetrize(yhat); 
+      symmetrize(yhat);
+    }
+    std::cout << "NON-ARCHIVED CLASSIFIER" << std::endl;
   }
+
 
   auto now = std::chrono::system_clock::now();
   auto UTC = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
@@ -613,8 +634,11 @@ GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
   
   if (hasOOSData_) {
     Row<DataType> yhat_oos;
-    Predict(dataset_oos_, yhat_oos);
-    deSymmetrize(yhat_oos); symmetrize(yhat_oos);
+    if (serialize_) {
+      Predict(indexName_, dataset_oos_, yhat_oos);
+    } else {
+      Predict(dataset_oos_, yhat_oos);
+    }
     double error_oos = accu(yhat_oos != labels_oos_) * 100. / labels_oos_.n_elem;
     std::cout << suff<< ": "
 	      << "(PARTITION SIZE = " << partitionSize_
@@ -633,9 +657,10 @@ GradientBoostClassifier<ClassifierType>::fit() {
     fit_step(stepNum);
     
     if ((stepNum > 5) && ((stepNum%100) == 1 || DIAGNOSTICS)) {
+      if (serialize_) {
+	commit();
+      }
       printStats(stepNum);
-      if (serialize_)
-	serialize(true);
     }
   }
   
