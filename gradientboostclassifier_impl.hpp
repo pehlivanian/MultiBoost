@@ -545,14 +545,15 @@ GradientBoostClassifier<ClassifierType>::Predict(std::string index, const mat& d
   std::vector<std::string> fileNames;
   readIndex(indexName_, fileNames);
 
-  GradientBoostClassifier<ClassifierType> classifierNew;
+  using C = GradientBoostClassifier<ClassifierType>;
+  std::unique_ptr<C> classifierNew = std::make_unique<C>();
   prediction = zeros<Row<DataType>>(dataset.n_cols);
   Row<DataType> predictionStep;
 
   bool ignoreSymmetrization = true;
   for (auto & fileName : fileNames) {
-    read(classifierNew, fileName);
-    classifierNew.Predict(dataset, predictionStep, ignoreSymmetrization);
+    read(*classifierNew, fileName);
+    classifierNew->Predict(dataset, predictionStep, ignoreSymmetrization);
     prediction += predictionStep;
   }
 
@@ -573,9 +574,9 @@ void
 GradientBoostClassifier<ClassifierType>::commit() {
   auto path = write();
   fileNames_.push_back(path);
-  std::cerr << "ADDED FILENAME" << std::endl;
-  std::copy(fileNames_.begin(), fileNames_.end(),std::ostream_iterator<std::string>(std::cout, "\n"));
+  // std::copy(fileNames_.begin(), fileNames_.end(),std::ostream_iterator<std::string>(std::cout, "\n"));
   indexName_ = writeIndex(fileNames_);  
+  ClassifierList{}.swap(classifiers_);
 }
 
 template<typename ClassifierType>
@@ -589,11 +590,13 @@ GradientBoostClassifier<ClassifierType>::checkAccuracyOfArchive() {
   
   float eps = std::numeric_limits<float>::epsilon();
   for (int i=0; i<prediction.n_elem; ++i) {
-    if (fabs(prediction[i] - yhat[i])) {
+    if (fabs(prediction[i] - yhat[i]) > eps) {
       std::cerr << "VIOLATION: (i, yhat[i], prediction[i]): " 
 		<< "( " << yhat[i] 
 		  << ", " << prediction[i]
-		<< ")" << std::endl;
+		<< ") : "
+		<< "(diff, eps) = " << "(" << fabs(prediction[i]-yhat[i])
+		<< ", " << eps << ")" << std::endl;
     }
   }   
 }
@@ -607,13 +610,12 @@ GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
   if (serialize_) {
     // Prediction from current archive
     Predict(indexName_, yhat, false);
+    r = lossFn_->loss(yhat, labels_);
     if (symmetrized_) {
       deSymmetrize(yhat);
       symmetrize(yhat);
     }
-    std::cout << "CLASSIFIER FROM ARCHIVE" << std::endl;
-    checkAccuracyOfArchive();
-    r = lossFn_->loss(yhat, labels_);
+    // checkAccuracyOfArchive();
   } else {
     // Prediction from nonarchived classifier
     Predict(yhat); 
@@ -622,7 +624,6 @@ GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
       deSymmetrize(yhat); 
       symmetrize(yhat);
     }
-    std::cout << "NON-ARCHIVED CLASSIFIER" << std::endl;
   }
 
   auto now = std::chrono::system_clock::now();
