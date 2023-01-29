@@ -37,6 +37,7 @@ find_package(autodiff)
 find_package(Armadillo REQUIRED)
 find_package(OpenMP)
 find_package(BLAS REQUIRED)
+find_package(benchmark REQUIRED)
 find_package(GTest REQUIRED)
 
 include_directories(${ARMADILLO_INCLUDE_DIRS})
@@ -69,3 +70,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
 # Unit tests
 add_executable(gtest_all gtest_all.cpp)
 target_link_libraries(gtest_all utils DP ${GTEST_LIBRARIES} pthread)
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/benchmarks)
+add_executable(benchmarks benchmarks.cpp)
+target_link_libraries(benchmarks benchmark::benchmark pthread)
