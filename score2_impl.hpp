@@ -287,8 +287,8 @@ namespace Objectives {
   void
   ParametricContext<DataType>::init() {
     // XXX
-    // compute_scores_parallel();
-    compute_scores();
+    compute_scores_parallel();
+    // compute_scores();
     // compute_scores_AVX256();
   }
 

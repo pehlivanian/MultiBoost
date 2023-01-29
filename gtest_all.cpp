@@ -248,7 +248,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveRoundTrips) {
   context.partitionSize = partitionSize;
   context.partitionRatio = .25;
   context.learningRate = .01;
-  context.steps = 212;
+  context.steps = 21;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .45; // .75

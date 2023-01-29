@@ -137,10 +137,11 @@ GradientBoostClassifier<ClassifierType>::init_() {
   partitions_.push_back(partition);
 
   // classifiers
+  // don't overfit on first classifier
   row_d constantLabels = _constantLeaf();
   std::unique_ptr<ClassifierType> classifier;
   classifier.reset(new ClassifierType(dataset_, 
-				      labels_,
+				      constantLabels,
 				      partitionSize_,
 				      minLeafSize_,
 				      minimumGainSplit_,
@@ -320,14 +321,12 @@ template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::symmetrize(Row<DataType>& prediction) {
   prediction = sign(a_*prediction + b_);
-  // prediction = sign(2 * prediction - 1);
 }
 
 template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::deSymmetrize(Row<DataType>& prediction) {
   prediction = (sign(prediction) - b_)/ a_;
-  // prediction = (1 + sign(prediction)) / 2.;
 }
 
 template<typename ClassifierType>
@@ -393,7 +392,7 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     // context.learningRate = learningRate_;
     context.learningRate = std::min(1., 2.*learningRate_);
     // context.steps = std::log(subPartitionSize);
-    context.steps = std::max(static_cast<int>(std::log(steps_)), 1);
+    context.steps = 2*std::max(static_cast<int>(std::log(steps_)), 1);
     context.symmetrizeLabels = false;
     context.removeRedundantLabels = true;
     context.rowSubsampleRatio = row_subsample_ratio_;
@@ -520,7 +519,7 @@ GradientBoostClassifier<ClassifierType>::purge() {
 template<typename ClassifierType>
 std::string
 GradientBoostClassifier<ClassifierType>::write() {
-  using CerealT = decltype(*this);
+  using CerealT = GradientBoostClassifier<ClassifierType>;
   using CerealIArch = cereal::BinaryInputArchive;
   using CerealOArch = cereal::BinaryOutputArchive;
 
@@ -532,7 +531,7 @@ template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::read(GradientBoostClassifier<ClassifierType>& rhs,
 					      std::string fileName) {
-  using CerealT = decltype(*this);
+  using CerealT = GradientBoostClassifier<ClassifierType>;
   using CerealIArch = cereal::BinaryInputArchive;
   using CerealOArch = cereal::BinaryOutputArchive;
 
@@ -543,7 +542,7 @@ template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::Predict(std::string index, const mat& dataset, Row<DataType>& prediction, bool postSymmetrize) {
   std::vector<std::string> fileNames;
-  readIndex(indexName_, fileNames);
+  readIndex(index, fileNames);
 
   using C = GradientBoostClassifier<ClassifierType>;
   std::unique_ptr<C> classifierNew = std::make_unique<C>();
@@ -669,12 +668,17 @@ GradientBoostClassifier<ClassifierType>::fit() {
   for (std::size_t stepNum=1; stepNum<=steps_; ++stepNum) {
     fit_step(stepNum);
     
-    if ((stepNum > 5) && ((stepNum%100) == 1 || DIAGNOSTICS)) {
+    if ((stepNum > 5) && ((stepNum%100) == 1)) {
+      std::cout << "STEP: " << stepNum << std::endl;
+    }
+
+    if ((stepNum > 5) && ((stepNum%100) == 1)) {
       if (serialize_) {
 	commit();
       }
       printStats(stepNum);
     }
+    
   }
   
   // print final stats
