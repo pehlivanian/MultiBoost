@@ -2,7 +2,7 @@
 #define __SCORE2_IMPL_HPP__
 
 namespace {
-  const int NUMTHREADS = 8;
+  const int NUMTHREADS = 4;
 }
 
 namespace Objectives {

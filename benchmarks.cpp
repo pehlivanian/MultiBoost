@@ -21,20 +21,43 @@ using namespace Objectives;
 //                       = partialSums[i][j]
 
 template<typename T>
-T compute_ab(std::vector<T>& a, std::vector<T>& b) {
-  std::random_device rnd_device;
-  std::mt19937 mersenne_engine{rnd_device()};
-  std::uniform_real_distribution<T> dista(-10., 10.);
-  std::uniform_real_distribution<T> distb(0., 1.);
+class ContextFixture : public benchmark::Fixture {
+public:
+  using Context = RationalScoreContext<T>;
 
-  auto gena = [&dista, &mersenne_engine]() { return dista(mersenne_engine); };
-  auto genb = [&distb, &mersenne_engine]() { return distb(mersenne_engine); };
+  Context context;
+  const unsigned int N = 1<<13;
 
-  std::generate(a.begin(), a.end(), gena);
-  std::generate(b.begin(), b.end(), genb);
+  ContextFixture() {
+
+    bool risk_partitioning_objective=true, use_rational_optimization=true;
+
+    std::vector<T> a(N), b(N);    
+    compute_ab(a, b);
+
+    context = RationalScoreContext<T>(a, 
+				      b, 
+				      N,
+				      risk_partitioning_objective,
+				      use_rational_optimization);
+  }
   
-  return static_cast<T>(31);
-}
+  ~ContextFixture() = default;
+
+private:
+  void compute_ab(std::vector<T>& a, std::vector<T>& b) {
+    std::random_device rnd_device;
+    std::mt19937 mersenne_engine{rnd_device()};
+    std::uniform_real_distribution<T> dista(-10., 10.);
+    std::uniform_real_distribution<T> distb(0., 1.);
+    
+    auto gena = [&dista, &mersenne_engine]() { return dista(mersenne_engine); };
+    auto genb = [&distb, &mersenne_engine]() { return distb(mersenne_engine); };
+    
+    std::generate(a.begin(), a.end(), gena);
+    std::generate(b.begin(), b.end(), genb);    
+  }
+};
 
 // score interface we wish to benchmark
 // void __compute_partial_sums__() { compute_partial_sums(); }
@@ -45,78 +68,32 @@ T compute_ab(std::vector<T>& a, std::vector<T>& b) {
 // T __compute_score__(int i, int j) { return compute_score(i, j); }
 // T __compute_ambient_score__(int i, int j) { return compute_ambient_score(i, j); }
 
-void BM_float_compute_partial_sums_serial(benchmark::State& state) {
-  using T = float;
-  using Context = RationalScoreContext<T>;
-
-  const unsigned int N = state.range(0);
-  std::vector<T> a(N), b(N);
-  std::vector<std::vector<T>> a_sums, b_sums;
-  bool risk_partitioning_objective=true, use_rational_optimization=true;
-
-  Context context = RationalScoreContext<T>(a, 
-					    b, 
-					    N,
-					    risk_partitioning_objective,
-					    use_rational_optimization);
-  
-  compute_ab(a, b);
+BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_float_compute_partial_sums_serial, float)(benchmark::State& state) {
   
   for (auto _ : state) {
     context.__compute_partial_sums__();
   }
 }
 
-void BM_float_compute_partial_sums_AVX256(benchmark::State& state) {
-  using T = float;
-  using Context = RationalScoreContext<T>;
-
-  const unsigned int N = state.range(0);
-  std::vector<T> a(N), b(N);
-  std::vector<std::vector<T>> a_sums, b_sums;
-  bool risk_partitioning_objective=true, use_rational_optimization=true;
-
-  Context context = RationalScoreContext<T>(a, 
-					    b, 
-					    N,
-					    risk_partitioning_objective,
-					    use_rational_optimization);
-  
-  compute_ab(a, b);
+BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_float_compute_partial_sums_AVX256, float)(benchmark::State& state) {
   
   for (auto _ : state) {
     context.__compute_partial_sums_AVX256__();
   }
 }
 
-void BM_float_compute_partial_sums_parallel(benchmark::State& state) {
-  using T = float;
-  using Context = RationalScoreContext<T>;
-
-  const unsigned int N = state.range(0);
-  std::vector<T> a(N), b(N);
-  std::vector<std::vector<T>> a_sums, b_sums;
-  bool risk_partitioning_objective=true, use_rational_optimization=true;
-
-  Context context = RationalScoreContext<T>(a, 
-					    b, 
-					    N,
-					    risk_partitioning_objective,
-					    use_rational_optimization);
-  
-  compute_ab(a, b);
+BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_float_compute_partial_sums_parallel, float)(benchmark::State& state) {
   
   for (auto _ : state) {
     context.__compute_partial_sums_parallel__();
   }
 }
 
-unsigned long long N = (1<<13);
+unsigned long long M = (1<<12);
 
-
-BENCHMARK(BM_float_compute_partial_sums_serial)->Arg(N);
-BENCHMARK(BM_float_compute_partial_sums_AVX256)->Arg(N);
-BENCHMARK(BM_float_compute_partial_sums_parallel)->Arg(N);
+BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_serial)->Arg(M);
+BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_AVX256)->Arg(M);
+BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_parallel)->Arg(M);
 
 BENCHMARK_MAIN();
 

@@ -48,6 +48,7 @@ namespace Objectives {
 
     {}
 
+    ParametricContext() = default;
     virtual ~ParametricContext() = default;
 
     void init();
@@ -119,6 +120,8 @@ namespace Objectives {
 		      "Poisson"}
     {}
 
+    PoissonContext() = default;
+
   private:  
     DataType compute_score_multclust(int, int) override;
     DataType compute_score_riskpart(int, int) override;
@@ -143,6 +146,9 @@ namespace Objectives {
 										  use_rational_optimization,
 										  "Gaussian")
     {}
+
+    GaussianContext() = default;
+
   private:  
     DataType compute_score_multclust(int, int) override;
     DataType compute_score_riskpart(int, int) override;
@@ -171,6 +177,9 @@ namespace Objectives {
 										       use_rational_optimization,
 										       "RationalScore")
     {}
+
+    RationalScoreContext() = default;
+
   private:
     DataType compute_score_multclust(int, int) override;
     DataType compute_score_riskpart(int, int) override;

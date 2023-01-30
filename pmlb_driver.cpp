@@ -38,13 +38,13 @@ auto main(int argc, char **argv) -> int {
   // context.loss = lossFunction::Savage;
   context.loss = lossFunction::BinomialDeviance;
   // context.loss = lossFunction::MSE;
-  context.partitionSize = 2;
-  context.partitionRatio = .55;
+  context.partitionSize = 4;
+  context.partitionRatio = .25;
   context.learningRate = .001;
   context.steps = 50000;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
-  context.colSubsampleRatio = .75; // .75
+  context.colSubsampleRatio = .65; // .75
   context.recursiveFit = true;
   context.serialize = false;
   context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED; // INCREASING
