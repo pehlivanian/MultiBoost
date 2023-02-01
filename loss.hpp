@@ -1,15 +1,19 @@
 #ifndef __LOSS_HPP__
 #define __LOSS_HPP__
 
+#undef AUTODIFF
+
 #include <iostream>
 #include <functional>
 #include <exception>
 #include <mlpack/core.hpp>
-#include <autodiff/forward/real.hpp>
-#include <autodiff/forward/real/eigen.hpp>
+#ifdef AUTODIFF
+  #include <autodiff/forward/real.hpp>
+  #include <autodiff/forward/real/eigen.hpp>
+  using namespace autodiff;
+#endif
 
 using namespace arma;
-using namespace autodiff;
 using namespace std::placeholders;
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
@@ -21,6 +25,7 @@ enum class lossFunction {    MSE = 0,
 			};
 
 
+#ifdef AUTODIFF
 class LossUtils {
 public:
   static Eigen::VectorXd static_cast_eigen(const rowvec& rhs) {
@@ -33,6 +38,7 @@ public:
     return lhs;		      
   }  
 };
+#endif
 
 namespace LossMeasures { 
 
@@ -49,7 +55,9 @@ public:
   DataType loss(const rowvec& yhat, const rowvec& y) { return loss_reverse_arma(yhat, y); }
   virtual LossFunction* create() = 0;
 private:
+#ifdef AUTODIFF
   virtual autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) = 0;
+#endif
   virtual DataType loss_reverse_arma(const rowvec&, const rowvec&) = 0;
   virtual DataType gradient_(const rowvec&, const rowvec&, rowvec*) = 0;
   virtual void hessian_(const rowvec&, const rowvec&, rowvec*) = 0;
@@ -61,7 +69,9 @@ public:
   BinomialDevianceLoss() = default;
   BinomialDevianceLoss<DataType>* create() { return new BinomialDevianceLoss<DataType>(); }
 private:
+#ifdef AUTODIFF
   autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
+#endif
   DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
   DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
   void hessian_(const rowvec&, const rowvec&, rowvec*) override;
@@ -73,7 +83,9 @@ public:
   MSELoss() = default;
   MSELoss<DataType>* create() { return new MSELoss(); }
 private:
+#ifdef AUTODIFF
   autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
+#endif
   DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
   DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
   void hessian_(const rowvec&, const rowvec&, rowvec*) override;
@@ -85,7 +97,9 @@ public:
   SavageLoss() = default;
   SavageLoss<DataType>* create() { return new SavageLoss<DataType>(); }
 private:
+#ifdef AUTODIFF
   autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
+#endif
   DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
   DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
   void hessian_(const rowvec&, const rowvec&, rowvec*) override;
