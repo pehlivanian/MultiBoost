@@ -85,6 +85,7 @@ namespace ClassifierContext{
       removeRedundantLabels{false},
       recursiveFit{recursiveFit},
       hasOOSData{false},
+      hasInitialPrediction{false},
       reuseColMask{false},
       serialize{false}
     {}
@@ -108,8 +109,10 @@ namespace ClassifierContext{
     bool hasOOSData;
     bool reuseColMask;
     bool serialize;
+    bool hasInitialPrediction;
     mat dataset_oos;
     Row<double> labels_oos;
+    Row<double> latestPrediction;
     uvec colMask;
   };
 } // namespace ClassifierContext
@@ -425,6 +428,9 @@ public:
     if (reuseColMask_ = context.reuseColMask) {
       colMask_ = context.colMask;
     }
+    if (hasInitialPrediction_ = context.hasInitialPrediction) {
+      latestPrediction_ = context.latestPrediction;
+    }
     init_(); 
   }
 
@@ -460,6 +466,9 @@ public:
     }
     if (reuseColMask_ = context.reuseColMask) {
       colMask_ = context.colMask;
+    }
+    if (hasInitialPrediction_ = context.hasInitialPrediction) {
+      latestPrediction_ = context.latestPrediction;
     }
     init_(); 
   }
@@ -584,6 +593,7 @@ private:
   bool serialize_;
 
   bool hasOOSData_;
+  bool hasInitialPrediction_;
 
   std::string indexName_;
 };

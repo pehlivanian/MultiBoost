@@ -141,6 +141,7 @@ DPSolver<DataType>::optimize_for_fixed_S(int S) {
   return all_scores{subsets, optimal_score};
 }
 
+#if EIGEN
 template<typename DataType>
 void
 DPSolver<DataType>::find_optimal_t() {
@@ -182,6 +183,7 @@ DPSolver<DataType>::find_optimal_t() {
   subsets_ = subsets_and_scores_[optimal_num_clusters_OLS_].first;
   optimal_score_ = subsets_and_scores_[optimal_num_clusters_OLS_].second;
 }
+#endif
 
 template<typename DataType>
 void
@@ -199,10 +201,12 @@ DPSolver<DataType>::optimize() {
       }
     }
     if (find_optimal_t_) {
+#if EIGEN
 #if (!IS_CXX_11) && !(__cplusplus == 201103L) 
       find_optimal_t();
 #else
       optimal_num_clusters_OLS_ = -1;
+#endif
 #endif
     }
   }

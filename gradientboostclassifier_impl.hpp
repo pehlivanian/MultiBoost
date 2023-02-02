@@ -10,7 +10,7 @@ using namespace LearningRate;
 using namespace LossMeasures;
 
 namespace {
-  const bool DIAGNOSTICS = true;
+  const bool DIAGNOSTICS = false;
 }
 
 template<typename DataType, typename ClassifierType, typename... Args>
@@ -148,8 +148,11 @@ GradientBoostClassifier<ClassifierType>::init_() {
 				      maxDepth_));
 
   // first prediction
+  if (!hasInitialPrediction_){
+    latestPrediction_ = zeros<Row<DataType>>(dataset_.n_cols);
+  }
+
   Row<DataType> prediction;
-  latestPrediction_ = zeros<Row<DataType>>(dataset_.n_cols);
   classifier->Classify_(dataset_, prediction);
 
   // update classifier, predictions
@@ -165,6 +168,15 @@ GradientBoostClassifier<ClassifierType>::init_() {
   }
   else if (loss_ == lossFunction::Savage) {
     lossFn_ = new SavageLoss<double>();
+  }
+  else if (loss_ == lossFunction::Exp) {
+    lossFn_ = new ExpLoss<double>();
+  }
+  else if (loss_ == lossFunction::Arctan) {
+    lossFn_ = new ArctanLoss<double>();
+  }
+  else if (loss_ == lossFunction::Synthetic) {
+    lossFn_ = new SyntheticLoss<double>();
   }
 
   if (partitionSize_ == 1) {
@@ -345,7 +357,7 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   
   if (DIAGNOSTICS)
     std::cout << "PARTITION SIZE: " << partitionSize 
-	      << "(stepNum, steps): " << "(" << stepNum
+	      << " (stepNum, steps): " << "(" << stepNum
 	      << ", " << steps_ << ")" << std::endl;
 
   // Compute learning rate
@@ -381,55 +393,53 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
     allLeaves(colMask_) = best_leaves;
 
-    ClassifierContext::Context context{};
-
-    // XXX
-    // context.loss = lossFunction::MSE;
+    ClassifierContext::Context context{}; 
+    
     context.loss = loss_;
-
     context.partitionSize = subPartitionSize + 1;
-    // context.partitionRatio = partitionRatio_;
     context.partitionRatio = std::min(1., 2*partitionRatio_);
-    // context.learningRate = learningRate_;
-    context.learningRate = std::min(1., 2.*learningRate_);
-    // context.steps = std::log(subPartitionSize);
+    context.learningRate = learningRate_;
+    // XXX
     context.steps = std::max(static_cast<int>(std::log(steps_)), 1);
+    // context.steps = std::max(1, static_cast<int>(.25 * std::log(steps_)));
     context.symmetrizeLabels = false;
     context.removeRedundantLabels = true;
     context.rowSubsampleRatio = row_subsample_ratio_;
     context.colSubsampleRatio = col_subsample_ratio_;
-    // context.rowSubsampleRatio = 1.;
-    // context.colSubsampleRatio = 1.;
     context.reuseColMask = true;
     context.colMask = colMask_;
     context.recursiveFit = true;
     context.partitionSizeMethod = partitionSizeMethod_;
     context.learningRateMethod = learningRateMethod_;    
     context.minLeafSize = minLeafSize_;
+    // context.minLeafSize = static_cast<std::size_t>(.2 * m_ / partitionSize_);
     context.maxDepth = maxDepth_;
     context.minimumGainSplit = minimumGainSplit_;
+    context.hasInitialPrediction = true;
+    context.latestPrediction = latestPrediction_;
 
-    // if (DIAGNOSTICS)
-    //   std::cout << "SUBPARTITION SIZE: " << subPartitionSize 
-    // 		<< "(stepNum, steps): " << "(" << stepNum
-    // 	<< ", " << context.steps << ")" << std::endl;
+    if (DIAGNOSTICS)
+      std::cout << "SUBPARTITION SIZE: " << subPartitionSize 
+		<< "(stepNum, steps): " << "(" << stepNum
+		<< ", " << context.steps << ")" << std::endl;
     
     // allLeaves may not strictly fit the definition of labels here - 
     // aside from the fact that it is of double type, it may have more 
     // than one class. So we don't want to symmetrize, but we want 
     // to remap the redundant values.
     std::unique_ptr<GradientBoostClassifier<ClassifierType>> classifier;
-    classifier.reset(new GradientBoostClassifier<ClassifierType>(dataset_, allLeaves, context));
+    classifier.reset(new GradientBoostClassifier<ClassifierType>(dataset_, labels_, context));
 
     classifier->fit();
-    classifier->Classify_(dataset_, prediction);
+    // classifier->Classify_(dataset_, prediction);
+    classifier->Predict(dataset_, prediction);
 
     updateClassifiers(std::move(classifier), prediction);
 
   } 
   
   // If we are in recursive mode and partitionSize <= 2, fall through
-  // to this case
+  // to this case for the leaf classifier
   
   // Generate coefficients g, h
   std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
@@ -441,17 +451,22 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   // Zero pad labels first
   allLeaves(colMask_) = best_leaves;
   
+  if (DIAGNOSTICS) {
+    std::cerr << "FITTING LEAF CLASSIFIER...";
+  }
   classifier.reset(new ClassifierType(dataset_, 
 				      allLeaves, 
 				      std::move(partitionSize+1), // Since 0 is an additional class value
 				      std::move(minLeafSize_),
 				      std::move(minimumGainSplit_),
 				      std::move(maxDepth_)));
-  
+  if (DIAGNOSTICS) {
+    std::cerr << "FINISHED." << std::endl;
+  }  
   classifier->Classify_(dataset_, prediction);
 
   updateClassifiers(std::move(classifier), prediction);
-  
+
 }
 
 template<typename ClassifierType>

@@ -17,11 +17,15 @@
 #include <cmath>
 #include <math.h>
 
+#undef EIGEN
+
+#if EIGEN
 #if (!IS_CXX_11) && !(__cplusplus == 201103L)
   #include <Eigen/Dense>
   using namespace Eigen;
 #else
   #include "port_utils.hpp"
+#endif
 #endif
 
 #include "utils.hpp"
@@ -135,7 +139,9 @@ private:
   void reorder_subsets(std::vector<std::vector<int> >&, std::vector<DataType>&);
   DataType compute_score(int, int);
   DataType compute_ambient_score(DataType, DataType);
+#if EIGEN
   void find_optimal_t();
+#endif
   void _init() { 
     create();
     optimize();

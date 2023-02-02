@@ -32,6 +32,9 @@ SET(BUILD_BENCHMARKS OFF)
 # OpenMP not required
 SET(USE_OPENMP OFF)
 
+# Eigen not reuqired
+SET(USE_EIGEN OFF)
+
 # gprof
 if (PROFILE_RESULTS)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
@@ -46,26 +49,29 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 find_package(Armadillo REQUIRED)
 find_package(BLAS REQUIRED)
-find_package(Eigen3 REQUIRED)
 
 if (USE_OPENMP)
   find_package(OpenMP)
 endif()
 
-if (BUILD_TESTS)
-  find_package(GTest REQUIRED)
-endif()
+# if (BUILD_TESTS)
+find_package(GTest REQUIRED)
+# endif()
 
-if(BUILD_BENCHMARKS)
-  find_package(benchmark REQUIRED)
-endif()
+# if(BUILD_BENCHMARKS)
+find_package(benchmark REQUIRED)
+# endif()
 
 if (USE_AUTODIFF)
   find_package(autodiff)
 endif()
 
+if (USE_EIGEN)
+  find_package(Eigen3 REQUIRED)
+  include_directories(/usr/local/include/eigen3)    
+endif()
+
 include_directories(${ARMADILLO_INCLUDE_DIRS})
-include_directories(/usr/local/include/eigen3)  
 
 add_library(dataset OBJECT dataset.cpp)
 add_library(pmlb OBJECT pmlb.cpp)
@@ -99,14 +105,14 @@ if (USE_OPENMP)
 else()
   target_link_libraries(pmlb_driver dataset pmlb processor decision_tree loss utils gradientboostclassifier ${ARMADILLO_LIBRARIES} ${BLAS_LIBRARIES})
 endif()
-if (BUILD_TESTS)
-  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
-  add_executable(gtest_all gtest_all.cpp)
-  target_link_libraries(gtest_all utils DP ${GTEST_LIBRARIES} pthread)
-endif()
+# if (BUILD_TESTS)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
+add_executable(gtest_all gtest_all.cpp)
+target_link_libraries(gtest_all utils DP ${GTEST_LIBRARIES} pthread)
+# endif()
 
-if (BUILD_BENCHMARKS)
-  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/benchmarks)
-  add_executable(benchmarks benchmarks.cpp)
-  target_link_libraries(benchmarks benchmark::benchmark pthread)
-endif()
+# if (BUILD_BENCHMARKS)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/benchmarks)
+add_executable(benchmarks benchmarks.cpp)
+target_link_libraries(benchmarks benchmark::benchmark pthread)
+# endif()

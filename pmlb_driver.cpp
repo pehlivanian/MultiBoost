@@ -16,9 +16,9 @@ auto main(int argc, char **argv) -> int {
   Row<std::size_t> labels, trainLabels, testLabels;
   Row<std::size_t> trainPrediction, testPrediction;
 
-  if (!data::Load("/home/charles/Data/hungarian_X.csv", dataset))
+  if (!data::Load("/home/charles/Data/spambase_X.csv", dataset))
     throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/hungarian_y.csv", labels))
+  if (!data::Load("/home/charles/Data/spambase_y.csv", labels))
     throw std::runtime_error("Could not load file");
 
   data::Split(dataset, 
@@ -36,16 +36,19 @@ auto main(int argc, char **argv) -> int {
   
   ClassifierContext::Context context{};
   // context.loss = lossFunction::Savage;
-  context.loss = lossFunction::BinomialDeviance;
+  // context.loss = lossFunction::BinomialDeviance;
   // context.loss = lossFunction::MSE;
+  // context.loss = lossFunction::Exp;
+  // context.loss = lossFunction::Arctan;
+  context.loss = lossFunction::Synthetic;
   context.partitionSize = 6;
-  context.partitionRatio = .45;
-  context.learningRate = .001;
+  context.partitionRatio = .25;
+  context.learningRate = .0001;
   context.steps = 10000;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .25; // .75
-  context.recursiveFit = false;
+  context.recursiveFit = true;
   context.serialize = false;
   context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED; // INCREASING
   context.learningRateMethod = LearningRate::RateMethod::FIXED;   // DECREASING

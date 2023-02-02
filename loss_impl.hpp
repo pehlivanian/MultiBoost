@@ -20,7 +20,7 @@ LossFunction<DataType>::loss(const rowvec& yhat, const rowvec& y, rowvec* grad, 
     
     std::function<autodiff::real(const ArrayXreal&)> loss_ = std::bind(&LossFunction<DataType>::loss_reverse, this, yr, _1);
     Eigen::VectorXd grad_tmp = gradient(loss_, wrt(yhatr), at(yhatr), u);
-    *grad = LossUtils::static_cast_arma(grad_tmp);
+    *grad = LossUtils::static_cast_arma(gradtmp);
     return static_cast<DataType>(u.val());
   }
 #else
@@ -99,13 +99,7 @@ BinomialDevianceLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, r
 template<typename DataType>
 void
 BinomialDevianceLoss<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
-  rowvec a = y % yhat;
-  rowvec b = exp(a);
-  rowvec c = pow(y, 2) % b;
-  rowvec d = 1 + b;
-  rowvec e = pow(1 + b, 2);
   rowvec f = exp(y % yhat);
-  rowvec ee = (pow(y, 2) % f)/pow(1 + f, 2);
   *hess = (pow(y, 2) % f)/pow(1 + f, 2);
 }
 
@@ -129,22 +123,56 @@ BinomialDevianceLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const Array
 
 
 ////////////////
+// BEGIN ExpLoss
+////////////////
+
+template<typename DataType>
+DataType
+ExpLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
+  *grad = -y % exp(-y % yhat);
+#ifdef AUTODIFF
+  ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
+  ArrayXreal yr = LossUtils::static_cast_eigen(y).eval();
+  
+  return static_cast<DataType>(loss_reverse(yr, yhatr).val());
+#else
+  return static_cast<DataType>(loss_reverse_arma(y, yhat));
+#endif
+}
+
+template<typename DataType>
+void
+ExpLoss<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec *hess) {
+  *hess = pow(y, 2) % exp(-y % yhat);
+}
+
+template<typename DataType>
+DataType
+ExpLoss<DataType>::loss_reverse_arma(const rowvec& yhat, const rowvec& y) {
+  return sum(exp(-y % yhat));
+}
+
+#ifdef AUTODIFF
+template<typename DataType>
+autodiff::real
+ExpLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
+  return ((-y * yhat).exp()).sum();
+}
+#endif
+
+////////////////
+// END ExpLoss
+////////////////
+
+////////////////
 // BEGIN SavageLoss
 ////////////////
 
 template<typename DataType>
 DataType
 SavageLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
-  rowvec f = exp(y % yhat);
-  rowvec g = exp(2 * y % yhat);
-  rowvec h = pow(f, 2);
-  rowvec j = 1 / f;
-  rowvec k = 2 * pow(f, 2);
-  rowvec l = (2 * pow(y, 2) % g % (2 - f));
-  rowvec m = pow(1 + f, 4);
-  rowvec n = l/m;
-
-  *grad = (2 * y % f) / pow(1 + f, 3);
+  rowvec f = exp(2* y % yhat);
+  *grad = (4 * y % f) / pow(1 + f, 3);
 
 #ifdef AUTODIFF
   ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
@@ -159,22 +187,14 @@ SavageLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* gra
 template<typename DataType>
 void
 SavageLoss<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
-  rowvec f = exp(y % yhat);
-  rowvec g = exp(2 * y % yhat);
-  rowvec h = pow(f, 2);
-  rowvec j = 1 / f;
-  rowvec k = 2 * pow(f, 2);
-  rowvec l = (2 * pow(y, 2) % g % (2 - f));
-  rowvec m = pow(1 + f, 4);
-  rowvec n = l/m;
-
-  *hess = (2 * pow(y, 2) % f % (2*f - 1)) / pow(1 + f, 4);
+  rowvec f = exp(2 * y % yhat);
+  *hess = (8 * pow(y, 2) % f % (2*f - 1)) / pow(1 + f, 4);
 }
 
 template<typename DataType>
 DataType
 SavageLoss<DataType>::loss_reverse_arma(const rowvec& yhat, const rowvec& y) {
-  return sum(1 / pow(1 + exp(y % yhat), 2));
+  return sum(1 / pow(1 + exp(2* y % yhat), 2));
 }
 
 
@@ -188,6 +208,97 @@ SavageLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) 
 
 ////////////////
 // END SavageLoss
+////////////////
+
+////////////////
+// BEGIN ArctanLoss
+////////////////
+
+template<typename DataType>
+DataType
+ArctanLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
+  *grad = 2 * atan(y - yhat)/(1 + pow(y - yhat, 2));
+
+#ifdef AUTODIFF
+  ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
+  ArrayXreal yr = LossUtils::static_cast_eigen(y).eval();
+
+  return static_cast<DataType>(loss_reverse(yr, yhatr).val());
+#else
+  return static_cast<DataType>(loss_reverse_arma(y, yhat));
+#endif
+}
+
+template<typename DataType>
+void
+ArctanLoss<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
+  rowvec f = pow(y, 2);
+  rowvec g = pow(yhat, 2);
+  *hess = (2 - 4 * ((y - yhat) % atan(y - yhat)))/pow(f - (2 * y % yhat) + g + 1, 2);
+}
+
+template<typename DataType>
+DataType
+ArctanLoss<DataType>::loss_reverse_arma(const rowvec& yhat, const rowvec& y) {
+  return sum(pow(atan(y - yhat), 2));
+}
+
+#ifdef AUTODIFF
+template<typename DataType>
+autodiff::real
+ArctanLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
+  return pow(atan(y - yhat, 2), 2).sum();
+}
+#endif
+
+////////////////
+// END ArctanLoss
+////////////////
+
+////////////////
+// BEGIN SyntheticLoss
+////////////////
+
+template<typename DataType>
+DataType
+SyntheticLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
+  *grad = -1 * pow(y - yhat, 3);
+
+#ifdef AUTODIFF
+  ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
+  ArrayXreal yr = LossUtils::static_cast_eigen(y).eval();
+
+  return static_cast<DataType>(loss_reverse(yr, yhatr).val());
+#else
+  return static_cast<DataType>(loss_reverse_arma(y, yhat));
+#endif
+}
+
+template<typename DataType>
+void
+SyntheticLoss<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
+
+  rowvec f(y.n_cols, arma::fill::ones);
+  *hess = f;
+
+}
+
+template<typename DataType>
+DataType
+SyntheticLoss<DataType>::loss_reverse_arma(const rowvec& yhat, const rowvec& y) {
+  return sum(pow((y - yhat), 2));
+}
+
+#ifdef AUTODIFF
+template<typename DataType>
+autodiff::real
+SyntheticLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
+  return pow((y - yhat), 2).sum();
+}
+#endif
+
+////////////////
+// END Loss
 ////////////////
 
 

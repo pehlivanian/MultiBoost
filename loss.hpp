@@ -22,6 +22,9 @@ using namespace std::placeholders;
 enum class lossFunction {    MSE = 0,
 			     BinomialDeviance = 1,
 			     Savage = 2,
+			     Exp = 3,
+			     Arctan = 4,
+			     Synthetic = 5,
 			};
 
 
@@ -92,10 +95,52 @@ private:
 };
 
 template<typename DataType>
+class ExpLoss : public LossFunction<DataType> {
+public:
+  ExpLoss() = default;
+  ExpLoss<DataType>* create() { return new ExpLoss<DataType>(); }
+private:
+#ifdef AUTODIFF
+  autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
+#endif
+  DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
+  DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
+  void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+};
+
+template<typename DataType>
 class SavageLoss : public LossFunction<DataType> {
 public:
   SavageLoss() = default;
   SavageLoss<DataType>* create() { return new SavageLoss<DataType>(); }
+private:
+#ifdef AUTODIFF
+  autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
+#endif
+  DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
+  DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
+  void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+};
+
+template<typename DataType>
+class ArctanLoss : public LossFunction<DataType> {
+public:
+  ArctanLoss() = default;
+  ArctanLoss<DataType>* create() { return new ArctanLoss<DataType>(); }
+private:
+#ifdef AUTODIFF
+  autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
+#endif
+  DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
+  DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
+  void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+};
+
+template<typename DataType>
+class SyntheticLoss : public LossFunction<DataType> {
+public:
+  SyntheticLoss() = default;
+  SyntheticLoss<DataType>* create() { return new SyntheticLoss<DataType>(); }
 private:
 #ifdef AUTODIFF
   autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  

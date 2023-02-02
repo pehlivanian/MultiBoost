@@ -2,7 +2,7 @@
 #define __SCORE2_IMPL_HPP__
 
 namespace {
-  const int NUMTHREADS = 4;
+  const int NUMTHREADS = 8;
 }
 
 namespace Objectives {
@@ -287,8 +287,8 @@ namespace Objectives {
   void
   ParametricContext<DataType>::init() {
     // XXX
-    compute_scores_parallel();
-    // compute_scores();
+    // compute_scores_parallel();
+    compute_scores();
     // compute_scores_AVX256();
   }
 
