@@ -20,23 +20,32 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# autodiff not required
-option(USE_AUTODIFF "Use autodiff for gradient, hessian calculations" OFF)
+# arma ex not required
+option(BUILD_ARMA_EX OFF)
 
-# gtests not required
-option(BUILD_TESTS "Build unit tests" OFF)
+# DP_solver ex not required
+option(BUILD_DP_SOLVER OFF)
 
-# benchmarks not required
+# gtests not required, by default will build
+option(BUILD_TESTS "Build unit tests" ON)
+
+# benchmarks not required, by default will build
 option(BUILD_BENCHMARKS "Build benchmark tests" OFF)
+
+# build Inductive Boost Classifier
+option(BUILD_IBC ON)
+
+# Profile
+option(PROFILE_RESULTS "gprof enabled" OFF)
 
 # OpenMP not required
 option(USE_OPENMP "Use OpenMP" OFF)
 
+# autodiff not required
+option(USE_AUTODIFF "Use autodiff for gradient, hessian calculations" OFF)
+
 # Eigen not reuqired
 option(USE_EIGEN "Use eigen, only needed for finding optimal t in DP calculation" OFF)
-
-# Profile
-option(PROFILE_RESULTS "gprof enabled" OFF)
 
 # gprof
 if (PROFILE_RESULTS)
@@ -94,17 +103,28 @@ target_link_libraries(DP PUBLIC LTSS utils)
 add_library(gradientboostclassifier OBJECT gradientboostclassifier.cpp)
 target_link_libraries(gradientboostclassifier PUBLIC LTSS DP ${ARMADILLO_LIBRARIES})
 
+# Armadillo example
+if (BUILD_ARMA_EX)
+  add_executable(arma_ex arma_ex.cpp)
+  target_link_libraries(arma_ex ${ARMADILLO_LIBRARIES} ${BLAS_LIBRARIES})
+endif()
+
 # DP solver example	
-add_executable(DP_solver_ex DP_solver_ex.cpp)
-target_link_libraries(DP_solver_ex DP LTSS pthread)
+if (BUILD_DP_SOLVER_EX)
+  add_executable(DP_solver_ex DP_solver_ex.cpp)
+  target_link_libraries(DP_solver_ex DP LTSS pthread)
+endif()
 		  
 # InductiveBoostClassifier driver on pmlb data
-add_executable(pmlb_driver pmlb_driver.cpp)
-if (USE_OPENMP)
-  target_link_libraries(pmlb_driver pmlb loss utils gradientboostclassifier autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
-else()
-  target_link_libraries(pmlb_driver pmlb loss utils gradientboostclassifier ${ARMADILLO_LIBRARIES} ${BLAS_LIBRARIES})
+if (BUILD_IBC)
+  add_executable(pmlb_driver pmlb_driver.cpp)
+  if (USE_OPENMP)
+    target_link_libraries(pmlb_driver pmlb loss utils gradientboostclassifier autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
+  else()
+    target_link_libraries(pmlb_driver pmlb loss utils gradientboostclassifier ${ARMADILLO_LIBRARIES} ${BLAS_LIBRARIES})
+  endif()
 endif()
+
 if (BUILD_TESTS)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
   add_executable(gtest_all gtest_all.cpp)
