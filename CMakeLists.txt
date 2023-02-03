@@ -21,19 +21,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # autodiff not required
-SET(USE_AUTODIFF OFF)
+option(USE_AUTODIFF "Use autodiff for gradient, hessian calculations" OFF)
 
 # gtests not required
-SET(BUILD_TESTS OFF)
+option(BUILD_TESTS "Build unit tests" OFF)
 
 # benchmarks not required
-SET(BUILD_BENCHMARKS OFF)
+option(BUILD_BENCHMARKS "Build benchmark tests" OFF)
 
 # OpenMP not required
-SET(USE_OPENMP OFF)
+option(USE_OPENMP "Use OpenMP" OFF)
 
 # Eigen not reuqired
-SET(USE_EIGEN OFF)
+option(USE_EIGEN "Use eigen, only needed for finding optimal t in DP calculation" OFF)
+
+# Profile
+option(PROFILE_RESULTS "gprof enabled" OFF)
 
 # gprof
 if (PROFILE_RESULTS)
@@ -74,7 +77,6 @@ endif()
 include_directories(${ARMADILLO_INCLUDE_DIRS})
 
 add_library(pmlb OBJECT pmlb.cpp)
-add_library(processor OBJECT processor.cpp)
 add_library(loss OBJECT loss.cpp)
 add_library(score2 OBJECT score2.cpp)
 add_library(utils OBJECT utils.cpp)
@@ -99,18 +101,18 @@ target_link_libraries(DP_solver_ex DP LTSS pthread)
 # InductiveBoostClassifier driver on pmlb data
 add_executable(pmlb_driver pmlb_driver.cpp)
 if (USE_OPENMP)
-  target_link_libraries(pmlb_driver pmlb processor loss utils gradientboostclassifier autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
+  target_link_libraries(pmlb_driver pmlb loss utils gradientboostclassifier autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
 else()
-  target_link_libraries(pmlb_driver pmlb processor loss utils gradientboostclassifier ${ARMADILLO_LIBRARIES} ${BLAS_LIBRARIES})
+  target_link_libraries(pmlb_driver pmlb loss utils gradientboostclassifier ${ARMADILLO_LIBRARIES} ${BLAS_LIBRARIES})
 endif()
-# if (BUILD_TESTS)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
-add_executable(gtest_all gtest_all.cpp)
-target_link_libraries(gtest_all utils DP ${GTEST_LIBRARIES} pthread)
-# endif()
+if (BUILD_TESTS)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
+  add_executable(gtest_all gtest_all.cpp)
+  target_link_libraries(gtest_all utils DP ${GTEST_LIBRARIES} pthread)
+endif()
 
-# if (BUILD_BENCHMARKS)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/benchmarks)
-add_executable(benchmarks benchmarks.cpp)
-target_link_libraries(benchmarks benchmark::benchmark pthread)
-# endif()
+if (BUILD_BENCHMARKS)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/benchmarks)
+  add_executable(benchmarks benchmarks.cpp)
+  target_link_libraries(benchmarks benchmark::benchmark pthread)
+endif()
