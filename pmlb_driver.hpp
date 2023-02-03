@@ -15,10 +15,8 @@
 #include <mlpack/methods/decision_tree/multiple_random_dimension_select.hpp>
 
 
-#include "dataset.hpp"
 #include "pmlb.hpp"
 #include "processor.hpp"
-#include "decision_tree.hpp"
 #include "loss.hpp"
 #include "gradientboostclassifier.hpp"
 #include "utils.hpp"

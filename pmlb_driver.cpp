@@ -16,9 +16,9 @@ auto main(int argc, char **argv) -> int {
   Row<std::size_t> labels, trainLabels, testLabels;
   Row<std::size_t> trainPrediction, testPrediction;
 
-  if (!data::Load("/home/charles/Data/spambase_X.csv", dataset))
+  if (!data::Load("/home/charles/Data/german_X.csv", dataset))
     throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/spambase_y.csv", labels))
+  if (!data::Load("/home/charles/Data/german_y.csv", labels))
     throw std::runtime_error("Could not load file");
 
   data::Split(dataset, 

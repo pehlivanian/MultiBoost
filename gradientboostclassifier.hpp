@@ -36,8 +36,6 @@
 #include <mlpack/methods/decision_tree/multiple_random_dimension_select.hpp>
 #include <mlpack/methods/random_forest/random_forest.hpp>
 
-#include "dataset.hpp"
-#include "decision_tree.hpp"
 #include "loss.hpp"
 #include "score2.hpp"
 #include "LTSS.hpp"
