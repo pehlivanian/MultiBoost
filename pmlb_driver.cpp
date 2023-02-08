@@ -16,9 +16,9 @@ auto main(int argc, char **argv) -> int {
   Row<std::size_t> labels, trainLabels, testLabels;
   Row<std::size_t> trainPrediction, testPrediction;
 
-  if (!data::Load("/home/charles/Data/german_X.csv", dataset))
+  if (!data::Load("/home/charles/Data/titanic_train_X.csv", dataset))
     throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/german_y.csv", labels))
+  if (!data::Load("/home/charles/Data/titanic_train_y.csv", labels))
     throw std::runtime_error("Could not load file");
 
   data::Split(dataset, 
@@ -49,7 +49,7 @@ auto main(int argc, char **argv) -> int {
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .25; // .75
   context.recursiveFit = true;
-  context.serialize = false;
+  context.serialize = true;
   context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED; // INCREASING
   context.learningRateMethod = LearningRate::RateMethod::FIXED;   // DECREASING
   context.minLeafSize = 1;

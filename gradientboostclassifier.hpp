@@ -15,6 +15,7 @@
 #include <typeinfo>
 #include <chrono>
 #include <limits>
+#include <exception>
 
 #include <cereal/types/polymorphic.hpp>
 #include <cereal/types/base_class.hpp>
@@ -85,7 +86,8 @@ namespace ClassifierContext{
       hasOOSData{false},
       hasInitialPrediction{false},
       reuseColMask{false},
-      serialize{false}
+      serialize{false},
+      serializationWindow{500}
     {}
       
     lossFunction loss;
@@ -108,12 +110,19 @@ namespace ClassifierContext{
     bool reuseColMask;
     bool serialize;
     bool hasInitialPrediction;
+    std::size_t serializationWindow;
     mat dataset_oos;
     Row<double> labels_oos;
     Row<double> latestPrediction;
     uvec colMask;
   };
 } // namespace ClassifierContext
+
+struct predictionAfterClearedClassifiersException : public std::exception {
+  const char* what() const throw () {
+    return "Attempting to predict on a classifier that has been serialized and cleared";
+  };
+};
 
 // Helpers for gdb
 template<class Matrix>
@@ -417,7 +426,8 @@ public:
     maxDepth_{context.maxDepth},
     numTrees_{context.numTrees},
     reuseColMask_{context.reuseColMask},
-    serialize_{context.serialize}
+    serialize_{context.serialize},
+    serializationWindow_{context.serializationWindow}
   { 
     if (hasOOSData_ = context.hasOOSData) {
       dataset_oos_ = context.dataset_oos;
@@ -456,7 +466,8 @@ public:
     maxDepth_{context.maxDepth},
     numTrees_{context.numTrees},
     reuseColMask_{context.reuseColMask},
-    serialize_{context.serialize}
+    serialize_{context.serialize},
+    serializationWindow_{context.serializationWindow}
   { 
     if (hasOOSData_ = context.hasOOSData) {
       dataset_oos_ = context.dataset_oos;
@@ -502,6 +513,8 @@ public:
   mat getDataset() const { return dataset_; }
   Row<double> getLabels() const { return labels_; }
   ClassifierList getClassifiers() const { return classifiers_; }
+
+  std::string getIndexName() const { return indexName_; }
   
   void printStats(int);
   void purge();
@@ -593,6 +606,7 @@ private:
   bool hasOOSData_;
   bool hasInitialPrediction_;
 
+  std::size_t serializationWindow_;
   std::string indexName_;
 };
 

@@ -204,6 +204,10 @@ template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
 
+  if (serialize_ && indexName_.size()) {
+    throw predictionAfterClearedClassifiersException();
+  }
+
   prediction = zeros<Row<DataType>>(dataset.n_cols);
 
   for (const auto& classifier : classifiers_) {
@@ -215,6 +219,7 @@ GradientBoostClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataTyp
   if (symmetrized_ and not ignoreSymmetrization) {
     deSymmetrize(prediction);
   }
+
 }
 
 template<typename ClassifierType>
@@ -618,6 +623,7 @@ GradientBoostClassifier<ClassifierType>::checkAccuracyOfArchive() {
 		<< ", " << eps << ")" << std::endl;
     }
   }   
+  std::cerr << "ACCURACY CHECKED" << std::endl;
 }
 
 template<typename ClassifierType>
@@ -634,7 +640,7 @@ GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
       deSymmetrize(yhat);
       symmetrize(yhat);
     }
-    // checkAccuracyOfArchive();
+    checkAccuracyOfArchive();
   } else {
     // Prediction from nonarchived classifier
     Predict(yhat); 
@@ -692,7 +698,7 @@ GradientBoostClassifier<ClassifierType>::fit() {
       std::cout << "STEP: " << stepNum << std::endl;
     }
 
-    if ((stepNum > 5) && ((stepNum%100) == 1)) {
+    if ((stepNum > 5) && ((stepNum%serializationWindow_) == 1)) {
       if (serialize_) {
 	commit();
       }
@@ -701,8 +707,12 @@ GradientBoostClassifier<ClassifierType>::fit() {
     
   }
   
+  // Serialize residual
+  if (serialize_)
+    commit();
+
   // print final stats
-  // printStats(steps_);
+  printStats(steps_);
 }
 
 template<typename ClassifierType>

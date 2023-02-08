@@ -262,7 +262,16 @@ ArctanLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) 
 template<typename DataType>
 DataType
 SyntheticLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
-  *grad = -1 * pow(y - yhat, 3);
+  // *grad = -1 * pow(y - yhat, 3);
+  // *grad = -1 * pow(atan(y - yhat), 3);
+  // *grad = -1 * pow(y - yhat, 5);  
+  // *grad = -1 * pow(atan(y - yhat), 3);
+
+  rowvec  f(y.n_cols, arma::fill::zeros);
+  // *grad = -1 * sign(y) % max(sign(y) % (y - yhat), f);
+  // *grad = -1 * sign(y) % max(sign(y) % atan(y - yhat), f);
+  // *grad = -1 * sign(y) % abs(y - yhat);
+  *grad = -1 * sign(y) % pow(y - yhat, 4);
 
 #ifdef AUTODIFF
   ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
@@ -281,6 +290,8 @@ SyntheticLoss<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* h
   rowvec f(y.n_cols, arma::fill::ones);
   *hess = f;
 
+  // *hess = pow(y - yhat, 2);
+  
 }
 
 template<typename DataType>

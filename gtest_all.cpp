@@ -13,6 +13,7 @@
 #include "score2.hpp"
 #include "DP.hpp"
 #include "gradientboostclassifier.hpp"
+#include "replay.hpp"
 
 using namespace IB_utils;
 using namespace ClassifierContext;
@@ -204,7 +205,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips)
     std::string fileName = classifier.write();
     classifier.read(newClassifier, fileName);
 
-    Row<std::size_t> trainPrediction, trainNewPrediction, testPrediction, testNewPrediction;
+    Row<double> trainPrediction, trainNewPrediction, testPrediction, testNewPrediction;
     classifier.Predict(testDataset, testPrediction);
     classifier.Predict(trainDataset, trainPrediction);
     newClassifier.Predict(testDataset, testNewPrediction);
@@ -220,6 +221,116 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips)
       ASSERT_LE(fabs(trainPrediction[i]-trainNewPrediction[i]), eps);
 
   }
+}
+
+TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
+  
+  std::vector<bool> trials = {false};
+  dataset_t dataset, trainDataset, testDataset;
+  labels_t labels, trainLabels, testLabels;
+
+
+  loadDatasets(dataset, labels);
+  data::Split(dataset, 
+	      labels,
+	      trainDataset,
+	      testDataset,
+	      trainLabels,
+	      testLabels, 0.2);
+
+  std::size_t minLeafSize = 1;
+  double minimumGainSplit = 0.;
+  std::size_t maxDepth = 5;
+  std::size_t partitionSize = 11;
+
+  Context context{};
+  
+  context.loss = lossFunction::BinomialDeviance;
+  context.partitionSize = partitionSize;
+  context.partitionRatio = .25;
+  context.learningRate = .001;
+  context.steps = 514;
+  context.symmetrizeLabels = true;
+  context.rowSubsampleRatio = 1.;
+  context.colSubsampleRatio = .45; // .75
+  context.serialize = true;
+  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
+  context.learningRateMethod = LearningRate::RateMethod::FIXED;
+  context.minLeafSize = minLeafSize;
+  context.maxDepth = maxDepth;
+  context.minimumGainSplit = minimumGainSplit;
+  context.hasOOSData = true;
+  context.dataset_oos = testDataset;
+  context.labels_oos = conv_to<Row<double>>::from(testLabels);
+
+  context.serializationWindow = 100;
+
+  using T = GradientBoostClassifier<DecisionTreeClassifier>;
+  using IArchiveType = cereal::BinaryInputArchive;
+  using OArchiveType = cereal::BinaryOutputArchive;
+
+  for (auto recursive : trials) {
+  
+    context.recursiveFit = recursive;
+    float eps = std::numeric_limits<float>::epsilon();
+
+
+    // Fit recursive classifier
+    T classifier, newClassifier;
+    classifier = T(trainDataset, trainLabels, context);
+    classifier.fit();
+
+    // Predict IS with live classifier fails due to serialization
+    Row<double> liveTrainPrediction;
+    EXPECT_THROW(classifier.Predict(trainDataset, liveTrainPrediction), predictionAfterClearedClassifiersException );
+
+
+    // We can't currently obtain live OOS prediction...
+
+
+    // Get index
+    std::string indexName = classifier.getIndexName();
+    // Use replay to predict IS based on archive classifier
+    Row<double> archiveTrainPrediction;
+    Replay<double, DecisionTreeClassifier>::Classify(indexName, trainDataset, archiveTrainPrediction);
+
+    for (int i=0; i<liveTrainPrediction.n_elem; ++i)
+      ASSERT_LE(fabs(liveTrainPrediction[i]-archiveTrainPrediction[i]), eps);
+
+    // Predict OOS with live classifier
+    Row<double> liveTestPrediction;
+    classifier.Predict(testDataset, liveTestPrediction);
+
+
+    // Predict OOS with archive classifier
+    Row<double> archiveTestPrediction;
+    Replay<double, DecisionTreeClassifier>::Predict(indexName, testDataset, archiveTestPrediction);
+
+    for (int i=0; i<liveTestPrediction.size(); ++i)
+      ASSERT_LE(fabs(liveTestPrediction[i]-archiveTestPrediction[i]), eps);
+
+    
+    // Archive classifier using .write()
+    std::string fileName = classifier.write();
+
+    // Read classifier from previous .write(), predict OOS
+    Row<double> writeTrainPrediction;
+    classifier.read(newClassifier, fileName);
+    newClassifier.Predict(trainDataset, writeTrainPrediction);
+
+    for (int i=0; i<liveTrainPrediction.size(); ++i)
+      ASSERT_LE(fabs(liveTrainPrediction[i]-writeTrainPrediction[i]), eps);
+    
+    // Predict OOS    
+    Row<double> writeTestPrediction;
+    classifier.read(newClassifier, fileName);
+    newClassifier.Predict(testDataset, writeTestPrediction);
+    
+    for (int i=0; i<liveTestPrediction.size(); ++i)
+      ASSERT_LE(fabs(liveTestPrediction[i]-writeTestPrediction[i]), eps);    
+    
+  }
+
 }
 
 TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveRoundTrips) {
@@ -255,9 +366,9 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveRoundTrips) {
   context.recursiveFit = false;
   context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
   context.learningRateMethod = LearningRate::RateMethod::FIXED;
-  context.minLeafSize = 1;
-  context.maxDepth = 10;
-  context.minimumGainSplit = 0.;
+  context.minLeafSize = minLeafSize;
+  context.maxDepth = maxDepth;
+  context.minimumGainSplit = minimumGainSplit;
   context.hasOOSData = true;
   context.dataset_oos = testDataset;
   context.labels_oos = conv_to<Row<double>>::from(testLabels);
@@ -277,7 +388,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveRoundTrips) {
     std::string fileName = classifier.write();
     classifier.read(newClassifier, fileName);
 
-    Row<std::size_t> trainPrediction, trainNewPrediction, testPrediction, testNewPrediction;
+    Row<double> trainPrediction, trainNewPrediction, testPrediction, testNewPrediction;
     classifier.Predict(testDataset, testPrediction);
     classifier.Predict(trainDataset, trainPrediction);
     newClassifier.Predict(testDataset, testNewPrediction);

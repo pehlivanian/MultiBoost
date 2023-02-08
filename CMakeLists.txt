@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.6)
 
 project(InductiveBoost)
 
-set(CMAKE_VERBOSE_MAKEFILE ON)
+# set(CMAKE_VERBOSE_MAKEFILE ON)
 
 include(GNUInstallDirs)
 
@@ -89,6 +89,7 @@ add_library(pmlb OBJECT pmlb.cpp)
 add_library(loss OBJECT loss.cpp)
 add_library(score2 OBJECT score2.cpp)
 add_library(utils OBJECT utils.cpp)
+add_library(replay OBJECT replay.cpp)
 
 if (USE_OPENMP)
   target_link_libraries(loss PUBLIC autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
@@ -128,7 +129,7 @@ endif()
 if (BUILD_TESTS)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
   add_executable(gtest_all gtest_all.cpp)
-  target_link_libraries(gtest_all utils DP ${GTEST_LIBRARIES} pthread)
+  target_link_libraries(gtest_all utils replay DP ${GTEST_LIBRARIES} ${ARMADILLO_LIBRARIES} pthread)
 endif()
 
 if (BUILD_BENCHMARKS)
