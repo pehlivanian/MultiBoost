@@ -35,6 +35,12 @@ option(BUILD_BENCHMARKS "Build benchmark tests" OFF)
 # build Inductive Boost Classifier
 option(BUILD_IBC ON)
 
+# build titanic example
+option(BUILD_TITANIC OFF)
+
+# build multiclass pmlb driver
+option(BUILD_MULTICLASS ON)
+
 # Profile
 option(PROFILE_RESULTS "gprof enabled" OFF)
 
@@ -101,8 +107,12 @@ add_library(LTSS OBJECT LTSS.cpp)
 target_link_libraries(LTSS PUBLIC utils)
 add_library(DP OBJECT DP.cpp)
 target_link_libraries(DP PUBLIC LTSS utils)
+add_library(threadsafequeue OBJECT threadsafequeue.cpp)
+target_link_libraries(threadsafequeue PUBLIC pthread)
 add_library(gradientboostclassifier OBJECT gradientboostclassifier.cpp)
 target_link_libraries(gradientboostclassifier PUBLIC LTSS DP ${ARMADILLO_LIBRARIES})
+add_library(gradientboostmulticlassifier OBJECT gradientboostmulticlassifier.cpp)
+target_link_libraries(gradientboostmulticlassifier PUBLIC threadsafequeue ${ARMADILLO_LIBRARIES} pthread)
 
 # Armadillo example
 if (BUILD_ARMA_EX)
@@ -123,6 +133,26 @@ if (BUILD_IBC)
     target_link_libraries(pmlb_driver pmlb loss utils gradientboostclassifier autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
   else()
     target_link_libraries(pmlb_driver pmlb loss utils gradientboostclassifier ${ARMADILLO_LIBRARIES} ${BLAS_LIBRARIES})
+  endif()
+endif()
+
+# Titanic dataset driver on pmlb data
+if (BUILD_TITANIC)
+  add_executable(titanic_driver titanic_driver.cpp)
+  if (USE_OPENMP)
+    target_link_libraries(titanic_driver loss utils gradientboostclassifier autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
+  else()
+    target_link_libraries(titanic_driver loss utils gradientboostclassifier ${ARMADILLO_LIBRARIES} ${BLAS_LIBRARIES})
+  endif()
+endif()
+
+# Multiclass classification driver on pmlb data
+if (BUILD_MULTICLASS)
+  add_executable(multiple_class_pmlb_driver multiple_class_pmlb_driver.cpp)
+  if (USE_OPENMP)
+    target_link_libraries(multiple_class_pmlb_driver loss utils gradientboostclassifier gradientboostmulticlassifier autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
+  else()
+    target_link_libraries(multiple_class_pmlb_driver loss utils gradientboostclassifier gradientboostmulticlassifier ${ARMADILLO_LIBRARIES} ${BLAS_LIBRARIES})
   endif()
 endif()
 

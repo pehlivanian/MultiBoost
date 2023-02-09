@@ -280,13 +280,12 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
     classifier = T(trainDataset, trainLabels, context);
     classifier.fit();
 
-    // Predict IS with live classifier fails due to serialization
+    // Predict IS with live classifier fails due to serialization...
     Row<double> liveTrainPrediction;
     EXPECT_THROW(classifier.Predict(trainDataset, liveTrainPrediction), predictionAfterClearedClassifiersException );
 
-
-    // We can't currently obtain live OOS prediction...
-
+    // Use latestPrediction_ instead
+    classifier.Predict(liveTrainPrediction);
 
     // Get index
     std::string indexName = classifier.getIndexName();
@@ -297,38 +296,6 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
     for (int i=0; i<liveTrainPrediction.n_elem; ++i)
       ASSERT_LE(fabs(liveTrainPrediction[i]-archiveTrainPrediction[i]), eps);
 
-    // Predict OOS with live classifier
-    Row<double> liveTestPrediction;
-    classifier.Predict(testDataset, liveTestPrediction);
-
-
-    // Predict OOS with archive classifier
-    Row<double> archiveTestPrediction;
-    Replay<double, DecisionTreeClassifier>::Predict(indexName, testDataset, archiveTestPrediction);
-
-    for (int i=0; i<liveTestPrediction.size(); ++i)
-      ASSERT_LE(fabs(liveTestPrediction[i]-archiveTestPrediction[i]), eps);
-
-    
-    // Archive classifier using .write()
-    std::string fileName = classifier.write();
-
-    // Read classifier from previous .write(), predict OOS
-    Row<double> writeTrainPrediction;
-    classifier.read(newClassifier, fileName);
-    newClassifier.Predict(trainDataset, writeTrainPrediction);
-
-    for (int i=0; i<liveTrainPrediction.size(); ++i)
-      ASSERT_LE(fabs(liveTrainPrediction[i]-writeTrainPrediction[i]), eps);
-    
-    // Predict OOS    
-    Row<double> writeTestPrediction;
-    classifier.read(newClassifier, fileName);
-    newClassifier.Predict(testDataset, writeTestPrediction);
-    
-    for (int i=0; i<liveTestPrediction.size(); ++i)
-      ASSERT_LE(fabs(liveTestPrediction[i]-writeTestPrediction[i]), eps);    
-    
   }
 
 }

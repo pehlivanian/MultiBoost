@@ -485,26 +485,26 @@ public:
 
   void fit();
 
-  void Classify(const mat&, Row<DataType>&);
+  virtual void Classify(const mat&, Row<DataType>&);
 
   // 4 Predict methods
   // predict on member dataset; loop through and sum step prediction vectors
-  void Predict(Row<DataType>&);
+  virtual void Predict(Row<DataType>&);
   // predict on subset of dataset defined by uvec; sum step prediction vectors
-  void Predict(Row<DataType>&, const uvec&);
+  virtual void Predict(Row<DataType>&, const uvec&);
   // predict OOS, loop through and call Classify_ on individual classifiers, sum
-  void Predict(const mat&, Row<DataType>&, bool=false);
+  virtual void Predict(const mat&, Row<DataType>&, bool=false);
 
   // overloaded versions for archive classifier
   // predict on member dataset from archive
-  void Predict(std::string, Row<DataType>&, bool=false);
+  virtual void Predict(std::string, Row<DataType>&, bool=false);
   // prediction OOS, loop through and call Classify_ on individual classifiers, sum
-  void Predict(std::string, const mat&, Row<DataType>&, bool=false);
+  virtual void Predict(std::string, const mat&, Row<DataType>&, bool=false);
 
   // overloaded versions of above based based on label datatype
-  void Predict(Row<IntegralLabelType>&);
-  void Predict(Row<IntegralLabelType>&, const uvec&);
-  void Predict(const mat&, Row<IntegralLabelType>&);
+  virtual void Predict(Row<IntegralLabelType>&);
+  virtual void Predict(Row<IntegralLabelType>&, const uvec&);
+  virtual void Predict(const mat&, Row<IntegralLabelType>&);
 
   void Classify_(const mat& dataset, Row<DataType>& prediction) { 
     Predict(dataset, prediction); 
@@ -516,7 +516,7 @@ public:
 
   std::string getIndexName() const { return indexName_; }
   
-  void printStats(int);
+  virtual void printStats(int);
   void purge();
   std::string write();  
   void read(GradientBoostClassifier&, std::string);

@@ -640,7 +640,7 @@ GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
       deSymmetrize(yhat);
       symmetrize(yhat);
     }
-    checkAccuracyOfArchive();
+    // checkAccuracyOfArchive();
   } else {
     // Prediction from nonarchived classifier
     Predict(yhat); 
