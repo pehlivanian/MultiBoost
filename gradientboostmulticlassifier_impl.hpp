@@ -5,20 +5,34 @@ void
 GradientBoostMultiClassifier<ClassifierType>::init_() {
 
   using C = GradientBoostClassClassifier<ClassifierType>;
+  using ClassPair = std::pair<std::size_t, std::size_t>;
 
   Row<DataType> uniqueVals = sort(unique(labels_));
   numClasses_ = uniqueVals.size();
   
-  for (auto it=uniqueVals.begin(); it!=uniqueVals.end(); ++it) {
-    // XXX
-    if (*it == 4) {
-    uvec ind = find(labels_ == *it);
-    Row<std::size_t> oneHot = zeros<Row<std::size_t>>(labels_.n_elem);
-    oneHot.elem(ind).fill(1);
+  if (allVOne_) {
+    for (auto it=uniqueVals.begin(); it!=uniqueVals.end(); ++it) {
+      uvec ind = find(labels_ == *it);
+      Row<double> oneHot = zeros<Row<double>>(labels_.n_elem);
+      oneHot.elem(ind).fill(1.);
+      
+      std::unique_ptr<C> classClassifier;
+      classClassifier.reset(new C(dataset_, oneHot, context_.context, *it));
+      classClassifiers_.push_back(std::move(classClassifier));    
+    }
+  } else {
+    for (auto it1=uniqueVals.begin(); it1!=uniqueVals.end(); ++it1) {
+      for (auto it2=it1+1; it2!=uniqueVals.end(); ++it2) {
+	uvec ind1 = find(labels_ == *it1), ind2 = find(labels_ == *it2);
+	Row<double> aVb = zeros<Row<double>>(labels_.n_elem);
+	aVb.elem(ind1).fill(.5);
+	aVb.elem(ind2).fill(1.);
 
-    std::unique_ptr<C> classClassifier;
-    classClassifier.reset(new C(dataset_, oneHot, context_, *it));
-    classClassifiers_.push_back(std::move(classClassifier));    
+	std::unique_ptr<C> classClassifier;
+	classClassifier.reset(new C(dataset_, aVb, context_.context, ClassPair(*it1, *it2)));
+	classClassifiers_.push_back(std::move(classClassifier));
+	
+      }
     }
   }
 

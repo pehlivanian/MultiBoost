@@ -3,14 +3,45 @@
 
 #include <vector>
 #include <memory>
+#include <utility>
 
 #include "threadpool.hpp"
 #include "threadsafequeue.hpp"
 #include "gradientboostclassifier.hpp"
 
+namespace MultiClassifierContext {
+  struct MultiContext {
+    MultiContext(bool allVOne) :
+      allVOne{allVOne} 
+    {}
+    MultiContext() :
+      allVOne{true}
+    {}
+    bool allVOne;
+  };
+
+  struct CombinedContext : ClassifierContext::Context{
+    CombinedContext(ClassifierContext::Context context, MultiContext overlay) : 
+      context{context},
+      allVOne{overlay.allVOne} 
+    {}
+    CombinedContext() : 
+      ClassifierContext::Context{},
+      allVOne{false} 
+    {}
+      
+    ClassifierContext::Context context;
+    bool allVOne;
+      
+  };
+}
+
+
 template<typename ClassifierType>
 class GradientBoostClassClassifier : public GradientBoostClassifier<ClassifierType> {
 public:
+
+  using ClassPair = std::pair<std::size_t, std::size_t>;
 
   GradientBoostClassClassifier(const mat& dataset,
 			       const Row<std::size_t>& labels,
@@ -20,16 +51,50 @@ public:
     classValue_{classValue} 
   {}
   
+  GradientBoostClassClassifier(const mat& dataset,
+			       const Row<std::size_t>& labels,
+			       ClassifierContext::Context context,
+			       ClassPair classValues) :
+    GradientBoostClassifier<ClassifierType>(dataset, labels, context),
+    classValues_{classValues},
+    allVOne_{true}
+  {}
+
+  GradientBoostClassClassifier(const mat& dataset,
+			       const Row<double>& labels,
+			       ClassifierContext::Context context,
+			       std::size_t classValue) :
+    GradientBoostClassifier<ClassifierType>(dataset, labels, context),
+    classValue_{classValue}
+  {}
+    
+  GradientBoostClassClassifier(const mat& dataset,
+			       const Row<double>& labels,
+			       ClassifierContext::Context context,
+			       ClassPair classValues) :
+    GradientBoostClassifier<ClassifierType>(dataset, labels, context),
+    classValues_{classValues},
+    allVOne_{false}
+  {}
+  
   void printStats(int stepNum) override { 
 
-    std::cerr << "SUMMARY FOR CLASS: " << classValue_ << std::endl;
+    if (allVOne_) {
+      std::cerr << "SUMMARY FOR CLASS: " << classValue_ << std::endl;
+    }
+    else {
+      std::cerr << "SUMMARY FOR CLASS: (" << classValues_.first
+		<< ", " << classValues_.second 
+		<< ")" << std::endl;
+    }
     GradientBoostClassifier<ClassifierType>::printStats(stepNum);
     
   }
 
 private:
   std::size_t classValue_;
-  
+  ClassPair classValues_; 
+  bool allVOne_;
 };
 
 template<typename ClassifierType>
@@ -45,30 +110,32 @@ public:
   GradientBoostMultiClassifier() = default;
   GradientBoostMultiClassifier(const mat& dataset,
 			       const Row<std::size_t>& labels,
-			       ClassifierContext::Context context) :
+			       MultiClassifierContext::CombinedContext context) :
     dataset_{dataset},
-    labels_{conv_to<Row<double>>::from(labels)},
+    labels_{conv_to<Row<double>>::from(labels)},    
+    allVOne_{context.allVOne},
     context_{context}
   {
     if (hasOOSData_ = context.hasOOSData) {
       dataset_oos_ = context.dataset_oos;
       labels_oos_ = conv_to<Row<double>>::from(context.labels_oos);
-      init_(); 
     }
+    init_(); 
   }
 
   GradientBoostMultiClassifier(const mat& dataset,
 			       const Row<double>& labels,
-			       ClassifierContext::Context context) :
+			       MultiClassifierContext::CombinedContext context) :
     dataset_{dataset},
     labels_{labels},
+    allVOne_{context.allVOne},
     context_{context} 
   { 
     if (hasOOSData_ = context.hasOOSData) {
       dataset_oos_ = context.dataset_oos;
       labels_oos_ = conv_to<Row<double>>::from(context.labels_oos);
-      init_(); 
     }
+    init_(); 
   }
 
   void fit();
@@ -104,10 +171,11 @@ private:
   mat dataset_oos_;
   Row<double> labels_;
   Row<double> labels_oos_;
-  ClassifierContext::Context context_;
+  MultiClassifierContext::CombinedContext context_;
   ClassifierList classClassifiers_;
 
   bool hasOOSData_;
+  bool allVOne_;
 
 };
 

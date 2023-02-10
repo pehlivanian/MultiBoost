@@ -32,15 +32,19 @@ auto main(int argc, char **argv) -> int {
   
   std::cout << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
 	    << trainDataset.n_rows << ")" << std::endl;
-  std::cout << "TRAIN LABELS: (" << trainLabels.n_cols << " x "
+  std::cout << "TRAIN LABELS:  (" << trainLabels.n_cols << " x "
 	    << trainLabels.n_rows << ")" << std::endl;
-  std::cout << "TEST DATASET: (" << testDataset.n_cols << " x " 
+  std::cout << "TEST DATASET:  (" << testDataset.n_cols << " x " 
 	    << testDataset.n_rows << ")" << std::endl;
-  std::cout << "TEST LABELS: (" << testLabels.n_cols << " x "
+  std::cout << "TEST LABELS:   (" << testLabels.n_cols << " x "
 	    << testLabels.n_rows << ")" << std::endl;
 
 
   ClassifierContext::Context context{};
+  MultiClassifierContext::MultiContext multiContext{};
+  MultiClassifierContext::CombinedContext combinedContext{};
+
+
   // context.loss = lossFunction::Savage;
   // context.loss = lossFunction::BinomialDeviance;
   context.loss = lossFunction::MSE;
@@ -56,21 +60,25 @@ auto main(int argc, char **argv) -> int {
   context.colSubsampleRatio = .25; // .75
   context.recursiveFit = false;
   context.serialize = false;
-  context.serializationWindow = 100;
+  context.serializationWindow = 1000;
   context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED; // INCREASING
   context.learningRateMethod = LearningRate::RateMethod::FIXED;   // DECREASING
   context.minLeafSize = 1;
   context.maxDepth = 10;
   context.minimumGainSplit = 0.;
-  context.hasOOSData = true;
+  context.hasOOSData = false;
   context.dataset_oos = testDataset;
   context.labels_oos = conv_to<Row<double>>::from(testLabels);
 
+  multiContext.allVOne = false;
+
+  combinedContext.context = context;
+  combinedContext.allVOne = multiContext.allVOne;
 
   using classifier = GradientBoostMultiClassifier<DecisionTreeClassifier>;
   auto c = std::make_unique<classifier>(trainDataset, 
 					trainLabels, 
-					context);
+					combinedContext);
 
   c->fit();
 

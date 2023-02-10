@@ -322,7 +322,17 @@ GradientBoostClassifier<ClassifierType>::symmetrizeLabels(Row<DataType>& labels)
     b_ = static_cast<double>(m+M)/static_cast<double>(m-M);
     labels = sign(a_*labels + b_);
     // labels = sign(2 * labels - 1);      
-  } else {
+  } else if (uniqueVals.size() == 3) { // for the multiclass case, we may have values in {0, 1, 2}
+    uniqueVals = sort(uniqueVals);
+    double eps = static_cast<double>(std::numeric_limits<float>::epsilon());
+    if ((fabs(uniqueVals[0]) <= eps) &&
+	(fabs(uniqueVals[1]-.5) <= eps) &&
+	(fabs(uniqueVals[2]-1.) <= eps)) {
+      a_ = 2.; b_ = -1.;
+      labels = sign(a_*labels - 1);
+    }
+  }
+  else {
     assert(uniqueVals.size() == 2);
   }
   
