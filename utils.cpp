@@ -5,6 +5,13 @@ namespace IB_utils {
   double err(const Row<std::size_t>& yhat, const Row<std::size_t>& y) {
     return accu(yhat != y) * 100. / y.n_elem;
   }
+  
+  double err(const Row<double>& yhat, const Row<double>& y, double resolution) {
+    if (resolution < 0.)
+      resolution = 100. * std::numeric_limits<double>::epsilon();
+    uvec ind = find( abs(yhat - y) > resolution);
+    return static_cast<double>(ind.n_elem) * 100. / static_cast<double>(y.n_elem);
+  }
 
   std::string writeIndex(const std::vector<std::string>& fileNames) {
     

@@ -110,7 +110,7 @@ target_link_libraries(DP PUBLIC LTSS utils)
 add_library(threadsafequeue OBJECT threadsafequeue.cpp)
 target_link_libraries(threadsafequeue PUBLIC pthread)
 add_library(gradientboostclassifier OBJECT gradientboostclassifier.cpp)
-target_link_libraries(gradientboostclassifier PUBLIC LTSS DP ${ARMADILLO_LIBRARIES})
+target_link_libraries(gradientboostclassifier PUBLIC utils LTSS DP ${ARMADILLO_LIBRARIES})
 add_library(gradientboostmulticlassifier OBJECT gradientboostmulticlassifier.cpp)
 target_link_libraries(gradientboostmulticlassifier PUBLIC threadsafequeue ${ARMADILLO_LIBRARIES} pthread)
 

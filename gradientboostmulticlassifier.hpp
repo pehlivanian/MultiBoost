@@ -5,6 +5,17 @@
 #include <memory>
 #include <utility>
 
+#include <cereal/types/polymorphic.hpp>
+#include <cereal/types/base_class.hpp>
+#include <cereal/archives/portable_binary.hpp>
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/json.hpp>
+#include <cereal/archives/xml.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/access.hpp>
+
 #include "threadpool.hpp"
 #include "threadsafequeue.hpp"
 #include "gradientboostclassifier.hpp"
@@ -43,21 +54,32 @@ public:
 
   using ClassPair = std::pair<std::size_t, std::size_t>;
 
+  using DataType = typename classifier_traits<ClassifierType>::datatype;
+  using IntegralLabelType = typename classifier_traits<ClassifierType>::integrallabeltype;
+  using Classifier = typename classifier_traits<ClassifierType>::classifier;
+  using ClassClassifier = GradientBoostClassClassifier<ClassifierType>;
+  using ClassifierList = std::vector<std::unique_ptr<ClassClassifier>>;
+
+  GradientBoostClassClassifier() = default;
   GradientBoostClassClassifier(const mat& dataset,
 			       const Row<std::size_t>& labels,
 			       ClassifierContext::Context context,
 			       std::size_t classValue) :
     GradientBoostClassifier<ClassifierType>(dataset, labels, context),
-    classValue_{classValue} 
+    classValue_{classValue}
   {}
   
   GradientBoostClassClassifier(const mat& dataset,
 			       const Row<std::size_t>& labels,
 			       ClassifierContext::Context context,
-			       ClassPair classValues) :
+			       ClassPair classValues,
+			       std::size_t num1,
+			       std::size_t num2) :
     GradientBoostClassifier<ClassifierType>(dataset, labels, context),
     classValues_{classValues},
-    allVOne_{true}
+    allVOne_{true},
+    num1_{num1},
+    num2_{num2}
   {}
 
   GradientBoostClassClassifier(const mat& dataset,
@@ -71,12 +93,18 @@ public:
   GradientBoostClassClassifier(const mat& dataset,
 			       const Row<double>& labels,
 			       ClassifierContext::Context context,
-			       ClassPair classValues) :
+			       ClassPair classValues,
+			       std::size_t num1,
+			       std::size_t num2) :
     GradientBoostClassifier<ClassifierType>(dataset, labels, context),
     classValues_{classValues},
-    allVOne_{false}
+    allVOne_{false},
+    num1_{num1},
+    num2_{num2}
   {}
   
+  void Classify_(const mat&, Row<DataType>&) override;
+
   void printStats(int stepNum) override { 
 
     if (allVOne_) {
@@ -90,11 +118,23 @@ public:
     GradientBoostClassifier<ClassifierType>::printStats(stepNum);
     
   }
+  
+  template<class Archive>
+  void serialize(Archive &ar) {
+    ar(cereal::base_class<GradientBoostClassifier<ClassifierType>>(this), classValue_);
+    ar(cereal::base_class<GradientBoostClassifier<ClassifierType>>(this), classValues_);
+    ar(cereal::base_class<GradientBoostClassifier<ClassifierType>>(this), allVOne_);
+    ar(cereal::base_class<GradientBoostClassifier<ClassifierType>>(this), num1_);
+    ar(cereal::base_class<GradientBoostClassifier<ClassifierType>>(this), num2_);
+  }
 
 private:
   std::size_t classValue_;
   ClassPair classValues_; 
   bool allVOne_;
+
+  std::size_t num1_;
+  std::size_t num2_;
 };
 
 template<typename ClassifierType>
@@ -104,6 +144,7 @@ public:
 
   using DataType = typename classifier_traits<ClassifierType>::datatype;
   using IntegralLabelType = typename classifier_traits<ClassifierType>::integrallabeltype;
+  using Classifier = typename classifier_traits<ClassifierType>::classifier;
   using ClassClassifier = GradientBoostClassClassifier<ClassifierType>;
   using ClassifierList = std::vector<std::unique_ptr<ClassClassifier>>;
 
@@ -158,10 +199,11 @@ public:
   // prediction OOS, loop through and call Classify_ on individual classifiers, sum
   void Predict(std::string, const mat&, Row<DataType>&, bool=false);
 
-  // overloaded versions of above based based on label datatype
-  void Predict(Row<IntegralLabelType>&);
-  void Predict(Row<IntegralLabelType>&, const uvec&);
-  void Predict(const mat&, Row<IntegralLabelType>&);
+  template<class Archive>
+  void serialize(Archive &ar) {
+    ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), CEREAL_NVP(classClassifiers_));
+    ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), allVOne_);
+  }
 
 private:
   void init_();
@@ -178,6 +220,22 @@ private:
   bool allVOne_;
 
 };
+
+using DTC = ClassifierTypes::DecisionTreeClassifierType;
+using CTC = ClassifierTypes::DecisionTreeRegressorType;
+using RFC = ClassifierTypes::RandomForestClassifierType;
+
+using ClassifierBaseDD = ClassifierBase<double, DTC>;
+using GradientBoostClassClassifierD = GradientBoostClassClassifier<DTC>;
+using GradientBoostClassifierD = GradientBoostClassifier<DTC>;
+using GradientBoostMultiClassifierD = GradientBoostMultiClassifier<DTC>;
+
+// Register each class with cereal
+CEREAL_REGISTER_TYPE(GradientBoostClassClassifierD);
+CEREAL_REGISTER_TYPE(GradientBoostMultiClassifierD);
+
+CEREAL_REGISTER_POLYMORPHIC_RELATION(GradientBoostClassifierD, GradientBoostClassClassifierD);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseDD, GradientBoostMultiClassifierD);
 
 #include "gradientboostmulticlassifier_impl.hpp"
 

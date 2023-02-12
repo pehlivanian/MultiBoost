@@ -29,7 +29,7 @@ auto main(int argc, char **argv) -> int {
 	      trainLabels, 
 	      testLabels, 0.2);
 
-  
+
   std::cout << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
 	    << trainDataset.n_rows << ")" << std::endl;
   std::cout << "TRAIN LABELS:  (" << trainLabels.n_cols << " x "
@@ -66,7 +66,7 @@ auto main(int argc, char **argv) -> int {
   context.minLeafSize = 1;
   context.maxDepth = 10;
   context.minimumGainSplit = 0.;
-  context.hasOOSData = false;
+  context.hasOOSData = true;
   context.dataset_oos = testDataset;
   context.labels_oos = conv_to<Row<double>>::from(testLabels);
 

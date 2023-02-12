@@ -41,6 +41,7 @@
 #include "score2.hpp"
 #include "LTSS.hpp"
 #include "DP.hpp"
+#include "utils.hpp"
 
 using namespace arma;
 using namespace mlpack;
@@ -89,10 +90,38 @@ namespace ClassifierContext{
       serialize{false},
       serializationWindow{500}
     {}
+
+    Context(const Context& rhs) {
+      loss = rhs.loss;
+      partitionSize = rhs.partitionSize;
+      partitionRatio = rhs.partitionRatio;
+      learningRate = rhs.learningRate;
+      steps = rhs.steps;
+      symmetrizeLabels = rhs.symmetrizeLabels;
+      removeRedundantLabels = rhs.removeRedundantLabels;
+      rowSubsampleRatio = rhs.rowSubsampleRatio;
+      colSubsampleRatio = rhs.colSubsampleRatio;
+      recursiveFit = rhs.recursiveFit;
+      partitionSizeMethod = rhs.partitionSizeMethod;
+      learningRateMethod = rhs.learningRateMethod;
+      minLeafSize = rhs.minLeafSize;
+      minimumGainSplit = rhs.minimumGainSplit;
+      maxDepth = rhs.maxDepth;
+      numTrees = rhs.numTrees;
+      hasOOSData = rhs.hasOOSData;
+      reuseColMask = rhs.reuseColMask;
+      serialize = rhs.serialize;
+      hasInitialPrediction = rhs.hasInitialPrediction;
+      serializationWindow = rhs.serializationWindow;
+      dataset_oos = rhs.dataset_oos;
+      labels_oos = rhs.labels_oos;
+      latestPrediction = rhs.latestPrediction;
+      colMask = rhs.colMask;
+    }
       
     lossFunction loss;
     std::size_t partitionSize;
-    double partitionRatio = .5;
+    double partitionRatio;
     double learningRate;
     int steps;
     bool symmetrizeLabels;
@@ -215,7 +244,7 @@ public:
     /*
       Row<std::size_t> prediction;
       classifier_->Classify(dataset, prediction);
-      const double trainError = arma::accu(prediction != labels_t_) * 100. / labels_t_.n_elem;
+      const double trainError = err(prediction, labels_t_);
       for (size_t i=0; i<25; ++i)
       std::cout << labels_t_[i] << " ::(1) " << prediction[i] << std::endl;
       std::cout << "dataset size:    " << dataset.n_rows << " x " << dataset.n_cols << std::endl;
@@ -234,6 +263,7 @@ public:
 
   void setClassifier(const mat&, Row<std::size_t>&, Args&&...);
   void Classify_(const mat&, Row<DataType>&) override;
+  void Classify_(const mat&, Row<DataType>&, mat&);
   void purge() override;
 
   template<class Archive>
@@ -391,10 +421,11 @@ public:
   using DataType = typename classifier_traits<ClassifierType>::datatype;
   using IntegralLabelType = typename classifier_traits<ClassifierType>::integrallabeltype;
   using Classifier = typename classifier_traits<ClassifierType>::classifier;
+  using ClassifierList = std::vector<std::unique_ptr<ClassifierBase<DataType, Classifier>>>;
 
   using Partition = std::vector<std::vector<int>>;
   using PartitionList = std::vector<Partition>;
-  using ClassifierList = std::vector<std::unique_ptr<ClassifierBase<DataType, Classifier>>>;
+
   using Leaves = Row<double>;
   using LeavesList = std::vector<Leaves>;
   using Prediction = Row<double>;
@@ -471,7 +502,7 @@ public:
   { 
     if (hasOOSData_ = context.hasOOSData) {
       dataset_oos_ = context.dataset_oos;
-      labels_oos_ = labels;
+      labels_oos_ = context.labels_oos;
     }
     if (reuseColMask_ = context.reuseColMask) {
       colMask_ = context.colMask;
@@ -488,7 +519,7 @@ public:
   virtual void Classify(const mat&, Row<DataType>&);
 
   // 4 Predict methods
-  // predict on member dataset; loop through and sum step prediction vectors
+  // predict on member dataset; use latestPrediction_
   virtual void Predict(Row<DataType>&);
   // predict on subset of dataset defined by uvec; sum step prediction vectors
   virtual void Predict(Row<DataType>&, const uvec&);

@@ -8,6 +8,7 @@ using row_t = Row<std::size_t>;
 using namespace PartitionSize;
 using namespace LearningRate;
 using namespace LossMeasures;
+using namespace IB_utils;
 
 namespace {
   const bool DIAGNOSTICS = false;
@@ -55,7 +56,7 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::Classify_(const mat& 
   /*
     Row<std::size_t> prediction;
     classifier_->Classify(dataset_, prediction);
-    const double trainError = arma::accu(prediction != labels_t_) * 100. / labels_t_.n_elem;
+    const double trainError = err(prediction, labels_t_);
     for (size_t i=0; i<25; ++i)
     std::cout << labels_t_[i] << " ::(2) " << prediction[i] << std::endl;
     std::cout << "dataset size:    " << dataset.n_rows << " x " << dataset.n_cols << std::endl;
@@ -63,6 +64,15 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::Classify_(const mat& 
     std::cout << "Training error (2): " << trainError << "%." << std::endl;
   */
   
+}
+
+template<typename DataType, typename ClassifierType, typename... Args>
+void
+DiscreteClassifierBase<DataType, ClassifierType, Args...>::Classify_(const mat& dataset, Row<DataType>& labels, mat& predictions) {
+  Row<std::size_t> labels_t;
+  labels = Row<DataType>(dataset.n_cols);
+  classifier_->Classify(dataset, labels_t, predictions);
+  decode(labels_t, labels);
 }
 
 template<typename DataType, typename ClassifierType, typename... Args>
@@ -478,7 +488,9 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   if (DIAGNOSTICS) {
     std::cerr << "FINISHED." << std::endl;
   }  
-  classifier->Classify_(dataset_, prediction);
+  
+  mat probabilities;
+  classifier->Classify_(dataset_, prediction, probabilities);
 
   updateClassifiers(std::move(classifier), prediction);
 
@@ -671,7 +683,7 @@ GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
 
   // Only print stats for top level of recursive call
   if (hasOOSData_) {
-    double error_is = accu(yhat != labels_) * 100. / labels_.n_elem;
+    double error_is = err(yhat, labels_);
     std::cout << suff << ": " 
 	      << "(PARTITION SIZE = " << partitionSize_
 	      << ", STEPS = " << steps_ << ") "
@@ -687,7 +699,7 @@ GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
     } else {
       Predict(dataset_oos_, yhat_oos);
     }
-    double error_oos = accu(yhat_oos != labels_oos_) * 100. / labels_oos_.n_elem;
+    double error_oos = err(yhat_oos, labels_oos_);
     std::cout << suff<< ": "
 	      << "(PARTITION SIZE = " << partitionSize_
 	      << ", STEPS = " << steps_ << ") "

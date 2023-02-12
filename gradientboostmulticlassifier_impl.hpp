@@ -23,18 +23,62 @@ GradientBoostMultiClassifier<ClassifierType>::init_() {
   } else {
     for (auto it1=uniqueVals.begin(); it1!=uniqueVals.end(); ++it1) {
       for (auto it2=it1+1; it2!=uniqueVals.end(); ++it2) {
-	uvec ind1 = find(labels_ == *it1), ind2 = find(labels_ == *it2);
-	Row<double> aVb = zeros<Row<double>>(labels_.n_elem);
-	aVb.elem(ind1).fill(.5);
-	aVb.elem(ind2).fill(1.);
+	uvec ind0 = find((labels_ == *it1) || (labels_ == *it2));
+	uvec ind1 = find(labels_ == *it1);
+	uvec ind2 = find(labels_ == *it2);
+	
+	Row<double> labels_aVb = labels_.submat(zeros<uvec>(1), ind0);
+	mat dataset_aVb = dataset_.cols(ind0);
+
+	// If context contains OOS data we will have to create new
+	// copies to slice for OOS aVb samples anyway; just copy now
+	ClassifierContext::Context context_oos = context_.context;
+
+	if (context_.context.hasOOSData) {
+	  mat dataset_oos = context_.context.dataset_oos;
+	  Row<DataType> labels_oos = context_.context.labels_oos;
+	  uvec ind = find((labels_oos == *it1) || (labels_oos == *it2));
+	  
+	  Row<double> labels_aVb_oos = labels_oos.submat(zeros<uvec>(1), ind);
+	  mat dataset_aVb_oos = dataset_oos.cols(ind);
+
+	  context_oos.hasOOSData = true;
+	  context_oos.dataset_oos = dataset_aVb_oos;
+	  context_oos.labels_oos = labels_aVb_oos;
+
+	  std::cout << "ALL V ALL (" << *it1 << ", " << *it2 << ")" << std::endl;
+
+	  std::cout << "IS DATASET: (" << dataset_aVb.n_cols << " x " 
+	    << dataset_aVb.n_rows << ")" << std::endl;
+	  std::cout << "IS LABELS: (" << labels_aVb.n_cols << " x " 
+	    << labels_aVb.n_rows << ")" << std::endl;
+
+	  std::cout << "OOS DATASET: (" << context_oos.dataset_oos.n_cols << " x " 
+	    << context_oos.dataset_oos.n_rows << ")" << std::endl;
+	  std::cout << "OOS LABELS: (" << context_oos.labels_oos.n_cols << " x " 
+	    << context_oos.labels_oos.n_rows << ")" << std::endl;
+
+	}
 
 	std::unique_ptr<C> classClassifier;
-	classClassifier.reset(new C(dataset_, aVb, context_.context, ClassPair(*it1, *it2)));
+	classClassifier.reset(new C(dataset_aVb, 
+				    labels_aVb, 
+				    context_oos, 
+				    ClassPair(*it1, *it2), 
+				    ind1.n_elem, 
+				    ind2.n_elem));
 	classClassifiers_.push_back(std::move(classClassifier));
 	
       }
     }
   }
+
+}
+
+template<typename ClassifierType>
+void 
+GradientBoostClassClassifier<ClassifierType>::Classify_(const mat& dataset, Row<DataType>& prediction) {
+  
 
 }
 
@@ -80,20 +124,39 @@ GradientBoostMultiClassifier<ClassifierType>::purge() {
 
 template<typename ClassifierType>
 void
-GradientBoostMultiClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& prediction) {
+GradientBoostMultiClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
   ;
+  /*  
+
+  if (serialize_ && indexName_.size()) {
+    throw predictionAfterClearedClassifiersException();
+  }
+
+  prediction = zeros<Row<DataType>>(dataset.n_cols);
+
+  for (const auto& classifier : classifiers_) {
+    Row<DataType> predictionStep;
+    classifier->Classify_(dataset, predictionStep);
+    prediction += predictionStep;    
+  }  
+
+  if (symmetrized_ and not ignoreSymmetrization) {
+    deSymmetrize(prediction);
+  }
+  */
+
 }
 
 template<typename ClassifierType>
 void
 GradientBoostMultiClassifier<ClassifierType>::Classify_(const mat& dataset, Row<DataType>& prediction) {
-  ;
+  Predict(dataset, prediction, false);
 }
 
 template<typename ClassifierType>
 void
 GradientBoostMultiClassifier<ClassifierType>::Predict(Row<DataType>& prediction) {
-  ;
+  return GradientBoostClassifier<ClassifierType>::latestPrediction_;
 }
 
 template<typename ClassifierType>
@@ -102,12 +165,9 @@ GradientBoostMultiClassifier<ClassifierType>::Predict(Row<DataType>& prediction,
   ;
 }
 
-template<typename ClassifierType>
-void
-GradientBoostMultiClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
-  ;
-}
-
+///////////////////
+// Archive versions
+///////////////////
 template<typename ClassifierType>
 void
 GradientBoostMultiClassifier<ClassifierType>::Predict(std::string indexName, Row<DataType>& prediction, bool postSymmetrize) {
@@ -117,23 +177,5 @@ GradientBoostMultiClassifier<ClassifierType>::Predict(std::string indexName, Row
 template<typename ClassifierType>
 void
 GradientBoostMultiClassifier<ClassifierType>::Predict(std::string indexName, const mat& dataset, Row<DataType>& prediction, bool postSymmetrize) {
-  ;
-}
-
-template<typename ClassifierType>
-void
-GradientBoostMultiClassifier<ClassifierType>::Predict(Row<IntegralLabelType>& prediction) {
-  ;
-}
-
-template<typename ClassifierType>
-void
-GradientBoostMultiClassifier<ClassifierType>::Predict(Row<IntegralLabelType>& prediction, const uvec& colMask) {
-  ;
-}
-
-template<typename ClassifierType>
-void
-GradientBoostMultiClassifier<ClassifierType>::Predict(const mat& dataset, Row<IntegralLabelType>& prediction) {
   ;
 }

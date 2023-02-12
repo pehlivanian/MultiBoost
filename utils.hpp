@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <string>
+#include <limits>
 #include <mlpack/core.hpp>
 
 namespace IB_utils {
@@ -15,6 +16,7 @@ namespace IB_utils {
   };
 
   double err(const Row<std::size_t>& yhat, const Row<std::size_t>& y);
+  double err(const Row<double>& yhat, const Row<double>& y, double=-1.);
   
   // Filter typeinfo string to generate unique filenames for serialization tests.
   inline std::string FilterFileName(const std::string& inputString)
@@ -128,6 +130,7 @@ namespace IB_utils {
 
   std::string writeIndex(const std::vector<std::string>&);
   void readIndex(std::string, std::vector<std::string>&);
+
 }
 
 #endif
