@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <memory>
+#include <algorithm>
 #include <utility>
 
 #include <cereal/types/polymorphic.hpp>
@@ -104,6 +105,8 @@ public:
   {}
   
   void Classify_(const mat&, Row<DataType>&) override;
+  
+  void info(const mat&);
 
   void printStats(int stepNum) override { 
 
@@ -135,6 +138,7 @@ private:
 
   std::size_t num1_;
   std::size_t num2_;
+
 };
 
 template<typename ClassifierType>
@@ -180,7 +184,6 @@ public:
   }
 
   void fit();
-  void Predict(const mat&, Row<DataType>&);
   
   void Classify_(const mat&, Row<DataType>&) override;
   void purge() override;
@@ -199,6 +202,8 @@ public:
   // prediction OOS, loop through and call Classify_ on individual classifiers, sum
   void Predict(std::string, const mat&, Row<DataType>&, bool=false);
 
+  void deSymmetrize(Row<DataType>&);
+
   template<class Archive>
   void serialize(Archive &ar) {
     ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), CEREAL_NVP(classClassifiers_));
@@ -213,11 +218,17 @@ private:
   mat dataset_oos_;
   Row<double> labels_;
   Row<double> labels_oos_;
+  Row<std::size_t> uniqueVals_;
   MultiClassifierContext::CombinedContext context_;
   ClassifierList classClassifiers_;
 
+  std::string indexName_;
+
   bool hasOOSData_;
   bool allVOne_;
+  bool serialize_;
+  bool symmetrized_;
+
 
 };
 

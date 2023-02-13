@@ -2,12 +2,38 @@ const unsigned int NUM_WORKERS = 6;
 
 template<typename ClassifierType>
 void
+GradientBoostClassClassifier<ClassifierType>::Classify_(const mat& dataset, Row<DataType>& prediction) {
+  GradientBoostClassifier<ClassifierType>::Classify_(dataset, prediction);
+}
+
+template<typename ClassifierType>
+void
+GradientBoostClassClassifier<ClassifierType>::info(const mat& dataset) {
+  if (allVOne_) {
+    std::cout << "AllVOne: (" << classValue_ << ")" << std::endl;
+  } else {
+    std::cout << "OneVOne: (" << classValues_.first << ", " << classValues_.second << ")" << std::endl;
+    std::cout << "Counts:  (" << num1_ << ", " << num2_ << ")" << std::endl;
+  }
+
+  Row<DataType> prediction;
+  Classify_(dataset, prediction);
+
+  std::cout << "Prediction" << std::endl;
+  for(std::size_t i=0; i<10; ++i)
+    std::cout << "[i] = " << prediction[i] << std::endl;
+
+}
+
+template<typename ClassifierType>
+void
 GradientBoostMultiClassifier<ClassifierType>::init_() {
 
   using C = GradientBoostClassClassifier<ClassifierType>;
   using ClassPair = std::pair<std::size_t, std::size_t>;
 
   Row<DataType> uniqueVals = sort(unique(labels_));
+  uniqueVals_ = conv_to<Row<std::size_t>>::from(uniqueVals);
   numClasses_ = uniqueVals.size();
   
   if (allVOne_) {
@@ -49,14 +75,14 @@ GradientBoostMultiClassifier<ClassifierType>::init_() {
 	  std::cout << "ALL V ALL (" << *it1 << ", " << *it2 << ")" << std::endl;
 
 	  std::cout << "IS DATASET: (" << dataset_aVb.n_cols << " x " 
-	    << dataset_aVb.n_rows << ")" << std::endl;
+		    << dataset_aVb.n_rows << ")" << std::endl;
 	  std::cout << "IS LABELS: (" << labels_aVb.n_cols << " x " 
-	    << labels_aVb.n_rows << ")" << std::endl;
+		    << labels_aVb.n_rows << ")" << std::endl;
 
 	  std::cout << "OOS DATASET: (" << context_oos.dataset_oos.n_cols << " x " 
-	    << context_oos.dataset_oos.n_rows << ")" << std::endl;
+		    << context_oos.dataset_oos.n_rows << ")" << std::endl;
 	  std::cout << "OOS LABELS: (" << context_oos.labels_oos.n_cols << " x " 
-	    << context_oos.labels_oos.n_rows << ")" << std::endl;
+		    << context_oos.labels_oos.n_rows << ")" << std::endl;
 
 	}
 
@@ -72,13 +98,6 @@ GradientBoostMultiClassifier<ClassifierType>::init_() {
       }
     }
   }
-
-}
-
-template<typename ClassifierType>
-void 
-GradientBoostClassClassifier<ClassifierType>::Classify_(const mat& dataset, Row<DataType>& prediction) {
-  
 
 }
 
@@ -108,6 +127,13 @@ GradientBoostMultiClassifier<ClassifierType>::fit() {
   while (!results_queue.empty()) {
     bool valid = results_queue.waitPop(result);
   }
+
+  // All class classifiers are not fit
+  // printStats();
+
+  std::cout << "HERE" << std::endl;
+  Row<double> prediction;
+  Predict(dataset_, prediction);
   
 }
 
@@ -124,26 +150,60 @@ GradientBoostMultiClassifier<ClassifierType>::purge() {
 
 template<typename ClassifierType>
 void
-GradientBoostMultiClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
+GradientBoostMultiClassifier<ClassifierType>::deSymmetrize(Row<DataType>& prediction) {
   ;
-  /*  
+}
 
+template<typename ClassifierType>
+void
+GradientBoostMultiClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
   if (serialize_ && indexName_.size()) {
     throw predictionAfterClearedClassifiersException();
   }
+  
+  prediction = Row<DataType>(dataset.n_cols);
+  std::vector<Row<DataType>> classPredictions;
 
-  prediction = zeros<Row<DataType>>(dataset.n_cols);
-
-  for (const auto& classifier : classifiers_) {
+  for (const auto& classClassifier : classClassifiers_) {
+    classClassifier->info(dataset);
     Row<DataType> predictionStep;
-    classifier->Classify_(dataset, predictionStep);
-    prediction += predictionStep;    
-  }  
+    classClassifier->Classify_(dataset, predictionStep);
+    classPredictions.push_back(predictionStep);
+  }
+
+  for (std::size_t i=0; i<dataset.n_cols; ++i) {
+
+    // Set up unordered map
+    std::unordered_map<std::size_t, std::size_t> votes;
+    for(auto it=uniqueVals_.begin(); it!=uniqueVals_.end(); ++it) {
+      votes[*it] = 0;
+    }
+
+    for (std::size_t j=0; j<classPredictions.size(); ++j) {
+      Row<DataType> p = classPredictions[j];      
+      votes[p.at(0,i)] += 1;
+    }
+
+    // Find majority vote
+    std::vector<std::pair<std::size_t, std::size_t>> pairs;
+    for (auto &i : votes) {
+      pairs.push_back(i);
+    }
+    std::sort(pairs.begin(), pairs.end(), comp);
+
+    if (pairs[0].second > pairs[1].second) {
+      prediction(i) = pairs[0].first;
+    } else {
+      std::cout << "HERE" << std::endl;
+    }
+    
+    std::cout << "HERE" << std::endl;
+  
+  }
 
   if (symmetrized_ and not ignoreSymmetrization) {
     deSymmetrize(prediction);
   }
-  */
 
 }
 

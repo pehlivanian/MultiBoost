@@ -13,6 +13,10 @@ namespace IB_utils {
     return static_cast<double>(ind.n_elem) * 100. / static_cast<double>(y.n_elem);
   }
 
+  bool comp(std::pair<std::size_t, std::size_t>& a, std::pair<std::size_t, std::size_t>& b) {
+    return a.second > b.second;
+  }
+
   std::string writeIndex(const std::vector<std::string>& fileNames) {
     
     auto now = std::chrono::system_clock::now();

@@ -527,9 +527,7 @@ public:
   virtual void Predict(const mat&, Row<DataType>&, bool=false);
 
   // overloaded versions for archive classifier
-  // predict on member dataset from archive
   virtual void Predict(std::string, Row<DataType>&, bool=false);
-  // prediction OOS, loop through and call Classify_ on individual classifiers, sum
   virtual void Predict(std::string, const mat&, Row<DataType>&, bool=false);
 
   // overloaded versions of above based based on label datatype

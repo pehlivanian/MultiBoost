@@ -131,6 +131,8 @@ namespace IB_utils {
   std::string writeIndex(const std::vector<std::string>&);
   void readIndex(std::string, std::vector<std::string>&);
 
+  bool comp(std::pair<std::size_t, std::size_t>&, std::pair<std::size_t, std::size_t>&);
+
 }
 
 #endif
