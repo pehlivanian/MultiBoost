@@ -1,3 +1,6 @@
+// #define DEBUG() __debug dd{__FILE__, __FUNCTION__, __LINE__};
+#define DEBUG() ;
+
 const unsigned int NUM_WORKERS = 6;
 
 template<typename ClassifierType>
@@ -9,6 +12,9 @@ GradientBoostClassClassifier<ClassifierType>::Classify_(const mat& dataset, Row<
 template<typename ClassifierType>
 void
 GradientBoostClassClassifier<ClassifierType>::info(const mat& dataset) {
+
+  DEBUG()
+
   if (allVOne_) {
     std::cout << "AllVOne: (" << classValue_ << ")" << std::endl;
   } else {
@@ -19,15 +25,13 @@ GradientBoostClassClassifier<ClassifierType>::info(const mat& dataset) {
   Row<DataType> prediction;
   Classify_(dataset, prediction);
 
-  std::cout << "Prediction" << std::endl;
-  for(std::size_t i=0; i<10; ++i)
-    std::cout << "[i] = " << prediction[i] << std::endl;
-
 }
 
 template<typename ClassifierType>
 void
 GradientBoostMultiClassifier<ClassifierType>::init_() {
+
+  DEBUG()
 
   using C = GradientBoostClassClassifier<ClassifierType>;
   using ClassPair = std::pair<std::size_t, std::size_t>;
@@ -52,7 +56,7 @@ GradientBoostMultiClassifier<ClassifierType>::init_() {
 	uvec ind0 = find((labels_ == *it1) || (labels_ == *it2));
 	uvec ind1 = find(labels_ == *it1);
 	uvec ind2 = find(labels_ == *it2);
-	
+
 	Row<double> labels_aVb = labels_.submat(zeros<uvec>(1), ind0);
 	mat dataset_aVb = dataset_.cols(ind0);
 
@@ -103,21 +107,91 @@ GradientBoostMultiClassifier<ClassifierType>::init_() {
 
 template<typename ClassifierType>
 void
+GradientBoostMultiClassifier<ClassifierType>::printStats(int stepNum) {
+
+  DEBUG()
+
+  auto now = std::chrono::system_clock::now();
+  auto UTC = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+  auto in_time_t = std::chrono::system_clock::to_time_t(now);
+
+  std::stringstream datetime;
+  datetime << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d_%X");
+  auto suff = datetime.str();
+
+  Row<double> yhat;
+  Predict(yhat);
+    
+  double error_is = err(yhat, labels_);
+  std::cout << suff << ": " 
+	    << "(STEPS = " << steps_ << ") "
+	    << "STEP: " << stepNum 
+	    << " IS ERROR: " << error_is << "%" << std::endl;
+    
+  Row<double> yhat_oos;
+  Predict(dataset_oos_, yhat_oos);
+
+  double error_oos = err(yhat_oos, labels_oos_);
+  std::cout << suff << ": "
+	    << "(STEPS = " << steps_ << ") "
+	    << "STEP: " << stepNum
+	    << " OOS ERROR: " << error_oos << "%" << std::endl;
+      
+}
+
+template<typename ClassifierType>
+void
 GradientBoostMultiClassifier<ClassifierType>::fit() {
 
-  using C = GradientBoostClassClassifier<ClassifierType>;
+  DEBUG()
+  
+  for (std::size_t stepNum=1; stepNum<=steps_; ++stepNum) {
+    fit_step(stepNum);
+    
+    if (serialize_) {
+      commit();
+    }    
+  }
+  
+  // Serialize residual
+  if (serialize_)
+    commit();
+
+  // print final stats
+  printStats(steps_);
+
+}
+
+template<typename ClassifierType>
+void
+GradientBoostMultiClassifier<ClassifierType>::commit() {
+
+  DEBUG()
+
+  std::cerr << "CURRENTLY NOT SUPPORTED" << std::endl;
+}
+
+template<typename ClassifierType>
+void
+GradientBoostMultiClassifier<ClassifierType>::fit_step(int stepNum) {
+
+  DEBUG()
+
+  using ClassClassifier = GradientBoostClassClassifier<ClassifierType>;
 
   ThreadsafeQueue<int> results_queue;
-  std::vector<ThreadPool::TaskFuture<void>> futures;
+  std::vector<ThreadPool::TaskFuture<int>> futures;
 
-  auto task = [&results_queue](C& classifier)
+  auto task = [&results_queue](ClassClassifier& classifier)
     { 
       classifier.fit(); 
       results_queue.push(0); 
+      return 0;
     };
 
   for (auto &classClassifier : classClassifiers_) {
-    futures.push_back(DefaultThreadPool::submitJob(task, std::ref(*classClassifier)));
+    futures.push_back(DefaultThreadPool::submitJob_n<3>(task, std::ref(*classClassifier)));
+    // futures.push_back(DefaultThreadPool::submitJob(task, std::ref(*classClassifier)));
   }
   
   for (auto& item : futures)
@@ -128,18 +202,13 @@ GradientBoostMultiClassifier<ClassifierType>::fit() {
     bool valid = results_queue.waitPop(result);
   }
 
-  // All class classifiers are not fit
-  // printStats();
-
-  std::cout << "HERE" << std::endl;
-  Row<double> prediction;
-  Predict(dataset_, prediction);
-  
 }
 
 template<typename ClassifierType>
 void
 GradientBoostMultiClassifier<ClassifierType>::purge() {
+
+  DEBUG()
  
   dataset_ = ones<mat>(0,0);
   labels_ = ones<Row<double>>(0);
@@ -151,12 +220,17 @@ GradientBoostMultiClassifier<ClassifierType>::purge() {
 template<typename ClassifierType>
 void
 GradientBoostMultiClassifier<ClassifierType>::deSymmetrize(Row<DataType>& prediction) {
+
+  DEBUG()
   ;
 }
 
 template<typename ClassifierType>
 void
 GradientBoostMultiClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
+
+  DEBUG()
+
   if (serialize_ && indexName_.size()) {
     throw predictionAfterClearedClassifiersException();
   }
@@ -194,10 +268,9 @@ GradientBoostMultiClassifier<ClassifierType>::Predict(const mat& dataset, Row<Da
     if (pairs[0].second > pairs[1].second) {
       prediction(i) = pairs[0].first;
     } else {
-      std::cout << "HERE" << std::endl;
+      std::cerr << "MAJORITY RULE VIOLATION" << std::endl;
     }
     
-    std::cout << "HERE" << std::endl;
   
   }
 
@@ -210,19 +283,61 @@ GradientBoostMultiClassifier<ClassifierType>::Predict(const mat& dataset, Row<Da
 template<typename ClassifierType>
 void
 GradientBoostMultiClassifier<ClassifierType>::Classify_(const mat& dataset, Row<DataType>& prediction) {
+
+  DEBUG()
+
   Predict(dataset, prediction, false);
 }
 
 template<typename ClassifierType>
 void
 GradientBoostMultiClassifier<ClassifierType>::Predict(Row<DataType>& prediction) {
-  return GradientBoostClassifier<ClassifierType>::latestPrediction_;
+
+  DEBUG()
+
+  Predict(dataset_, prediction);
 }
 
 template<typename ClassifierType>
 void
 GradientBoostMultiClassifier<ClassifierType>::Predict(Row<DataType>& prediction, const uvec& colMask) {
+
+  DEBUG()
+
   ;
+}
+
+template<typename ClassifierType>
+void
+GradientBoostMultiClassifier<ClassifierType>::Predict(Row<typename GradientBoostMultiClassifier<ClassifierType>::IntegralLabelType>& prediction) {
+
+  DEBUG()
+
+  Row<DataType> prediction_d = conv_to<Row<DataType>>::from(prediction);
+  Predict(prediction_d);
+  prediction = conv_to<Row<typename GradientBoostMultiClassifier<ClassifierType>::IntegralLabelType>>::from(prediction_d);
+}
+
+template<typename ClassifierType>
+void
+GradientBoostMultiClassifier<ClassifierType>::Predict(Row<typename GradientBoostMultiClassifier<ClassifierType>::IntegralLabelType>& prediction, const uvec& colMask) {
+
+  DEBUG()
+
+  Row<DataType> prediction_d = conv_to<Row<DataType>>::from(prediction);
+  Predict(prediction_d, colMask);
+  prediction = conv_to<Row<typename GradientBoostMultiClassifier<ClassifierType>::IntegralLabelType>>::from(prediction_d);
+}
+
+template<typename ClassifierType>
+void
+GradientBoostMultiClassifier<ClassifierType>::Predict(const mat& dataset, Row<typename GradientBoostMultiClassifier<ClassifierType>::IntegralLabelType>& prediction) {
+
+  DEBUG()
+
+  Row<DataType> prediction_d = conv_to<Row<DataType>>::from(prediction);
+  Predict(dataset, prediction_d);
+  prediction = conv_to<Row<typename GradientBoostMultiClassifier<ClassifierType>::IntegralLabelType>>::from(prediction_d);  
 }
 
 ///////////////////
@@ -231,11 +346,17 @@ GradientBoostMultiClassifier<ClassifierType>::Predict(Row<DataType>& prediction,
 template<typename ClassifierType>
 void
 GradientBoostMultiClassifier<ClassifierType>::Predict(std::string indexName, Row<DataType>& prediction, bool postSymmetrize) {
+
+  DEBUG()
+
   ;
 }
 
 template<typename ClassifierType>
 void
 GradientBoostMultiClassifier<ClassifierType>::Predict(std::string indexName, const mat& dataset, Row<DataType>& prediction, bool postSymmetrize) {
+
+  DEBUG()
+
   ;
 }

@@ -1,10 +1,15 @@
 #ifndef __GRADIENTBOOSTMULTICLASSIFIER_HPP__
 #define __GRADIENTBOOSTMULTICLASSIFIER_HPP__
 
+// #define DEBUG() __debug dd{__FILE__, __FUNCTION__, __LINE__};
+#define DEBUG() ;
+
 #include <vector>
 #include <memory>
 #include <algorithm>
 #include <utility>
+#include <sstream>
+#include <chrono>
 
 #include <cereal/types/polymorphic.hpp>
 #include <cereal/types/base_class.hpp>
@@ -23,19 +28,29 @@
 
 namespace MultiClassifierContext {
   struct MultiContext {
-    MultiContext(bool allVOne) :
-      allVOne{allVOne} 
+    MultiContext(bool allVOne,
+		 std::size_t steps,
+		 std::size_t partitionSize,
+		 bool serialize) :
+      allVOne{allVOne},
+      steps{steps},
+      serialize{serialize}
     {}
     MultiContext() :
       allVOne{true}
     {}
     bool allVOne;
+    std::size_t steps;
+    bool serialize;
+      
   };
 
   struct CombinedContext : ClassifierContext::Context{
     CombinedContext(ClassifierContext::Context context, MultiContext overlay) : 
       context{context},
-      allVOne{overlay.allVOne} 
+      allVOne{overlay.allVOne},
+      steps{overlay.steps},
+      serialize{overlay.serialize}
     {}
     CombinedContext() : 
       ClassifierContext::Context{},
@@ -44,6 +59,8 @@ namespace MultiClassifierContext {
       
     ClassifierContext::Context context;
     bool allVOne;
+    bool serialize;
+    std::size_t steps;
       
   };
 }
@@ -110,6 +127,8 @@ public:
 
   void printStats(int stepNum) override { 
 
+    DEBUG()
+
     if (allVOne_) {
       std::cerr << "SUMMARY FOR CLASS: " << classValue_ << std::endl;
     }
@@ -118,12 +137,16 @@ public:
 		<< ", " << classValues_.second 
 		<< ")" << std::endl;
     }
+
     GradientBoostClassifier<ClassifierType>::printStats(stepNum);
-    
+
   }
   
   template<class Archive>
   void serialize(Archive &ar) {
+
+    DEBUG() 
+
     ar(cereal::base_class<GradientBoostClassifier<ClassifierType>>(this), classValue_);
     ar(cereal::base_class<GradientBoostClassifier<ClassifierType>>(this), classValues_);
     ar(cereal::base_class<GradientBoostClassifier<ClassifierType>>(this), allVOne_);
@@ -157,13 +180,15 @@ public:
 			       const Row<std::size_t>& labels,
 			       MultiClassifierContext::CombinedContext context) :
     dataset_{dataset},
-    labels_{conv_to<Row<double>>::from(labels)},    
+    labels_{conv_to<Row<double>>::from(labels)},
+    steps_{context.steps},
     allVOne_{context.allVOne},
-    context_{context}
+    serialize_{context.serialize},
+    context_{context} 
   {
-    if (hasOOSData_ = context.hasOOSData) {
-      dataset_oos_ = context.dataset_oos;
-      labels_oos_ = conv_to<Row<double>>::from(context.labels_oos);
+    if (hasOOSData_ = context.context.hasOOSData) {
+      dataset_oos_ = context.context.dataset_oos;
+      labels_oos_ = conv_to<Row<double>>::from(context.context.labels_oos);
     }
     init_(); 
   }
@@ -173,12 +198,14 @@ public:
 			       MultiClassifierContext::CombinedContext context) :
     dataset_{dataset},
     labels_{labels},
+    steps_{context.steps},
     allVOne_{context.allVOne},
+    serialize_{context.serialize},
     context_{context} 
   { 
-    if (hasOOSData_ = context.hasOOSData) {
-      dataset_oos_ = context.dataset_oos;
-      labels_oos_ = conv_to<Row<double>>::from(context.labels_oos);
+    if (hasOOSData_ = context.context.hasOOSData) {
+      dataset_oos_ = context.context.dataset_oos;
+      labels_oos_ = conv_to<Row<double>>::from(context.context.labels_oos);
     }
     init_(); 
   }
@@ -187,6 +214,8 @@ public:
   
   void Classify_(const mat&, Row<DataType>&) override;
   void purge() override;
+  
+  void printStats(int);
 
   // 4 Predict methods
   // predict on member dataset; loop through and sum step prediction vectors
@@ -196,13 +225,17 @@ public:
   // predict OOS, loop through and call Classify_ on individual classifiers, sum
   void Predict(const mat&, Row<DataType>&, bool=false);
 
+  // overloaded versions of above based based on label datatype
+  virtual void Predict(Row<IntegralLabelType>&);
+  virtual void Predict(Row<IntegralLabelType>&, const uvec&);
+  virtual void Predict(const mat&, Row<IntegralLabelType>&);
+
   // overloaded versions for archive classifier
-  // predict on member dataset from archive
   void Predict(std::string, Row<DataType>&, bool=false);
-  // prediction OOS, loop through and call Classify_ on individual classifiers, sum
   void Predict(std::string, const mat&, Row<DataType>&, bool=false);
 
   void deSymmetrize(Row<DataType>&);
+  void commit();
 
   template<class Archive>
   void serialize(Archive &ar) {
@@ -212,6 +245,7 @@ public:
 
 private:
   void init_();
+  void fit_step(int stepNum);
 
   std::size_t numClasses_;
   mat dataset_;
@@ -229,6 +263,7 @@ private:
   bool serialize_;
   bool symmetrized_;
 
+  std::size_t steps_;
 
 };
 

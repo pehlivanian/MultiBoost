@@ -83,10 +83,14 @@ public:
     TaskFuture& operator=(TaskFuture&&) = default;
     ~TaskFuture(void)
     {
-      if(m_future.valid())
+      // XXX
+      // Not threadsafe; find another way
+      /*
+	if(m_future.valid())
 	{
-	  m_future.get();
+	m_future.get();
 	}
+      */
     }
 
     auto get(void) -> T

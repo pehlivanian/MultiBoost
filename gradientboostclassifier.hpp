@@ -1,6 +1,9 @@
 #ifndef __GRADIENTBOOSTCLASSIFIER_HPP__
 #define __GRADIENTBOOSTCLASSIFIER_HPP__
 
+// #define DEBUG() __debug dd{__FILE__, __FUNCTION__, __LINE__};
+#define DEBUG() ;
+
 #include <list>
 #include <utility>
 #include <memory>
@@ -167,9 +170,34 @@ void print_vector(Row row) {
 template void print_matrix<arma::mat>(arma::mat matrix);
 template void print_vector<arma::rowvec>(arma::rowvec row);
 
+class __debug {
+public:
+  __debug(const char* fl, const char* fn, int ln) :
+    fl_{fl},
+    fn_{fn},
+    ln_{ln} 
+  {
+    std::cerr << "===> ENTER FILE: " << fl_
+	      << " FUNCTION: " << fn_
+	      <<" LINE: " << ln_ << std::endl;
+  }
+  ~__debug() {
+    std::cerr << "===< EXIT FILE: " << fl_
+	      << " FUNCTION: " << fn_
+	      <<" LINE: " << ln_ << std::endl;
+  }
+private:
+  const char* fl_;
+  const char* fn_;
+  int ln_;
+};
+
 class PartitionUtils {
 public:
   static std::vector<int> _shuffle(int sz) {
+
+    DEBUG()
+
     std::vector<int> ind(sz), r(sz);
     std::iota(ind.begin(), ind.end(), 0);
     
@@ -184,6 +212,9 @@ public:
   }
 
   static std::vector<std::vector<int>> _fullPartition(int sz) {
+    
+    DEBUG()
+
     std::vector<int> subset(sz);
     std::iota(subset.begin(), subset.end(), 0);
     std::vector<std::vector<int>> p{1, subset};
@@ -235,6 +266,9 @@ public:
   DiscreteClassifierBase(const mat& dataset, Row<DataType>& labels, Args&&... args) : 
     ClassifierBase<DataType, ClassifierType>(typeid(*this).name())
   {
+
+    DEBUG()
+
     labels_t_ = Row<std::size_t>(labels.n_cols);
     encode(labels, labels_t_);
     setClassifier(dataset, labels_t_, std::forward<Args>(args)...);
@@ -289,6 +323,9 @@ public:
   ContinuousClassifierBase(const mat& dataset, Row<DataType>& labels, Args&&... args) : 
     ClassifierBase<DataType, ClassifierType>(typeid(*this).name()) 
   {
+
+    DEBUG()
+
     setClassifier(dataset, labels, std::forward<Args>(args)...);
     args_ = std::tuple<Args...>(args...);
   }
@@ -304,6 +341,9 @@ public:
 
   template<class Archive>
   void serialize(Archive &ar) {
+
+    DEBUG()
+
     ar(cereal::base_class<ClassifierBase<DataType, ClassifierType>>(this), CEREAL_NVP(classifier_));
   }
 

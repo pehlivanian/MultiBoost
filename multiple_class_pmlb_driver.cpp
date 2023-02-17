@@ -47,18 +47,18 @@ auto main(int argc, char **argv) -> int {
 
   // context.loss = lossFunction::Savage;
   // context.loss = lossFunction::BinomialDeviance;
-  context.loss = lossFunction::MSE;
+  // context.loss = lossFunction::MSE;
   // context.loss = lossFunction::Exp;
   // context.loss = lossFunction::Arctan;
-  // context.loss = lossFunction::Synthetic;
-  context.partitionSize = 24;
+  context.loss = lossFunction::Synthetic;
+  context.partitionSize = 4;
   context.partitionRatio = .25;
   context.learningRate = .001;
-  context.steps = 1000;
+  context.steps = 2000;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .25; // .75
-  context.recursiveFit = false;
+  context.recursiveFit = true;
   context.serialize = false;
   context.serializationWindow = 1000;
   context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED; // INCREASING
@@ -71,9 +71,12 @@ auto main(int argc, char **argv) -> int {
   context.labels_oos = conv_to<Row<double>>::from(testLabels);
 
   multiContext.allVOne = false;
+  multiContext.steps = 1;
 
   combinedContext.context = context;
   combinedContext.allVOne = multiContext.allVOne;
+  combinedContext.steps = multiContext.steps;
+  
 
   using classifier = GradientBoostMultiClassifier<DecisionTreeClassifier>;
   auto c = std::make_unique<classifier>(trainDataset, 
@@ -82,16 +85,14 @@ auto main(int argc, char **argv) -> int {
 
   c->fit();
 
-  /*
-    c->Predict(trainDataset, trainPrediction);
-    c->Predict(testDataset, testPrediction);
-    
-    const double trainError = err(trainPrediction, trainLabels);
-    const double testError = err(testPrediction, testLabels);
-    
-    std::cout << "TRAINING ERROR: " << trainError << "%." << std::endl;
-    std::cout << "TEST ERROR    : " << testError << "%." << std::endl;  
-  */
+  c->Predict(trainDataset, trainPrediction);
+  c->Predict(testDataset, testPrediction);
+  
+  const double trainError = err(trainPrediction, trainLabels);
+  const double testError = err(testPrediction, testLabels);
+  
+  std::cout << "TRAINING ERROR: " << trainError << "%." << std::endl;
+  std::cout << "TEST ERROR    : " << testError << "%." << std::endl;  
   
   return 0;
 }
