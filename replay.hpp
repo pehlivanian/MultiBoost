@@ -33,7 +33,9 @@ public:
   ~Replay() = default;
 
   static void Predict(std::string, const mat&, Row<DataType>&);
+
   static void Classify(std::string, const mat&, Row<DataType>&);
+
   static void read(GradientBoostClassifier<ClassifierType>&, std::string);
 
 };

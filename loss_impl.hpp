@@ -267,11 +267,16 @@ SyntheticLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* 
   // *grad = -1 * pow(y - yhat, 5);  
   // *grad = -1 * pow(atan(y - yhat), 3);
 
-  rowvec  f(y.n_cols, arma::fill::zeros);
+  // rowvec  f(y.n_cols, arma::fill::zeros);
   // *grad = -1 * sign(y) % max(sign(y) % (y - yhat), f);
   // *grad = -1 * sign(y) % max(sign(y) % atan(y - yhat), f);
   // *grad = -1 * sign(y) % abs(y - yhat);
-  *grad = -1 * sign(y) % pow(y - yhat, 4);
+
+  // OLD
+  // *grad = -1 * sign(y) % pow(y - yhat, 4);
+
+  // NEW
+  *grad = -sign(y) % exp(yhat / pow(y, 2) % (y - yhat));
 
 #ifdef AUTODIFF
   ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
@@ -287,10 +292,12 @@ template<typename DataType>
 void
 SyntheticLoss<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
 
-  rowvec f(y.n_cols, arma::fill::ones);
-  *hess = f;
-
-  // *hess = pow(y - yhat, 2);
+  // OLD
+  // rowvec f(y.n_cols, arma::fill::ones);
+  // *hess = f;
+  
+  // NEW
+  *hess = (sign(y) % exp(yhat / pow(y, 2) % (y - yhat))) / (y % pow(y - yhat, 2));
   
 }
 

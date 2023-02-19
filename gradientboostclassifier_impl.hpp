@@ -652,6 +652,20 @@ GradientBoostClassifier<ClassifierType>::write() {
 }
 
 template<typename ClassifierType>
+std::string
+GradientBoostClassifier<ClassifierType>::writePrediction() {
+  
+  using CerealT = PredictionArchive<DataType>;
+  using CerealIArch = cereal::BinaryInputArchive;
+  using CerealOArch = cereal::BinaryOutputArchive;
+
+  PredictionArchive pa{latestPrediction_};
+  std::string fileName = dumps<CerealT, CerealIArch, CerealOArch>(pa);
+  return fileName;
+  
+}
+
+template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::read(GradientBoostClassifier<ClassifierType>& rhs,
 					      std::string fileName) {
@@ -707,8 +721,14 @@ GradientBoostClassifier<ClassifierType>::commit() {
 
   DEBUG()
 
-  auto path = write();
+  std::string path, predictionPath;
+  path = write();
   fileNames_.push_back(path);
+
+  if (serializePrediction_) {
+    predictionPath = writePrediction();
+    fileNames_.push_back(predictionPath);
+  }
   // std::copy(fileNames_.begin(), fileNames_.end(),std::ostream_iterator<std::string>(std::cout, "\n"));
   indexName_ = writeIndex(fileNames_);  
   ClassifierList{}.swap(classifiers_);

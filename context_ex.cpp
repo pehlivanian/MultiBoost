@@ -1,13 +1,10 @@
-#include "pmlb_driver.hpp"
+#include "utils.hpp"
 
 using namespace arma;
 using namespace mlpack;
-using namespace mlpack::tree;
 using namespace mlpack::data;
 using namespace mlpack::util;
-using namespace std;
 
-using namespace LossMeasures;
 using namespace IB_utils;
 
 auto main(int argc, char **argv) -> int {
@@ -32,9 +29,9 @@ auto main(int argc, char **argv) -> int {
 	    << trainDataset.n_rows << ")" << std::endl;
   std::cout << "TEST DATASET: (" << testDataset.n_cols << " x " 
 	    << testDataset.n_rows << ")" << std::endl;
-  
-  
+
   ClassifierContext::Context context{};
+  
   // context.loss = lossFunction::Savage;
   // context.loss = lossFunction::BinomialDeviance;
   // context.loss = lossFunction::MSE;
@@ -59,22 +56,9 @@ auto main(int argc, char **argv) -> int {
   context.dataset_oos = testDataset;
   context.labels_oos = conv_to<Row<double>>::from(testLabels);
 
+  std::string fileName = "context.dat";
+  writeBinary<ClassifierContext::Context>(fileName, context);
 
-  using classifier = GradientBoostClassifier<DecisionTreeClassifier>;
-  auto c = std::make_unique<classifier>(trainDataset, 
-					trainLabels, 
-					context);
-  
-  c->fit();
-
-  c->Predict(trainDataset, trainPrediction);
-  c->Predict(testDataset, testPrediction);
-
-  const double trainError = err(trainPrediction, trainLabels);
-  const double testError = err(testPrediction, testLabels);
-
-  std::cout << "TRAINING ERROR: " << trainError << "%." << std::endl;
-  std::cout << "TEST ERROR    : " << testError << "%." << std::endl;
 
   return 0;
 }

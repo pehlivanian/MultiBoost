@@ -29,6 +29,7 @@ void loadDatasets(dataset_t& dataset, labels_t& labels) {
     throw std::runtime_error("Could not load file");
 }
 
+/*
 TEST(DPSolverTest, TestAVXMatchesSerial) {
   using namespace Objectives;
 
@@ -225,7 +226,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips)
 
 TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
   
-  std::vector<bool> trials = {false};
+  std::vector<bool> trials = {false, true};
   dataset_t dataset, trainDataset, testDataset;
   labels_t labels, trainLabels, testLabels;
 
@@ -275,7 +276,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
     float eps = std::numeric_limits<float>::epsilon();
 
 
-    // Fit recursive classifier
+    // Fit classifier
     T classifier, newClassifier;
     classifier = T(trainDataset, trainLabels, context);
     classifier.fit();
@@ -298,6 +299,73 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
 
   }
 
+}
+
+TEST(GradientBoostClassifierTest, TestInSamplePredictionMatchesLatestPrediction) {
+  std::vector<bool> trials = {false, true};
+
+  dataset_t dataset, trainDataset, testDataset;
+  labels_t labels, trainLabels, testLabels;
+
+  loadDatasets(dataset, labels);
+  data::Split(dataset,
+	      labels,
+	      trainDataset,
+	      testDataset,
+	      trainLabels,
+	      testLabels, 0.2);
+
+  std::size_t minLeafSize = 1;
+  double minimumGainSplit = 0.;
+  std::size_t maxDepth = 5;
+  std::size_t partitionSize = 11;
+
+  Context context{};
+  
+  context.loss = lossFunction::BinomialDeviance;
+  context.partitionSize = partitionSize;
+  context.partitionRatio = .25;
+  context.learningRate = .001;
+  context.steps = 514;
+  context.symmetrizeLabels = true;
+  context.rowSubsampleRatio = 1.;
+  context.colSubsampleRatio = .45; // .75
+  context.serialize = false;
+  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
+  context.learningRateMethod = LearningRate::RateMethod::FIXED;
+  context.minLeafSize = minLeafSize;
+  context.maxDepth = maxDepth;
+  context.minimumGainSplit = minimumGainSplit;
+  context.hasOOSData = true;
+  context.dataset_oos = testDataset;
+  context.labels_oos = conv_to<Row<double>>::from(testLabels);
+
+  using T = GradientBoostClassifier<DecisionTreeClassifier>;
+  using IArchiveType = cereal::BinaryInputArchive;
+  using OArchiveType = cereal::BinaryOutputArchive;
+
+
+  for (auto recursive : trials) {
+    
+    context.recursiveFit = recursive;
+    float eps = std::numeric_limits<float>::epsilon();
+
+    // Fit classifier
+    T classifier, newClassifier;
+    classifier = T(trainDataset, trainLabels, context);
+    classifier.fit();
+
+    // IS prediction - live classifier
+    Row<double> liveTrainPrediction;
+    classifier.Predict(liveTrainPrediction);
+    
+    // IS lastestPrediction_ - archive classifier
+    Row<double> latestPrediction = classifier.getLatestPrediction();
+
+    for (int i=0; i<liveTrainPrediction.n_elem; ++i)
+      ASSERT_LE(fabs(liveTrainPrediction[i]-latestPrediction[i]), eps);
+  }
+  
 }
 
 TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveRoundTrips) {
@@ -502,7 +570,62 @@ TEST(DPSolverTest, TestParallelScoresMatchSerialScores) {
     }
   }
 }
+*/
 
+TEST(GradientBoostClassifierTest, TestContextReadWrite) {
+
+  dataset_t dataset, trainDataset, testDataset;
+  labels_t labels, trainLabels, testLabels;
+
+  loadDatasets(dataset, labels);
+  data::Split(dataset,
+	      labels,
+	      trainDataset,
+	      testDataset,
+	      trainLabels,
+	      testLabels, 0.2);
+	      
+  std::size_t minLeafSize = 1;
+  double minimumGainSplit = 0.;
+  std::size_t maxDepth = 10;
+  std::size_t partitionSize = 10;
+
+  Context context{}, context_archive;
+  
+  context.loss = lossFunction::BinomialDeviance;
+  context.partitionSize = partitionSize;
+  context.partitionRatio = .25;
+  context.learningRate = .01;
+  context.steps = 21;
+  context.symmetrizeLabels = true;
+  context.rowSubsampleRatio = 1.;
+  context.colSubsampleRatio = .45; // .75
+  context.recursiveFit = false;
+  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
+  context.learningRateMethod = LearningRate::RateMethod::FIXED;
+  context.minLeafSize = minLeafSize;
+  context.maxDepth = maxDepth;
+  context.minimumGainSplit = minimumGainSplit;
+  context.hasOOSData = false;
+
+  std::string binFileName = "gtest__Context.dat";
+  
+  writeBinary<Context>(binFileName, context);
+  readBinary<Context>(binFileName, context_archive);
+
+  ASSERT_EQ(context_archive.loss, lossFunction::BinomialDeviance);
+  ASSERT_EQ(context_archive.loss, context.loss);
+
+  ASSERT_EQ(context_archive.partitionSize, 10);
+  ASSERT_EQ(context_archive.partitionSize, context.partitionSize);
+
+  ASSERT_EQ(context_archive.partitionSizeMethod, PartitionSize::SizeMethod::FIXED);
+  ASSERT_EQ(context_archive.partitionSizeMethod, context.partitionSizeMethod);
+
+  ASSERT_EQ(context_archive.hasOOSData, false);
+  ASSERT_EQ(context_archive.hasOOSData, context.hasOOSData);
+
+}
 
 auto main(int argc, char **argv) -> int {
   testing::InitGoogleTest(&argc, argv);

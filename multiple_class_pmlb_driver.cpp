@@ -17,9 +17,9 @@ auto main(int argc, char **argv) -> int {
   Row<std::size_t> labels, trainLabels, testLabels;
   Row<std::size_t> trainPrediction, testPrediction;
 
-  if (!data::Load("/home/charles/Data/1028_SWD_X.csv", dataset))
+  if (!data::Load("/home/charles/Data/1029_LEV_X.csv", dataset))
     throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/1028_SWD_y.csv", labels))
+  if (!data::Load("/home/charles/Data/1029_LEV_y.csv", labels))
     throw std::runtime_error("Could not load file");
 
   data::Split(dataset, 
@@ -51,16 +51,16 @@ auto main(int argc, char **argv) -> int {
   // context.loss = lossFunction::Exp;
   // context.loss = lossFunction::Arctan;
   context.loss = lossFunction::Synthetic;
-  context.partitionSize = 4;
+  context.partitionSize = 6;
   context.partitionRatio = .25;
   context.learningRate = .001;
-  context.steps = 2000;
+  context.steps = 500;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .25; // .75
   context.recursiveFit = true;
   context.serialize = false;
-  context.serializationWindow = 1000;
+  context.serializationWindow = 100;
   context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED; // INCREASING
   context.learningRateMethod = LearningRate::RateMethod::FIXED;   // DECREASING
   context.minLeafSize = 1;
@@ -71,7 +71,7 @@ auto main(int argc, char **argv) -> int {
   context.labels_oos = conv_to<Row<double>>::from(testLabels);
 
   multiContext.allVOne = false;
-  multiContext.steps = 1;
+  multiContext.steps = 2;
 
   combinedContext.context = context;
   combinedContext.allVOne = multiContext.allVOne;

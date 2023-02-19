@@ -23,6 +23,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # arma ex not required
 option(BUILD_ARMA_EX OFF)
 
+# ClassifierContext::Context creation
+option(BUILD_CONTEXT_BUILDER ON)
+
 # DP_solver ex not required
 option(BUILD_DP_SOLVER OFF)
 
@@ -118,6 +121,12 @@ target_link_libraries(gradientboostmulticlassifier PUBLIC threadsafequeue ${ARMA
 if (BUILD_ARMA_EX)
   add_executable(arma_ex arma_ex.cpp)
   target_link_libraries(arma_ex ${ARMADILLO_LIBRARIES} ${BLAS_LIBRARIES})
+endif()
+
+# Context creation
+if (BUILD_CONTEXT_BUILDER)
+  add_executable(createContext createContext.cpp)
+  target_link_libraries(createContext utils)
 endif()
 
 # DP solver example	

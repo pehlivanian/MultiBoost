@@ -91,6 +91,7 @@ namespace ClassifierContext{
       hasInitialPrediction{false},
       reuseColMask{false},
       serialize{false},
+      serializePrediction{false},
       serializationWindow{500}
     {}
 
@@ -114,12 +115,15 @@ namespace ClassifierContext{
       hasOOSData = rhs.hasOOSData;
       reuseColMask = rhs.reuseColMask;
       serialize = rhs.serialize;
+      serializePrediction = rhs.serializePrediction;
       hasInitialPrediction = rhs.hasInitialPrediction;
       serializationWindow = rhs.serializationWindow;
       dataset_oos = rhs.dataset_oos;
       labels_oos = rhs.labels_oos;
       latestPrediction = rhs.latestPrediction;
       colMask = rhs.colMask;
+      is_path = rhs.is_path;
+      os_path = rhs.os_path;
     }
       
     lossFunction loss;
@@ -141,6 +145,7 @@ namespace ClassifierContext{
     bool hasOOSData;
     bool reuseColMask;
     bool serialize;
+    bool serializePrediction;
     bool hasInitialPrediction;
     std::size_t serializationWindow;
     mat dataset_oos;
@@ -190,6 +195,22 @@ private:
   const char* fl_;
   const char* fn_;
   int ln_;
+};
+
+template<typename DataType>
+class PredictionArchive {
+public:
+  PredictionArchive() = default;
+  PredictionArchive(Row<DataType> prediction) : prediction_{prediction} {}
+  PredictionArchive(Row<DataType>&& prediction) : prediction_{std::move(prediction)} {}
+
+  template<class Archive>  
+  void serialize(Archive &ar) {
+    ar(prediction_);
+  }
+
+  // public
+  Row<DataType> prediction_;
 };
 
 class PartitionUtils {
@@ -498,6 +519,7 @@ public:
     numTrees_{context.numTrees},
     reuseColMask_{context.reuseColMask},
     serialize_{context.serialize},
+    serializePrediction_{context.serializePrediction},
     serializationWindow_{context.serializationWindow}
   { 
     if (hasOOSData_ = context.hasOOSData) {
@@ -538,6 +560,7 @@ public:
     numTrees_{context.numTrees},
     reuseColMask_{context.reuseColMask},
     serialize_{context.serialize},
+    serializePrediction_{context.serializePrediction},
     serializationWindow_{context.serializationWindow}
   { 
     if (hasOOSData_ = context.hasOOSData) {
@@ -580,6 +603,9 @@ public:
   }
 
   mat getDataset() const { return dataset_; }
+  Row<DataType> getLatestPrediction() const { return latestPrediction_; }
+  int getNRows() const { return n_; }
+  int getNCols() const { return m_; }
   Row<double> getLabels() const { return labels_; }
   ClassifierList getClassifiers() const { return classifiers_; }
 
@@ -588,6 +614,7 @@ public:
   virtual void printStats(int);
   void purge();
   std::string write();  
+  std::string writePrediction();
   void read(GradientBoostClassifier&, std::string);
   void commit();
   void checkAccuracyOfArchive();
@@ -598,6 +625,7 @@ public:
     ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), symmetrized_);
     ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), a_);
     ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), b_);
+    // ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), latestPrediction_);
   }
 
 private:
@@ -671,6 +699,7 @@ private:
 
   bool recursiveFit_;
   bool serialize_;
+  bool serializePrediction_;
 
   bool hasOOSData_;
   bool hasInitialPrediction_;

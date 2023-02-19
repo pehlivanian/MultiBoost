@@ -44,6 +44,7 @@ namespace IB_utils {
   template<typename T, typename IArchiveType, typename OArchiveType>
   std::string dumps(T& t) {
     std::string fileName = FilterFileName(typeid(T).name());
+
     std::ofstream ofs(fileName, std::ios::binary);
     {
       OArchiveType o(ofs);
@@ -130,6 +131,47 @@ namespace IB_utils {
 
   std::string writeIndex(const std::vector<std::string>&);
   void readIndex(std::string, std::vector<std::string>&);
+
+  template<typename T>
+  void 
+  writeBinary(std::string fileName,
+	      const T& data) {
+    auto success = false;
+    std::ofstream ofs{fileName, std::ios::binary};
+    if (ofs.is_open()) {
+
+      try {
+	ofs.write(reinterpret_cast<const char*>(&data), sizeof(data));
+	success = true;
+      }
+      catch(std::ios_base::failure &) {
+	std::cerr << "Failed to write to " << fileName << std::endl;
+      }
+      ofs.close();
+    }
+  }
+
+  template<typename T>
+  void
+  readBinary(std::string fileName,
+	     T& obj) {
+    std::size_t readBytes = 0;
+    std::ifstream ifs{fileName, std::ios::ate | std::ios::binary};
+    if (ifs.is_open()) {
+      auto length = static_cast<std::size_t>(ifs.tellg());
+      ifs.seekg(0, std::ios_base::beg);
+      char* buffer[length];
+
+      try {
+	ifs.read(reinterpret_cast<char*>(&obj), sizeof(T));
+	readBytes = static_cast<std::size_t>(ifs.gcount());
+      }
+      catch(std::ios_base::failure &) {
+	std::cerr << "Failed to read from " << fileName << std::endl;
+      }
+    ifs.close();
+    }
+  }
 
   bool comp(std::pair<std::size_t, std::size_t>&, std::pair<std::size_t, std::size_t>&);
 

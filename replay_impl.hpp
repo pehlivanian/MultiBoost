@@ -8,7 +8,7 @@ Replay<DataType, ClassifierType>::read(GradientBoostClassifier<ClassifierType>& 
   using CerealT = GradientBoostClassifier<ClassifierType>;
   using CerealIArch = cereal::BinaryInputArchive;
   using CerealOArch = cereal::BinaryOutputArchive;
-
+  
   loads<CerealT, CerealIArch, CerealOArch>(rhs, fileName);
 }
 
@@ -42,6 +42,5 @@ Replay<DataType, ClassifierType>::Classify(std::string indexName,
 					   Row<DataType>& prediction) {
   Predict(indexName, dataset, prediction);
 }
-
 
 #endif

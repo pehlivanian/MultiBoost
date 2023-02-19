@@ -190,12 +190,12 @@ GradientBoostMultiClassifier<ClassifierType>::fit_step(int stepNum) {
     };
 
   for (auto &classClassifier : classClassifiers_) {
-    futures.push_back(DefaultThreadPool::submitJob_n<3>(task, std::ref(*classClassifier)));
-    // futures.push_back(DefaultThreadPool::submitJob(task, std::ref(*classClassifier)));
+    // futures.push_back(DefaultThreadPool::submitJob_n<3>(task, std::ref(*classClassifier)));
+    futures.push_back(DefaultThreadPool::submitJob(task, std::ref(*classClassifier)));
   }
   
   for (auto& item : futures)
-    item.get();
+    int fresult = item.get();
 
   int result;
   while (!results_queue.empty()) {
