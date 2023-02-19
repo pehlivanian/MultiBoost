@@ -122,8 +122,6 @@ namespace ClassifierContext{
       labels_oos = rhs.labels_oos;
       latestPrediction = rhs.latestPrediction;
       colMask = rhs.colMask;
-      is_path = rhs.is_path;
-      os_path = rhs.os_path;
     }
       
     lossFunction loss;

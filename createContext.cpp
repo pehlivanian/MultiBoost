@@ -48,8 +48,6 @@ auto main(int argc, char **argv) -> int {
   context.maxDepth = 10;
   context.minimumGainSplit = 0.;
   context.hasOOSData = true;
-  context.dataset_oos = testDataset;
-  context.labels_oos = conv_to<Row<double>>::from(testLabels);
 
   writeBinary<Context>(fileName, context);
 
