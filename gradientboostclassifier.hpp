@@ -87,11 +87,9 @@ namespace ClassifierContext{
       numTrees{numTrees},
       removeRedundantLabels{false},
       recursiveFit{recursiveFit},
-      hasOOSData{false},
-      hasInitialPrediction{false},
-      reuseColMask{false},
       serialize{false},
       serializePrediction{false},
+      serializeColMask{false},
       serializationWindow{500}
     {}
 
@@ -112,16 +110,10 @@ namespace ClassifierContext{
       minimumGainSplit = rhs.minimumGainSplit;
       maxDepth = rhs.maxDepth;
       numTrees = rhs.numTrees;
-      hasOOSData = rhs.hasOOSData;
-      reuseColMask = rhs.reuseColMask;
       serialize = rhs.serialize;
       serializePrediction = rhs.serializePrediction;
-      hasInitialPrediction = rhs.hasInitialPrediction;
+      serializeColMask = rhs.serializeColMask;
       serializationWindow = rhs.serializationWindow;
-      dataset_oos = rhs.dataset_oos;
-      labels_oos = rhs.labels_oos;
-      latestPrediction = rhs.latestPrediction;
-      colMask = rhs.colMask;
     }
       
     lossFunction loss;
@@ -140,16 +132,10 @@ namespace ClassifierContext{
     double minimumGainSplit;
     std::size_t maxDepth;
     std::size_t numTrees;
-    bool hasOOSData;
-    bool reuseColMask;
     bool serialize;
     bool serializePrediction;
-    bool hasInitialPrediction;
+    bool serializeColMask;
     std::size_t serializationWindow;
-    mat dataset_oos;
-    Row<double> labels_oos;
-    Row<double> latestPrediction;
-    uvec colMask;
   };
 } // namespace ClassifierContext
 
@@ -209,6 +195,21 @@ public:
 
   // public
   Row<DataType> prediction_;
+};
+
+class ColMaskArchive {
+public:
+  ColMaskArchive() = default;
+  ColMaskArchive(uvec colMask) : colMask_{colMask} {}
+  ColMaskArchive(uvec&& colMask) : colMask_{std::move(colMask)} {}
+
+  template<class Archive>
+  void serialize(Archive &ar) {
+    ar(colMask_);
+  }
+
+  // public
+  uvec colMask_;
 };
 
 class PartitionUtils {
@@ -499,37 +500,11 @@ public:
 		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<double>>::from(labels)},
-    loss_{context.loss},
-    partitionSize_{context.partitionSize},
-    partitionRatio_{context.partitionRatio},
-    learningRate_{context.learningRate},
-    steps_{context.steps},
-    symmetrized_{context.symmetrizeLabels},
-    removeRedundantLabels_{context.removeRedundantLabels},
-    row_subsample_ratio_{context.rowSubsampleRatio},
-    col_subsample_ratio_{context.colSubsampleRatio},
-    recursiveFit_{context.recursiveFit},
-    partitionSizeMethod_{context.partitionSizeMethod},
-    learningRateMethod_{context.learningRateMethod},
-    minLeafSize_{context.minLeafSize},
-    minimumGainSplit_{context.minimumGainSplit},
-    maxDepth_{context.maxDepth},
-    numTrees_{context.numTrees},
-    reuseColMask_{context.reuseColMask},
-    serialize_{context.serialize},
-    serializePrediction_{context.serializePrediction},
-    serializationWindow_{context.serializationWindow}
+    hasOOSData_{false},
+    hasInitialPrediction_{false},
+    reuseColMask_{false}
   { 
-    if (hasOOSData_ = context.hasOOSData) {
-      dataset_oos_ = context.dataset_oos;
-      labels_oos_ = conv_to<Row<double>>::from(context.labels_oos);      
-    }
-    if (reuseColMask_ = context.reuseColMask) {
-      colMask_ = context.colMask;
-    }
-    if (hasInitialPrediction_ = context.hasInitialPrediction) {
-      latestPrediction_ = context.latestPrediction;
-    }
+    contextInit_(std::move(context));
     init_(); 
   }
 
@@ -540,40 +515,135 @@ public:
 		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
-    loss_{context.loss},
-    partitionSize_{context.partitionSize},
-    partitionRatio_{context.partitionRatio},
-    learningRate_{context.learningRate},
-    steps_{context.steps},
-    symmetrized_{context.symmetrizeLabels},
-    removeRedundantLabels_{context.removeRedundantLabels},
-    row_subsample_ratio_{context.rowSubsampleRatio},
-    col_subsample_ratio_{context.colSubsampleRatio},
-    recursiveFit_{context.recursiveFit},
-    partitionSizeMethod_{context.partitionSizeMethod},
-    learningRateMethod_{context.learningRateMethod},
-    minLeafSize_{context.minLeafSize},
-    minimumGainSplit_{context.minimumGainSplit},
-    maxDepth_{context.maxDepth},
-    numTrees_{context.numTrees},
-    reuseColMask_{context.reuseColMask},
-    serialize_{context.serialize},
-    serializePrediction_{context.serializePrediction},
-    serializationWindow_{context.serializationWindow}
+    hasOOSData_{false},
+    hasInitialPrediction_{false},
+    reuseColMask_{false}
   { 
-    if (hasOOSData_ = context.hasOOSData) {
-      dataset_oos_ = context.dataset_oos;
-      labels_oos_ = context.labels_oos;
-    }
-    if (reuseColMask_ = context.reuseColMask) {
-      colMask_ = context.colMask;
-    }
-    if (hasInitialPrediction_ = context.hasInitialPrediction) {
-      latestPrediction_ = context.latestPrediction;
-    }
+    contextInit_(std::move(context));
     init_(); 
   }
-    
+
+  GradientBoostClassifier(const mat& dataset,
+			  const Row<std::size_t>& labels,
+			  const mat& dataset_oos,
+			  const Row<std::size_t>& labels_oos,
+			  ClassifierContext::Context context) :
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
+    dataset_{dataset},
+    labels_{conv_to<Row<double>>::from(labels)},
+    dataset_oos_{dataset_oos},
+    labels_oos_{conv_to<Row<double>>::from(labels_oos)},
+    hasOOSData_{true},
+    hasInitialPrediction_{false},
+    reuseColMask_{false}
+  {
+    contextInit_(std::move(context));
+    init_();
+  }
+
+  GradientBoostClassifier(const mat& dataset,
+			  const Row<double>& labels,
+			  const mat& dataset_oos,
+			  const Row<double>& labels_oos,
+			  ClassifierContext::Context context) :
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
+    dataset_{dataset},
+    labels_{labels},
+    dataset_oos_{dataset_oos},
+    labels_oos_{conv_to<Row<double>>::from(labels_oos)},
+    hasOOSData_{true},
+    hasInitialPrediction_{false},
+    reuseColMask_{false}
+  {
+    contextInit_(std::move(context));
+    init_();
+  }
+
+  GradientBoostClassifier(const mat& dataset,
+			  const Row<std::size_t>& labels,
+			  const Row<double>& latestPrediction,
+			  const uvec& colMask,
+			  ClassifierContext::Context context) :
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
+    dataset_{dataset},
+    labels_{conv_to<Row<double>>::from(labels)},
+    hasOOSData_{false},
+    hasInitialPrediction_{true},
+    reuseColMask_{true},
+    latestPrediction_{latestPrediction},
+    colMask_{colMask}
+  {
+    contextInit_(std::move(context));
+    init_();
+  }
+   
+  GradientBoostClassifier(const mat& dataset,
+			  const Row<double>& labels,
+			  const Row<double>& latestPrediction,
+			  const uvec& colMask,
+			  ClassifierContext::Context context) :
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
+    dataset_{dataset},
+    labels_{labels},
+    hasOOSData_{false},
+    hasInitialPrediction_{true},
+    reuseColMask_{true},
+    latestPrediction_{latestPrediction},
+    colMask_{colMask}
+  {
+    contextInit_(std::move(context));
+    init_();
+  }
+
+  GradientBoostClassifier(const mat& dataset,
+			  const Row<std::size_t>& labels,
+			  const mat& dataset_oos,
+			  const Row<std::size_t>& labels_oos,
+			  const Row<double>& latestPrediction,
+			  const uvec& colMask,
+			  ClassifierContext::Context context) :
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
+    dataset_{dataset},
+    labels_{conv_to<Row<double>>::from(labels)},
+    dataset_oos_{dataset_oos},
+    labels_oos_{conv_to<Row<double>>::from(labels_oos)},
+    hasOOSData_{true},
+    hasInitialPrediction_{true},
+    reuseColMask_{true},
+    latestPrediction_{latestPrediction},
+    colMask_{colMask}
+  {
+    contextInit_(std::move(context));
+    init_();
+  }
+
+  GradientBoostClassifier(const mat& dataset,
+			  const Row<double>& labels,
+			  const mat& dataset_oos,
+			  const Row<double>& labels_oos,
+			  const Row<double>& latestPrediction,
+			  const uvec& colMask,
+			  ClassifierContext::Context context) :
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
+    dataset_{dataset},
+    labels_{labels},
+    dataset_oos_{dataset_oos},
+    labels_oos_{labels_oos},
+    hasOOSData_{true},
+    hasInitialPrediction_{true},
+    reuseColMask_{true},
+    latestPrediction_{latestPrediction},
+    colMask_{colMask}
+  {
+    contextInit_(std::move(context));
+    init_();
+  }
 
   void fit();
 
@@ -613,6 +683,7 @@ public:
   void purge();
   std::string write();  
   std::string writePrediction();
+  std::string writeColMask();
   void read(GradientBoostClassifier&, std::string);
   void commit();
   void checkAccuracyOfArchive();
@@ -627,6 +698,7 @@ public:
   }
 
 private:
+  void contextInit_(ClassifierContext::Context&&);
   void init_();
   Row<double> _constantLeaf() const;
   Row<double> _randomLeaf(std::size_t numVals=20) const;
@@ -698,6 +770,7 @@ private:
   bool recursiveFit_;
   bool serialize_;
   bool serializePrediction_;
+  bool serializeColMask_;
 
   bool hasOOSData_;
   bool hasInitialPrediction_;

@@ -107,6 +107,33 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::setClassifier(const m
 }
 
 template<typename ClassifierType>
+void
+GradientBoostClassifier<ClassifierType>::contextInit_(ClassifierContext::Context&& context) {
+
+  loss_ = context.loss;
+  partitionSize_ = context.partitionSize;
+  partitionRatio_ = context.partitionRatio;
+  learningRate_ = context.learningRate;
+  steps_ = context.steps;
+  symmetrized_ = context.symmetrizeLabels;
+  removeRedundantLabels_ = context.removeRedundantLabels;
+  row_subsample_ratio_ = context.rowSubsampleRatio;
+  col_subsample_ratio_ = context.colSubsampleRatio;
+  recursiveFit_ = context.recursiveFit;
+  partitionSizeMethod_ = context.partitionSizeMethod;
+  learningRateMethod_ = context.learningRateMethod;
+  minLeafSize_ = context.minLeafSize;
+  minimumGainSplit_ = context.minimumGainSplit;
+  maxDepth_ = context.maxDepth;
+  numTrees_ = context.numTrees;
+  serialize_ = context.serialize;
+  serializePrediction_ = context.serializePrediction;
+  serializeColMask_ = context.serializeColMask;
+  serializationWindow_ = context.serializationWindow;
+
+}
+
+template<typename ClassifierType>
 row_d
 GradientBoostClassifier<ClassifierType>::_constantLeaf() const {
 
@@ -157,8 +184,7 @@ GradientBoostClassifier<ClassifierType>::init_() {
 
   // Initialize rng  
   std::size_t a=1, b=std::max(1, static_cast<int>(m_ * col_subsample_ratio_));
-  partitionDist_ = std::uniform_int_distribution<std::size_t>(a, b);
-							      
+  partitionDist_ = std::uniform_int_distribution<std::size_t>(a, b);							      
 
   // Make labels members of {-1,1}
   // Note that we pass labels_oos to this classifier for OOS testing
@@ -499,8 +525,6 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     context.removeRedundantLabels = true;
     context.rowSubsampleRatio = row_subsample_ratio_;
     context.colSubsampleRatio = col_subsample_ratio_;
-    context.reuseColMask = true;
-    context.colMask = colMask_;
     context.recursiveFit = true;
     context.partitionSizeMethod = partitionSizeMethod_;
     context.learningRateMethod = learningRateMethod_;    
@@ -508,8 +532,6 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     // context.minLeafSize = static_cast<std::size_t>(.2 * m_ / partitionSize_);
     context.maxDepth = maxDepth_;
     context.minimumGainSplit = minimumGainSplit_;
-    context.hasInitialPrediction = true;
-    context.latestPrediction = latestPrediction_;
 
     if (DIAGNOSTICS)
       std::cout << "SUBPARTITION SIZE: " << subPartitionSize 
@@ -521,7 +543,11 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     // than one class. So we don't want to symmetrize, but we want 
     // to remap the redundant values.
     std::unique_ptr<GradientBoostClassifier<ClassifierType>> classifier;
-    classifier.reset(new GradientBoostClassifier<ClassifierType>(dataset_, labels_, context));
+    classifier.reset(new GradientBoostClassifier<ClassifierType>(dataset_, 
+								 labels_, 
+								 latestPrediction_, 
+								 colMask_, 
+								 context));
 
     classifier->fit();
     // classifier->Classify_(dataset_, prediction);
@@ -653,6 +679,20 @@ GradientBoostClassifier<ClassifierType>::write() {
 
 template<typename ClassifierType>
 std::string
+GradientBoostClassifier<ClassifierType>::writeColMask() {
+
+  using CerealT = ColMaskArchive;
+  using CerealIArch = cereal::BinaryInputArchive;
+  using CerealOArch = cereal::BinaryOutputArchive;
+
+  ColMaskArchive cma{colMask_};
+  std::string fileName = dumps<CerealT, CerealIArch, CerealOArch>(cma);
+  return fileName;
+
+}
+
+template<typename ClassifierType>
+std::string
 GradientBoostClassifier<ClassifierType>::writePrediction() {
   
   using CerealT = PredictionArchive<DataType>;
@@ -721,13 +761,17 @@ GradientBoostClassifier<ClassifierType>::commit() {
 
   DEBUG()
 
-  std::string path, predictionPath;
+  std::string path, predictionPath, colMaskPath;
   path = write();
   fileNames_.push_back(path);
 
   if (serializePrediction_) {
     predictionPath = writePrediction();
     fileNames_.push_back(predictionPath);
+  }
+  if (serializeColMask_) {
+    colMaskPath = writeColMask();
+    fileNames_.push_back(colMaskPath);
   }
   // std::copy(fileNames_.begin(), fileNames_.end(),std::ostream_iterator<std::string>(std::cout, "\n"));
   indexName_ = writeIndex(fileNames_);  

@@ -181,15 +181,13 @@ public:
 			       MultiClassifierContext::CombinedContext context) :
     dataset_{dataset},
     labels_{conv_to<Row<double>>::from(labels)},
+    hasOOSData_{false},
     steps_{context.steps},
     allVOne_{context.allVOne},
     serialize_{context.serialize},
     context_{context} 
   {
-    if (hasOOSData_ = context.context.hasOOSData) {
-      dataset_oos_ = context.context.dataset_oos;
-      labels_oos_ = conv_to<Row<double>>::from(context.context.labels_oos);
-    }
+    contextInit_(std::move(context));
     init_(); 
   }
 
@@ -198,16 +196,52 @@ public:
 			       MultiClassifierContext::CombinedContext context) :
     dataset_{dataset},
     labels_{labels},
+    hasOOSData_{false},
     steps_{context.steps},
     allVOne_{context.allVOne},
     serialize_{context.serialize},
     context_{context} 
   { 
-    if (hasOOSData_ = context.context.hasOOSData) {
-      dataset_oos_ = context.context.dataset_oos;
-      labels_oos_ = conv_to<Row<double>>::from(context.context.labels_oos);
-    }
+    contextInit_(std::move(context));
     init_(); 
+  }
+
+  GradientBoostMultiClassifier(const mat& dataset,
+			       const Row<std::size_t>& labels,
+			       const mat& dataset_oos,
+			       const Row<std::size_t>& labels_oos,
+			       MultiClassifierContext::CombinedContext context) :
+    dataset_{dataset},
+    labels_{conv_to<Row<double>>::from(labels)},
+    dataset_oos_{dataset_oos},
+    labels_oos_{conv_to<Row<double>>::from(labels_oos)},
+    hasOOSData_{true},
+    steps_{context.steps},
+    allVOne_{context.allVOne},
+    serialize_{context.serialize},
+    context_{context} 
+  {
+    contextInit_(std::move(context));
+    init_();
+  }
+    
+  GradientBoostMultiClassifier(const mat& dataset,
+			       const Row<double>& labels,
+			       const mat& dataset_oos,
+			       const Row<double>& labels_oos,
+			       MultiClassifierContext::CombinedContext context) :
+    dataset_{dataset},
+    labels_{labels},
+    dataset_oos_{dataset_oos},
+    labels_oos_{labels_oos},
+    hasOOSData_{true},
+    steps_{context.steps},
+    allVOne_{context.allVOne},
+    serialize_{context.serialize},
+    context_{context} 
+  {
+    contextInit_(std::move(context));
+    init_();
   }
 
   void fit();
@@ -245,6 +279,7 @@ public:
 
 private:
   void init_();
+  void contextInit_(MultiClassifierContext::CombinedContext&&);
   void fit_step(int stepNum);
 
   std::size_t numClasses_;

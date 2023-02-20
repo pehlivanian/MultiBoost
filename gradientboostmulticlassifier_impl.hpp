@@ -29,6 +29,14 @@ GradientBoostClassClassifier<ClassifierType>::info(const mat& dataset) {
 
 template<typename ClassifierType>
 void
+GradientBoostMultiClassifier<ClassifierType>::contextInit_(MultiClassifierContext::CombinedContext&& context) {
+  // XXX
+  DEBUG()
+  ;
+}
+
+template<typename ClassifierType>
+void
 GradientBoostMultiClassifier<ClassifierType>::init_() {
 
   DEBUG()
@@ -39,16 +47,31 @@ GradientBoostMultiClassifier<ClassifierType>::init_() {
   Row<DataType> uniqueVals = sort(unique(labels_));
   uniqueVals_ = conv_to<Row<std::size_t>>::from(uniqueVals);
   numClasses_ = uniqueVals.size();
+
+  std::unique_ptr<C> classClassifier;
+  ClassifierContext::Context context = context_.context;
   
   if (allVOne_) {
     for (auto it=uniqueVals.begin(); it!=uniqueVals.end(); ++it) {
-      uvec ind = find(labels_ == *it);
-      Row<double> oneHot = zeros<Row<double>>(labels_.n_elem);
-      oneHot.elem(ind).fill(1.);
+      uvec ind0 = find(labels_ == *it);
+      Row<double> labels_aVo = zeros<Row<double>>(labels_.n_elem);
+      labels_aVo.elem(ind0).fill(1.);
       
-      std::unique_ptr<C> classClassifier;
-      classClassifier.reset(new C(dataset_, oneHot, context_.context, *it));
-      classClassifiers_.push_back(std::move(classClassifier));    
+      if (hasOOSData_) {
+
+	uvec ind = find(labels_oos_ == *it);
+	Row<double> labels_aVo_oos = zeros<Row<double>>(labels_oos_.n_elem);
+	labels_aVo_oos.elem(ind).fill(1.);
+
+	classClassifier.reset(new C(dataset_, labels_aVo, dataset_oos_, labels_aVo_oos, context, *it));
+
+      } else {
+
+	classClassifier.reset(new C(dataset_, labels_aVo, context, *it));      
+
+      }      
+
+	classClassifiers_.push_back(std::move(classClassifier));
     }
   } else {
     for (auto it1=uniqueVals.begin(); it1!=uniqueVals.end(); ++it1) {
@@ -60,21 +83,11 @@ GradientBoostMultiClassifier<ClassifierType>::init_() {
 	Row<double> labels_aVb = labels_.submat(zeros<uvec>(1), ind0);
 	mat dataset_aVb = dataset_.cols(ind0);
 
-	// If context contains OOS data we will have to create new
-	// copies to slice for OOS aVb samples anyway; just copy now
-	ClassifierContext::Context context_oos = context_.context;
-
-	if (context_.context.hasOOSData) {
-	  mat dataset_oos = context_.context.dataset_oos;
-	  Row<DataType> labels_oos = context_.context.labels_oos;
-	  uvec ind = find((labels_oos == *it1) || (labels_oos == *it2));
+	if (hasOOSData_) {
+	  uvec ind = find((labels_oos_ == *it1) || (labels_oos_ == *it2));
 	  
-	  Row<double> labels_aVb_oos = labels_oos.submat(zeros<uvec>(1), ind);
-	  mat dataset_aVb_oos = dataset_oos.cols(ind);
-
-	  context_oos.hasOOSData = true;
-	  context_oos.dataset_oos = dataset_aVb_oos;
-	  context_oos.labels_oos = labels_aVb_oos;
+	  Row<double> labels_aVb_oos = labels_oos_.submat(zeros<uvec>(1), ind);
+	  mat dataset_aVb_oos = dataset_oos_.cols(ind);
 
 	  std::cout << "ALL V ALL (" << *it1 << ", " << *it2 << ")" << std::endl;
 
@@ -83,26 +96,33 @@ GradientBoostMultiClassifier<ClassifierType>::init_() {
 	  std::cout << "IS LABELS: (" << labels_aVb.n_cols << " x " 
 		    << labels_aVb.n_rows << ")" << std::endl;
 
-	  std::cout << "OOS DATASET: (" << context_oos.dataset_oos.n_cols << " x " 
-		    << context_oos.dataset_oos.n_rows << ")" << std::endl;
-	  std::cout << "OOS LABELS: (" << context_oos.labels_oos.n_cols << " x " 
-		    << context_oos.labels_oos.n_rows << ")" << std::endl;
+	  std::cout << "OOS DATASET: (" << dataset_aVb_oos.n_cols << " x " 
+		    << dataset_aVb_oos.n_rows << ")" << std::endl;
+	  std::cout << "OOS LABELS: (" << labels_aVb_oos.n_cols << " x " 
+		    << labels_aVb_oos.n_rows << ")" << std::endl;
+	  
+	  classClassifier.reset(new C(dataset_aVb, 
+				      labels_aVb, 
+				      dataset_aVb_oos,
+				      labels_aVb_oos,
+				      context, 
+				      ClassPair(*it1, *it2), 
+				      ind1.n_elem, 
+				      ind2.n_elem));
+	} else {
 
+	  classClassifier.reset(new C(dataset_aVb, 
+				      labels_aVb, 
+				      context, 
+				      ClassPair(*it1, *it2), 
+				      ind1.n_elem, 
+				      ind2.n_elem));
 	}
-
-	std::unique_ptr<C> classClassifier;
-	classClassifier.reset(new C(dataset_aVb, 
-				    labels_aVb, 
-				    context_oos, 
-				    ClassPair(*it1, *it2), 
-				    ind1.n_elem, 
-				    ind2.n_elem));
-	classClassifiers_.push_back(std::move(classClassifier));
-	
+	classClassifiers_.push_back(std::move(classClassifier));       
       }
     }
-  }
 
+  }
 }
 
 template<typename ClassifierType>

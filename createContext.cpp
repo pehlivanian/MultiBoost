@@ -47,7 +47,6 @@ auto main(int argc, char **argv) -> int {
   context.minLeafSize = 1;
   context.maxDepth = 10;
   context.minimumGainSplit = 0.;
-  context.hasOOSData = true;
 
   writeBinary<Context>(fileName, context);
 
