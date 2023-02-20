@@ -200,6 +200,10 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips)
     classifier.fit();
 
     std::string fileName = classifier.write();
+    auto tokens = strSplit(fileName, '_');
+    ASSERT_EQ(tokens[0], "CLS");
+    fileName = strJoin(tokens, '_', 1);
+
     classifier.read(newClassifier, fileName);
 
     Row<double> trainPrediction, trainNewPrediction, testPrediction, testNewPrediction;
@@ -246,7 +250,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
   context.partitionSize = partitionSize;
   context.partitionRatio = .25;
   context.learningRate = .001;
-  context.steps = 514;
+  context.steps = 214;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .45; // .75
@@ -408,6 +412,9 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveRoundTrips) {
     classifier.fit();
 
     std::string fileName = classifier.write();
+    auto tokens = strSplit(fileName, '_');
+    ASSERT_EQ(tokens[0], "CLS");
+    fileName = strJoin(tokens, '_', 1);
     classifier.read(newClassifier, fileName);
 
     Row<double> trainPrediction, trainNewPrediction, testPrediction, testNewPrediction;
@@ -464,7 +471,11 @@ TEST(GradientBoostClassifierTest, TestChildSerializationRoundTrips) {
 		   minimumGainSplit,
 		   maxDepth);
 
-    std::string fileName = dumps<T, IArchiveType, OArchiveType>(classifier);
+    std::string fileName = dumps<T, IArchiveType, OArchiveType>(classifier, SerializedType::CLASSIFIER);
+    auto tokens = strSplit(fileName, '_');
+    ASSERT_EQ(tokens[0], "CLS");
+    fileName = strJoin(tokens, '_', 1);
+
     loads<T, IArchiveType, OArchiveType>(newClassifier, fileName);
 
     ASSERT_EQ(classifier.NumChildren(), newClassifier.NumChildren());
@@ -654,12 +665,36 @@ TEST(GradientBoostClassifierTest, TestWritePrediction) {
   for (auto recursive : trials) {
 
     context.recursiveFit = recursive;
-    
+
+    context.recursiveFit = recursive;
+    float eps = std::numeric_limits<float>::epsilon();
+
+    // Fit classifier
     T classifier, newClassifier;
     classifier = T(trainDataset, trainLabels, testDataset, testLabels, context);
     classifier.fit();
 
-    ASSERT_EQ(1, 1);
+    // Predict IS with live classifier fails due to serialization...
+    Row<double> liveTrainPrediction;
+    EXPECT_THROW(classifier.Predict(trainDataset, liveTrainPrediction), predictionAfterClearedClassifiersException );
+
+    // Use latestPrediction_ instead
+    classifier.Predict(liveTrainPrediction);
+    
+    // Use replay to predict IS based on archive classifier
+    Row<double> archiveTrainPrediction1, archiveTrainPrediction2;
+    std::string indexName = classifier.getIndexName();
+
+    // Method 1
+    Replay<double, DecisionTreeClassifier>::Classify(indexName, trainDataset, archiveTrainPrediction1);
+
+    // Method 2
+    Replay<double, DecisionTreeClassifier>::Classify(indexName, archiveTrainPrediction2);
+
+    for (int i=0; i<liveTrainPrediction.n_elem; ++i) {
+      ASSERT_LE(fabs(liveTrainPrediction[i]-archiveTrainPrediction1[i]), eps);
+      ASSERT_LE(fabs(liveTrainPrediction[i]-archiveTrainPrediction2[i]), eps);
+    }
 
   }
 

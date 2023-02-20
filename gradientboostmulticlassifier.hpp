@@ -79,11 +79,22 @@ public:
   using ClassifierList = std::vector<std::unique_ptr<ClassClassifier>>;
 
   GradientBoostClassClassifier() = default;
+
   GradientBoostClassClassifier(const mat& dataset,
 			       const Row<std::size_t>& labels,
 			       ClassifierContext::Context context,
 			       std::size_t classValue) :
     GradientBoostClassifier<ClassifierType>(dataset, labels, context),
+    classValue_{classValue}
+  {}
+
+  GradientBoostClassClassifier(const mat& dataset,
+			       const Row<std::size_t>& labels,
+			       const mat& dataset_oos,
+			       const Row<std::size_t>& labels_oos,
+			       ClassifierContext::Context context,
+			       std::size_t classValue) :
+    GradientBoostClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, context),
     classValue_{classValue}
   {}
   
@@ -101,10 +112,35 @@ public:
   {}
 
   GradientBoostClassClassifier(const mat& dataset,
+			       const Row<std::size_t>& labels,
+			       const mat& dataset_oos,
+			       const Row<std::size_t>& labels_oos,
+			       ClassifierContext::Context context,
+			       ClassPair classValues,
+			       std::size_t num1,
+			       std::size_t num2) :
+    GradientBoostClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, context),
+    classValues_{classValues},
+    allVOne_{true},
+    num1_{num1},
+    num2_{num2}
+  {}
+
+  GradientBoostClassClassifier(const mat& dataset,
 			       const Row<double>& labels,
 			       ClassifierContext::Context context,
 			       std::size_t classValue) :
     GradientBoostClassifier<ClassifierType>(dataset, labels, context),
+    classValue_{classValue}
+  {}
+
+  GradientBoostClassClassifier(const mat& dataset,
+			       const Row<double>& labels,
+			       const mat& dataset_oos,
+			       const Row<double>& labels_oos,
+			       ClassifierContext::Context context,
+			       std::size_t classValue) :
+    GradientBoostClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, context),
     classValue_{classValue}
   {}
     
@@ -115,6 +151,21 @@ public:
 			       std::size_t num1,
 			       std::size_t num2) :
     GradientBoostClassifier<ClassifierType>(dataset, labels, context),
+    classValues_{classValues},
+    allVOne_{false},
+    num1_{num1},
+    num2_{num2}
+  {}
+
+  GradientBoostClassClassifier(const mat& dataset,
+			       const Row<double>& labels,
+			       const mat& dataset_oos,
+			       const Row<double>& labels_oos,
+			       ClassifierContext::Context context,
+			       ClassPair classValues,
+			       std::size_t num1,
+			       std::size_t num2) :
+    GradientBoostClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, context),
     classValues_{classValues},
     allVOne_{false},
     num1_{num1},

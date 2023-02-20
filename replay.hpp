@@ -33,10 +33,13 @@ public:
   ~Replay() = default;
 
   static void Predict(std::string, const mat&, Row<DataType>&);
+  static void Predict(std::string, Row<DataType>&);
 
   static void Classify(std::string, const mat&, Row<DataType>&);
+  static void Classify(std::string, Row<DataType>&);
 
-  static void read(GradientBoostClassifier<ClassifierType>&, std::string);
+  template<typename T>
+  static void read(T&, std::string);
 
 };
 

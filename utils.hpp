@@ -3,7 +3,11 @@
 
 #include <fstream>
 #include <string>
+#include <sstream>
+#include <map>
+#include <vector>
 #include <limits>
+#include <type_traits>
 #include <mlpack/core.hpp>
 
 namespace IB_utils {
@@ -15,9 +19,43 @@ namespace IB_utils {
     };
   };
 
+  enum class SerializedType {
+    CLASSIFIER = 0,
+    PREDICTION = 1,
+    COLMASK = 2
+  };
+
   double err(const Row<std::size_t>& yhat, const Row<std::size_t>& y);
   double err(const Row<double>& yhat, const Row<double>& y, double=-1.);
-  
+
+  template<typename CharT>
+  using tstring = std::basic_string<CharT, std::char_traits<CharT>, std::allocator<CharT>>;
+  template<typename CharT>
+  using tstringstream = std::basic_stringstream<CharT, std::char_traits<CharT>, std::allocator<CharT>>;
+
+  template<typename CharT>
+  inline std::vector<tstring<CharT>> strSplit(tstring<CharT> text, CharT const delimiter) {
+    auto sstr = tstringstream<CharT>{text};
+    auto tokens = std::vector<tstring<CharT>>{};
+    auto token = tstring<CharT>{};
+    while (std::getline(sstr, token, delimiter)) {
+      if (!token.empty()) tokens.push_back(token);
+    }
+    return tokens;
+  }
+
+  template<typename CharT>
+  tstring<CharT> strJoin(const std::vector<tstring<CharT>> &tokens, char delim, int firstInd) {
+    tstring<CharT> r;
+    for (int i=firstInd; i<tokens.size(); ++i) {
+      if (!r.size())
+	r = tokens[i];
+      else
+	r = r + delim + tokens[i];
+    }
+    return r;
+  }
+
   // Filter typeinfo string to generate unique filenames for serialization tests.
   inline std::string FilterFileName(const std::string& inputString)
   {
@@ -42,7 +80,17 @@ namespace IB_utils {
   }
     
   template<typename T, typename IArchiveType, typename OArchiveType>
-  std::string dumps(T& t) {
+  std::string dumps(T& t, SerializedType typ) {
+
+    std::map<int, std::string> SerializedTypeMap = 
+      {
+	{0, "__CLS_"},
+	{1, "__PRED_"},
+	{2, "__CMASK_"}
+      };
+    
+    std::string pref = SerializedTypeMap[static_cast<std::underlying_type_t<SerializedType>>(typ)];
+
     std::string fileName = FilterFileName(typeid(T).name());
 
     std::ofstream ofs(fileName, std::ios::binary);
@@ -54,7 +102,7 @@ namespace IB_utils {
     }
     ofs.close();
 
-    return fileName;
+    return pref + fileName;
   }
 
   template<typename T, typename IArchiveType, typename OArchiveType>

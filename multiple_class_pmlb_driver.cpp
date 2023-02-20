@@ -66,9 +66,6 @@ auto main(int argc, char **argv) -> int {
   context.minLeafSize = 1;
   context.maxDepth = 10;
   context.minimumGainSplit = 0.;
-  context.hasOOSData = true;
-  context.dataset_oos = testDataset;
-  context.labels_oos = conv_to<Row<double>>::from(testLabels);
 
   multiContext.allVOne = false;
   multiContext.steps = 2;
@@ -81,6 +78,8 @@ auto main(int argc, char **argv) -> int {
   using classifier = GradientBoostMultiClassifier<DecisionTreeClassifier>;
   auto c = std::make_unique<classifier>(trainDataset, 
 					trainLabels, 
+					testDataset,
+					testLabels,
 					combinedContext);
 
   c->fit();

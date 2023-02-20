@@ -673,7 +673,7 @@ GradientBoostClassifier<ClassifierType>::write() {
   using CerealIArch = cereal::BinaryInputArchive;
   using CerealOArch = cereal::BinaryOutputArchive;
 
-  std::string fileName = dumps<CerealT, CerealIArch, CerealOArch>(*this);
+  std::string fileName = dumps<CerealT, CerealIArch, CerealOArch>(*this, SerializedType::CLASSIFIER);
   return fileName;
 }
 
@@ -686,7 +686,7 @@ GradientBoostClassifier<ClassifierType>::writeColMask() {
   using CerealOArch = cereal::BinaryOutputArchive;
 
   ColMaskArchive cma{colMask_};
-  std::string fileName = dumps<CerealT, CerealIArch, CerealOArch>(cma);
+  std::string fileName = dumps<CerealT, CerealIArch, CerealOArch>(cma, SerializedType::COLMASK);
   return fileName;
 
 }
@@ -700,7 +700,7 @@ GradientBoostClassifier<ClassifierType>::writePrediction() {
   using CerealOArch = cereal::BinaryOutputArchive;
 
   PredictionArchive pa{latestPrediction_};
-  std::string fileName = dumps<CerealT, CerealIArch, CerealOArch>(pa);
+  std::string fileName = dumps<CerealT, CerealIArch, CerealOArch>(pa, SerializedType::PREDICTION);
   return fileName;
   
 }
@@ -715,6 +715,8 @@ GradientBoostClassifier<ClassifierType>::read(GradientBoostClassifier<Classifier
   using CerealT = GradientBoostClassifier<ClassifierType>;
   using CerealIArch = cereal::BinaryInputArchive;
   using CerealOArch = cereal::BinaryOutputArchive;
+
+  
 
   loads<CerealT, CerealIArch, CerealOArch>(rhs, fileName);
 }
@@ -735,9 +737,13 @@ GradientBoostClassifier<ClassifierType>::Predict(std::string index, const mat& d
 
   bool ignoreSymmetrization = true;
   for (auto & fileName : fileNames) {
-    read(*classifierNew, fileName);
-    classifierNew->Predict(dataset, predictionStep, ignoreSymmetrization);
-    prediction += predictionStep;
+    auto tokens = strSplit(fileName, '_');
+    if (tokens[0] == "CLS") {
+      fileName = strJoin(tokens, '_', 1);
+      read(*classifierNew, fileName);
+      classifierNew->Predict(dataset, predictionStep, ignoreSymmetrization);
+      prediction += predictionStep;
+    }
   }
 
   if (postSymmetrize) {
