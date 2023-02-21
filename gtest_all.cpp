@@ -29,6 +29,13 @@ void loadDatasets(dataset_t& dataset, labels_t& labels) {
     throw std::runtime_error("Could not load file");
 }
 
+void exec(std::string cmd) {
+  const char* cmd_c_str = cmd.c_str();
+  FILE* pipe = popen(cmd_c_str, "r");
+  if (!pipe) throw std::runtime_error("popen() failed!");
+  pclose(pipe);
+}
+
 TEST(DPSolverTest, TestAVXMatchesSerial) {
   using namespace Objectives;
 
@@ -569,19 +576,46 @@ TEST(DPSolverTest, TestParallelScoresMatchSerialScores) {
   }
 }
 
+TEST(GradientBoostClassifierTest, TestContextWrittenWithCorrectValues) {
+
+  std::size_t minLeafSize = 1;
+  double minimumGainSplit = 0.;
+  std::size_t maxDepth = 10;
+  std::size_t partitionSize = 10;
+
+  Context context{}, context_archive;
+  
+  std::string fileName = "__Context_gtest.dat";
+  std::string cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/createContext ";
+
+  cmd += "--loss 1 --partitionSize 6 --partitionRatio .25 ";
+  cmd += "--partitionSizeMethod 1 --learningRateMethod 2 ";
+  cmd += "--learningRate .01 --steps 1010 --symmetrizeLabels true ";
+  cmd += "--fileName __Context_gtest.dat";
+
+  exec(cmd);
+
+  readBinary<Context>(fileName, context_archive);
+
+  // User set values
+  ASSERT_EQ(context_archive.loss, lossFunction::BinomialDeviance);
+  ASSERT_EQ(context_archive.partitionSize, 6);
+  ASSERT_EQ(context_archive.steps, 1010);
+  ASSERT_EQ(context_archive.partitionRatio, .25);
+  ASSERT_EQ(context_archive.partitionSizeMethod, PartitionSize::SizeMethod::FIXED_PROPORTION);
+  ASSERT_EQ(context_archive.learningRateMethod, LearningRate::RateMethod::DECREASING);
+
+  // Default values
+  ASSERT_EQ(context_archive.minLeafSize, 1);
+  ASSERT_EQ(context_archive.symmetrizeLabels, true);
+  ASSERT_EQ(context_archive.recursiveFit, true);
+  ASSERT_EQ(context_archive.rowSubsampleRatio, 1.);
+  ASSERT_EQ(context_archive.colSubsampleRatio, .25);
+  
+}
+
 TEST(GradientBoostClassifierTest, TestContextReadWrite) {
 
-  dataset_t dataset, trainDataset, testDataset;
-  labels_t labels, trainLabels, testLabels;
-
-  loadDatasets(dataset, labels);
-  data::Split(dataset,
-	      labels,
-	      trainDataset,
-	      testDataset,
-	      trainLabels,
-	      testLabels, 0.2);
-	      
   std::size_t minLeafSize = 1;
   double minimumGainSplit = 0.;
   std::size_t maxDepth = 10;

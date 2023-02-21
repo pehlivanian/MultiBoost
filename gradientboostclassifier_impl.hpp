@@ -714,9 +714,7 @@ GradientBoostClassifier<ClassifierType>::read(GradientBoostClassifier<Classifier
 
   using CerealT = GradientBoostClassifier<ClassifierType>;
   using CerealIArch = cereal::BinaryInputArchive;
-  using CerealOArch = cereal::BinaryOutputArchive;
-
-  
+  using CerealOArch = cereal::BinaryOutputArchive;  
 
   loads<CerealT, CerealIArch, CerealOArch>(rhs, fileName);
 }

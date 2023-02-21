@@ -75,13 +75,19 @@ if (USE_OPENMP)
   find_package(OpenMP)
 endif()
 
-# if (BUILD_TESTS)
-find_package(GTest REQUIRED)
-# endif()
+if (BUILD_CONTEXT_BUILDER)
+  find_package(Boost COMPONENTS program_options REQUIRED)
+  include_directories(${Boost_INCLUDE_DIR})
+  link_directories(${Boost_LIBRARY_DIR})
+endif()
 
-# if(BUILD_BENCHMARKS)
-find_package(benchmark REQUIRED)
-# endif()
+if (BUILD_TESTS)
+  find_package(GTest REQUIRED)
+endif()
+
+if(BUILD_BENCHMARKS)
+  find_package(benchmark REQUIRED)
+endif()
 
 if (USE_AUTODIFF)
   find_package(autodiff)
@@ -126,7 +132,7 @@ endif()
 # Context creation
 if (BUILD_CONTEXT_BUILDER)
   add_executable(createContext createContext.cpp)
-  target_link_libraries(createContext utils)
+  target_link_libraries(createContext LINK_PUBLIC ${Boost_LIBRARIES} utils)
 endif()
 
 # DP solver example	

@@ -72,7 +72,7 @@ namespace LearningRate {
     INCREASING = 1,
     DECREASING = 2,
   };
-} // namespace LarningRate
+} // namespace LearningRate
 
 namespace ClassifierContext{
   struct Context {
