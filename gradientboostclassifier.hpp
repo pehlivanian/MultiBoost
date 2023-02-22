@@ -90,7 +90,8 @@ namespace ClassifierContext{
       serialize{false},
       serializePrediction{false},
       serializeColMask{false},
-      serializationWindow{500}
+      serializationWindow{500},
+      baseSteps{-1}
     {}
 
     Context(const Context& rhs) {
@@ -99,6 +100,11 @@ namespace ClassifierContext{
       partitionRatio = rhs.partitionRatio;
       learningRate = rhs.learningRate;
       steps = rhs.steps;
+      if (rhs.baseSteps > 0) {
+	baseSteps = rhs.baseSteps;
+      } else {
+	baseSteps = rhs.steps;
+      }
       symmetrizeLabels = rhs.symmetrizeLabels;
       removeRedundantLabels = rhs.removeRedundantLabels;
       rowSubsampleRatio = rhs.rowSubsampleRatio;
@@ -114,6 +120,7 @@ namespace ClassifierContext{
       serializePrediction = rhs.serializePrediction;
       serializeColMask = rhs.serializeColMask;
       serializationWindow = rhs.serializationWindow;
+
     }
       
     lossFunction loss;
@@ -121,6 +128,7 @@ namespace ClassifierContext{
     double partitionRatio;
     double learningRate;
     int steps;
+    int baseSteps;
     bool symmetrizeLabels;
     bool removeRedundantLabels;
     double rowSubsampleRatio;
@@ -808,6 +816,7 @@ private:
 
   void setNextClassifier(const ClassifierType&);
   int steps_;
+  int baseSteps_;
   mat dataset_;
   Row<double> labels_;
   mat dataset_oos_;

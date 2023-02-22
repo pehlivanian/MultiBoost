@@ -14,7 +14,8 @@ $EXEC_STP1 \
 --partitionSize 6 \
 --partitionRatio .25 \
 --learningRate .0001 \
---steps 5000 \
+--steps 1000 \
+--baseSteps 10000 \
 --symmetrizeLabels true \
 --removeRedundantLabels false \
 --rowSubsampleRatio 1. \

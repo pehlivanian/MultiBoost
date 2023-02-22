@@ -16,7 +16,7 @@ auto main(int argc, char **argv) -> int {
   std::string contextFileName;
   std::string indexName;
 
-  // ClassifierContext::Context context;
+  ClassifierContext::Context context;
 
   options_description desc("Options");
   desc.add_options()
@@ -43,7 +43,7 @@ auto main(int argc, char **argv) -> int {
   }
   
   // Get context
-  // readBinary<ClassifierContext::Context>(contextFileName, context);
+  readBinary<ClassifierContext::Context>(contextFileName, context);
 
   // Get data
   std::string path = "/home/charles/Data/";
@@ -70,30 +70,6 @@ auto main(int argc, char **argv) -> int {
   std::cout << "TEST DATASET:  (" << testDataset.n_cols << " x " 
 	    << testDataset.n_rows << ")" << std::endl;
   
-  ClassifierContext::Context context{};
-  // context.loss = lossFunction::Savage;
-  // context.loss = lossFunction::BinomialDeviance;
-  // context.loss = lossFunction::MSE;
-  // context.loss = lossFunction::Exp;
-  // context.loss = lossFunction::Arctan;
-  context.loss = lossFunction::Synthetic;
-  context.partitionSize = 6;
-  context.partitionRatio = .25;
-  context.learningRate = .0001;
-  context.steps = 10000;
-  context.symmetrizeLabels = true;
-  context.removeRedundantLabels = false;
-  context.rowSubsampleRatio = 1.;
-  context.colSubsampleRatio = .25; // .75
-  context.recursiveFit = true;
-  context.serialize = false;
-  context.serializationWindow = 500;
-  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED; // INCREASING
-  context.learningRateMethod = LearningRate::RateMethod::FIXED;   // DECREASING
-  context.minLeafSize = 1;
-  context.maxDepth = 10;
-  context.minimumGainSplit = 0.;
-
   // Create classifier
   using classifier = GradientBoostClassifier<DecisionTreeClassifier>;
   auto c = std::make_unique<classifier>(trainDataset, 

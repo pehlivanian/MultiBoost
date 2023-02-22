@@ -115,6 +115,7 @@ auto main(int argc, char **argv) -> int {
      context.partitionRatio = .25;
      context.learningRate = .0001;
      context.steps = 10000;
+     context.baseSteps = 10000;
      context.symmetrizeLabels = true;
      context.rowSubsampleRatio = 1.;
      context.colSubsampleRatio = .25; // .75
@@ -132,6 +133,7 @@ auto main(int argc, char **argv) -> int {
   double			partitionRatio		= .25;
   double			learningRate		= .0001;
   int				steps			= 10000;
+  int				baseSteps		= 10000;
   bool				symmetrizeLabels	= true;
   bool				removeRedundantLabels	= true;
   double			rowSubsampleRatio	= 1.;
@@ -157,6 +159,7 @@ auto main(int argc, char **argv) -> int {
     ("partitionRatio",		value<double>(&partitionRatio),				"partitionRatio")
     ("learningRate",		value<double>(&learningRate),				"learningRate")
     ("steps",			value<int>(&steps),					"steps")
+    ("baseSteps",		value<int>(&baseSteps),					"baseSteps")
     ("symmetrizeLabels",	value<bool>(&symmetrizeLabels),				"symmetrizeLabels")
     ("removeRedundantLabels",	value<bool>(&removeRedundantLabels),			"removeRedundantLabels")
     ("rowSubsampleRatio",	value<double>(&rowSubsampleRatio),			"rowSubsampleRatio")
@@ -200,6 +203,7 @@ auto main(int argc, char **argv) -> int {
   context.partitionRatio = partitionRatio;
   context.learningRate = learningRate;
   context.steps = steps;
+  context.baseSteps = baseSteps;
   context.symmetrizeLabels = symmetrizeLabels;
   context.removeRedundantLabels = removeRedundantLabels;
   context.rowSubsampleRatio = rowSubsampleRatio;

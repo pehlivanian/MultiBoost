@@ -44,12 +44,14 @@ auto main(int argc, char **argv) -> int {
   context.partitionRatio = .25;
   context.learningRate = .0001;
   context.steps = 10000;
+  context.baseSteps = 10000;
   context.symmetrizeLabels = true;
   context.removeRedundantLabels = false;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .25; // .75
   context.recursiveFit = true;
-  context.serialize = false;
+  context.serialize = true;
+  context.serializePrediction = true;
   context.serializationWindow = 500;
   context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED; // INCREASING
   context.learningRateMethod = LearningRate::RateMethod::FIXED;   // DECREASING

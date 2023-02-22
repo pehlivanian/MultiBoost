@@ -748,6 +748,7 @@ TEST(GradientBoostClassifierTest, TestIncrementalContextContent) {
   ASSERT_EQ(context.partitionRatio, .25);
   ASSERT_EQ(context.learningRate, .0001);
   ASSERT_EQ(context.steps, 1000);
+  ASSERT_EQ(context.baseSteps, 10000);
   ASSERT_EQ(context.symmetrizeLabels, true);
   ASSERT_EQ(context.removeRedundantLabels, false);
   ASSERT_EQ(context.rowSubsampleRatio, 1.);
