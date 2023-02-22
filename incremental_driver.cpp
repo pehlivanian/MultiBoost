@@ -15,6 +15,9 @@ auto main(int argc, char **argv) -> int {
   std::string dataName;
   std::string contextFileName;
   std::string indexName;
+  bool quietRun = true;
+  bool warmStart = false;
+  Row<double> prediction;
 
   ClassifierContext::Context context;
 
@@ -22,7 +25,10 @@ auto main(int argc, char **argv) -> int {
   desc.add_options()
     ("help,h", "Help screen")
     ("contextFileName",	value<std::string>(&contextFileName),	"contextFileName")
-    ("dataName",	value<std::string>(&dataName),		"dataName");
+    ("dataName",	value<std::string>(&dataName),		"dataName")
+    ("quietRun",	value<bool>(&quietRun),			"quietRun")
+    ("warmStart",	value<bool>(&warmStart),		"warmStart")
+    ("indexName",	value<std::string>(&indexName),		"indexName");
 
   variables_map vm;
     
@@ -44,11 +50,12 @@ auto main(int argc, char **argv) -> int {
   
   // Get context
   readBinary<ClassifierContext::Context>(contextFileName, context);
+  context.quietRun = quietRun;
 
   // Get data
-  std::string path = "/home/charles/Data/";
-  std::string XPath = path + dataName + "_X.csv";
-  std::string yPath = path + dataName + "_y.csv";
+  std::string absPath = "/home/charles/Data/";
+  std::string XPath = absPath + dataName + "_X.csv";
+  std::string yPath = absPath + dataName + "_y.csv";
 
   Mat<double> dataset, trainDataset, testDataset;
   Row<std::size_t> labels, trainLabels, testLabels;
@@ -65,18 +72,32 @@ auto main(int argc, char **argv) -> int {
 	      testDataset, 
 	      trainLabels, 
 	      testLabels, 0.2);
-  std::cout << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
-	    << trainDataset.n_rows << ")" << std::endl;
-  std::cout << "TEST DATASET:  (" << testDataset.n_cols << " x " 
-	    << testDataset.n_rows << ")" << std::endl;
+  // std::cout << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
+  // 	    << trainDataset.n_rows << ")" << std::endl;
+  // std::cout << "TEST DATASET:  (" << testDataset.n_cols << " x " 
+  //	    << testDataset.n_rows << ")" << std::endl;
   
   // Create classifier
+  // Get prediction if warmStart
   using classifier = GradientBoostClassifier<DecisionTreeClassifier>;
-  auto c = std::make_unique<classifier>(trainDataset, 
+  using CPtr = std::unique_ptr<classifier>;
+  CPtr c;
+
+  if (warmStart) {
+       Replay<double, DecisionTreeClassifier>::readPrediction(indexName, prediction);
+       c = std::make_unique<classifier>(trainDataset,
 					trainLabels,
 					testDataset,
 					testLabels,
+					prediction,
 					context);
+  } else {
+    c = std::make_unique<classifier>(trainDataset, 
+				     trainLabels,
+				     testDataset,
+				     testLabels,
+				     context);
+  }
 
   // Fit
   c->fit();

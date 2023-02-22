@@ -86,6 +86,7 @@ namespace ClassifierContext{
       maxDepth{maxDepth},
       numTrees{numTrees},
       removeRedundantLabels{false},
+      quietRun{false},
       recursiveFit{recursiveFit},
       serialize{false},
       serializePrediction{false},
@@ -107,6 +108,7 @@ namespace ClassifierContext{
       }
       symmetrizeLabels = rhs.symmetrizeLabels;
       removeRedundantLabels = rhs.removeRedundantLabels;
+      quietRun = rhs.quietRun;
       rowSubsampleRatio = rhs.rowSubsampleRatio;
       colSubsampleRatio = rhs.colSubsampleRatio;
       recursiveFit = rhs.recursiveFit;
@@ -131,6 +133,7 @@ namespace ClassifierContext{
     int baseSteps;
     bool symmetrizeLabels;
     bool removeRedundantLabels;
+    bool quietRun;
     double rowSubsampleRatio;
     double colSubsampleRatio;
     bool recursiveFit;
@@ -862,6 +865,7 @@ private:
 
   bool symmetrized_;
   bool removeRedundantLabels_;
+  bool quietRun_;
   bool reuseColMask_;
 
   bool recursiveFit_;

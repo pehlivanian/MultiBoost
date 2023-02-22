@@ -19,6 +19,7 @@
 
 #include "loss.hpp"
 #include "gradientboostclassifier.hpp"
+#include "replay.hpp"
 #include "utils.hpp"
 
 

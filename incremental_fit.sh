@@ -18,6 +18,7 @@ $EXEC_STP1 \
 --baseSteps 10000 \
 --symmetrizeLabels true \
 --removeRedundantLabels false \
+--quietRun true \
 --rowSubsampleRatio 1. \
 --colSubsampleRatio .25 \
 --recursiveFit true \
@@ -33,9 +34,28 @@ $EXEC_STP1 \
 
 EXEC_STP2=${PATH}incremental_driver 
 
+# First run
+INDEX_NAME_STP=$($EXEC_STP2 \
+--contextFileName $CONTEXT_PATH \
+--dataName titanic_train \
+--warmStart false)
+
+echo $INDEX_NAME_STP
+
+# Subsequent runs
+INDEX_NAME_STP=$($EXEC_STP2 \
+--contextFileName $CONTEXT_PATH \
+--dataName titanic_train \
+--quietRun true \
+--warmStart true \
+--indexName $INDEX_NAME_STP)
+
+echo $INDEX_NAME_STP
+
 $EXEC_STP2 \
 --contextFileName $CONTEXT_PATH \
---dataName titanic_train
-
-
+--dataName titanic_train \
+--quietRun false \
+--warmStart true \
+--indexName $INDEX_NAME_STP
 

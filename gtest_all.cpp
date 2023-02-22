@@ -701,7 +701,6 @@ TEST(GradientBoostClassifierTest, TestWritePrediction) {
 
     context.recursiveFit = recursive;
 
-    context.recursiveFit = recursive;
     float eps = std::numeric_limits<float>::epsilon();
 
     // Fit classifier
@@ -736,6 +735,90 @@ TEST(GradientBoostClassifierTest, TestWritePrediction) {
 }
 */
 
+TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
+
+  std::vector<bool> trials = {false, true};
+  dataset_t dataset, trainDataset, testDataset;
+  labels_t labels, trainLabels, testLabels;
+
+  loadDatasets(dataset, labels);
+  data::Split(dataset, 
+	      labels,
+	      trainDataset,
+	      testDataset,
+	      trainLabels,
+	      testLabels, 0.2);
+
+  std::size_t minLeafSize = 1;
+  double minimumGainSplit = 0.;
+  std::size_t maxDepth = 5;
+  std::size_t partitionSize = 11;
+
+  Context context{};
+  
+  context.loss = lossFunction::BinomialDeviance;
+  context.partitionSize = partitionSize;
+  context.partitionRatio = .25;
+  context.learningRate = .001;
+  context.steps = 114;
+  context.symmetrizeLabels = true;
+  context.quietRun = true;
+  context.rowSubsampleRatio = 1.;
+  context.colSubsampleRatio = .45; // .75
+  context.serialize = true;
+  context.serializePrediction = true;
+  context.serializeColMask = false;
+  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
+  context.learningRateMethod = LearningRate::RateMethod::FIXED;
+  context.minLeafSize = minLeafSize;
+  context.maxDepth = maxDepth;
+  context.minimumGainSplit = minimumGainSplit;
+
+  context.serializationWindow = 100;
+
+  using T = GradientBoostClassifier<DecisionTreeClassifier>;
+
+  for (auto recursive : trials) {
+
+    context.recursiveFit = recursive;
+
+    float eps = std::numeric_limits<float>::epsilon();
+
+    Row<double> prediction, archivePrediction, newPrediction;
+
+    // Fit classifier
+    T classifier;
+    classifier = T(trainDataset, trainLabels, testDataset, testLabels, context);
+    classifier.fit();
+
+
+    // Test classifier prediction matches reloaded latestPrediction from same classifier
+    classifier.Predict(prediction);
+
+    std::string indexName = classifier.getIndexName();
+    
+    Replay<double, DecisionTreeClassifier>::readPrediction(indexName, archivePrediction);
+
+    for (int i=0; i<prediction.n_elem; ++i) {
+      ASSERT_LE(fabs(prediction[i]-archivePrediction[i]), eps);
+      ASSERT_LE(fabs(prediction[i]-archivePrediction[i]), eps);
+    }
+
+    // Create a new classifier from the same context, test that Predict matches
+    // previous classifier predict
+    T newClassifier;
+    newClassifier = T(trainDataset, trainLabels, testDataset, testLabels, archivePrediction, context);
+    newClassifier.Predict(newPrediction);
+
+    for (int i=0; i<prediction.n_elem; ++i) {
+      ASSERT_LE(fabs(prediction[i]-newPrediction[i]), eps);
+      ASSERT_LE(fabs(prediction[i]-newPrediction[i]), eps);
+    }
+   
+  }
+  
+}
+
 TEST(GradientBoostClassifierTest, TestIncrementalContextContent) {
   
   std::string fileName = "__CTX_TEST_EtxetnoC7txetnoCreifissa.cxt";
@@ -751,6 +834,7 @@ TEST(GradientBoostClassifierTest, TestIncrementalContextContent) {
   ASSERT_EQ(context.baseSteps, 10000);
   ASSERT_EQ(context.symmetrizeLabels, true);
   ASSERT_EQ(context.removeRedundantLabels, false);
+  ASSERT_EQ(context.quietRun, true);
   ASSERT_EQ(context.rowSubsampleRatio, 1.);
   ASSERT_EQ(context.colSubsampleRatio, .25);
   ASSERT_EQ(context.recursiveFit, true);

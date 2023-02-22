@@ -38,6 +38,9 @@ public:
   static void Classify(std::string, const mat&, Row<DataType>&);
   static void Classify(std::string, Row<DataType>&);
 
+  static void readPrediction(std::string, Row<DataType>&);
+  
+private:
   template<typename T>
   static void read(T&, std::string);
 

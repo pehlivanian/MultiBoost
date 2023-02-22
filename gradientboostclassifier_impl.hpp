@@ -118,6 +118,7 @@ GradientBoostClassifier<ClassifierType>::contextInit_(ClassifierContext::Context
   baseSteps_ = context.baseSteps;
   symmetrized_ = context.symmetrizeLabels;
   removeRedundantLabels_ = context.removeRedundantLabels;
+  quietRun_ = context.quietRun;
   row_subsample_ratio_ = context.rowSubsampleRatio;
   col_subsample_ratio_ = context.colSubsampleRatio;
   recursiveFit_ = context.recursiveFit;
@@ -889,7 +890,9 @@ GradientBoostClassifier<ClassifierType>::fit() {
       if (serialize_) {
 	commit();
       }
-      printStats(stepNum);
+      if (!quietRun_) {
+	printStats(stepNum);
+      }
     }
     
   }
@@ -899,7 +902,9 @@ GradientBoostClassifier<ClassifierType>::fit() {
     commit();
 
   // print final stats
-  printStats(steps_);
+  if (!quietRun_) {
+    printStats(steps_);
+  }
 
 }
 

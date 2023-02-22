@@ -72,4 +72,24 @@ Replay<DataType, ClassifierType>::Classify(std::string indexName,
   Predict(indexName, prediction);
 }
 
+template<typename DataType, typename ClassifierType>
+void
+Replay<DataType, ClassifierType>::readPrediction(std::string indexName, Row<DataType>& prediction) {
+
+  Row<DataType> predictionNew;  
+  std::vector<std::string> fileNames;
+  readIndex(indexName, fileNames);
+
+  for (auto &fileName : fileNames) {
+    auto tokens = strSplit(fileName, '_');
+    if (tokens[0] == "PRED") {
+      fileName = strJoin(tokens, '_', 1);
+      read(predictionNew, fileName);
+      prediction = predictionNew;
+    }
+  }
+}
+
+
+
 #endif
