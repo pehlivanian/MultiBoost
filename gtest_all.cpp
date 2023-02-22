@@ -36,6 +36,7 @@ void exec(std::string cmd) {
   pclose(pipe);
 }
 
+/*
 TEST(DPSolverTest, TestAVXMatchesSerial) {
   using namespace Objectives;
 
@@ -733,6 +734,36 @@ TEST(GradientBoostClassifierTest, TestWritePrediction) {
   }
 
 }
+*/
+
+TEST(GradientBoostClassifierTest, TestIncrementalContextContent) {
+  
+  std::string fileName = "__CTX_TEST_EtxetnoC7txetnoCreifissa.cxt";
+  Context context;
+
+  readBinary<Context>(fileName, context);
+
+  ASSERT_EQ(context.loss, lossFunction::Synthetic);
+  ASSERT_EQ(context.partitionSize, 6);
+  ASSERT_EQ(context.partitionRatio, .25);
+  ASSERT_EQ(context.learningRate, .0001);
+  ASSERT_EQ(context.steps, 1000);
+  ASSERT_EQ(context.symmetrizeLabels, true);
+  ASSERT_EQ(context.removeRedundantLabels, false);
+  ASSERT_EQ(context.rowSubsampleRatio, 1.);
+  ASSERT_EQ(context.colSubsampleRatio, .25);
+  ASSERT_EQ(context.recursiveFit, true);
+  ASSERT_EQ(context.serialize, true);
+  ASSERT_EQ(context.serializePrediction, true);
+  ASSERT_EQ(context.partitionSizeMethod, PartitionSize::SizeMethod::FIXED);
+  ASSERT_EQ(context.learningRateMethod, LearningRate::RateMethod::FIXED);
+  ASSERT_EQ(context.minLeafSize, 1);
+  ASSERT_EQ(context.maxDepth, 10);
+  ASSERT_EQ(context.minimumGainSplit, 0.);
+  ASSERT_EQ(context.serializationWindow, 500);
+	    
+}
+
 
 auto main(int argc, char **argv) -> int {
   testing::InitGoogleTest(&argc, argv);

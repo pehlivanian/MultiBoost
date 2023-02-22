@@ -490,7 +490,6 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
   Row<DataType> prediction_slice;
 
-
   if (recursiveFit_ && partitionSize_ > 2) {
     // Reduce partition size
     std::size_t subPartitionSize = static_cast<std::size_t>(partitionSize/2);

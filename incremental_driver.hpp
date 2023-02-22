@@ -1,11 +1,13 @@
-#ifndef __PMLB_DRIVER_HPP__
-#define __PMLB_DRIVER_HPP__
+#ifndef __INCREMENTAL_DRIVER_HPP__
+#define __INCREMENTAL_DRIVER_HPP__
 
 #include <iostream>
 #include <numeric>
 #include <string>
 #include <cstring>
 #include <memory>
+
+#include <boost/program_options.hpp>
 
 #include <mlpack/core.hpp>
 #include <mlpack/methods/decision_tree/decision_tree.hpp>
@@ -18,5 +20,6 @@
 #include "loss.hpp"
 #include "gradientboostclassifier.hpp"
 #include "utils.hpp"
+
 
 #endif

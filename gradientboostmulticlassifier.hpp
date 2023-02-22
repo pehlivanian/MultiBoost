@@ -227,6 +227,7 @@ public:
   using ClassifierList = std::vector<std::unique_ptr<ClassClassifier>>;
 
   GradientBoostMultiClassifier() = default;
+
   GradientBoostMultiClassifier(const mat& dataset,
 			       const Row<std::size_t>& labels,
 			       MultiClassifierContext::CombinedContext context) :

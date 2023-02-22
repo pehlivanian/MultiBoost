@@ -38,6 +38,9 @@ option(BUILD_BENCHMARKS "Build benchmark tests" OFF)
 # build Inductive Boost Classifier
 option(BUILD_IBC ON)
 
+# build incremental driver
+option(BUILD_INC_DRIVER ON)
+
 # build titanic example
 option(BUILD_TITANIC OFF)
 
@@ -75,7 +78,7 @@ if (USE_OPENMP)
   find_package(OpenMP)
 endif()
 
-if (BUILD_CONTEXT_BUILDER)
+if (BUILD_CONTEXT_BUILDER OR BUILD_INC_DRIVER)
   find_package(Boost COMPONENTS program_options REQUIRED)
   include_directories(${Boost_INCLUDE_DIR})
   link_directories(${Boost_LIBRARY_DIR})
@@ -100,7 +103,6 @@ endif()
 
 include_directories(${ARMADILLO_INCLUDE_DIRS})
 
-add_library(pmlb OBJECT pmlb.cpp)
 add_library(loss OBJECT loss.cpp)
 add_library(score2 OBJECT score2.cpp)
 add_library(utils OBJECT utils.cpp)
@@ -145,9 +147,19 @@ endif()
 if (BUILD_IBC)
   add_executable(pmlb_driver pmlb_driver.cpp)
   if (USE_OPENMP)
-    target_link_libraries(pmlb_driver pmlb loss utils gradientboostclassifier autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
+    target_link_libraries(pmlb_driver loss utils gradientboostclassifier autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
   else()
-    target_link_libraries(pmlb_driver pmlb loss utils gradientboostclassifier ${ARMADILLO_LIBRARIES} ${BLAS_LIBRARIES})
+    target_link_libraries(pmlb_driver loss utils gradientboostclassifier ${ARMADILLO_LIBRARIES} ${BLAS_LIBRARIES})
+  endif()
+endif()
+
+# Incremental driver for sequential, serialized runs
+if (BUILD_INC_DRIVER)
+  add_executable(incremental_driver incremental_driver.cpp)
+  if (USE_OPENMP)
+    target_link_libraries(incremental_driver LINK_PUBLIC ${Boost_LIBRARIES} loss utils gradientboostclassifier autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
+  else()
+    target_link_libraries(incremental_driver LINK_PUBLIC ${Boost_LIBRARIES} loss utils gradientboostclassifier ${ARMADILLO_LIBRARIES} ${BLAS_LIBRARIES})
   endif()
 endif()
 

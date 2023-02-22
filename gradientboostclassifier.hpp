@@ -492,7 +492,8 @@ public:
   using PredictionList = std::vector<Prediction>;
   
   GradientBoostClassifier() = default;
-
+  
+  // 1
   GradientBoostClassifier(const mat& dataset, 
 			  const Row<std::size_t>& labels,
 			  ClassifierContext::Context context) :
@@ -508,6 +509,7 @@ public:
     init_(); 
   }
 
+  // 2
   GradientBoostClassifier(const mat& dataset,
 			  const Row<double>& labels,
 			  ClassifierContext::Context context) :
@@ -523,6 +525,7 @@ public:
     init_(); 
   }
 
+  // 3
   GradientBoostClassifier(const mat& dataset,
 			  const Row<std::size_t>& labels,
 			  const mat& dataset_oos,
@@ -542,6 +545,7 @@ public:
     init_();
   }
 
+  // 4
   GradientBoostClassifier(const mat& dataset,
 			  const Row<double>& labels,
 			  const mat& dataset_oos,
@@ -561,6 +565,7 @@ public:
     init_();
   }
 
+  // 5
   GradientBoostClassifier(const mat& dataset,
 			  const Row<std::size_t>& labels,
 			  const Row<double>& latestPrediction,
@@ -579,7 +584,26 @@ public:
     contextInit_(std::move(context));
     init_();
   }
+
+  // 6
+  GradientBoostClassifier(const mat& dataset,
+			  const Row<std::size_t>& labels,
+			  const Row<double>& latestPrediction,
+			  ClassifierContext::Context context) :
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
+    dataset_{dataset},
+    labels_{conv_to<Row<double>>::from(labels)},
+    hasOOSData_{false},
+    hasInitialPrediction_{true},
+    reuseColMask_{false},
+    latestPrediction_{latestPrediction}
+  {
+    contextInit_(std::move(context));
+    init_();
+  }
    
+  // 7
   GradientBoostClassifier(const mat& dataset,
 			  const Row<double>& labels,
 			  const Row<double>& latestPrediction,
@@ -599,6 +623,25 @@ public:
     init_();
   }
 
+  // 8
+  GradientBoostClassifier(const mat& dataset,
+			  const Row<double>& labels,
+			  const Row<double>& latestPrediction,
+			  ClassifierContext::Context context) :
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
+    dataset_{dataset},
+    labels_{labels},
+    hasOOSData_{false},
+    hasInitialPrediction_{true},
+    reuseColMask_{false},
+    latestPrediction_{latestPrediction}
+  {
+    contextInit_(std::move(context));
+    init_();
+  }
+
+  // 9
   GradientBoostClassifier(const mat& dataset,
 			  const Row<std::size_t>& labels,
 			  const mat& dataset_oos,
@@ -622,6 +665,29 @@ public:
     init_();
   }
 
+  // 10
+  GradientBoostClassifier(const mat& dataset,
+			  const Row<std::size_t>& labels,
+			  const mat& dataset_oos,
+			  const Row<std::size_t>& labels_oos,
+			  const Row<double>& latestPrediction,
+			  ClassifierContext::Context context) :
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
+    dataset_{dataset},
+    labels_{conv_to<Row<double>>::from(labels)},
+    dataset_oos_{dataset_oos},
+    labels_oos_{conv_to<Row<double>>::from(labels_oos)},
+    hasOOSData_{true},
+    hasInitialPrediction_{true},
+    reuseColMask_{false},
+    latestPrediction_{latestPrediction}
+  {
+    contextInit_(std::move(context));
+    init_();
+  }
+
+  // 11
   GradientBoostClassifier(const mat& dataset,
 			  const Row<double>& labels,
 			  const mat& dataset_oos,
@@ -640,6 +706,28 @@ public:
     reuseColMask_{true},
     latestPrediction_{latestPrediction},
     colMask_{colMask}
+  {
+    contextInit_(std::move(context));
+    init_();
+  }
+
+  // 12
+  GradientBoostClassifier(const mat& dataset,
+			  const Row<double>& labels,
+			  const mat& dataset_oos,
+			  const Row<double>& labels_oos,
+			  const Row<double>& latestPrediction,
+			  ClassifierContext::Context context) :
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
+    dataset_{dataset},
+    labels_{labels},
+    dataset_oos_{dataset_oos},
+    labels_oos_{labels_oos},
+    hasOOSData_{true},
+    hasInitialPrediction_{true},
+    reuseColMask_{false},
+    latestPrediction_{latestPrediction}
   {
     contextInit_(std::move(context));
     init_();
