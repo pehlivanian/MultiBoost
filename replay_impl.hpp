@@ -15,10 +15,19 @@ Replay<DataType, ClassifierType>::read(T& rhs,
 
 template<typename DataType, typename ClassifierType>
 void
+Replay<DataType, ClassifierType>::desymmetrize(Row<DataType>& prediction, double a, double b) {
+
+  prediction = (sign(prediction) - b)/ a;
+}
+
+
+template<typename DataType, typename ClassifierType>
+void
 Replay<DataType, ClassifierType>::Predict(std::string indexName,
 					  const mat& dataset,
-					  Row<DataType>& prediction) {
-  
+					  Row<DataType>& prediction,
+					  bool deSymmetrize) {
+
   std::vector<std::string> fileNames;
   readIndex(indexName, fileNames);
 
@@ -27,16 +36,22 @@ Replay<DataType, ClassifierType>::Predict(std::string indexName,
   prediction = zeros<Row<DataType>>(dataset.n_cols);
   Row<DataType> predictionStep;
 
+  std::pair<double, double> ab;
+
   bool ignoreSymmetrization = true;
   for (auto & fileName : fileNames) {
     auto tokens = strSplit(fileName, '_');
     if (tokens[0] == "CLS") {
       fileName = strJoin(tokens, '_', 1);
       read(*classifierNew, fileName);
+      ab = classifierNew->getAB();
       classifierNew->Predict(dataset, predictionStep, ignoreSymmetrization);
       prediction += predictionStep;
     }
   }
+
+  if (deSymmetrize)
+    desymmetrize(prediction, ab.first, ab.second);
 }
 
 template<typename DataType, typename ClassifierType>
@@ -55,14 +70,16 @@ Replay<DataType, ClassifierType>::Predict(std::string indexName, Row<DataType>& 
       prediction = predictionNew;
     }
   }
+
 }
 
 template<typename DataType, typename ClassifierType>
 void
 Replay<DataType, ClassifierType>::Classify(std::string indexName,
 					   const mat& dataset,
-					   Row<DataType>& prediction) {
-  Predict(indexName, dataset, prediction);
+					   Row<DataType>& prediction,
+					   bool deSymmetrize) {
+  Predict(indexName, dataset, prediction, deSymmetrize);
 }
 
 template<typename DataType, typename ClassifierType>
@@ -88,6 +105,7 @@ Replay<DataType, ClassifierType>::readPrediction(std::string indexName, Row<Data
       prediction = predictionNew;
     }
   }
+
 }
 
 

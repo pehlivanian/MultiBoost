@@ -518,9 +518,8 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     context.partitionSize = subPartitionSize + 1;
     context.partitionRatio = std::min(1., 2*partitionRatio_);
     context.learningRate = learningRate_;
-    // XXX
-    context.steps = std::max(static_cast<int>(std::log(baseSteps_)), 1);
-    context.baseSteps = context.steps;
+    context.steps = std::max(static_cast<int>(std::log(steps_)), 1);
+    context.baseSteps = context.baseSteps;
     // context.steps = std::max(1, static_cast<int>(.25 * std::log(steps_)));
     context.symmetrizeLabels = false;
     context.removeRedundantLabels = true;

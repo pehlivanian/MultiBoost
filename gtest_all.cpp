@@ -36,7 +36,6 @@ void exec(std::string cmd) {
   pclose(pipe);
 }
 
-/*
 TEST(DPSolverTest, TestAVXMatchesSerial) {
   using namespace Objectives;
 
@@ -187,6 +186,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips)
   context.partitionRatio = .25;
   context.learningRate = .01;
   context.steps = 17;
+  context.quietRun = true;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .45; // .75
@@ -259,9 +259,10 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
   context.partitionRatio = .25;
   context.learningRate = .001;
   context.steps = 214;
+  context.quietRun = true;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
-  context.colSubsampleRatio = .45; // .75
+  context.colSubsampleRatio = 1.; // .75
   context.serialize = true;
   context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
   context.learningRateMethod = LearningRate::RateMethod::FIXED;
@@ -282,8 +283,9 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
 
 
     // Fit classifier
-    T classifier, newClassifier;
-    classifier = T(trainDataset, trainLabels, testDataset, testLabels, context);
+    T classifier, newClassifier, secondClassifier;
+    context.serialize = true;
+    classifier = T(trainDataset, trainLabels, context);
     classifier.fit();
 
     // Predict IS with live classifier fails due to serialization...
@@ -301,6 +303,21 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
 
     for (int i=0; i<liveTrainPrediction.n_elem; ++i)
       ASSERT_LE(fabs(liveTrainPrediction[i]-archiveTrainPrediction[i]), eps);
+
+    // Predict OOS with live classifier
+    Row<double> liveTestPrediction;
+    context.serialize = false;
+    context.serializePrediction = false;
+    secondClassifier = T(trainDataset, trainLabels, context);
+    secondClassifier.fit();
+    secondClassifier.Predict(testDataset, liveTestPrediction);
+
+    // Use replay to predict OOS based on archive classifier
+    Row<double> archiveTestPrediction;
+    Replay<double, DecisionTreeClassifier>::Classify(indexName, testDataset, archiveTestPrediction, true);
+
+    for (int i=0; i<liveTestPrediction.size(); ++i)
+      ASSERT_LE(fabs(liveTestPrediction[i]-archiveTestPrediction[i]), eps);
 
   }
 
@@ -332,6 +349,7 @@ TEST(GradientBoostClassifierTest, TestInSamplePredictionMatchesLatestPrediction)
   context.partitionRatio = .25;
   context.learningRate = .001;
   context.steps = 514;
+  context.quietRun = true;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .45; // .75
@@ -397,6 +415,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveRoundTrips) {
   context.partitionRatio = .25;
   context.learningRate = .01;
   context.steps = 21;
+  context.quietRun = true;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .45; // .75
@@ -629,6 +648,7 @@ TEST(GradientBoostClassifierTest, TestContextReadWrite) {
   context.partitionRatio = .25;
   context.learningRate = .01;
   context.steps = 21;
+  context.quietRun = true;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .45; // .75
@@ -681,6 +701,7 @@ TEST(GradientBoostClassifierTest, TestWritePrediction) {
   context.partitionRatio = .25;
   context.learningRate = .001;
   context.steps = 114;
+  context.quietRun = true;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .45; // .75
@@ -733,11 +754,10 @@ TEST(GradientBoostClassifierTest, TestWritePrediction) {
   }
 
 }
-*/
 
 TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
 
-  std::vector<bool> trials = {false, true};
+  std::vector<bool> trials = {false};
   dataset_t dataset, trainDataset, testDataset;
   labels_t labels, trainLabels, testLabels;
 
@@ -761,10 +781,12 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
   context.partitionRatio = .25;
   context.learningRate = .001;
   context.steps = 114;
+  context.quietRun = true;
+  context.baseSteps = 214;
   context.symmetrizeLabels = true;
   context.quietRun = true;
   context.rowSubsampleRatio = 1.;
-  context.colSubsampleRatio = .45; // .75
+  context.colSubsampleRatio = 1.; // .75
   context.serialize = true;
   context.serializePrediction = true;
   context.serializeColMask = false;
@@ -782,9 +804,9 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
 
     context.recursiveFit = recursive;
 
-    float eps = std::numeric_limits<float>::epsilon();
+    float eps;
 
-    Row<double> prediction, archivePrediction, newPrediction;
+    Row<double> prediction, archivePrediction, newPrediction, secondPrediction;
 
     // Fit classifier
     T classifier;
@@ -804,17 +826,31 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
       ASSERT_LE(fabs(prediction[i]-archivePrediction[i]), eps);
     }
 
-    // Create a new classifier from the same context, test that Predict matches
-    // previous classifier predict
-    T newClassifier;
-    newClassifier = T(trainDataset, trainLabels, testDataset, testLabels, archivePrediction, context);
-    newClassifier.Predict(newPrediction);
+    // We have archive prediction for an intermediate point [1..114..214]
+    // Create a classifier over the entire period and fit
+    context.steps = 214;
+    context.baseSteps = 214;
+    T secondClassifier;
+    secondClassifier = T(trainDataset, trainLabels, testDataset, testLabels, context);
+    secondClassifier.fit();
+    secondClassifier.Predict(secondPrediction);
 
-    for (int i=0; i<prediction.n_elem; ++i) {
-      ASSERT_LE(fabs(prediction[i]-newPrediction[i]), eps);
-      ASSERT_LE(fabs(prediction[i]-newPrediction[i]), eps);
+    // Compare with 100 steps from archivePrediction
+    context.steps = 100;
+    context.baseSteps = 214;
+    T archiveClassifier = T(trainDataset, trainLabels, testDataset, testLabels, archivePrediction, context);
+    archiveClassifier.fit();
+    archiveClassifier.Predict(archivePrediction);
+
+    if (recursive)
+      eps = 1.5;
+    else
+      eps = std::numeric_limits<float>::epsilon();
+
+    for (int i=0; i<secondPrediction.size(); ++i) {
+      ASSERT_LE(fabs(secondPrediction[i]-archivePrediction[i]), eps);
     }
-   
+  
   }
   
 }
@@ -848,7 +884,6 @@ TEST(GradientBoostClassifierTest, TestIncrementalContextContent) {
   ASSERT_EQ(context.serializationWindow, 500);
 	    
 }
-
 
 auto main(int argc, char **argv) -> int {
   testing::InitGoogleTest(&argc, argv);

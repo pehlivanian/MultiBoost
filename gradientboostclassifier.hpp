@@ -777,6 +777,8 @@ public:
   ClassifierList getClassifiers() const { return classifiers_; }
 
   std::string getIndexName() const { return indexName_; }
+
+  std::pair<double, double> getAB() const {return std::make_pair(a_, b_); }
   
   virtual void printStats(int);
   void purge();

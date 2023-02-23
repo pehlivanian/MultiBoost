@@ -32,10 +32,10 @@ public:
   Replay() = default;
   ~Replay() = default;
 
-  static void Predict(std::string, const mat&, Row<DataType>&);
+  static void Predict(std::string, const mat&, Row<DataType>&, bool=false);
   static void Predict(std::string, Row<DataType>&);
 
-  static void Classify(std::string, const mat&, Row<DataType>&);
+  static void Classify(std::string, const mat&, Row<DataType>&, bool=false);
   static void Classify(std::string, Row<DataType>&);
 
   static void readPrediction(std::string, Row<DataType>&);
@@ -43,6 +43,7 @@ public:
 private:
   template<typename T>
   static void read(T&, std::string);
+  static void desymmetrize(Row<DataType>&, double, double);
 
 };
 

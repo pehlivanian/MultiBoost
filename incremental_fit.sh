@@ -40,7 +40,12 @@ INDEX_NAME_STP=$($EXEC_STP2 \
 --dataName titanic_train \
 --warmStart false)
 
-echo $INDEX_NAME_STP
+n=2
+for (( ; ; ));
+do
+  if [ $n -eq 11 ]; then
+    break
+  fi
 
 # Subsequent runs
 INDEX_NAME_STP=$($EXEC_STP2 \
@@ -50,12 +55,9 @@ INDEX_NAME_STP=$($EXEC_STP2 \
 --warmStart true \
 --indexName $INDEX_NAME_STP)
 
-echo $INDEX_NAME_STP
+echo ${n}" : "${INDEX_NAME_STP}
+    ((n=n+1))
+done
 
-$EXEC_STP2 \
---contextFileName $CONTEXT_PATH \
---dataName titanic_train \
---quietRun false \
---warmStart true \
---indexName $INDEX_NAME_STP
+
 
