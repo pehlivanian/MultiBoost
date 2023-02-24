@@ -20,6 +20,33 @@ Replay<DataType, ClassifierType>::desymmetrize(Row<DataType>& prediction, double
   prediction = (sign(prediction) - b)/ a;
 }
 
+template<typename DataType, typename ClassifierType>
+void
+Replay<DataType, ClassifierType>::PredictStepwise(std::string indexName,
+						  const mat& dataset,
+						  Row<DataType>& prediction,
+						  bool deSymmetrize) {
+  std::vector<std::string> fileNames;
+  readIndex(indexName, fileNames);
+
+  using C = GradientBoostClassifier<ClassifierType>;
+  std::unique_ptr<C> classifierNew = std::make_unique<C>();
+  prediction = zeros<Row<DataType>>(dataset.n_cols);
+
+  std::pair<double, double> ab;
+  bool ignoreSymmetrization = true;
+  for (auto & fileName : fileNames) {
+    auto tokens = strSplit(fileName, '_');
+    if (tokens[0] == "CLS") {
+      fileName = strJoin(tokens, '_', 1);
+      read(*classifierNew, fileName);
+      classifierNew->Predict(dataset, prediction, ignoreSymmetrization);
+      
+      
+    }
+  }
+  
+}
 
 template<typename DataType, typename ClassifierType>
 void
@@ -44,9 +71,10 @@ Replay<DataType, ClassifierType>::Predict(std::string indexName,
     if (tokens[0] == "CLS") {
       fileName = strJoin(tokens, '_', 1);
       read(*classifierNew, fileName);
-      ab = classifierNew->getAB();
       classifierNew->Predict(dataset, predictionStep, ignoreSymmetrization);
       prediction += predictionStep;
+
+      ab = classifierNew->getAB();
     }
   }
 

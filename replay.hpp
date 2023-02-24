@@ -35,6 +35,8 @@ public:
   static void Predict(std::string, const mat&, Row<DataType>&, bool=false);
   static void Predict(std::string, Row<DataType>&);
 
+  static void PredictStepwise(std::string, const mat&, Row<DataType>&, bool=false);
+
   static void Classify(std::string, const mat&, Row<DataType>&, bool=false);
   static void Classify(std::string, Row<DataType>&);
 

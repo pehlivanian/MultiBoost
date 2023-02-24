@@ -131,6 +131,8 @@ GradientBoostClassifier<ClassifierType>::contextInit_(ClassifierContext::Context
   serialize_ = context.serialize;
   serializePrediction_ = context.serializePrediction;
   serializeColMask_ = context.serializeColMask;
+  serializeDataset_ = context.serializeDataset;
+  serializeLabels_ = context.serializeLabels;
   serializationWindow_ = context.serializationWindow;
 
 }
@@ -178,7 +180,23 @@ template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::init_() {
 
-  DEBUG()
+  
+  // Serialize dataset, labels first
+  if (serializeDataset_) {
+    std::string path;
+    path = writeDataset();
+    fileNames_.push_back(path);
+    path = writeDatasetOOS();
+    fileNames_.push_back(path);
+  }
+
+  if (serializeLabels_) {
+    std::string path;
+    path = writeLabels();
+    fileNames_.push_back(path);
+    path = writeLabelsOOS();
+    fileNames_.push_back(path);
+  }
 
   // Note these are flipped
   n_ = dataset_.n_rows; 
@@ -681,28 +699,38 @@ template<typename ClassifierType>
 std::string
 GradientBoostClassifier<ClassifierType>::writeColMask() {
 
-  using CerealT = ColMaskArchive;
-  using CerealIArch = cereal::BinaryInputArchive;
-  using CerealOArch = cereal::BinaryOutputArchive;
-
-  ColMaskArchive cma{colMask_};
-  std::string fileName = dumps<CerealT, CerealIArch, CerealOArch>(cma, SerializedType::COLMASK);
-  return fileName;
-
+  return IB_utils::writeColMask(colMask_);
 }
 
 template<typename ClassifierType>
 std::string
 GradientBoostClassifier<ClassifierType>::writePrediction() {
-  
-  using CerealT = PredictionArchive<DataType>;
-  using CerealIArch = cereal::BinaryInputArchive;
-  using CerealOArch = cereal::BinaryOutputArchive;
 
-  PredictionArchive pa{latestPrediction_};
-  std::string fileName = dumps<CerealT, CerealIArch, CerealOArch>(pa, SerializedType::PREDICTION);
-  return fileName;
-  
+  return IB_utils::writePrediction(latestPrediction_);
+}
+
+template<typename ClassifierType>
+std::string
+GradientBoostClassifier<ClassifierType>::writeDataset() {
+  return IB_utils::writeDatasetIS(dataset_);
+}
+
+template<typename ClassifierType>
+std::string
+GradientBoostClassifier<ClassifierType>::writeDatasetOOS() {
+  return IB_utils::writeDatasetOOS(dataset_oos_);
+}
+
+template<typename ClassifierType>
+std::string
+GradientBoostClassifier<ClassifierType>::writeLabels() {
+  return IB_utils::writeLabelsIS(labels_);
+}
+
+template<typename ClassifierType>
+std::string
+GradientBoostClassifier<ClassifierType>::writeLabelsOOS() {
+  return IB_utils::writeLabelsOOS(labels_oos_);
 }
 
 template<typename ClassifierType>

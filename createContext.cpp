@@ -149,6 +149,8 @@ auto main(int argc, char **argv) -> int {
   bool				serialize		= false;
   bool				serializePrediction	= false;
   bool				serializeColMask	= false;
+  bool				serializeDataset	= false;
+  bool				serializeLabels		= false;
   std::size_t			serializationWindow	= 1000;
   std::string fileName = path(typeid(T).name());
 
@@ -176,6 +178,8 @@ auto main(int argc, char **argv) -> int {
     ("serialize",		value<bool>(&serialize),				"serialize")
     ("serializePrediction",	value<bool>(&serializePrediction),			"serializePrediction")
     ("serializeColMask",	value<bool>(&serializeColMask),				"serializeColMask")
+    ("serializeDataset",	value<bool>(&serializeDataset),				"serializeDataset")
+    ("serializeLabels",		value<bool>(&serializeLabels),				"serializeLabels")
     ("serializationWindow",	value<std::size_t>(&serializationWindow),		"serializationWindow")
     ("fileName",		value<std::string>(&fileName),				"fileName for Context");
 
@@ -220,6 +224,8 @@ auto main(int argc, char **argv) -> int {
   context.numTrees = numTrees;
   context.serialize = serialize;
   context.serializePrediction = serializePrediction;
+  context.serializeDataset = serializeDataset;
+  context.serializeLabels = serializeLabels;
   context.serializeColMask = serializeColMask;
   context.serializationWindow = serializationWindow;
 

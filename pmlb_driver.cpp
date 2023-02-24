@@ -49,9 +49,11 @@ auto main(int argc, char **argv) -> int {
   context.removeRedundantLabels = false;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .25; // .75
-  context.recursiveFit = true;
+  context.recursiveFit = false;
   context.serialize = true;
   context.serializePrediction = true;
+  context.serializeDataset = true;
+  context.serializeLabels = true;
   context.serializationWindow = 500;
   context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED; // INCREASING
   context.learningRateMethod = LearningRate::RateMethod::FIXED;   // DECREASING

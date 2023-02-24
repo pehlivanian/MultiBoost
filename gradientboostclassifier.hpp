@@ -90,6 +90,8 @@ namespace ClassifierContext{
       recursiveFit{recursiveFit},
       serialize{false},
       serializePrediction{false},
+      serializeDataset{false},
+      serializeLabels{false},
       serializeColMask{false},
       serializationWindow{500},
       baseSteps{-1}
@@ -121,6 +123,8 @@ namespace ClassifierContext{
       serialize = rhs.serialize;
       serializePrediction = rhs.serializePrediction;
       serializeColMask = rhs.serializeColMask;
+      serializeDataset = rhs.serializeDataset;
+      serializeLabels = rhs.serializeLabels;
       serializationWindow = rhs.serializationWindow;
 
     }
@@ -146,6 +150,8 @@ namespace ClassifierContext{
     bool serialize;
     bool serializePrediction;
     bool serializeColMask;
+    bool serializeDataset;
+    bool serializeLabels;
     std::size_t serializationWindow;
   };
 } // namespace ClassifierContext
@@ -190,37 +196,6 @@ private:
   const char* fl_;
   const char* fn_;
   int ln_;
-};
-
-template<typename DataType>
-class PredictionArchive {
-public:
-  PredictionArchive() = default;
-  PredictionArchive(Row<DataType> prediction) : prediction_{prediction} {}
-  PredictionArchive(Row<DataType>&& prediction) : prediction_{std::move(prediction)} {}
-
-  template<class Archive>  
-  void serialize(Archive &ar) {
-    ar(prediction_);
-  }
-
-  // public
-  Row<DataType> prediction_;
-};
-
-class ColMaskArchive {
-public:
-  ColMaskArchive() = default;
-  ColMaskArchive(uvec colMask) : colMask_{colMask} {}
-  ColMaskArchive(uvec&& colMask) : colMask_{std::move(colMask)} {}
-
-  template<class Archive>
-  void serialize(Archive &ar) {
-    ar(colMask_);
-  }
-
-  // public
-  uvec colMask_;
 };
 
 class PartitionUtils {
@@ -783,6 +758,10 @@ public:
   virtual void printStats(int);
   void purge();
   std::string write();  
+  std::string writeDataset();
+  std::string writeDatasetOOS();
+  std::string writeLabels();
+  std::string writeLabelsOOS();
   std::string writePrediction();
   std::string writeColMask();
   void read(GradientBoostClassifier&, std::string);
@@ -874,6 +853,8 @@ private:
   bool serialize_;
   bool serializePrediction_;
   bool serializeColMask_;
+  bool serializeDataset_;
+  bool serializeLabels_;
 
   bool hasOOSData_;
   bool hasInitialPrediction_;

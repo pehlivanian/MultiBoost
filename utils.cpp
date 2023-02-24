@@ -2,6 +2,26 @@
 
 namespace IB_utils {
 
+  std::string writeColMask(const uvec& colMask) {
+    
+    ColMaskArchive cma{colMask};
+    std::string fileName = dumps<ColMaskArchive, CerealIArch, CerealOArch>(cma, SerializedType::COLMASK);
+    return fileName;
+    
+  }
+
+  std::string writeDatasetIS(const mat& dataset) {
+    DatasetArchive da{dataset};
+    std::string fileName = dumps<DatasetArchive, CerealIArch, CerealOArch>(da, SerializedType::DATASET_IS);
+    return fileName;
+  }
+
+  std::string writeDatasetOOS(const mat& dataset) {
+    DatasetArchive da{dataset};
+    std::string fileName = dumps<DatasetArchive, CerealIArch, CerealOArch>(da, SerializedType::DATASET_OOS);
+    return fileName;    
+  }
+
   double err(const Row<std::size_t>& yhat, const Row<std::size_t>& y) {
     return accu(yhat != y) * 100. / y.n_elem;
   }
