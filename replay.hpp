@@ -7,13 +7,8 @@
 #include <memory>
 
 #include <mlpack/core.hpp>
-#include <mlpack/methods/decision_tree/decision_tree.hpp>
-#include <mlpack/methods/decision_tree/decision_tree_regressor.hpp>
-#include <mlpack/methods/decision_tree/information_gain.hpp>
-#include <mlpack/methods/decision_tree/gini_gain.hpp>
-#include <mlpack/methods/decision_tree/random_dimension_select.hpp>
-#include <mlpack/methods/decision_tree/multiple_random_dimension_select.hpp>
-#include <mlpack/methods/random_forest/random_forest.hpp>
+#include <boost/process.hpp>
+#include <boost/process/child.hpp>
 
 #include "utils.hpp"
 #include "gradientboostclassifier.hpp"
@@ -24,7 +19,10 @@ using namespace mlpack::tree;
 using namespace mlpack::data;
 using namespace mlpack::util;
 
+using namespace boost::process;
+
 using namespace IB_utils;
+
 
 template<typename DataType, typename ClassifierType>
 class Replay {
@@ -35,16 +33,15 @@ public:
   static void Predict(std::string, const mat&, Row<DataType>&, bool=false);
   static void Predict(std::string, Row<DataType>&);
 
-  static void PredictStepwise(std::string, const mat&, Row<DataType>&, bool=false);
+  static void PredictStepwise(std::string, Row<DataType>&, Row<DataType>&, bool=false);
+  static void PredictStep(std::string, std::string, std::string, bool=false);
 
   static void Classify(std::string, const mat&, Row<DataType>&, bool=false);
   static void Classify(std::string, Row<DataType>&);
 
   static void readPrediction(std::string, Row<DataType>&);
-  
+
 private:
-  template<typename T>
-  static void read(T&, std::string);
   static void desymmetrize(Row<DataType>&, double, double);
 
 };

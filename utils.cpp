@@ -37,15 +37,7 @@ namespace IB_utils {
     return a.second > b.second;
   }
 
-  std::string writeIndex(const std::vector<std::string>& fileNames) {
-    
-    auto now = std::chrono::system_clock::now();
-    auto UTC = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-    auto in_time_t = std::chrono::system_clock::to_time_t(now);
-    
-    std::stringstream datetime;
-    datetime << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d_%X");
-    std::string path = std::to_string(UTC) + "_index_" + datetime.str() + ".gnd";
+  std::string writeIndex(const std::vector<std::string>& fileNames, std::string path) {
     
     std::ofstream ofs{path, std::ios::binary|std::ios::out};
     if (ofs.is_open()) {
@@ -56,6 +48,19 @@ namespace IB_utils {
     ofs.close();
 
     return path;
+  }
+
+  std::string writeIndex(const std::vector<std::string>& fileNames) {
+
+    auto now = std::chrono::system_clock::now();
+    auto UTC = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    
+    std::stringstream datetime;
+    datetime << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d_%X");
+    std::string path = std::to_string(UTC) + "_index_" + datetime.str() + ".gnd";
+    
+    return writeIndex(fileNames, path);
   }
 
   void readIndex(std::string path, std::vector<std::string>& fileNames) {
@@ -69,6 +74,34 @@ namespace IB_utils {
       }
     }
     ifs.close();
+  }
+
+  void mergeIndices(std::string pathOld, std::string pathNew) {
+
+    // Prepend information in old file to new file, save in updated 
+    // new file
+    std::ifstream ifsOld{pathOld, std::ios::binary|std::ios::in};
+    std::ifstream ifsNew{pathNew, std::ios::binary|std::ios::in};
+    std::vector<std::string> fileNames;
+
+    std::string fileName;
+    
+    if (ifsOld.is_open()) {
+      while (ifsOld >> fileName) {
+	fileNames.push_back(fileName);
+      }
+    }
+    ifsOld.close();
+    
+    if (ifsNew.is_open()) {
+      while (ifsNew >> fileName) {
+	fileNames.push_back(fileName);
+      }
+    }
+    ifsNew.close();
+
+    writeIndex(fileNames, pathNew);
+    
   }
 
 }

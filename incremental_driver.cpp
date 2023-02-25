@@ -17,6 +17,7 @@ auto main(int argc, char **argv) -> int {
   std::string indexName;
   bool quietRun = true;
   bool warmStart = false;
+  bool mergeIndexFiles = false;
   Row<double> prediction;
 
   ClassifierContext::Context context;
@@ -28,6 +29,7 @@ auto main(int argc, char **argv) -> int {
     ("dataName",	value<std::string>(&dataName),		"dataName")
     ("quietRun",	value<bool>(&quietRun),			"quietRun")
     ("warmStart",	value<bool>(&warmStart),		"warmStart")
+    ("mergeIndexFiles",	value<bool>(&mergeIndexFiles),		"mergeIndexFiles")
     ("indexName",	value<std::string>(&indexName),		"indexName");
 
   variables_map vm;
@@ -43,7 +45,7 @@ auto main(int argc, char **argv) -> int {
     notify(vm);
 	  
   }
-  catch (const error& e) {
+  catch (const std::exception& e) {
     std::cerr << "ERROR: " << e.what() << std::endl;
     std::cerr << desc << std::endl;
   }
@@ -103,9 +105,13 @@ auto main(int argc, char **argv) -> int {
   c->fit();
 
   // Get indexName
-  indexName = c->getIndexName();
+  std::string indexNameNew = c->getIndexName();
 
-  std::cout << indexName << std::endl;
+  // Combine information in index
+  if (mergeIndexFiles)
+    mergeIndices(indexName, indexNameNew);
+
+  std::cout << indexNameNew << std::endl;
 
   return 0;
 }

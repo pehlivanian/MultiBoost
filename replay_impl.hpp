@@ -2,18 +2,6 @@
 #define __REPLAY_IMPL_HPP__
 
 template<typename DataType, typename ClassifierType>
-template<typename T>
-void
-Replay<DataType, ClassifierType>::read(T& rhs,
-				       std::string fileName) {
-  using CerealT = T;
-  using CerealIArch = cereal::BinaryInputArchive;
-  using CerealOArch = cereal::BinaryOutputArchive;
-  
-  loads<CerealT, CerealIArch, CerealOArch>(rhs, fileName);
-}
-
-template<typename DataType, typename ClassifierType>
 void
 Replay<DataType, ClassifierType>::desymmetrize(Row<DataType>& prediction, double a, double b) {
 
@@ -22,30 +10,118 @@ Replay<DataType, ClassifierType>::desymmetrize(Row<DataType>& prediction, double
 
 template<typename DataType, typename ClassifierType>
 void
-Replay<DataType, ClassifierType>::PredictStepwise(std::string indexName,
-						  const mat& dataset,
-						  Row<DataType>& prediction,
-						  bool deSymmetrize) {
-  std::vector<std::string> fileNames;
-  readIndex(indexName, fileNames);
+Replay<DataType, ClassifierType>::PredictStep(std::string classifierFileName,
+					      std::string datasetFileName,
+					      std::string outFileName,
+					      bool deSymmetrize) {
+
+  bool ignoreSymmetrization = true;
+  std::pair<double, double> ab;
+  Row<DataType> prediction;
 
   using C = GradientBoostClassifier<ClassifierType>;
-  std::unique_ptr<C> classifierNew = std::make_unique<C>();
-  prediction = zeros<Row<DataType>>(dataset.n_cols);
+  std::unique_ptr<C> classifier = std::make_unique<C>();
+  read(*classifier, classifierFileName);
 
-  std::pair<double, double> ab;
+  mat dataset;
+  read(dataset, datasetFileName);
+
+  classifier->Predict(dataset, prediction, ignoreSymmetrization);
+
+  ab = classifier->getAB();
+
+  if (deSymmetrize)
+    desymmetrize(prediction, ab.first, ab.second);
+
+  writePrediction(prediction, outFileName);
+}
+
+template<typename DataType, typename ClassifierType>
+void
+Replay<DataType, ClassifierType>::PredictStepwise(std::string indexName,
+						  Row<DataType>& prediction,
+						  Row<DataType>& labels_oos,
+						  bool deSymmetrize) {
+  
+  std::vector<std::string> fileNames, predictionFileNames;
+  readIndex(indexName, fileNames);
+
+  int n_rows, n_cols;
   bool ignoreSymmetrization = true;
-  for (auto & fileName : fileNames) {
+  mat dataset, dataset_oos;
+  Row<DataType> labels, predictionStep;
+  int classifierNum = 0;
+  std::string datasetFileName, datasetOOSFileName;
+  std::string labelsFileName, labelsOOSFileName;
+  std::string classifierFileName;
+  std::string outFilePref = "prediction_STEP_";
+
+  // First pass - get dataset, labels
+  for (const auto &fileName : fileNames) {
     auto tokens = strSplit(fileName, '_');
-    if (tokens[0] == "CLS") {
-      fileName = strJoin(tokens, '_', 1);
-      read(*classifierNew, fileName);
-      classifierNew->Predict(dataset, prediction, ignoreSymmetrization);
-      
-      
+    auto fileName_short = strJoin(tokens, '_', 1);
+    if (tokens[0] == "DIS") {
+      datasetFileName = fileName_short;
+      read(dataset, fileName_short);
+    }
+    else if (tokens[0] == "DOOS") {
+      datasetOOSFileName = fileName_short;
+      read(dataset_oos, fileName_short);
+      n_rows = dataset_oos.n_rows;
+      n_cols = dataset_oos.n_cols;
+    }
+    else if (tokens[0] == "LIS") {
+      labelsFileName = fileName_short;
+      read(labels, fileName_short);
+    }
+    else if (tokens[0] == "LOOS") {
+      labelsOOSFileName = fileName_short;
+      read(labels_oos, fileName_short);
     }
   }
-  
+
+  // Next pass - generate prediction
+  for (auto &fileName : fileNames) {
+    auto tokens = strSplit(fileName, '_');
+    if (tokens[0] == "CLS") {
+      classifierFileName = strJoin(tokens, '_', 1);
+      std::string outFile = outFilePref + std::to_string(classifierNum) + ".prd";
+      // Call PredictStep at this point, but 
+      // wrapped in another process we can launch as a 
+      // true subprocess
+
+      ipstream pipe_stream;
+      // child c("gcc --version", std_out > pipe_stream);
+      std::string cmd = "./build/incremental_predict";
+      cmd += " --datasetFileName " + datasetOOSFileName;
+      cmd += " --classifierFileName " + classifierFileName;
+      cmd += " --outFileName " + outFile;
+
+      child c(cmd, std_out > pipe_stream);
+
+      std::string line;
+      while (pipe_stream && std::getline(pipe_stream, line) && !line.empty())
+	std::cerr << line << std::endl;
+
+      c.wait();
+
+      predictionFileNames.push_back(outFile);
+      classifierNum++;
+    }
+  }
+
+  prediction = zeros<Row<DataType>>(n_cols);
+
+  for (auto &fileName : predictionFileNames) {
+    read(predictionStep, fileName);
+    prediction+= predictionStep;
+  }
+
+  if (deSymmetrize) {
+    // Assume a_ = 2, b_ = -1
+    desymmetrize(prediction, 2., -1.);
+  }
+
 }
 
 template<typename DataType, typename ClassifierType>

@@ -128,7 +128,19 @@ namespace IB_utils {
     
     return fileName;
   }
-    
+
+  template<typename T, typename IARchiveType, typename OArchiveType>
+  void dumps(T& t, std::string fileName) {
+    std::ofstream ofs(fileName, std::ios::binary);
+    {
+      OArchiveType o(ofs);
+
+      T& x(t);
+      o(CEREAL_NVP(x));      
+    }
+    ofs.close();
+  }
+
   template<typename T, typename IArchiveType, typename OArchiveType>
   std::string dumps(T& t, SerializedType typ) {
 
@@ -147,14 +159,7 @@ namespace IB_utils {
 
     std::string fileName = FilterFileName(typeid(T).name());
 
-    std::ofstream ofs(fileName, std::ios::binary);
-    {
-      OArchiveType o(ofs);
-
-      T& x(t);
-      o(CEREAL_NVP(x));      
-    }
-    ofs.close();
+    dumps<T, IArchiveType, OArchiveType>(t, fileName);
 
     return pref + fileName;
   }
@@ -170,6 +175,18 @@ namespace IB_utils {
     }
     ifs.close();
 
+  }
+
+  template<typename T>
+  void read(T& rhs, std::string fileName) {
+    using CerealT = T;
+    loads<CerealT, CerealIArch, CerealOArch>(rhs, fileName);
+  }
+    
+  template<typename DataType>
+  void writePrediction(const Row<DataType>& prediction, std::string fileName) {
+    PredictionArchive pa{prediction};
+    dumps<PredictionArchive<DataType>, CerealIArch, CerealOArch>(pa, fileName);
   }
 
   template<typename DataType>
@@ -289,7 +306,9 @@ namespace IB_utils {
 
 
   std::string writeIndex(const std::vector<std::string>&);
+  std::string writeIndex(const std::vector<std::string>&, std::string);
   void readIndex(std::string, std::vector<std::string>&);
+  void mergeIndices(std::string, std::string);
 
   template<typename T>
   void 

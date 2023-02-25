@@ -5,6 +5,7 @@
 #include <numeric>
 #include <string>
 #include <cstring>
+#include <exception>
 #include <memory>
 
 #include <boost/program_options.hpp>

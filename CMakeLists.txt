@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.6)
 
 project(InductiveBoost)
 
-# set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 include(GNUInstallDirs)
 
@@ -21,31 +21,37 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # arma ex not required
-option(BUILD_ARMA_EX OFF)
+option(BUILD_ARMA_EX "Build armadillo ex" OFF)
 
 # ClassifierContext::Context creation
-option(BUILD_CONTEXT_BUILDER ON)
+option(BUILD_CONTEXT_BUILDER "Build context builder" ON)
 
 # DP_solver ex not required
-option(BUILD_DP_SOLVER OFF)
+option(BUILD_DP_SOLVER "Build DP solver ex" OFF)
 
 # gtests not required, by default will build
 option(BUILD_TESTS "Build unit tests" ON)
 
 # benchmarks not required, by default will build
-option(BUILD_BENCHMARKS "Build benchmark tests" OFF)
+option(BUILD_BENCHMARKS "Build benchmark tests" ON)
 
 # build Inductive Boost Classifier
-option(BUILD_IBC ON)
+option(BUILD_IBC "Build inductive boost classifier" ON)
 
 # build incremental driver
-option(BUILD_INC_DRIVER ON)
+option(BUILD_INC_DRIVER "Build incrmental fitter" ON)
+
+# build incremental predictor
+option(BUILD_INC_PREDICT "Build incrmental predictor" ON)
+
+# build stepwise predictor
+option(BUILD_STEPWISE_PREDICT "Build stepwise predictor" ON)
 
 # build titanic example
-option(BUILD_TITANIC OFF)
+option(BUILD_TITANIC "Build titanic ex" OFF)
 
 # build multiclass pmlb driver
-option(BUILD_MULTICLASS ON)
+option(BUILD_MULTICLASS "Build multiclass inductive boost classifier" ON)
 
 # Profile
 option(PROFILE_RESULTS "gprof enabled" OFF)
@@ -78,8 +84,9 @@ if (USE_OPENMP)
   find_package(OpenMP)
 endif()
 
-if (BUILD_CONTEXT_BUILDER OR BUILD_INC_DRIVER)
-  find_package(Boost COMPONENTS program_options REQUIRED)
+if (BUILD_CONTEXT_BUILDER OR BUILD_INC_DRIVER OR BUILD_INC_PREDICT)
+  find_package(Boost COMPONENTS system program_options REQUIRED)	
+  # find_package(Boost COMPONENTS system REQUIRED)
   include_directories(${Boost_INCLUDE_DIR})
   link_directories(${Boost_LIBRARY_DIR})
 endif()
@@ -157,9 +164,29 @@ endif()
 if (BUILD_INC_DRIVER)
   add_executable(incremental_driver incremental_driver.cpp)
   if (USE_OPENMP)
-    target_link_libraries(incremental_driver LINK_PUBLIC ${Boost_LIBRARIES} loss utils gradientboostclassifier autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
+    target_link_libraries(incremental_driver LINK_PUBLIC ${Boost_LIBRARIES} ${Boost_SYSTEM_LIBRARY} loss utils gradientboostclassifier autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
   else()
-    target_link_libraries(incremental_driver LINK_PUBLIC ${Boost_LIBRARIES} loss utils gradientboostclassifier ${ARMADILLO_LIBRARIES} ${BLAS_LIBRARIES})
+    target_link_libraries(incremental_driver LINK_PUBLIC ${Boost_LIBRARIES} ${Boost_SYSTEM_LIBRARY} loss utils gradientboostclassifier ${ARMADILLO_LIBRARIES} ${BLAS_LIBRARIES})
+  endif()
+endif()
+
+# Incremental predictor for sequential, serialized runs
+if (BUILD_INC_PREDICT)
+  add_executable(incremental_predict incremental_predict.cpp)
+  if (USE_OPENMP)
+    target_link_libraries(incremental_predict LINK_PUBLIC ${Boost_LIBRARIES} loss utils gradientboostclassifier autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
+  else()
+    target_link_libraries(incremental_predict LINK_PUBLIC ${Boost_LIBRARIES} loss utils gradientboostclassifier ${ARMADILLO_LIBRARIES} ${BLAS_LIBRARIES})
+  endif()
+endif()
+
+# Stepwise predictor for sequential, serialized runs
+if (BUILD_STEPWISE_PREDICT)
+  add_executable(stepwise_predict stepwise_predict.cpp)
+  if (USE_OPENMP)
+    target_link_libraries(stepwise_predict LINK_PUBLIC ${Boost_LIBRARIES} loss utils gradientboostclassifier autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
+  else()
+    target_link_libraries(stepwise_predict LINK_PUBLIC ${Boost_LIBRARIES} loss utils gradientboostclassifier ${ARMADILLO_LIBRARIES} ${BLAS_LIBRARIES})
   endif()
 endif()
 
@@ -167,7 +194,7 @@ endif()
 if (BUILD_TITANIC)
   add_executable(titanic_driver titanic_driver.cpp)
   if (USE_OPENMP)
-    target_link_libraries(titanic_driver loss utils gradientboostclassifier autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
+    target_link_libraries(titanic_driver LINK_PUBLIC ${Boost_LIBRARIES} ${Boost_SYSTEM_LIBRARY} loss utils gradientboostclassifier autodiff::autodiff ${ARMADILLO_LIBRARIES} "${OpenMP_CXX_FLAGS}" ${BLAS_LIBRARIES})
   else()
     target_link_libraries(titanic_driver loss utils gradientboostclassifier ${ARMADILLO_LIBRARIES} ${BLAS_LIBRARIES})
   endif()
@@ -186,7 +213,7 @@ endif()
 if (BUILD_TESTS)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
   add_executable(gtest_all gtest_all.cpp)
-  target_link_libraries(gtest_all utils replay DP ${GTEST_LIBRARIES} ${ARMADILLO_LIBRARIES} pthread)
+  target_link_libraries(gtest_all LINK_PUBLIC ${Boost_SYSTEM_LIBRARY} utils replay DP ${GTEST_LIBRARIES} ${ARMADILLO_LIBRARIES} pthread)
 endif()
 
 if (BUILD_BENCHMARKS)
@@ -194,3 +221,21 @@ if (BUILD_BENCHMARKS)
   add_executable(benchmarks benchmarks.cpp)
   target_link_libraries(benchmarks benchmark::benchmark pthread)
 endif()
+
+# arma ex not required
+MESSAGE(STATUS "Build armadillo ex: " ${BUILD_ARMA_EX})
+MESSAGE(STATUS "Build context builder: " ${BUILD_CONTEXT_BUILDER})
+MESSAGE(STATUS "Build DP solver ex: " ${BUILD_DP_SOLVER})
+MESSAGE(STATUS "Build google tests: " ${BUILD_TESTS})
+MESSAGE(STATUS "Build google benchmarks: " ${BUILD_BENCHMARKS})
+MESSAGE(STATUS "Build inductive boost classifier: " ${BUILD_IBC})
+MESSAGE(STATUS "Build incremental fitter: " ${BUILD_INC_DRIVER})
+MESSAGE(STATUS "Build incremental predictor: " ${BUILD_INC_PREDICT})
+MESSAGE(STATUS "Build stepwise predictor: " ${BUILD_STEPWISE_PREDICT})
+MESSAGE(STATUS "Build titanic ex: " ${BUILD_TITANIC})
+MESSAGE(STATUS "Build multiclass inductive boost classifier: " ${BUILD_MULTICLASS})
+MESSAGE(STATUS "Gprof enabled: " ${PROFILE_RESULTS})
+MESSAGE(STATUS "Use OpenMP: " ${USE_OPENMP})
+MESSAGE(STATUS "Use autodiff lib: " ${USE_AUTODIFF})
+MESSAGE(STATUS "Use eigen lib: " ${USE_EIGEN})
+
