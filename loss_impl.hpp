@@ -277,6 +277,8 @@ SyntheticLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* 
 
   // NEW
   *grad = -sign(y) % exp(yhat / pow(y, 2) % (y - yhat));
+  // *grad = -sign(y);
+  
 
 #ifdef AUTODIFF
   ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
@@ -298,6 +300,7 @@ SyntheticLoss<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* h
   
   // NEW
   *hess = (sign(y) % exp(yhat / pow(y, 2) % (y - yhat))) / (y % pow(y - yhat, 2));
+  // *hess = sign(y) / (y % pow(y - yhat, 2));
   
 }
 

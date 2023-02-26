@@ -69,7 +69,7 @@ n=1
 # First run
 INDEX_NAME_STEP=$($EXEC_STEP \
 --contextFileName $CONTEXT_PATH_RUN1 \
---dataName titanic_train \
+--dataName crx \
 --mergeIndexFiles false \
 --warmStart false)
 
@@ -90,7 +90,7 @@ do
   # Fit step
   INDEX_NAME_STEP=$($EXEC_STEP \
   --contextFileName $CONTEXT_PATH_RUNS \
-  --dataName titanic_train \
+  --dataName crx \
   --quietRun true \
   --mergeIndexFiles true \
   --warmStart true \
