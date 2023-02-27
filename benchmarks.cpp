@@ -89,7 +89,7 @@ BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_float_compute_partial_sums_parall
   }
 }
 
-unsigned long long M = (1<<12);
+unsigned long long M = (1<<11);
 
 BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_serial)->Arg(M);
 BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_AVX256)->Arg(M);

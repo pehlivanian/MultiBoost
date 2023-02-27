@@ -12,12 +12,10 @@ template<typename DataType, typename ClassifierType>
 void
 Replay<DataType, ClassifierType>::PredictStep(std::string classifierFileName,
 					      std::string datasetFileName,
-					      std::string outFileName,
+					      Row<double>& prediction,
 					      bool deSymmetrize) {
-
   bool ignoreSymmetrization = true;
   std::pair<double, double> ab;
-  Row<DataType> prediction;
 
   using C = GradientBoostClassifier<ClassifierType>;
   std::unique_ptr<C> classifier = std::make_unique<C>();
@@ -32,6 +30,18 @@ Replay<DataType, ClassifierType>::PredictStep(std::string classifierFileName,
 
   if (deSymmetrize)
     desymmetrize(prediction, ab.first, ab.second);
+
+}
+
+template<typename DataType, typename ClassifierType>
+void
+Replay<DataType, ClassifierType>::PredictStep(std::string classifierFileName,
+					      std::string datasetFileName,
+					      std::string outFileName,
+					      bool deSymmetrize) {
+
+  Row<DataType> prediction;
+  PredictStep(classifierFileName, datasetFileName, prediction, deSymmetrize);
 
   writePrediction(prediction, outFileName);
 }
@@ -80,48 +90,91 @@ Replay<DataType, ClassifierType>::PredictStepwise(std::string indexName,
     }
   }
 
+  bool distribute = false;
+
   // Next pass - generate prediction
-  for (auto &fileName : fileNames) {
-    auto tokens = strSplit(fileName, '_');
-    if (tokens[0] == "CLS") {
-      classifierFileName = strJoin(tokens, '_', 1);
-      std::string outFile = outFilePref + std::to_string(classifierNum) + ".prd";
-      // Call PredictStep at this point, but 
-      // wrapped in another process we can launch as a 
-      // true subprocess
+  if (distribute) {
+    distribute = true;
+    ThreadsafeQueue<Row<double>> results_queue;
+    std::vector<ThreadPool::TaskFuture<int>> futures;
+    
+    for (auto &fileName : fileNames) {
+      auto tokens = strSplit(fileName, '_');
+      if (tokens[0] == "CLS") {
+	classifierFileName = strJoin(tokens, '_', 1);
+	
+	auto task = [&results_queue, classifierFileName, datasetOOSFileName](Row<double>& prediction){
+	  PredictStep(classifierFileName,
+		      datasetOOSFileName,
+		      prediction,
+		      false);
+	  results_queue.push(prediction);
+	  return 0;
+	};
 
-      ipstream pipe_stream;
-      // child c("gcc --version", std_out > pipe_stream);
-      std::string cmd = "./build/incremental_predict";
-      cmd += " --datasetFileName " + datasetOOSFileName;
-      cmd += " --classifierFileName " + classifierFileName;
-      cmd += " --outFileName " + outFile;
-
-      child c(cmd, std_out > pipe_stream);
-
-      std::string line;
-      while (pipe_stream && std::getline(pipe_stream, line) && !line.empty())
-	std::cerr << line << std::endl;
-
-      c.wait();
-
-      predictionFileNames.push_back(outFile);
-      classifierNum++;
+	Row<double> prediction;
+	futures.push_back(DefaultThreadPool::submitJob(task, std::ref(prediction)));
+	
+	classifierNum++;
+      }
     }
+
+    prediction = zeros<Row<DataType>>(n_cols);
+    
+    for (auto &item : futures) {
+      auto r = item.get();
+    }
+    
+    while (!results_queue.empty()) {
+      Row<double> predictionStep;
+      bool valid = results_queue.waitPop(predictionStep);
+      prediction += predictionStep;
+    }
+    
+  } else {
+
+    for (auto &fileName : fileNames) {
+      auto tokens = strSplit(fileName, '_');
+      if (tokens[0] == "CLS") {
+	classifierFileName = strJoin(tokens, '_', 1);
+	std::string outFile = outFilePref + std::to_string(classifierNum) + ".prd";
+	// Call PredictStep at this point, but 
+	// wrapped in another process we can launch as a 
+	// true subprocess
+	
+	ipstream pipe_stream;
+	// child c("gcc --version", std_out > pipe_stream);
+	std::string cmd = "./build/incremental_predict";
+	cmd += " --datasetFileName " + datasetOOSFileName;
+	cmd += " --classifierFileName " + classifierFileName;
+	cmd += " --outFileName " + outFile;
+	
+	child c(cmd, std_out > pipe_stream);
+      
+	std::string line;
+	while (pipe_stream && std::getline(pipe_stream, line) && !line.empty())
+	  std::cerr << line << std::endl;
+	
+	c.wait();
+	predictionFileNames.push_back(outFile);
+	classifierNum++;
+      }
+    }
+
+    prediction = zeros<Row<DataType>>(n_cols);
+  
+    for (auto &fileName : predictionFileNames) {
+      read(predictionStep, fileName);
+      prediction+= predictionStep;
+    }    
+
   }
-
-  prediction = zeros<Row<DataType>>(n_cols);
-
-  for (auto &fileName : predictionFileNames) {
-    read(predictionStep, fileName);
-    prediction+= predictionStep;
-  }
-
+  
   if (deSymmetrize) {
     // Assume a_ = 2, b_ = -1
     desymmetrize(prediction, 2., -1.);
   }
-
+  
 }
 
 template<typename DataType, typename ClassifierType>

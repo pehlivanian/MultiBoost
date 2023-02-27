@@ -6,7 +6,7 @@ EXEC_CC=${PATH}createContext
 CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCreifissa.cxt
 CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCreifissa.cxt
 
-STEPS=201
+STEPS=101
 
 # Predict OOS
 EXEC_PRED=${PATH}stepwise_predict
@@ -16,7 +16,7 @@ $EXEC_CC \
 --loss 5 \
 --partitionSize 6 \
 --partitionRatio .25 \
---learningRate .00001 \
+--learningRate .0001 \
 --steps 1000 \
 --baseSteps 100000 \
 --symmetrizeLabels true \
@@ -24,7 +24,7 @@ $EXEC_CC \
 --quietRun true \
 --rowSubsampleRatio 1. \
 --colSubsampleRatio .45 \
---recursiveFit true \
+--recursiveFit false \
 --serialize true \
 --serializePrediction true \
 --serializeDataset true \
@@ -42,7 +42,7 @@ $EXEC_CC \
 --loss 5 \
 --partitionSize 6 \
 --partitionRatio .25 \
---learningRate .00001 \
+--learningRate .0001 \
 --steps 1000 \
 --baseSteps 100000 \
 --symmetrizeLabels true \
@@ -50,7 +50,7 @@ $EXEC_CC \
 --quietRun true \
 --rowSubsampleRatio 1. \
 --colSubsampleRatio .45 \
---recursiveFit true \
+--recursiveFit false \
 --serialize true \
 --serializePrediction true \
 --serializeDataset false \
@@ -69,7 +69,7 @@ n=1
 # First run
 INDEX_NAME_STEP=$($EXEC_STEP \
 --contextFileName $CONTEXT_PATH_RUN1 \
---dataName crx \
+--dataName titanic_train \
 --mergeIndexFiles false \
 --warmStart false)
 
@@ -90,7 +90,7 @@ do
   # Fit step
   INDEX_NAME_STEP=$($EXEC_STEP \
   --contextFileName $CONTEXT_PATH_RUNS \
-  --dataName crx \
+  --dataName titanic_train \
   --quietRun true \
   --mergeIndexFiles true \
   --warmStart true \

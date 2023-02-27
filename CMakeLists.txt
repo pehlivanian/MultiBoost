@@ -11,7 +11,7 @@ if (CMAKE_CXX_COMPILER_LOADED)
   message(STATUS "The C++ compiler verion is ${CMAKE_CXX_COMPILER_VERSION}")
 endif()
 
-set(CMAKE_CXX_FLAGS "-mavx -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "-mavx2 -Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 

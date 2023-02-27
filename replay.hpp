@@ -3,6 +3,7 @@
 
 #include <numeric>
 #include <string>
+#include <vector>
 #include <algorithm>
 #include <memory>
 
@@ -11,6 +12,8 @@
 #include <boost/process/child.hpp>
 
 #include "utils.hpp"
+#include "threadsafequeue.hpp"
+#include "threadpool.hpp"
 #include "gradientboostclassifier.hpp"
 
 using namespace arma;
@@ -34,6 +37,7 @@ public:
   static void Predict(std::string, Row<DataType>&);
 
   static void PredictStepwise(std::string, Row<DataType>&, Row<DataType>&, bool=false);
+  static void PredictStep(std::string, std::string, Row<double>&, bool=false);
   static void PredictStep(std::string, std::string, std::string, bool=false);
 
   static void Classify(std::string, const mat&, Row<DataType>&, bool=false);

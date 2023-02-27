@@ -36,7 +36,6 @@ void exec(std::string cmd) {
   pclose(pipe);
 }
 
-/*
 TEST(DPSolverTest, TestAVXMatchesSerial) {
   using namespace Objectives;
 
@@ -232,7 +231,6 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips)
 
   }
 }
-*/
 
 TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
   
@@ -325,7 +323,6 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
 
 }
 
-/*
 TEST(GradientBoostClassifierTest, TestInSamplePredictionMatchesLatestPrediction) {
   std::vector<bool> trials = {false, true};
 
@@ -887,7 +884,7 @@ TEST(GradientBoostClassifierTest, TestIncrementalContextContent) {
   ASSERT_EQ(context.serializationWindow, 500);
 	    
 }
-*/
+
 auto main(int argc, char **argv) -> int {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
