@@ -2,7 +2,6 @@
 #define __GRADIENTCLASSIFIER_IMPL_HPP__
 
 // #define DEBUG() __debug dd{__FILE__, __FUNCTION__, __LINE__};
-#define DEBUG() ;
 
 
 using row_d = Row<double>;
@@ -21,38 +20,40 @@ template<typename DataType, typename ClassifierType, typename... Args>
 void 
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::encode(const Row<DataType>& labels_d, Row<std::size_t>& labels_t) {
 
-  DEBUG()
-
   Row<DataType> uniqueVals = sort(unique(labels_d));    
+
   for (auto it=uniqueVals.begin(); it!=uniqueVals.end(); ++it) {
+
     uvec ind = find(labels_d == *it);
     std::size_t equiv = std::distance(it, uniqueVals.end()) - 1;
+
     labels_t.elem(ind).fill(equiv);
     leavesMap_.insert(std::make_pair(static_cast<std::size_t>(equiv), (*it)));
+
   }
 }
 
 template<typename DataType, typename ClassifierType, typename... Args>
 void
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::purge() {
-  DEBUG()
 
   labels_t_ = ones<Row<std::size_t>>(0);
-  // labels_t_.clear();
+
 }
 
 template<typename DataType, typename ClassifierType, typename... Args>
 void 
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::decode(const Row<std::size_t>& labels_t, Row<DataType>& labels_d) {
 
-  DEBUG()
-
   labels_d = Row<DataType>(labels_t.n_elem);
   Row<std::size_t> uniqueVals = unique(labels_t);
+
   for (auto it=uniqueVals.begin(); it!=uniqueVals.end(); ++it) {
+
     uvec ind = find(labels_t == *it);
     double equiv = leavesMap_[*it];
     labels_d.elem(ind).fill(equiv);
+
   }    
 }
 
@@ -60,9 +61,8 @@ template<typename DataType, typename ClassifierType, typename... Args>
 void
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::Classify_(const mat& dataset, Row<DataType>& labels) {
 
-  DEBUG()
-
   Row<std::size_t> labels_t;
+
   classifier_->Classify(dataset, labels_t);
   decode(labels_t, labels);
   
@@ -83,8 +83,10 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::Classify_(const mat& 
 template<typename DataType, typename ClassifierType, typename... Args>
 void
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::Classify_(const mat& dataset, Row<DataType>& labels, mat& predictions) {
+
   Row<std::size_t> labels_t;
   labels = Row<DataType>(dataset.n_cols);
+
   classifier_->Classify(dataset, labels_t, predictions);
   decode(labels_t, labels);
 }
@@ -93,7 +95,6 @@ template<typename DataType, typename ClassifierType, typename... Args>
 void
 ContinuousClassifierBase<DataType, ClassifierType, Args...>::Classify_(const mat& dataset, Row<DataType>& labels) {
 
-  DEBUG() 
   classifier_->Predict(dataset, labels);
 }
 
@@ -101,47 +102,67 @@ template<typename DataType, typename ClassifierType, typename... Args>
 void
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::setClassifier(const mat& dataset, Row<std::size_t>& labels, Args&&... args) {
 
-  DEBUG()
-
   classifier_.reset(new ClassifierType(dataset, labels, std::forward<Args>(args)...));
+}
+
+template<typename ClassifierType>
+void
+GradientBoostClassifier<ClassifierType>::childContext(ClassifierContext::Context& context, std::size_t subPartitionSize) {
+
+    context.loss			= loss_;
+    context.partitionSize		= subPartitionSize + 1;
+    context.partitionRatio		= std::min(1., 2*partitionRatio_);
+    context.learningRate		= learningRate_;
+    context.steps			= std::max(static_cast<int>(std::log(steps_)), 1);
+    context.baseSteps			= baseSteps_;
+    // context.steps			= std::max(1, static_cast<int>(.25 * std::log(steps_)));
+    context.symmetrizeLabels		= false;
+    context.removeRedundantLabels	= true;
+    context.rowSubsampleRatio		= row_subsample_ratio_;
+    context.colSubsampleRatio		= col_subsample_ratio_;
+    context.recursiveFit		= true;
+    context.partitionSizeMethod		= partitionSizeMethod_;
+    context.learningRateMethod		= learningRateMethod_;    
+    context.minLeafSize			= minLeafSize_;
+    // context.minLeafSize		= static_cast<std::size_t>(.2 * m_ / partitionSize_);
+    context.maxDepth			= maxDepth_;
+    context.minimumGainSplit		= minimumGainSplit_;
 }
 
 template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::contextInit_(ClassifierContext::Context&& context) {
 
-  loss_ = context.loss;
-  partitionSize_ = context.partitionSize;
-  partitionRatio_ = context.partitionRatio;
-  learningRate_ = context.learningRate;
-  steps_ = context.steps;
-  baseSteps_ = context.baseSteps;
-  symmetrized_ = context.symmetrizeLabels;
-  removeRedundantLabels_ = context.removeRedundantLabels;
-  quietRun_ = context.quietRun;
-  row_subsample_ratio_ = context.rowSubsampleRatio;
-  col_subsample_ratio_ = context.colSubsampleRatio;
-  recursiveFit_ = context.recursiveFit;
-  partitionSizeMethod_ = context.partitionSizeMethod;
-  learningRateMethod_ = context.learningRateMethod;
-  minLeafSize_ = context.minLeafSize;
-  minimumGainSplit_ = context.minimumGainSplit;
-  maxDepth_ = context.maxDepth;
-  numTrees_ = context.numTrees;
-  serialize_ = context.serialize;
-  serializePrediction_ = context.serializePrediction;
-  serializeColMask_ = context.serializeColMask;
-  serializeDataset_ = context.serializeDataset;
-  serializeLabels_ = context.serializeLabels;
-  serializationWindow_ = context.serializationWindow;
+  loss_				= context.loss;
+  partitionSize_		= context.partitionSize;
+  partitionRatio_		= context.partitionRatio;
+  learningRate_			= context.learningRate;
+  steps_			= context.steps;
+  baseSteps_			= context.baseSteps;
+  symmetrized_			= context.symmetrizeLabels;
+  removeRedundantLabels_	= context.removeRedundantLabels;
+  quietRun_			= context.quietRun;
+  row_subsample_ratio_		= context.rowSubsampleRatio;
+  col_subsample_ratio_		= context.colSubsampleRatio;
+  recursiveFit_			= context.recursiveFit;
+  partitionSizeMethod_		= context.partitionSizeMethod;
+  learningRateMethod_		= context.learningRateMethod;
+  minLeafSize_			= context.minLeafSize;
+  minimumGainSplit_		= context.minimumGainSplit;
+  maxDepth_			= context.maxDepth;
+  numTrees_			= context.numTrees;
+  serialize_			= context.serialize;
+  serializePrediction_		= context.serializePrediction;
+  serializeColMask_		= context.serializeColMask;
+  serializeDataset_		= context.serializeDataset;
+  serializeLabels_		= context.serializeLabels;
+  serializationWindow_		= context.serializationWindow;
 
 }
 
 template<typename ClassifierType>
 row_d
 GradientBoostClassifier<ClassifierType>::_constantLeaf() const {
-
-  DEBUG()
 
   row_d r;
   r.zeros(dataset_.n_cols);
@@ -151,8 +172,6 @@ GradientBoostClassifier<ClassifierType>::_constantLeaf() const {
 template<typename ClassifierType>
 row_d
 GradientBoostClassifier<ClassifierType>::_randomLeaf(std::size_t numVals) const {
-
-  DEBUG()
 
   row_d range = linspace<row_d>(-1, 1, numVals+2);
   row_d r(dataset_.n_cols, arma::fill::none);
@@ -167,9 +186,6 @@ template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::updateClassifiers(std::unique_ptr<ClassifierBase<DataType, Classifier>>&& classifier,
 							   Row<DataType>& prediction) {
-
-  DEBUG()
-
   latestPrediction_ += prediction;
   classifier->purge();
   classifiers_.push_back(std::move(classifier));
@@ -274,16 +290,12 @@ template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::Predict(Row<DataType>& prediction) {
 
-  DEBUG()
-
   prediction = latestPrediction_;
 }
 
 template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::Predict(Row<DataType>& prediction, const uvec& colMask) {
-
-  DEBUG()
 
   Predict(prediction);
   prediction = prediction.submat(zeros<uvec>(1), colMask);
@@ -293,8 +305,6 @@ GradientBoostClassifier<ClassifierType>::Predict(Row<DataType>& prediction, cons
 template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
-
-  DEBUG()
 
   if (serialize_ && indexName_.size()) {
     throw predictionAfterClearedClassifiersException();
@@ -318,8 +328,6 @@ template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::Predict(Row<typename GradientBoostClassifier<ClassifierType>::IntegralLabelType>& prediction) {
 
-  DEBUG()
-
   row_d prediction_d = conv_to<row_d>::from(prediction);
   Predict(prediction_d);
   prediction = conv_to<row_t>::from(prediction_d);
@@ -330,8 +338,6 @@ template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::Predict(Row<typename GradientBoostClassifier<ClassifierType>::IntegralLabelType>& prediction, const uvec& colMask) {
 
-  DEBUG()
-
   row_d prediction_d = conv_to<row_d>::from(prediction);
   Predict(prediction_d, colMask);
   prediction = conv_to<row_t>::from(prediction_d);
@@ -341,8 +347,6 @@ GradientBoostClassifier<ClassifierType>::Predict(Row<typename GradientBoostClass
 template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::Predict(const mat& dataset, Row<typename GradientBoostClassifier<ClassifierType>::IntegralLabelType>& prediction) {
-
-  DEBUG()
 
   row_d prediction_d;
   Predict(dataset, prediction_d);
@@ -359,8 +363,6 @@ template<typename ClassifierType>
 uvec
 GradientBoostClassifier<ClassifierType>::subsampleRows(size_t numRows) {
 
-  DEBUG()
-
   uvec r = sort(randperm(n_, numRows));
   // uvec r = randperm(n_, numRows);
   return r;
@@ -370,8 +372,6 @@ template<typename ClassifierType>
 uvec
 GradientBoostClassifier<ClassifierType>::subsampleCols(size_t numCols) {
 
-  DEBUG()
-
   uvec r = sort(randperm(m_, numCols));
   // uvec r = randperm(m_, numCols);
   return r;
@@ -380,8 +380,6 @@ GradientBoostClassifier<ClassifierType>::subsampleCols(size_t numCols) {
 template<typename ClassifierType>
 Row<typename GradientBoostClassifier<ClassifierType>::DataType>
 GradientBoostClassifier<ClassifierType>::uniqueCloseAndReplace(Row<DataType>& labels) {
-
-  DEBUG()
 
   Row<DataType> uniqueVals = unique(labels);
   double eps = static_cast<double>(std::numeric_limits<float>::epsilon());
@@ -418,8 +416,6 @@ template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::symmetrizeLabels(Row<DataType>& labels) {
 
-  DEBUG()
-
   Row<DataType> uniqueVals = uniqueCloseAndReplace(labels);
 
   if (uniqueVals.n_cols == 1) {
@@ -454,16 +450,12 @@ template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::symmetrizeLabels() {
 
-  DEBUG()
-
   symmetrizeLabels(labels_);
 }
 
 template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::symmetrize(Row<DataType>& prediction) {
-
-  DEBUG()
 
   prediction = sign(a_*prediction + b_);
 }
@@ -472,16 +464,12 @@ template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::deSymmetrize(Row<DataType>& prediction) {
 
-  DEBUG()
-
   prediction = (sign(prediction) - b_)/ a_;
 }
 
 template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
-
-  DEBUG()
 
   if (!reuseColMask_) {
     int colRatio = static_cast<size_t>(m_ * col_subsample_ratio_);
@@ -530,26 +518,8 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
     allLeaves(colMask_) = best_leaves;
 
-    ClassifierContext::Context context{}; 
-    
-    context.loss = loss_;
-    context.partitionSize = subPartitionSize + 1;
-    context.partitionRatio = std::min(1., 2*partitionRatio_);
-    context.learningRate = learningRate_;
-    context.steps = std::max(static_cast<int>(std::log(steps_)), 1);
-    context.baseSteps = context.baseSteps;
-    // context.steps = std::max(1, static_cast<int>(.25 * std::log(steps_)));
-    context.symmetrizeLabels = false;
-    context.removeRedundantLabels = true;
-    context.rowSubsampleRatio = row_subsample_ratio_;
-    context.colSubsampleRatio = col_subsample_ratio_;
-    context.recursiveFit = true;
-    context.partitionSizeMethod = partitionSizeMethod_;
-    context.learningRateMethod = learningRateMethod_;    
-    context.minLeafSize = minLeafSize_;
-    // context.minLeafSize = static_cast<std::size_t>(.2 * m_ / partitionSize_);
-    context.maxDepth = maxDepth_;
-    context.minimumGainSplit = minimumGainSplit_;
+    ClassifierContext::Context context{};      
+    childContext(context, subPartitionSize);
 
     if (DIAGNOSTICS)
       std::cout << "SUBPARTITION SIZE: " << subPartitionSize 
@@ -568,7 +538,7 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 								 context));
 
     classifier->fit();
-    // classifier->Classify_(dataset_, prediction);
+
     classifier->Predict(dataset_, prediction);
 
     updateClassifiers(std::move(classifier), prediction);
@@ -618,8 +588,6 @@ GradientBoostClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
 							     const uvec& colMask) {
 
 
-  DEBUG()
-
   // We should implement several methods here
   // XXX
   std::vector<double> gv = arma::conv_to<std::vector<double>>::from(g);
@@ -666,8 +634,6 @@ template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::purge() {
 
-  DEBUG()
-
   dataset_ = ones<mat>(0,0);
   labels_ = ones<Row<double>>(0);
   dataset_oos_ = ones<mat>(0,0);
@@ -684,8 +650,6 @@ GradientBoostClassifier<ClassifierType>::purge() {
 template<typename ClassifierType>
 std::string
 GradientBoostClassifier<ClassifierType>::write() {
-
-  DEBUG()
 
   using CerealT = GradientBoostClassifier<ClassifierType>;
   using CerealIArch = cereal::BinaryInputArchive;
@@ -738,8 +702,6 @@ void
 GradientBoostClassifier<ClassifierType>::read(GradientBoostClassifier<ClassifierType>& rhs,
 					      std::string fileName) {
 
-  DEBUG()
-
   using CerealT = GradientBoostClassifier<ClassifierType>;
   using CerealIArch = cereal::BinaryInputArchive;
   using CerealOArch = cereal::BinaryOutputArchive;  
@@ -750,8 +712,6 @@ GradientBoostClassifier<ClassifierType>::read(GradientBoostClassifier<Classifier
 template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::Predict(std::string index, const mat& dataset, Row<DataType>& prediction, bool postSymmetrize) {
-
-  DEBUG()
 
   std::vector<std::string> fileNames;
   readIndex(index, fileNames);
@@ -782,16 +742,12 @@ template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::Predict(std::string index, Row<DataType>& prediction, bool postSymmetrize) {
 
-  DEBUG()
-
   Predict(index, dataset_, prediction, postSymmetrize);
 }
 
 template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::commit() {
-
-  DEBUG()
 
   std::string path, predictionPath, colMaskPath;
   path = write();
@@ -813,8 +769,6 @@ GradientBoostClassifier<ClassifierType>::commit() {
 template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::checkAccuracyOfArchive() {
-
-  DEBUG()
 
   Row<DataType> yhat;
   Predict(yhat); 
@@ -839,8 +793,6 @@ GradientBoostClassifier<ClassifierType>::checkAccuracyOfArchive() {
 template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::printStats(int stepNum) {
-
-  DEBUG()
 
   Row<DataType> yhat;
   double r;
@@ -904,8 +856,6 @@ template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::fit() {
 
-  DEBUG()
-
   for (std::size_t stepNum=1; stepNum<=steps_; ++stepNum) {
     fit_step(stepNum);
     
@@ -939,8 +889,6 @@ template<typename ClassifierType>
 void
 GradientBoostClassifier<ClassifierType>::Classify(const mat& dataset, Row<DataType>& labels) {
 
-  DEBUG()
-
   Predict(dataset, labels);
 }
 
@@ -948,17 +896,19 @@ template<typename ClassifierType>
 double
 GradientBoostClassifier<ClassifierType>::computeLearningRate(std::size_t stepNum) {
 
-  DEBUG()
-
   double learningRate;
 
   if (learningRateMethod_ == RateMethod::FIXED) {
+
     learningRate = learningRate_;
   } else if (learningRateMethod_ == RateMethod::DECREASING) {
+
     double A = learningRate_, B = -log(.5) / static_cast<double>(steps_);
     learningRate = A * exp(-B * (-1 + stepNum));
   } else if (learningRateMethod_ == RateMethod::INCREASING) {
+
     double A = learningRate_, B = log(2.) / static_cast<double>(steps_);
+
     learningRate = A * exp(B * (-1 + stepNum));
   }
 
@@ -972,8 +922,6 @@ template<typename ClassifierType>
 std::size_t
 GradientBoostClassifier<ClassifierType>::computePartitionSize(std::size_t stepNum, const uvec& colMask) {
 
-  DEBUG()
-
   // stepNum is in range [1,...,context.steps]
 
   std::size_t partitionSize;
@@ -982,23 +930,31 @@ GradientBoostClassifier<ClassifierType>::computePartitionSize(std::size_t stepNu
   int attach = 1000;
 
   if (partitionSizeMethod_ == SizeMethod::FIXED) {
+
     return partitionSize_;
   } else if (partitionSizeMethod_ == SizeMethod::FIXED_PROPORTION) {
+
     partitionSize = static_cast<std::size_t>(partitionRatio_ * row_subsample_ratio_ * colMask.n_rows);
   } else if (partitionSizeMethod_ == SizeMethod::DECREASING) {
+
     double A = colMask.n_rows, B = log(colMask.n_rows)/steps_;
     partitionSize = std::max(1, static_cast<int>(A * exp(-B * (-1 + stepNum))));
   } else if (partitionSizeMethod_ == SizeMethod::INCREASING) {
+
     double A = 2., B = log(colMask.n_rows)/static_cast<double>(steps_);
     partitionSize = std::max(1, static_cast<int>(A * exp(B * (-1 + stepNum))));
   } else if (partitionSizeMethod_ == SizeMethod::RANDOM) {
+
     partitionSize = partitionDist_(default_engine_);
     ;
   } else if (partitionSizeMethod_ == SizeMethod::MULTISCALE) {
+
     if ((stepNum%attach) < (attach/2)) {
+
       partitionSize = static_cast<std::size_t>(lowRatio * col_subsample_ratio_ * colMask.n_rows);
       partitionSize = partitionSize >= 1 ? partitionSize : 1;
     } else {
+
       partitionSize = static_cast<std::size_t>(highRatio * col_subsample_ratio_ * colMask.n_rows);
       partitionSize = partitionSize >= 1 ? partitionSize : 1;
     }
@@ -1013,8 +969,6 @@ GradientBoostClassifier<ClassifierType>::computePartitionSize(std::size_t stepNu
 template<typename ClassifierType>
 std::pair<rowvec, rowvec>
 GradientBoostClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& labels, const uvec& colMask) {
-
-  DEBUG()
 
   rowvec yhat;
   Predict(yhat, colMask);
@@ -1042,8 +996,6 @@ std::pair<rowvec, rowvec>
 GradientBoostClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& yhat,
 							       const Row<DataType>& y,
 							       const uvec& colMask) {
-
-  DEBUG()
 
   rowvec g, h;
   lossFn_->loss(yhat, y, &g, &h);

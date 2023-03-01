@@ -21,6 +21,114 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/access.hpp>
 
+#include "utils.hpp"
+#include "loss.hpp"
+
+using namespace LossMeasures;
+
+namespace LearningRate {
+  enum class RateMethod {
+    FIXED = 0,
+      INCREASING = 1,
+      DECREASING = 2,
+      };
+
+} // namespace LearningRate
+
+namespace PartitionSize {
+  enum class SizeMethod { 
+    FIXED = 0,
+      FIXED_PROPORTION = 1,
+      DECREASING = 2,
+      INCREASING = 3,
+      RANDOM = 4,
+      MULTISCALE = 5
+      };
+  
+} // namespace PartitionSize
+
+
+namespace ClassifierContext{
+  struct Context {
+    Context(std::size_t minLeafSize=1,
+	    double minimumGainSplit=.0,
+	    std::size_t maxDepth=100,
+	    std::size_t numTrees=10,
+	    bool recursiveFit=false) : 
+      minLeafSize{minLeafSize},
+      minimumGainSplit{minimumGainSplit},
+      maxDepth{maxDepth},
+      numTrees{numTrees},
+      removeRedundantLabels{false},
+      quietRun{false},
+      recursiveFit{recursiveFit},
+      serialize{false},
+      serializePrediction{false},
+      serializeDataset{false},
+      serializeLabels{false},
+      serializeColMask{false},
+      serializationWindow{500},
+      baseSteps{-1}
+    {}
+
+    Context(const Context& rhs) {
+      loss = rhs.loss;
+      partitionSize = rhs.partitionSize;
+      partitionRatio = rhs.partitionRatio;
+      learningRate = rhs.learningRate;
+      steps = rhs.steps;
+      if (rhs.baseSteps > 0) {
+	baseSteps = rhs.baseSteps;
+      } else {
+	baseSteps = rhs.steps;
+      }
+      symmetrizeLabels = rhs.symmetrizeLabels;
+      removeRedundantLabels = rhs.removeRedundantLabels;
+      quietRun = rhs.quietRun;
+      rowSubsampleRatio = rhs.rowSubsampleRatio;
+      colSubsampleRatio = rhs.colSubsampleRatio;
+      recursiveFit = rhs.recursiveFit;
+      partitionSizeMethod = rhs.partitionSizeMethod;
+      learningRateMethod = rhs.learningRateMethod;
+      minLeafSize = rhs.minLeafSize;
+      minimumGainSplit = rhs.minimumGainSplit;
+      maxDepth = rhs.maxDepth;
+      numTrees = rhs.numTrees;
+      serialize = rhs.serialize;
+      serializePrediction = rhs.serializePrediction;
+      serializeColMask = rhs.serializeColMask;
+      serializeDataset = rhs.serializeDataset;
+      serializeLabels = rhs.serializeLabels;
+      serializationWindow = rhs.serializationWindow;
+
+    }
+      
+    lossFunction loss;
+    std::size_t partitionSize;
+    double partitionRatio;
+    double learningRate;
+    int steps;
+    int baseSteps;
+    bool symmetrizeLabels;
+    bool removeRedundantLabels;
+    bool quietRun;
+    double rowSubsampleRatio;
+    double colSubsampleRatio;
+    bool recursiveFit;
+    PartitionSize::SizeMethod partitionSizeMethod;
+    LearningRate::RateMethod learningRateMethod;
+    std::size_t minLeafSize;
+    double minimumGainSplit;
+    std::size_t maxDepth;
+    std::size_t numTrees;
+    bool serialize;
+    bool serializePrediction;
+    bool serializeColMask;
+    bool serializeDataset;
+    bool serializeLabels;
+    std::size_t serializationWindow;
+  };
+} // namespace ClassifierContext
 
 namespace IB_utils {
   using namespace arma;
@@ -349,6 +457,23 @@ namespace IB_utils {
       }
       ifs.close();
     }
+  }
+
+  template<typename DataType>
+  void readPrediction(std::string indexName, Row<DataType>& prediction) {
+    Row<DataType> predictionNew;  
+    std::vector<std::string> fileNames;
+    readIndex(indexName, fileNames);
+    
+    for (auto &fileName : fileNames) {
+      auto tokens = strSplit(fileName, '_');
+      if (tokens[0] == "PRED") {
+	fileName = strJoin(tokens, '_', 1);
+	read(predictionNew, fileName);
+	prediction = predictionNew;
+      }
+    }
+
   }
 
   bool comp(std::pair<std::size_t, std::size_t>&, std::pair<std::size_t, std::size_t>&);

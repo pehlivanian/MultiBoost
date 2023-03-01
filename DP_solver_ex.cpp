@@ -31,7 +31,7 @@ double mixture_of_uniforms(int n) {
 
 
 auto main() -> int {
- 
+
   constexpr int n = 5000;
   constexpr int T = 20;
   constexpr int NUM_TRIALS = 5;
@@ -43,7 +43,7 @@ auto main() -> int {
   std::random_device rnd_device;
   std::mt19937 mersenne_engine{rnd_device()};
   std::uniform_real_distribution<double> dista(-10., 10.);
-  std::uniform_real_distribution<double> distb(1., 1.);
+  std::uniform_real_distribution<double> distb(0., 10.);
 
   // auto gena = [&dista, &mersenne_engine]() { return dista(mersenne_engine); };
   auto gena = []() { return mixture_of_uniforms(NUM_DISTRIBUTIONS_IN_MIX); };
@@ -142,6 +142,8 @@ auto main() -> int {
     std::cout << "\n";
     std::cout << "\nScore: ";
     std::cout << ltss_score << "\n";
+    std::cout << "=================\n\n";
+  
   }
 
   return 0;

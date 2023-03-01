@@ -27,7 +27,7 @@ option(BUILD_ARMA_EX "Build armadillo ex" OFF)
 option(BUILD_CONTEXT_BUILDER "Build context builder" ON)
 
 # DP_solver ex not required
-option(BUILD_DP_SOLVER "Build DP solver ex" OFF)
+option(BUILD_DP_SOLVER_EX "Build DP solver ex" ON)
 
 # gtests not required, by default will build
 option(BUILD_TESTS "Build unit tests" ON)

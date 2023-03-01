@@ -51,7 +51,8 @@ void
 Replay<DataType, ClassifierType>::PredictStepwise(std::string indexName,
 						  Row<DataType>& prediction,
 						  Row<DataType>& labels_oos,
-						  bool deSymmetrize) {
+						  bool deSymmetrize, 
+						  bool distribute) {
   
   std::vector<std::string> fileNames, predictionFileNames;
   readIndex(indexName, fileNames);
@@ -70,27 +71,21 @@ Replay<DataType, ClassifierType>::PredictStepwise(std::string indexName,
   for (const auto &fileName : fileNames) {
     auto tokens = strSplit(fileName, '_');
     auto fileName_short = strJoin(tokens, '_', 1);
-    if (tokens[0] == "DIS") {
-      datasetFileName = fileName_short;
-      read(dataset, fileName_short);
+    if (tokens[0] == "DIS") { // Dataset In Sample
+      read(dataset, datasetFileName = fileName_short);
     }
-    else if (tokens[0] == "DOOS") {
-      datasetOOSFileName = fileName_short;
-      read(dataset_oos, fileName_short);
+    else if (tokens[0] == "DOOS") { // Dataset Out Of Sample
+      read(dataset_oos, datasetOOSFileName = fileName_short);
       n_rows = dataset_oos.n_rows;
       n_cols = dataset_oos.n_cols;
     }
-    else if (tokens[0] == "LIS") {
-      labelsFileName = fileName_short;
-      read(labels, fileName_short);
+    else if (tokens[0] == "LIS") { // Labels In Sample
+      read(labels, labelsFileName = fileName_short);
     }
-    else if (tokens[0] == "LOOS") {
-      labelsOOSFileName = fileName_short;
-      read(labels_oos, fileName_short);
+    else if (tokens[0] == "LOOS") { // Labels Out Of Sample
+      read(labels_oos, labelsOOSFileName = fileName_short);
     }
   }
-
-  bool distribute = false;
 
   // Next pass - generate prediction
   if (distribute) {
@@ -145,9 +140,10 @@ Replay<DataType, ClassifierType>::PredictStepwise(std::string indexName,
 	ipstream pipe_stream;
 	// child c("gcc --version", std_out > pipe_stream);
 	std::string cmd = "./build/incremental_predict";
-	cmd += " --datasetFileName " + datasetOOSFileName;
+
+	cmd += " --datasetFileName "	+ datasetOOSFileName;
 	cmd += " --classifierFileName " + classifierFileName;
-	cmd += " --outFileName " + outFile;
+	cmd += " --outFileName "	+ outFile;
 	
 	child c(cmd, std_out > pipe_stream);
       
@@ -156,6 +152,7 @@ Replay<DataType, ClassifierType>::PredictStepwise(std::string indexName,
 	  std::cerr << line << std::endl;
 	
 	c.wait();
+
 	predictionFileNames.push_back(outFile);
 	classifierNum++;
       }
@@ -189,6 +186,7 @@ Replay<DataType, ClassifierType>::Predict(std::string indexName,
 
   using C = GradientBoostClassifier<ClassifierType>;
   std::unique_ptr<C> classifierNew = std::make_unique<C>();
+
   prediction = zeros<Row<DataType>>(dataset.n_cols);
   Row<DataType> predictionStep;
 
@@ -246,24 +244,6 @@ Replay<DataType, ClassifierType>::Classify(std::string indexName,
   Predict(indexName, prediction);
 }
 
-template<typename DataType, typename ClassifierType>
-void
-Replay<DataType, ClassifierType>::readPrediction(std::string indexName, Row<DataType>& prediction) {
-
-  Row<DataType> predictionNew;  
-  std::vector<std::string> fileNames;
-  readIndex(indexName, fileNames);
-
-  for (auto &fileName : fileNames) {
-    auto tokens = strSplit(fileName, '_');
-    if (tokens[0] == "PRED") {
-      fileName = strJoin(tokens, '_', 1);
-      read(predictionNew, fileName);
-      prediction = predictionNew;
-    }
-  }
-
-}
 
 
 

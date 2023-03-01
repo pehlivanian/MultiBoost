@@ -18,7 +18,8 @@ LossFunction<DataType>::loss(const rowvec& yhat, const rowvec& y, rowvec* grad, 
     ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
     ArrayXreal yr = LossUtils::static_cast_eigen(y).eval();
     
-    std::function<autodiff::real(const ArrayXreal&)> loss_ = std::bind(&LossFunction<DataType>::loss_reverse, this, yr, _1);
+    std::function<autodiff::real(const ArrayXreal&)> loss_ = 
+      std::bind(&LossFunction<DataType>::loss_reverse, this, yr, _1);
     Eigen::VectorXd grad_tmp = gradient(loss_, wrt(yhatr), at(yhatr), u);
     *grad = LossUtils::static_cast_arma(gradtmp);
     return static_cast<DataType>(u.val());
@@ -276,8 +277,10 @@ SyntheticLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* 
   // *grad = -1 * sign(y) % pow(y - yhat, 4);
 
   // NEW
-  *grad = -sign(y) % exp(yhat / pow(y, 2) % (y - yhat));
+  // *grad = -sign(y) % exp(yhat / pow(y, 2) % (y - yhat));
   // *grad = -sign(y);
+  *grad = -sign(y) % exp(yhat / (pow(y, 2) % (y - yhat)));
+  // *grad = -y % pow(y - yhat, 2);
   
 
 #ifdef AUTODIFF
@@ -299,8 +302,8 @@ SyntheticLoss<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* h
   // *hess = f;
   
   // NEW
-  *hess = (sign(y) % exp(yhat / pow(y, 2) % (y - yhat))) / (y % pow(y - yhat, 2));
-  // *hess = sign(y) / (y % pow(y - yhat, 2));
+  *hess = (sign(y) % exp(yhat / (pow(y, 2) % (y - yhat)))) / (y % pow(y - yhat, 2));
+  
   
 }
 

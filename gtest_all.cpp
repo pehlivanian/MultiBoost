@@ -819,7 +819,7 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
 
     std::string indexName = classifier.getIndexName();
     
-    Replay<double, DecisionTreeClassifier>::readPrediction(indexName, archivePrediction);
+    readPrediction(indexName, archivePrediction);
 
     for (int i=0; i<prediction.n_elem; ++i) {
       ASSERT_LE(fabs(prediction[i]-archivePrediction[i]), eps);

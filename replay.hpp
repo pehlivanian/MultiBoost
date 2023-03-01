@@ -30,20 +30,18 @@ using namespace IB_utils;
 template<typename DataType, typename ClassifierType>
 class Replay {
 public:
-  Replay() = default;
+  Replay()  = default;
   ~Replay() = default;
 
   static void Predict(std::string, const mat&, Row<DataType>&, bool=false);
   static void Predict(std::string, Row<DataType>&);
 
-  static void PredictStepwise(std::string, Row<DataType>&, Row<DataType>&, bool=false);
+  static void PredictStepwise(std::string, Row<DataType>&, Row<DataType>&, bool=false, bool=false);
   static void PredictStep(std::string, std::string, Row<double>&, bool=false);
   static void PredictStep(std::string, std::string, std::string, bool=false);
 
   static void Classify(std::string, const mat&, Row<DataType>&, bool=false);
   static void Classify(std::string, Row<DataType>&);
-
-  static void readPrediction(std::string, Row<DataType>&);
 
 private:
   static void desymmetrize(Row<DataType>&, double, double);

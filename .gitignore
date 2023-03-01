@@ -21,6 +21,7 @@ __pycache__
 *.odp
 *.gar
 *.gnd
+*.prd
 *.cxt
 *.txt
 core

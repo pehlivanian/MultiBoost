@@ -86,13 +86,13 @@ auto main(int argc, char **argv) -> int {
   CPtr c;
 
   if (warmStart) {
-       Replay<double, DecisionTreeClassifier>::readPrediction(indexName, prediction);
-       c = std::make_unique<classifier>(trainDataset,
-					trainLabels,
-					testDataset,
-					testLabels,
-					prediction,
-					context);
+    readPrediction(indexName, prediction);
+    c = std::make_unique<classifier>(trainDataset,
+				     trainLabels,
+				     testDataset,
+				     testLabels,
+				     prediction,
+				     context);
   } else {
     c = std::make_unique<classifier>(trainDataset, 
 				     trainLabels,

@@ -70,7 +70,7 @@ namespace IB_utils {
 
     if (ifs.is_open()) {
       while (ifs >> fileName) {
-      fileNames.push_back(fileName);
+	fileNames.push_back(fileName);
       }
     }
     ifs.close();

@@ -14,7 +14,7 @@ EXEC_PRED=${PATH}stepwise_predict
 # create context for first run
 $EXEC_CC \
 --loss 5 \
---partitionSize 6 \
+--partitionSize 12 \
 --partitionRatio .25 \
 --learningRate .0001 \
 --steps 1000 \
@@ -24,7 +24,7 @@ $EXEC_CC \
 --quietRun true \
 --rowSubsampleRatio 1. \
 --colSubsampleRatio .45 \
---recursiveFit false \
+--recursiveFit true \
 --serialize true \
 --serializePrediction true \
 --serializeDataset true \
@@ -40,7 +40,7 @@ $EXEC_CC \
 # create context for subsequent runs
 $EXEC_CC \
 --loss 5 \
---partitionSize 6 \
+--partitionSize 12 \
 --partitionRatio .25 \
 --learningRate .0001 \
 --steps 1000 \
@@ -50,7 +50,7 @@ $EXEC_CC \
 --quietRun true \
 --rowSubsampleRatio 1. \
 --colSubsampleRatio .45 \
---recursiveFit false \
+--recursiveFit true \
 --serialize true \
 --serializePrediction true \
 --serializeDataset false \
@@ -69,7 +69,7 @@ n=1
 # First run
 INDEX_NAME_STEP=$($EXEC_STEP \
 --contextFileName $CONTEXT_PATH_RUN1 \
---dataName titanic_train \
+--dataName crx \
 --mergeIndexFiles false \
 --warmStart false)
 
@@ -90,7 +90,7 @@ do
   # Fit step
   INDEX_NAME_STEP=$($EXEC_STEP \
   --contextFileName $CONTEXT_PATH_RUNS \
-  --dataName titanic_train \
+  --dataName crx \
   --quietRun true \
   --mergeIndexFiles true \
   --warmStart true \
