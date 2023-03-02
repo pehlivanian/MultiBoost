@@ -87,9 +87,11 @@ Replay<DataType, ClassifierType>::PredictStepwise(std::string indexName,
     }
   }
 
+  distribute = false; // before enabling, make sure we have the memory
+
   // Next pass - generate prediction
   if (distribute) {
-    distribute = true;
+
     ThreadsafeQueue<Row<double>> results_queue;
     std::vector<ThreadPool::TaskFuture<int>> futures;
     

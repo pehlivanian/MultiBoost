@@ -13,7 +13,7 @@ EXEC_PRED=${PATH}stepwise_predict
 
 # create context for first run
 $EXEC_CC \
---loss 5 \
+--loss 6 \
 --partitionSize 12 \
 --partitionRatio .25 \
 --learningRate .0001 \
@@ -39,7 +39,7 @@ $EXEC_CC \
 
 # create context for subsequent runs
 $EXEC_CC \
---loss 5 \
+--loss 6 \
 --partitionSize 12 \
 --partitionRatio .25 \
 --learningRate .0001 \
@@ -69,7 +69,7 @@ n=1
 # First run
 INDEX_NAME_STEP=$($EXEC_STEP \
 --contextFileName $CONTEXT_PATH_RUN1 \
---dataName crx \
+--dataName titanic_train \
 --mergeIndexFiles false \
 --warmStart false)
 
@@ -90,7 +90,7 @@ do
   # Fit step
   INDEX_NAME_STEP=$($EXEC_STEP \
   --contextFileName $CONTEXT_PATH_RUNS \
-  --dataName crx \
+  --dataName titanic_train \
   --quietRun true \
   --mergeIndexFiles true \
   --warmStart true \

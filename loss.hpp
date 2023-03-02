@@ -25,6 +25,8 @@ enum class lossFunction {    MSE = 0,
 			     Exp = 3,
 			     Arctan = 4,
 			     Synthetic = 5,
+			     SyntheticVar1 = 6,
+			     SyntheticVar2 = 7
 			};
 
 
@@ -145,6 +147,34 @@ private:
 #ifdef AUTODIFF
   autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
 #endif
+  DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
+  DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
+  void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+};
+
+template<typename DataType>
+class SyntheticLossVar1 : public LossFunction<DataType> {
+public:
+  SyntheticLossVar1() = default;
+  SyntheticLossVar1<DataType>* create() { return new SyntheticLossVar1<DataType>(); }
+private:
+  #ifdef AUTODIFF
+  autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
+  #endif
+  DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
+  DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
+  void hessian_(const rowvec&, const rowvec&, rowvec*) override;  
+};
+
+template<typename DataType>
+class SyntheticLossVar2 : public LossFunction<DataType> {
+public:
+  SyntheticLossVar2() = default;
+  SyntheticLossVar2<DataType>* create() { return new SyntheticLossVar2<DataType>(); }
+private:
+  #ifdef AUTODIFF
+  autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
+  #endif
   DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
   DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
   void hessian_(const rowvec&, const rowvec&, rowvec*) override;

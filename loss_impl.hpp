@@ -322,6 +322,114 @@ SyntheticLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& 
 #endif
 
 ////////////////
+// END SyntheticLoss
+////////////////
+
+//////////////////////////////
+// BEGIN SyntheticLossVariation1
+//////////////////////////////
+
+template<typename DataType>
+DataType
+SyntheticLossVar1<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
+
+  rowvec f(y.n_cols, arma::fill::zeros);
+  *grad = -sign(y) % max(1 - sign(y) % yhat, f);
+
+#ifdef AUTODIFF
+  ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
+  ArrayXreal yr = LossUtils::static_cast_eigen(y).eval();
+
+  return static_cast<DataType>(loss_reverse(yr, yhatr).val());
+#else
+  return static_cast<DataType>(loss_reverse_arma(y, yhat));
+#endif
+}
+
+template<typename DataType>
+void
+SyntheticLossVar1<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
+  rowvec f(y.n_cols, arma::fill::ones);
+  *hess = f;
+}
+
+template<typename DataType>
+DataType
+SyntheticLossVar1<DataType>::loss_reverse_arma(const rowvec& yhat, const rowvec& y) {
+  return sum(pow((y - yhat), 2));
+}
+
+#ifdef AUTODIFF
+template<typename DataType>
+autodiff::real
+SyntheticLossVar1<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
+  return pow((y - yhat), 2).sum();
+}
+#endif
+
+//////////////////////////////
+// END SyntheticLossVariation1
+//////////////////////////////
+
+//////////////////////////////
+// BEGIN SyntheticLossVariation2
+//////////////////////////////
+
+template<typename DataType>
+DataType
+SyntheticLossVar2<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
+
+  // XXX
+  // Should be set in coordination with learning rate
+  double alpha = .0001;
+  rowvec f = y - yhat;
+
+  uvec ind1 = find( (y < 0) && (yhat < -alpha));
+  f.elem(ind1).fill(0.);
+
+  uvec ind2 = find( (y > 0) && (yhat > alpha));
+  f.elem(ind2).fill(0.);
+
+  *grad = -f;
+
+#ifdef AUTODIFF
+  ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
+  ArrayXreal yr = LossUtils::static_cast_eigen(y).eval();
+
+  return static_cast<DataType>(loss_reverse(yr, yhatr).val());
+#else
+  return static_cast<DataType>(loss_reverse_arma(y, yhat));
+#endif
+}
+
+template<typename DataType>
+void
+SyntheticLossVar2<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
+  rowvec f(y.n_cols, arma::fill::ones);
+  *hess = f;
+}
+
+template<typename DataType>
+DataType
+SyntheticLossVar2<DataType>::loss_reverse_arma(const rowvec& yhat, const rowvec& y) {
+  return sum(pow((y - yhat), 2));
+}
+
+#ifdef AUTODIFF
+template<typename DataType>
+autodiff::real
+SyntheticLossVar2<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
+  return pow((y - yhat), 2).sum();
+}
+#endif
+
+//////////////////////////////
+// END SyntheticLossVariation1
+//////////////////////////////
+
+
+
+////////////////
 // END Loss
 ////////////////
 

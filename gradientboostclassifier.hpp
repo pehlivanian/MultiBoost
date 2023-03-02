@@ -673,7 +673,7 @@ private:
   void contextInit_(ClassifierContext::Context&&);
   void init_();
   Row<double> _constantLeaf() const;
-  Row<double> _randomLeaf(std::size_t numVals=20) const;
+  Row<double> _randomLeaf() const;
   uvec subsampleRows(size_t);
   uvec subsampleCols(size_t);
   void symmetrizeLabels(Row<DataType>&);

@@ -171,12 +171,12 @@ GradientBoostClassifier<ClassifierType>::_constantLeaf() const {
 
 template<typename ClassifierType>
 row_d
-GradientBoostClassifier<ClassifierType>::_randomLeaf(std::size_t numVals) const {
+GradientBoostClassifier<ClassifierType>::_randomLeaf() const {
 
-  row_d range = linspace<row_d>(-1, 1, numVals+2);
   row_d r(dataset_.n_cols, arma::fill::none);
   std::mt19937 rng;
-  std::uniform_int_distribution<std::size_t> dist{1, numVals};
+  // std::uniform_int_distribution<std::size_t> dist{1, numVals};
+  std::uniform_real_distribution<DataType> dist{-learningRate_, learningRate_};
   r.imbue([&](){ return dist(rng);});
   return r;
 
@@ -225,7 +225,7 @@ GradientBoostClassifier<ClassifierType>::init_() {
   // Make labels members of {-1,1}
   // Note that we pass labels_oos to this classifier for OOS testing
   // at regular intervals, but the external labels (hence labels_oos_)
-  // may be in {0, 1} and we leave things like that.
+  // may be in {0,1} and we leave things like that.
   assert(!(symmetrized_ && removeRedundantLabels_));
   if (symmetrized_) {
     symmetrizeLabels();
@@ -240,6 +240,7 @@ GradientBoostClassifier<ClassifierType>::init_() {
   // classifiers
   // don't overfit on first classifier
   row_d constantLabels = _constantLeaf();
+  // row_d constantLabels = _randomLeaf();
   std::unique_ptr<ClassifierType> classifier;
   classifier.reset(new ClassifierType(dataset_, 
 				      constantLabels,
@@ -278,6 +279,12 @@ GradientBoostClassifier<ClassifierType>::init_() {
   }
   else if (loss_ == lossFunction::Synthetic) {
     lossFn_ = new SyntheticLoss<double>();
+  }
+  else if (loss_ == lossFunction::SyntheticVar1) {
+    lossFn_ = new SyntheticLossVar1<double>();
+  }
+  else if (loss_ ==lossFunction::SyntheticVar2) {
+    lossFn_ = new SyntheticLossVar2<double>();
   }
 
   if (partitionSize_ == 1) {
