@@ -14,16 +14,16 @@ EXEC_PRED=${PATH}stepwise_predict
 # create context for first run
 $EXEC_CC \
 --loss 6 \
---partitionSize 12 \
---partitionRatio .25 \
---learningRate .0001 \
---steps 1000 \
---baseSteps 100000 \
+--partitionSize 24 \
+--partitionRatio .15 \
+--learningRate .00001 \
+--steps 100 \
+--baseSteps 10000 \
 --symmetrizeLabels true \
 --removeRedundantLabels false \
 --quietRun true \
 --rowSubsampleRatio 1. \
---colSubsampleRatio .45 \
+--colSubsampleRatio .85 \
 --recursiveFit true \
 --serialize true \
 --serializePrediction true \
@@ -40,16 +40,16 @@ $EXEC_CC \
 # create context for subsequent runs
 $EXEC_CC \
 --loss 6 \
---partitionSize 12 \
---partitionRatio .25 \
---learningRate .0001 \
---steps 1000 \
---baseSteps 100000 \
+--partitionSize 24 \
+--partitionRatio .15 \
+--learningRate .00001 \
+--steps 100 \
+--baseSteps 10000 \
 --symmetrizeLabels true \
 --removeRedundantLabels false \
 --quietRun true \
 --rowSubsampleRatio 1. \
---colSubsampleRatio .45 \
+--colSubsampleRatio .85 \
 --recursiveFit true \
 --serialize true \
 --serializePrediction true \
