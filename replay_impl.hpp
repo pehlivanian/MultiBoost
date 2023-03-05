@@ -87,7 +87,7 @@ Replay<DataType, ClassifierType>::PredictStepwise(std::string indexName,
     }
   }
 
-  distribute = false; // before enabling, make sure we have the memory
+  distribute = true; // before enabling, make sure we have the memory
 
   // Next pass - generate prediction
   if (distribute) {
@@ -110,7 +110,7 @@ Replay<DataType, ClassifierType>::PredictStepwise(std::string indexName,
 	};
 
 	Row<double> prediction;
-	futures.push_back(DefaultThreadPool::submitJob(task, std::ref(prediction)));
+	futures.push_back(DefaultThreadPool::submitJob_n<3>(task, std::ref(prediction)));
 	
 	classifierNum++;
       }

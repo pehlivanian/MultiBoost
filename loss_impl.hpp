@@ -335,6 +335,7 @@ SyntheticLossVar1<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowv
 
   rowvec f(y.n_cols, arma::fill::zeros);
   *grad = -sign(y) % max(1 - sign(y) % yhat, f);
+  // *grad = -sign(y) % max(sign(y) % (y - yhat), f);
 
 #ifdef AUTODIFF
   ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
@@ -379,18 +380,7 @@ template<typename DataType>
 DataType
 SyntheticLossVar2<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
 
-  // XXX
-  // Should be set in coordination with learning rate
-  double alpha = .0001;
-  rowvec f = y - yhat;
-
-  uvec ind1 = find( (y < 0) && (yhat < -alpha));
-  f.elem(ind1).fill(0.);
-
-  uvec ind2 = find( (y > 0) && (yhat > alpha));
-  f.elem(ind2).fill(0.);
-
-  *grad = -f;
+  *grad = -sign(y) % ( y - yhat);
 
 #ifdef AUTODIFF
   ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();

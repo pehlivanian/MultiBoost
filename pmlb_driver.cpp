@@ -51,7 +51,7 @@ auto main(int argc, char **argv) -> int {
   context.removeRedundantLabels = false;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .25; // .75
-  context.recursiveFit = false;
+  context.recursiveFit = true;
   context.serialize = false;
   context.serializePrediction = false;
   context.serializeDataset = false;

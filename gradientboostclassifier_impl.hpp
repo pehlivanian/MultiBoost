@@ -113,7 +113,9 @@ GradientBoostClassifier<ClassifierType>::childContext(ClassifierContext::Context
     context.partitionSize		= subPartitionSize + 1;
     context.partitionRatio		= std::min(1., 2*partitionRatio_);
     context.learningRate		= learningRate_;
-    context.steps			= std::max(static_cast<int>(std::log(steps_)), 1);
+    // XXX
+    // context.steps			= std::max(static_cast<int>(std::log(steps_)), 1);
+    context.steps			= std::max(static_cast<int>(.25 * steps_), 1);
     context.baseSteps			= baseSteps_;
     // context.steps			= std::max(1, static_cast<int>(.25 * std::log(steps_)));
     context.symmetrizeLabels		= false;
@@ -528,10 +530,10 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     ClassifierContext::Context context{};      
     childContext(context, subPartitionSize);
 
-    if (DIAGNOSTICS)
-      std::cout << "SUBPARTITION SIZE: " << subPartitionSize 
-		<< "(stepNum, steps): " << "(" << stepNum
-		<< ", " << context.steps << ")" << std::endl;
+    // if (DIAGNOSTICS)
+    //   std::cout << "SUBPARTITION SIZE: " << subPartitionSize 
+    //	<< "(stepNum, steps): " << "(" << stepNum
+    //		<< ", " << context.steps << ")" << std::endl;
     
     // allLeaves may not strictly fit the definition of labels here - 
     // aside from the fact that it is of double type, it may have more 
@@ -565,18 +567,12 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   // Zero pad labels first
   allLeaves(colMask_) = best_leaves;
   
-  if (DIAGNOSTICS) {
-    std::cerr << "FITTING LEAF CLASSIFIER...";
-  }
   classifier.reset(new ClassifierType(dataset_, 
 				      allLeaves, 
 				      std::move(partitionSize+1), // Since 0 is an additional class value
 				      std::move(minLeafSize_),
 				      std::move(minimumGainSplit_),
 				      std::move(maxDepth_)));
-  if (DIAGNOSTICS) {
-    std::cerr << "FINISHED." << std::endl;
-  }  
   
   mat probabilities;
   classifier->Classify_(dataset_, prediction, probabilities);
@@ -602,7 +598,8 @@ GradientBoostClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
 
   int n = colMask.n_rows, T = partitionSize;
   bool risk_partitioning_objective = true;
-  bool use_rational_optimization = true;
+  // XXX
+  bool use_rational_optimization = false;
   bool sweep_down = false;
   double gamma = 0.;
   double reg_power=1.;
@@ -866,10 +863,6 @@ GradientBoostClassifier<ClassifierType>::fit() {
   for (std::size_t stepNum=1; stepNum<=steps_; ++stepNum) {
     fit_step(stepNum);
     
-    if (DIAGNOSTICS && (stepNum > 5) && ((stepNum%100) == 1)) {
-      std::cout << "STEP: " << stepNum << std::endl;
-    }
-
     if ((stepNum > 5) && ((stepNum%serializationWindow_) == 1)) {
       if (serialize_) {
 	commit();

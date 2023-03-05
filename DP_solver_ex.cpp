@@ -12,6 +12,15 @@ void print_subsets(std::vector<std::vector<int> >& subsets) {
   std::cout << "]";
 }
 
+void print_scores(std::vector<double>& scores) {
+  std::cout << "SCORES\n";
+  std::cout << "[\n";
+  std::for_each(scores.begin(), scores.end(), [](double score) {
+		  std::cout << "[ " << score << "]\n";
+		});
+  std::cout << "]";
+}
+
 double mixture_of_uniforms(int n) {
   int bin = 1;
   std::random_device rnd_device;
@@ -29,9 +38,33 @@ double mixture_of_uniforms(int n) {
   return dista(mersenne_engine) + static_cast<double>(bin)-1.;
 }
 
+void sort_by_priority(std::vector<double>& a, std::vector<double>& b) {
+  const int n = a.size();
+
+  std::vector<int> ind(n);
+  std::iota(ind.begin(), ind.end(), 0);
+  
+  std::stable_sort(ind.begin(), ind.end(),
+		   [&a, &b](int i, int j) {
+		     return (a[i]/b[i]) < (a[j]/b[j]);
+		   });
+  
+  std::vector<int> priority_sortind = ind;
+  
+  std::vector<double> a_s(n), b_s(n);
+  for (int i=0; i<n; ++i) {
+    a_s[i] = a[ind[i]];
+    b_s[i] = b[ind[i]];
+  }
+
+  std::copy(a_s.cbegin(), a_s.cend(), a.begin());
+  std::copy(b_s.cbegin(), b_s.cend(), b.begin());
+		   
+}
 
 auto main() -> int {
 
+  /*
   constexpr int n = 5000;
   constexpr int T = 20;
   constexpr int NUM_TRIALS = 5;
@@ -145,6 +178,81 @@ auto main() -> int {
     std::cout << "=================\n\n";
   
   }
+  */
+
+  const int n = 50;
+  const int T = 4;
+  
+  std::random_device rnd_device;
+  std::mt19937 mersenne_engine{rnd_device()};
+  std::uniform_real_distribution<double> dista(-10. ,10.);
+  std::uniform_real_distribution<double> distb(0., 10.);
+
+  auto gena = [&dista, &mersenne_engine](){ return dista(mersenne_engine); };
+  auto genb = [&distb, &mersenne_engine](){ return distb(mersenne_engine); };
+
+  std::vector<double> a(n), b(n);
+
+  // First run
+  std::generate(a.begin(), a.end(), gena);
+  std::generate(b.begin(), b.end(), genb);
+
+  sort_by_priority(a, b);
+
+  auto dp11 = DPSolver<double>(n, T, a, b,
+			     objective_fn::RationalScore,
+			     true,
+			     true);
+
+  auto dp11_opt = dp11.get_optimal_subsets_extern();
+  auto dp11_scores = dp11.get_score_by_subset_extern();
+
+  std::cout << "FIRST CASE RISK PARTITIONING OBJECTIVE\n";
+  std::cout << "======================================\n";
+  print_subsets(dp11_opt);
+  print_scores(dp11_scores);
+
+  auto dp12 = DPSolver<double>(n, T, a, b,
+			       objective_fn::RationalScore,
+			       false,
+			       true);
+
+  auto dp12_opt = dp12.get_optimal_subsets_extern();
+  auto dp12_scores = dp12.get_score_by_subset_extern();
+
+  std::cout << "FIRST CASE MULTIPLE CLUSTERING OBJECTIVE\n";
+  std::cout << "========================================\n";
+  print_subsets(dp12_opt);
+  print_scores(dp12_scores);
+
+  // Second run
+  std::transform(a.begin(), a.end(), a.begin(), [](double a){ return -1. * a; });
+
+  auto dp21 = DPSolver<double>(n, T, a, b,
+			      objective_fn::RationalScore,
+			      true,
+			      true);
+
+  auto dp21_opt = dp21.get_optimal_subsets_extern();
+  auto dp21_scores = dp21.get_score_by_subset_extern();
+
+  std::cout << "SECOND CASE RISK PARTITIONING OBJECTIVE\n";
+  std::cout << "=======================================\n";
+  print_subsets(dp21_opt);
+  print_scores(dp21_scores);
+
+  auto dp22 = DPSolver<double>(n, T, a, b,
+			       objective_fn::RationalScore,
+			       false,
+			       true);
+
+  auto dp22_opt = dp22.get_optimal_subsets_extern();
+  auto dp22_scores = dp22.get_score_by_subset_extern();
+
+  std::cout << "SECOND CASE MULTIPLE CLUSTERING OBJECTIVE\n";
+  std::cout << "=========================================\n";
+  print_subsets(dp22_opt);
+  print_scores(dp22_scores);
 
   return 0;
 }
