@@ -688,7 +688,7 @@ private:
 
   std::pair<rowvec,rowvec> generate_coefficients(const Row<DataType>&, const uvec&);
   std::pair<rowvec,rowvec> generate_coefficients(const Row<DataType>&, const Row<DataType>&, const uvec&);
-  Leaves computeOptimalSplit(rowvec&, rowvec&, mat, std::size_t, std::size_t, const uvec&);
+  Leaves computeOptimalSplit(rowvec&, rowvec&, std::size_t, std::size_t, const uvec&);
 
   void setNextClassifier(const ClassifierType&);
   int steps_;

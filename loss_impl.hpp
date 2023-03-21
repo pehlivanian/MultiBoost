@@ -279,8 +279,8 @@ SyntheticLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* 
   // NEW
   // *grad = -sign(y) % exp(yhat / pow(y, 2) % (y - yhat));
   // *grad = -sign(y);
-  *grad = -sign(y) % exp(yhat / (pow(y, 2) % (y - yhat)));
-  // *grad = -y % pow(y - yhat, 2);
+  *grad = -y % pow(y - yhat, 2);
+  // *grad = -sign(y) % exp(yhat / (pow(y, 2) % (y - yhat)));
   
 
 #ifdef AUTODIFF
@@ -298,11 +298,11 @@ void
 SyntheticLoss<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
 
   // OLD
-  // rowvec f(y.n_cols, arma::fill::ones);
-  // *hess = f;
+  rowvec f(y.n_cols, arma::fill::ones);
+  *hess = f;
   
   // NEW
-  *hess = (sign(y) % exp(yhat / (pow(y, 2) % (y - yhat)))) / (y % pow(y - yhat, 2));
+  // *hess = (sign(y) % exp(yhat / (pow(y, 2) % (y - yhat)))) / (y % pow(y - yhat, 2));
   
   
 }

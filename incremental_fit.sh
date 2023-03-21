@@ -7,24 +7,33 @@ CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCreifissa.cxt
 CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCreifissa.cxt
 
 STEPS=101
+BASESTEPS=10000
+LEARNINGRATE=.0001
+RECURSIVE_FIT=true
+PARTITION_SIZE=8
+LOSS_FN=5
+COLSUBSAMPLE_RATIO=.95
+DATANAME=titanic_train
+
+((ITERS=$STEPS / $BASESTEPS))
 
 # Predict OOS
 EXEC_PRED=${PATH}stepwise_predict
 
 # create context for first run
 $EXEC_CC \
---loss 6 \
---partitionSize 24 \
---partitionRatio .15 \
---learningRate .00001 \
---steps 100 \
---baseSteps 10000 \
+--loss $LOSS_FN \
+--partitionSize $PARTITION_SIZE \
+--partitionRatio .25 \
+--learningRate $LEARNINGRATE \
+--steps $STEPS \
+--baseSteps $BASESTEPS \
 --symmetrizeLabels true \
 --removeRedundantLabels false \
 --quietRun true \
 --rowSubsampleRatio 1. \
---colSubsampleRatio .85 \
---recursiveFit true \
+--colSubsampleRatio $COLSUBSAMPLE_RATIO \
+--recursiveFit $RECURSIVE_FIT \
 --serialize true \
 --serializePrediction true \
 --serializeDataset true \
@@ -39,18 +48,18 @@ $EXEC_CC \
 
 # create context for subsequent runs
 $EXEC_CC \
---loss 6 \
---partitionSize 24 \
---partitionRatio .15 \
---learningRate .00001 \
---steps 100 \
---baseSteps 10000 \
+--loss $LOSS_FN \
+--partitionSize $PARTITION_SIZE \
+--partitionRatio .25 \
+--learningRate $LEARNINGRATE \
+--steps $STEPS \
+--baseSteps $BASESTEPS \
 --symmetrizeLabels true \
 --removeRedundantLabels false \
 --quietRun true \
 --rowSubsampleRatio 1. \
---colSubsampleRatio .85 \
---recursiveFit true \
+--colSubsampleRatio $COLSUBSAMPLE_RATIO \
+--recursiveFit $RECURSIVE_FIT \
 --serialize true \
 --serializePrediction true \
 --serializeDataset false \
@@ -69,7 +78,7 @@ n=1
 # First run
 INDEX_NAME_STEP=$($EXEC_STEP \
 --contextFileName $CONTEXT_PATH_RUN1 \
---dataName titanic_train \
+--dataName $DATANAME \
 --mergeIndexFiles false \
 --warmStart false)
 
@@ -90,7 +99,7 @@ do
   # Fit step
   INDEX_NAME_STEP=$($EXEC_STEP \
   --contextFileName $CONTEXT_PATH_RUNS \
-  --dataName titanic_train \
+  --dataName $DATANAME \
   --quietRun true \
   --mergeIndexFiles true \
   --warmStart true \

@@ -87,7 +87,7 @@ Replay<DataType, ClassifierType>::PredictStepwise(std::string indexName,
     }
   }
 
-  distribute = true; // before enabling, make sure we have the memory
+  distribute = false; // before enabling, make sure we have the memory
 
   // Next pass - generate prediction
   if (distribute) {

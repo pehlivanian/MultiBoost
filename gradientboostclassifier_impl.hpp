@@ -12,6 +12,8 @@ using namespace LearningRate;
 using namespace LossMeasures;
 using namespace IB_utils;
 
+constexpr bool POST_EXTRAPOLATE = false;
+
 namespace {
   const bool DIAGNOSTICS = false;
 }
@@ -112,10 +114,12 @@ GradientBoostClassifier<ClassifierType>::childContext(ClassifierContext::Context
     context.loss			= loss_;
     context.partitionSize		= subPartitionSize + 1;
     context.partitionRatio		= std::min(1., 2*partitionRatio_);
+    // XXX
+    // context.learningRate		= 2. * learningRate_;
     context.learningRate		= learningRate_;
     // XXX
-    // context.steps			= std::max(static_cast<int>(std::log(steps_)), 1);
-    context.steps			= std::max(static_cast<int>(.25 * steps_), 1);
+    context.steps			= std::max(static_cast<int>(std::log(steps_)), 1);
+    // context.steps			= std::max(static_cast<int>(.25 * steps_), 1);
     context.baseSteps			= baseSteps_;
     // context.steps			= std::max(1, static_cast<int>(.25 * std::log(steps_)));
     context.symmetrizeLabels		= false;
@@ -499,7 +503,7 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   double learningRate = computeLearningRate(stepNum);
 
   // Find classifier fit for leaves choice
-  Leaves allLeaves = zeros<row_d>(m_);
+  Leaves allLeaves = zeros<row_d>(m_), best_leaves;
 
   Row<DataType> prediction;
   std::unique_ptr<ClassifierType> classifier;
@@ -517,24 +521,13 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     // Generate coefficients g, h
     std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
 
-    // Regenerate coefficients with full colMask
-    // coeffs = generate_coefficients(labels_, subColMask);    
-    // Compute optimal leaf choice on unrestricted dataset
-    // Leaves best_leaves = computeOptimalSplit(coeffs.first, coeffs.second, dataset_, stepNum, subPartitionSize, subColMask);
-    // allLeaves = best_leaves;
-
-    Leaves best_leaves = computeOptimalSplit(coeffs.first, coeffs.second, dataset_, stepNum, subPartitionSize, colMask_);
+    best_leaves = computeOptimalSplit(coeffs.first, coeffs.second, stepNum, subPartitionSize, colMask_);
 
     allLeaves(colMask_) = best_leaves;
 
     ClassifierContext::Context context{};      
     childContext(context, subPartitionSize);
 
-    // if (DIAGNOSTICS)
-    //   std::cout << "SUBPARTITION SIZE: " << subPartitionSize 
-    //	<< "(stepNum, steps): " << "(" << stepNum
-    //		<< ", " << context.steps << ")" << std::endl;
-    
     // allLeaves may not strictly fit the definition of labels here - 
     // aside from the fact that it is of double type, it may have more 
     // than one class. So we don't want to symmetrize, but we want 
@@ -556,24 +549,44 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   
   // If we are in recursive mode and partitionSize <= 2, fall through
   // to this case for the leaf classifier
+
+  if (DIAGNOSTICS)
+    std::cout << "FITTING CLASSIFIER FOR PARTITIONSIZE: " << partitionSize << std::endl;
   
   // Generate coefficients g, h
   std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
   
   // Compute optimal leaf choice on unrestricted dataset
-  Leaves best_leaves = computeOptimalSplit(coeffs.first, coeffs.second, dataset_, stepNum, partitionSize, colMask_);
+  best_leaves = computeOptimalSplit(coeffs.first, coeffs.second, stepNum, partitionSize, colMask_);
   
-  // Fit classifier on {dataset, padded best_leaves}
-  // Zero pad labels first
-  allLeaves(colMask_) = best_leaves;
+  if (POST_EXTRAPOLATE) {
+    // Fit classifier on {dataset_slice, best_leaves}, both subsets of the original data
+    // There will be no post-padding of zeros as that is not defined for OOS prediction, we
+    // just use the classifier below to predict on the larger dataset for this step's
+    // prediction
+    uvec rowMask = linspace<uvec>(0, -1+n_, n_);
+    auto dataset_slice = dataset_.submat(rowMask, colMask_);
+    
+    classifier.reset(new ClassifierType(dataset_slice,
+					best_leaves,
+					std::move(partitionSize+1),
+					std::move(minLeafSize_),
+					std::move(minimumGainSplit_),
+					std::move(maxDepth_)));
+  } else {
+    // Fit classifier on {dataset, padded best_leaves}
+    // Zero pad labels first
+    allLeaves(colMask_) = best_leaves;
+    
+    classifier.reset(new ClassifierType(dataset_, 
+					allLeaves, 
+					std::move(partitionSize+1), // Since 0 is an additional class value
+					std::move(minLeafSize_),
+					std::move(minimumGainSplit_),
+					std::move(maxDepth_)));
   
-  classifier.reset(new ClassifierType(dataset_, 
-				      allLeaves, 
-				      std::move(partitionSize+1), // Since 0 is an additional class value
-				      std::move(minLeafSize_),
-				      std::move(minimumGainSplit_),
-				      std::move(maxDepth_)));
-  
+  }
+
   mat probabilities;
   classifier->Classify_(dataset_, prediction, probabilities);
 
@@ -585,7 +598,6 @@ template<typename ClassifierType>
 typename GradientBoostClassifier<ClassifierType>::Leaves
 GradientBoostClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
 							     rowvec& h,
-							     mat dataset,
 							     std::size_t stepNum, 
 							     std::size_t partitionSize,
 							     const uvec& colMask) {
@@ -597,6 +609,7 @@ GradientBoostClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
   std::vector<double> hv = arma::conv_to<std::vector<double>>::from(h);
 
   int n = colMask.n_rows, T = partitionSize;
+  // XXX
   bool risk_partitioning_objective = true;
   // XXX
   bool use_rational_optimization = false;
@@ -620,7 +633,8 @@ GradientBoostClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
   auto subsets = dp.get_optimal_subsets_extern();
   
   rowvec leaf_values = arma::zeros<rowvec>(n);
-  for (const auto& subset : subsets) {
+  
+  for (auto &subset : subsets) {
     uvec ind = arma::conv_to<uvec>::from(subset);
     double val = -1. * learningRate_ * sum(g(ind))/sum(h(ind));
     for (auto i: ind) {
