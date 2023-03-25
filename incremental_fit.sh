@@ -6,16 +6,18 @@ EXEC_CC=${PATH}createContext
 CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCreifissa.cxt
 CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCreifissa.cxt
 
-STEPS=101
-BASESTEPS=10000
+STEPS=10
+BASESTEPS=1000
 LEARNINGRATE=.0001
 RECURSIVE_FIT=true
-PARTITION_SIZE=8
+PARTITION_SIZE=24
+MINLEAFSIZE=1
+MAXDEPTH=20
 LOSS_FN=5
-COLSUBSAMPLE_RATIO=.95
+COLSUBSAMPLE_RATIO=.45
 DATANAME=titanic_train
 
-((ITERS=$STEPS / $BASESTEPS))
+((ITERS=$BASESTEPS / $STEPS))
 
 # Predict OOS
 EXEC_PRED=${PATH}stepwise_predict
@@ -40,8 +42,8 @@ $EXEC_CC \
 --serializeLabels true \
 --partitionSizeMethod 0 \
 --learningRateMethod 0 \
---minLeafSize 1 \
---maxDepth 10 \
+--minLeafSize $MINLEAFSIZE \
+--maxDepth $MAXDEPTH \
 --minimumGainSplit 0. \
 --serializationWindow 1000 \
 --fileName $CONTEXT_PATH_RUN1
@@ -66,8 +68,8 @@ $EXEC_CC \
 --serializeLabels false \
 --partitionSizeMethod 0 \
 --learningRateMethod 0 \
---minLeafSize 1 \
---maxDepth 10 \
+--minLeafSize $MINLEAFSIZE \
+--maxDepth $MAXDEPTH \
 --minimumGainSplit 0. \
 --serializationWindow 1000 \
 --fileName $CONTEXT_PATH_RUNS
@@ -92,7 +94,7 @@ $EXEC_PRED \
 # Subsequent runs
 for (( ; ; ));
 do
-  if [ $n -eq $STEPS ]; then
+  if [ $n -eq $ITERS ]; then
     break
   fi
 

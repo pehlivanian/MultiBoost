@@ -266,33 +266,10 @@ GradientBoostClassifier<ClassifierType>::init_() {
   // update classifier, predictions
   updateClassifiers(std::move(classifier), prediction);
 
-  uvec colMask = linspace<uvec>(0, -1+m_, m_);
-  
-  if (loss_ == lossFunction::BinomialDeviance) {
-    lossFn_ = new BinomialDevianceLoss<double>();
-  }
-  else if (loss_ == lossFunction::MSE) {
-    lossFn_ = new MSELoss<double>();
-  }
-  else if (loss_ == lossFunction::Savage) {
-    lossFn_ = new SavageLoss<double>();
-  }
-  else if (loss_ == lossFunction::Exp) {
-    lossFn_ = new ExpLoss<double>();
-  }
-  else if (loss_ == lossFunction::Arctan) {
-    lossFn_ = new ArctanLoss<double>();
-  }
-  else if (loss_ == lossFunction::Synthetic) {
-    lossFn_ = new SyntheticLoss<double>();
-  }
-  else if (loss_ == lossFunction::SyntheticVar1) {
-    lossFn_ = new SyntheticLossVar1<double>();
-  }
-  else if (loss_ ==lossFunction::SyntheticVar2) {
-    lossFn_ = new SyntheticLossVar2<double>();
-  }
+  // set loss function
+  lossFn_ = lossMap<DataType>[loss_];
 
+  // ensure this is a leaf classifier for lowest-level call
   if (partitionSize_ == 1) {
     recursiveFit_ = false;
   }
@@ -432,11 +409,13 @@ GradientBoostClassifier<ClassifierType>::symmetrizeLabels(Row<DataType>& labels)
   Row<DataType> uniqueVals = uniqueCloseAndReplace(labels);
 
   if (uniqueVals.n_cols == 1) {
+
     // a_ = fabs(1./uniqueVals(0)); b_ = 0.;
     // labels = sign(labels);
     a_ = 1.; b_ = 1.;
     labels = ones<Row<double>>(labels.n_elem);
   } else if (uniqueVals.size() == 2) {
+
     double m = *std::min_element(uniqueVals.cbegin(), uniqueVals.cend());
     double M = *std::max_element(uniqueVals.cbegin(), uniqueVals.cend());
     a_ = 2./static_cast<double>(M-m);
@@ -444,6 +423,7 @@ GradientBoostClassifier<ClassifierType>::symmetrizeLabels(Row<DataType>& labels)
     labels = sign(a_*labels + b_);
     // labels = sign(2 * labels - 1);      
   } else if (uniqueVals.size() == 3) { // for the multiclass case, we may have values in {0, 1, 2}
+
     uniqueVals = sort(uniqueVals);
     double eps = static_cast<double>(std::numeric_limits<float>::epsilon());
     if ((fabs(uniqueVals[0]) <= eps) &&
@@ -454,6 +434,7 @@ GradientBoostClassifier<ClassifierType>::symmetrizeLabels(Row<DataType>& labels)
     }
   }
   else {
+
     assert(uniqueVals.size() == 2);
   }
   
@@ -494,11 +475,6 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   // Compute partition size
   std::size_t partitionSize = computePartitionSize(stepNum, colMask_);
   
-  if (DIAGNOSTICS)
-    std::cout << "PARTITION SIZE: " << partitionSize 
-	      << " (stepNum, steps): " << "(" << stepNum
-	      << ", " << steps_ << ")" << std::endl;
-
   // Compute learning rate
   double learningRate = computeLearningRate(stepNum);
 
@@ -551,7 +527,11 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   // to this case for the leaf classifier
 
   if (DIAGNOSTICS)
-    std::cout << "FITTING CLASSIFIER FOR PARTITIONSIZE: " << partitionSize << std::endl;
+    std::cout << "FITTING CLASSIFIER FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
+	      << partitionSize << ", "
+	      << stepNum << ", "
+	      << steps_ << ")"
+	      << std::endl;
   
   // Generate coefficients g, h
   std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
@@ -989,17 +969,6 @@ GradientBoostClassifier<ClassifierType>::generate_coefficients(const Row<DataTyp
 
   rowvec g, h;
   lossFn_->loss(yhat, labels, &g, &h);
-
-  /*
-    std::cout << "GENERATE COEFFICIENTS\n";
-    std::cout << "g size: " << g.n_rows << " x " << g.n_cols << std::endl;
-    // g.print(std::cout);
-    std::cout << "h size: " << h.n_rows << " x " << h.n_cols << std::endl;
-    // h.print(std::cout);
-    for (size_t i=0; i<5; ++i) {
-    std::cout << labels[i] << " : " << yhat[i] << std::endl;
-    }
-  */
 
   return std::make_pair(g, h);
 

@@ -42,7 +42,7 @@ auto main(int argc, char **argv) -> int {
   // context.loss = lossFunction::Synthetic;
   context.loss = lossFunction::SyntheticVar1;
   // context.loss = lossFunction::SyntheticVar2;
-  context.partitionSize = 12;
+  context.partitionSize = 24;
   context.partitionRatio = .25;
   context.learningRate = .0001;
   context.steps = 10;

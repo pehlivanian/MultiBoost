@@ -1,6 +1,12 @@
 #ifndef __SCORE2_IMPL_HPP__
 #define __SCORE2_IMPL_HPP__
 
+#if !defined(SERIAL_CALCULATION)
+  #define SERIAL_CALCULATION
+#endif
+#undef AVX256_CALCULATION
+#undef PARALLEL_CALCULATION
+
 namespace {
   const int NUMTHREADS = 8;
 }
@@ -287,9 +293,16 @@ namespace Objectives {
   void
   ParametricContext<DataType>::init() {
     // XXX
-    // compute_scores_parallel();
+#if defined(SERIAL_CALCULATION)
+    // naive version
     compute_scores();
-    // compute_scores_AVX256();
+#elif defined(AVX256_CALCULATION)
+    // AVX256 SIMD directives
+    compute_scores_AVX256();
+#elif defind(PARALLEL_CALCULATION)
+    // parallel version
+    compute_scores_parallel();
+#endif
   }
 
 
