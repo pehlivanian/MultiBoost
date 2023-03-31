@@ -42,10 +42,10 @@ auto main(int argc, char **argv) -> int {
   // context.loss = lossFunction::Synthetic;
   context.loss = lossFunction::SyntheticVar1;
   // context.loss = lossFunction::SyntheticVar2;
-  context.partitionSize = 24;
+  context.partitionSize = 100;
   context.partitionRatio = .25;
   context.learningRate = .0001;
-  context.steps = 10;
+  context.steps = 100;
   context.baseSteps = 100;
   context.symmetrizeLabels = true;
   context.removeRedundantLabels = false;
@@ -57,8 +57,9 @@ auto main(int argc, char **argv) -> int {
   context.serializeDataset = false;
   context.serializeLabels = false;
   context.serializationWindow = 1000;
-  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED; // INCREASING
-  context.learningRateMethod = LearningRate::RateMethod::FIXED;   // DECREASING
+  context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
+  context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;    // DECREASING
+  context.stepSizeMethod = StepSize::StepSizeMethod::LOG;	
   context.minLeafSize = 1;
   context.maxDepth = 10;
   context.minimumGainSplit = 0.;

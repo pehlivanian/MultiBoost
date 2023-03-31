@@ -622,14 +622,14 @@ public:
   // predict OOS, loop through and call Classify_ on individual classifiers, sum
   virtual void Predict(const mat&, Row<DataType>&, bool=false);
 
-  // overloaded versions for archive classifier
-  virtual void Predict(std::string, Row<DataType>&, bool=false);
-  virtual void Predict(std::string, const mat&, Row<DataType>&, bool=false);
-
-  // overloaded versions of above based based on label datatype
+  // 3 overloaded versions of above based based on label datatype
   virtual void Predict(Row<IntegralLabelType>&);
   virtual void Predict(Row<IntegralLabelType>&, const uvec&);
   virtual void Predict(const mat&, Row<IntegralLabelType>&);
+
+  // 2 overloaded versions for archive classifier
+  virtual void Predict(std::string, Row<DataType>&, bool=false);
+  virtual void Predict(std::string, const mat&, Row<DataType>&, bool=false);
 
   void Classify_(const mat& dataset, Row<DataType>& prediction) { 
     Predict(dataset, prediction); 
@@ -669,7 +669,7 @@ public:
   }
 
 private:
-  void childContext(ClassifierContext::Context&, std::size_t);
+  void childContext(ClassifierContext::Context&, std::size_t, double, std::size_t);
   void contextInit_(ClassifierContext::Context&&);
   void init_();
   Row<double> _constantLeaf() const;
@@ -684,11 +684,16 @@ private:
   void fit_step(std::size_t);
   double computeLearningRate(std::size_t);
   std::size_t computePartitionSize(std::size_t, const uvec&);
+
+  double computeSubLearningRate(std::size_t);
+  std::size_t computeSubPartitionSize(std::size_t);
+  std::size_t computeSubStepSize(std::size_t);
+
   void updateClassifiers(std::unique_ptr<ClassifierBase<DataType, Classifier>>&&, Row<DataType>&);
 
   std::pair<rowvec,rowvec> generate_coefficients(const Row<DataType>&, const uvec&);
   std::pair<rowvec,rowvec> generate_coefficients(const Row<DataType>&, const Row<DataType>&, const uvec&);
-  Leaves computeOptimalSplit(rowvec&, rowvec&, std::size_t, std::size_t, const uvec&);
+  Leaves computeOptimalSplit(rowvec&, rowvec&, std::size_t, std::size_t, double, const uvec&);
 
   void setNextClassifier(const ClassifierType&);
   int steps_;
@@ -707,8 +712,9 @@ private:
   
   double learningRate_;
 
-  PartitionSize::SizeMethod partitionSizeMethod_;
-  LearningRate::RateMethod learningRateMethod_;
+  PartitionSize::PartitionSizeMethod partitionSizeMethod_;
+  LearningRate::LearningRateMethod learningRateMethod_;
+  StepSize::StepSizeMethod stepSizeMethod_;
 
   double row_subsample_ratio_;
   double col_subsample_ratio_;

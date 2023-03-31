@@ -61,27 +61,27 @@ namespace std {
     return in;
   }
 
-  std::istream& operator>>(std::istream& in, PartitionSize::SizeMethod& meth) {
+  std::istream& operator>>(std::istream& in, PartitionSize::PartitionSizeMethod& meth) {
     int token;
     in >> token;
     switch (token) {
     case (0):
-      meth = PartitionSize::SizeMethod::FIXED;
+      meth = PartitionSize::PartitionSizeMethod::FIXED;
       break;
     case (1):
-      meth = PartitionSize::SizeMethod::FIXED_PROPORTION;
+      meth = PartitionSize::PartitionSizeMethod::FIXED_PROPORTION;
       break;
     case (2):
-      meth = PartitionSize::SizeMethod::DECREASING;
+      meth = PartitionSize::PartitionSizeMethod::DECREASING;
       break;
     case (3):
-      meth = PartitionSize::SizeMethod::INCREASING;
+      meth = PartitionSize::PartitionSizeMethod::INCREASING;
       break;
     case (4):
-      meth = PartitionSize::SizeMethod::RANDOM;
+      meth = PartitionSize::PartitionSizeMethod::RANDOM;
       break;
     case (5):
-      meth = PartitionSize::SizeMethod::MULTISCALE;
+      meth = PartitionSize::PartitionSizeMethod::MULTISCALE;
       break;
     default:
       in.setstate(std::ios_base::failbit);
@@ -89,24 +89,41 @@ namespace std {
     return in;
   }
 
-  std::istream& operator>>(std::istream& in, LearningRate::RateMethod& meth) {
+  std::istream& operator>>(std::istream& in, LearningRate::LearningRateMethod& meth) {
     int token;
     in >> token;
     switch (token) {
     case (0):
-      meth = LearningRate::RateMethod::FIXED;
+      meth = LearningRate::LearningRateMethod::FIXED;
       break;
     case (1):
-      meth = LearningRate::RateMethod::INCREASING;
+      meth = LearningRate::LearningRateMethod::INCREASING;
       break;
     case (2):
-      meth = LearningRate::RateMethod::DECREASING;
+      meth = LearningRate::LearningRateMethod::DECREASING;
       break;
     default:
       in.setstate(std::ios_base::failbit);
     }
     return in;
   }
+
+  std::istream& operator>>(std::istream& in, StepSize::StepSizeMethod& meth) {
+    int token;
+    in >> token;
+    switch (token) {
+    case (0):
+      meth = StepSize::StepSizeMethod::LOG;
+      break;
+    case (1):
+      meth = StepSize::StepSizeMethod::PROPORTION;
+      break;
+    default:
+      in.setstate(std::ios_base::failbit);
+    }
+    return in;
+  }
+
 };
 
 
@@ -134,60 +151,63 @@ auto main(int argc, char **argv) -> int {
      context.minimumGainSplit = 0.;
   */
 
-  lossFunction			loss=lossFunction::Synthetic;
-  std::size_t			partitionSize		= 6;
-  double			partitionRatio		= .25;
-  double			learningRate		= .0001;
-  int				steps			= 10000;
-  int				baseSteps		= 10000;
-  bool				symmetrizeLabels	= true;
-  bool				removeRedundantLabels	= true;
-  bool				quietRun		= false;
-  double			rowSubsampleRatio	= 1.;
-  double			colSubsampleRatio	= .25;
-  bool				recursiveFit		= true;
-  PartitionSize::SizeMethod	partitionSizeMethod	= PartitionSize::SizeMethod::FIXED;
-  LearningRate::RateMethod	learningRateMethod	= LearningRate::RateMethod::FIXED;
-  std::size_t			minLeafSize		= 1;
-  double			minimumGainSplit	= 0.;
-  std::size_t			maxDepth		= 10;
-  std::size_t			numTrees		= 10;
-  bool				serialize		= false;
-  bool				serializePrediction	= false;
-  bool				serializeColMask	= false;
-  bool				serializeDataset	= false;
-  bool				serializeLabels		= false;
-  std::size_t			serializationWindow	= 1000;
-  std::string fileName = path(typeid(T).name());
+  lossFunction				loss=lossFunction::Synthetic;
+  std::size_t				partitionSize		= 6;
+  double				partitionRatio		= .25;
+  double				learningRate		= .0001;
+  int					steps			= 10000;
+  int					baseSteps		= 10000;
+  bool					symmetrizeLabels	= true;
+  bool					removeRedundantLabels	= true;
+  bool					quietRun		= false;
+  double				rowSubsampleRatio	= 1.;
+  double				colSubsampleRatio	= .25;
+  bool					recursiveFit		= true;
+  PartitionSize::PartitionSizeMethod	partitionSizeMethod	= PartitionSize::PartitionSizeMethod::FIXED;
+  LearningRate::LearningRateMethod	learningRateMethod	= LearningRate::LearningRateMethod::FIXED;
+  StepSize::StepSizeMethod		stepSizeMethod		= StepSize::StepSizeMethod::LOG;
+  std::size_t				minLeafSize		= 1;
+  double				minimumGainSplit	= 0.;
+  std::size_t				maxDepth		= 10;
+  std::size_t				numTrees		= 10;
+  bool					serialize		= false;
+  bool					serializePrediction	= false;
+  bool					serializeColMask	= false;
+  bool					serializeDataset	= false;
+  bool					serializeLabels		= false;
+  std::size_t				serializationWindow	= 1000;
+
+  std::string				fileName		= path(typeid(T).name());
 
   options_description desc("Options");
   desc.add_options()
     ("help,h", "Help screen")
-    ("loss",			value<lossFunction>(&loss),				"loss")
-    ("partitionSize",		value<std::size_t>(&partitionSize),			"partitionSize")
-    ("partitionRatio",		value<double>(&partitionRatio),				"partitionRatio")
-    ("learningRate",		value<double>(&learningRate),				"learningRate")
-    ("steps",			value<int>(&steps),					"steps")
-    ("baseSteps",		value<int>(&baseSteps),					"baseSteps")
-    ("symmetrizeLabels",	value<bool>(&symmetrizeLabels),				"symmetrizeLabels")
-    ("removeRedundantLabels",	value<bool>(&removeRedundantLabels),			"removeRedundantLabels")
-    ("quietRun",		value<bool>(&quietRun),					"quietRun")
-    ("rowSubsampleRatio",	value<double>(&rowSubsampleRatio),			"rowSubsampleRatio")
-    ("colSubsampleRatio",	value<double>(&colSubsampleRatio),			"colSubsampleRatio")
-    ("recursiveFit",		value<bool>(&recursiveFit),				"recursiveFit")
-    ("partitionSizeMethod",	value<PartitionSize::SizeMethod>(&partitionSizeMethod), "partitionSizeMethod")
-    ("learningRateMethod",	value<LearningRate::RateMethod>(&learningRateMethod),	"learningRateMethod")
-    ("minLeafSize",		value<std::size_t>(&minLeafSize),			"minLeafSize")
-    ("minimumGainSplit",	value<double>(&minimumGainSplit),			"minimumGainSplit")
-    ("maxDepth",		value<std::size_t>(&maxDepth),				"maxDepth")
-    ("numTrees",		value<std::size_t>(&numTrees),				"numTrees")
-    ("serialize",		value<bool>(&serialize),				"serialize")
-    ("serializePrediction",	value<bool>(&serializePrediction),			"serializePrediction")
-    ("serializeColMask",	value<bool>(&serializeColMask),				"serializeColMask")
-    ("serializeDataset",	value<bool>(&serializeDataset),				"serializeDataset")
-    ("serializeLabels",		value<bool>(&serializeLabels),				"serializeLabels")
-    ("serializationWindow",	value<std::size_t>(&serializationWindow),		"serializationWindow")
-    ("fileName",		value<std::string>(&fileName),				"fileName for Context");
+    ("loss",			value<lossFunction>(&loss),					"loss")
+    ("partitionSize",		value<std::size_t>(&partitionSize),				"partitionSize")
+    ("partitionRatio",		value<double>(&partitionRatio),					"partitionRatio")
+    ("learningRate",		value<double>(&learningRate),					"learningRate")
+    ("steps",			value<int>(&steps),						"steps")
+    ("baseSteps",		value<int>(&baseSteps),						"baseSteps")
+    ("symmetrizeLabels",	value<bool>(&symmetrizeLabels),					"symmetrizeLabels")
+    ("removeRedundantLabels",	value<bool>(&removeRedundantLabels),				"removeRedundantLabels")
+    ("quietRun",		value<bool>(&quietRun),						"quietRun")
+    ("rowSubsampleRatio",	value<double>(&rowSubsampleRatio),				"rowSubsampleRatio")
+    ("colSubsampleRatio",	value<double>(&colSubsampleRatio),				"colSubsampleRatio")
+    ("recursiveFit",		value<bool>(&recursiveFit),					"recursiveFit")
+    ("partitionSizeMethod",	value<PartitionSize::PartitionSizeMethod>(&partitionSizeMethod), "partitionSizeMethod")
+    ("learningRateMethod",	value<LearningRate::LearningRateMethod>(&learningRateMethod),	"learningRateMethod")
+    ("stepSizeMethod",		value<StepSize::StepSizeMethod>(&stepSizeMethod),		"stepSizeMethod")
+    ("minLeafSize",		value<std::size_t>(&minLeafSize),				"minLeafSize")
+    ("minimumGainSplit",	value<double>(&minimumGainSplit),				"minimumGainSplit")
+    ("maxDepth",		value<std::size_t>(&maxDepth),					"maxDepth")
+    ("numTrees",		value<std::size_t>(&numTrees),					"numTrees")
+    ("serialize",		value<bool>(&serialize),					"serialize")
+    ("serializePrediction",	value<bool>(&serializePrediction),				"serializePrediction")
+    ("serializeColMask",	value<bool>(&serializeColMask),					"serializeColMask")
+    ("serializeDataset",	value<bool>(&serializeDataset),					"serializeDataset")
+    ("serializeLabels",		value<bool>(&serializeLabels),					"serializeLabels")
+    ("serializationWindow",	value<std::size_t>(&serializationWindow),			"serializationWindow")
+    ("fileName",		value<std::string>(&fileName),					"fileName for Context");
 
 
     variables_map vm;
@@ -224,6 +244,7 @@ auto main(int argc, char **argv) -> int {
   context.recursiveFit = recursiveFit;
   context.partitionSizeMethod = partitionSizeMethod;
   context.learningRateMethod = learningRateMethod;
+  context.stepSizeMethod = stepSizeMethod;
   context.minLeafSize = minLeafSize;
   context.minimumGainSplit = minimumGainSplit;
   context.maxDepth = maxDepth;

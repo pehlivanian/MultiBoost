@@ -109,28 +109,31 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::setClassifier(const m
 
 template<typename ClassifierType>
 void
-GradientBoostClassifier<ClassifierType>::childContext(ClassifierContext::Context& context, std::size_t subPartitionSize) {
+GradientBoostClassifier<ClassifierType>::childContext(ClassifierContext::Context& context, 
+						      std::size_t subPartitionSize,
+						      double subLearningRate,
+						      std::size_t stepSize) {
 
     context.loss			= loss_;
     context.partitionSize		= subPartitionSize + 1;
     context.partitionRatio		= std::min(1., 2*partitionRatio_);
-    // XXX
-    // context.learningRate		= 2. * learningRate_;
-    context.learningRate		= learningRate_;
-    // XXX
-    context.steps			= std::max(static_cast<int>(std::log(steps_)), 1);
-    // context.steps			= std::max(static_cast<int>(.25 * steps_), 1);
+    context.learningRate		= subLearningRate;
     context.baseSteps			= baseSteps_;
-    // context.steps			= std::max(1, static_cast<int>(.25 * std::log(steps_)));
     context.symmetrizeLabels		= false;
     context.removeRedundantLabels	= true;
     context.rowSubsampleRatio		= row_subsample_ratio_;
     context.colSubsampleRatio		= col_subsample_ratio_;
     context.recursiveFit		= true;
+    context.stepSizeMethod		= stepSizeMethod_;
     context.partitionSizeMethod		= partitionSizeMethod_;
     context.learningRateMethod		= learningRateMethod_;    
+
+    // XXX
+    context.steps			= stepSize;
+    // context.steps			= std::max(static_cast<int>(std::log(steps_)), 1);
+    // context.steps			= std::max(static_cast<int>(.25 * steps_), 1);
+
     context.minLeafSize			= minLeafSize_;
-    // context.minLeafSize		= static_cast<std::size_t>(.2 * m_ / partitionSize_);
     context.maxDepth			= maxDepth_;
     context.minimumGainSplit		= minimumGainSplit_;
 }
@@ -472,37 +475,38 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
   row_d labels_slice = labels_.submat(zeros<uvec>(1), colMask_);
 
-  // Compute partition size
-  std::size_t partitionSize = computePartitionSize(stepNum, colMask_);
-  
-  // Compute learning rate
-  double learningRate = computeLearningRate(stepNum);
-
-  // Find classifier fit for leaves choice
   Leaves allLeaves = zeros<row_d>(m_), best_leaves;
 
-  Row<DataType> prediction;
+  Row<DataType> prediction, prediction_slice;
   std::unique_ptr<ClassifierType> classifier;
 
-  Row<DataType> prediction_slice;
-
+  //////////////////////////
+  // BEGIN RECURSIVE STEP //
+  //////////////////////////
   if (recursiveFit_ && partitionSize_ > 2) {
-    // Reduce partition size
-    std::size_t subPartitionSize = static_cast<std::size_t>(partitionSize/2);
+    // Compute new partition size
+    std::size_t subPartitionSize = computeSubPartitionSize(stepNum);
 
-    // When considering subproblems, colMask is full
-    // uvec subColMask = linspace<uvec>(0, -1+m_, m_);
+    // Compute new learning rate
+    double subLearningRate = computeSubLearningRate(stepNum);
 
+    // Compute new steps
+    std::size_t subStepSize = computeSubStepSize(stepNum);
 
     // Generate coefficients g, h
     std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
 
-    best_leaves = computeOptimalSplit(coeffs.first, coeffs.second, stepNum, subPartitionSize, colMask_);
+    best_leaves = computeOptimalSplit(coeffs.first, 
+				      coeffs.second, 
+				      stepNum, 
+				      subPartitionSize, 
+				      subLearningRate, 
+				      colMask_);
 
     allLeaves(colMask_) = best_leaves;
 
     ClassifierContext::Context context{};      
-    childContext(context, subPartitionSize);
+    childContext(context, subPartitionSize, subLearningRate, subStepSize);
 
     // allLeaves may not strictly fit the definition of labels here - 
     // aside from the fact that it is of double type, it may have more 
@@ -522,22 +526,36 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     updateClassifiers(std::move(classifier), prediction);
 
   } 
+  ////////////////////////
+  // END RECURSIVE STEP //
+  ////////////////////////
   
   // If we are in recursive mode and partitionSize <= 2, fall through
   // to this case for the leaf classifier
 
   if (DIAGNOSTICS)
     std::cout << "FITTING CLASSIFIER FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
-	      << partitionSize << ", "
+	      << partitionSize_ << ", "
 	      << stepNum << ", "
 	      << steps_ << ")"
 	      << std::endl;
   
   // Generate coefficients g, h
   std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
+
+  // Compute partition size
+  std::size_t partitionSize = computePartitionSize(stepNum, colMask_);
   
+  // Compute learning rate
+  double learningRate = computeLearningRate(stepNum);
+
   // Compute optimal leaf choice on unrestricted dataset
-  best_leaves = computeOptimalSplit(coeffs.first, coeffs.second, stepNum, partitionSize, colMask_);
+  best_leaves = computeOptimalSplit(coeffs.first, 
+				    coeffs.second, 
+				    stepNum, 
+				    partitionSize, 
+				    learningRate,
+				    colMask_);
   
   if (POST_EXTRAPOLATE) {
     // Fit classifier on {dataset_slice, best_leaves}, both subsets of the original data
@@ -580,6 +598,7 @@ GradientBoostClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
 							     rowvec& h,
 							     std::size_t stepNum, 
 							     std::size_t partitionSize,
+							     double learningRate,
 							     const uvec& colMask) {
 
 
@@ -589,10 +608,8 @@ GradientBoostClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
   std::vector<double> hv = arma::conv_to<std::vector<double>>::from(h);
 
   int n = colMask.n_rows, T = partitionSize;
-  // XXX
   bool risk_partitioning_objective = true;
-  // XXX
-  bool use_rational_optimization = false;
+  bool use_rational_optimization = true;
   bool sweep_down = false;
   double gamma = 0.;
   double reg_power=1.;
@@ -616,7 +633,7 @@ GradientBoostClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
   
   for (auto &subset : subsets) {
     uvec ind = arma::conv_to<uvec>::from(subset);
-    double val = -1. * learningRate_ * sum(g(ind))/sum(h(ind));
+    double val = -1. * learningRate * sum(g(ind))/sum(h(ind));
     for (auto i: ind) {
       leaf_values(i) = val;
     }
@@ -892,14 +909,14 @@ GradientBoostClassifier<ClassifierType>::computeLearningRate(std::size_t stepNum
 
   double learningRate;
 
-  if (learningRateMethod_ == RateMethod::FIXED) {
+  if (learningRateMethod_ == LearningRateMethod::FIXED) {
 
     learningRate = learningRate_;
-  } else if (learningRateMethod_ == RateMethod::DECREASING) {
+  } else if (learningRateMethod_ == LearningRateMethod::DECREASING) {
 
     double A = learningRate_, B = -log(.5) / static_cast<double>(steps_);
     learningRate = A * exp(-B * (-1 + stepNum));
-  } else if (learningRateMethod_ == RateMethod::INCREASING) {
+  } else if (learningRateMethod_ == LearningRateMethod::INCREASING) {
 
     double A = learningRate_, B = log(2.) / static_cast<double>(steps_);
 
@@ -914,6 +931,28 @@ GradientBoostClassifier<ClassifierType>::computeLearningRate(std::size_t stepNum
 
 template<typename ClassifierType>
 std::size_t
+GradientBoostClassifier<ClassifierType>::computeSubPartitionSize(std::size_t stepNum) {
+
+  return static_cast<std::size_t>(partitionSize_/2);
+}
+
+template<typename ClassifierType>
+double
+GradientBoostClassifier<ClassifierType>::computeSubLearningRate(std::size_t stepNum) {
+
+  return learningRate_;
+}
+
+template<typename ClassifierType>
+std::size_t
+GradientBoostClassifier<ClassifierType>::computeSubStepSize(std::size_t stepNum) {
+
+  double mult = 1.;
+  return std::max(1, static_cast<int>(mult * std::log(steps_)));    
+}
+
+template<typename ClassifierType>
+std::size_t
 GradientBoostClassifier<ClassifierType>::computePartitionSize(std::size_t stepNum, const uvec& colMask) {
 
   // stepNum is in range [1,...,context.steps]
@@ -923,25 +962,25 @@ GradientBoostClassifier<ClassifierType>::computePartitionSize(std::size_t stepNu
   double highRatio = .95;
   int attach = 1000;
 
-  if (partitionSizeMethod_ == SizeMethod::FIXED) {
+  if (partitionSizeMethod_ == PartitionSizeMethod::FIXED) {
 
     return partitionSize_;
-  } else if (partitionSizeMethod_ == SizeMethod::FIXED_PROPORTION) {
+  } else if (partitionSizeMethod_ == PartitionSizeMethod::FIXED_PROPORTION) {
 
     partitionSize = static_cast<std::size_t>(partitionRatio_ * row_subsample_ratio_ * colMask.n_rows);
-  } else if (partitionSizeMethod_ == SizeMethod::DECREASING) {
+  } else if (partitionSizeMethod_ == PartitionSizeMethod::DECREASING) {
 
     double A = colMask.n_rows, B = log(colMask.n_rows)/steps_;
     partitionSize = std::max(1, static_cast<int>(A * exp(-B * (-1 + stepNum))));
-  } else if (partitionSizeMethod_ == SizeMethod::INCREASING) {
+  } else if (partitionSizeMethod_ == PartitionSizeMethod::INCREASING) {
 
     double A = 2., B = log(colMask.n_rows)/static_cast<double>(steps_);
     partitionSize = std::max(1, static_cast<int>(A * exp(B * (-1 + stepNum))));
-  } else if (partitionSizeMethod_ == SizeMethod::RANDOM) {
+  } else if (partitionSizeMethod_ == PartitionSizeMethod::RANDOM) {
 
     partitionSize = partitionDist_(default_engine_);
     ;
-  } else if (partitionSizeMethod_ == SizeMethod::MULTISCALE) {
+  } else if (partitionSizeMethod_ == PartitionSizeMethod::MULTISCALE) {
 
     if ((stepNum%attach) < (attach/2)) {
 

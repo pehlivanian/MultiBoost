@@ -191,8 +191,9 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips)
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .45; // .75
   context.recursiveFit = false;
-  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
-  context.learningRateMethod = LearningRate::RateMethod::FIXED;
+  context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
+  context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
+  context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
   context.minLeafSize = 1;
   context.maxDepth = 10;
   context.minimumGainSplit = 0.;
@@ -264,8 +265,9 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = 1.; // .75
   context.serialize = true;
-  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
-  context.learningRateMethod = LearningRate::RateMethod::FIXED;
+  context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
+  context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
+  context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
   context.minLeafSize = minLeafSize;
   context.maxDepth = maxDepth;
   context.minimumGainSplit = minimumGainSplit;
@@ -354,8 +356,9 @@ TEST(GradientBoostClassifierTest, TestInSamplePredictionMatchesLatestPrediction)
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .45; // .75
   context.serialize = false;
-  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
-  context.learningRateMethod = LearningRate::RateMethod::FIXED;
+  context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
+  context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
+  context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
   context.minLeafSize = minLeafSize;
   context.maxDepth = maxDepth;
   context.minimumGainSplit = minimumGainSplit;
@@ -420,8 +423,9 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveRoundTrips) {
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .45; // .75
   context.recursiveFit = false;
-  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
-  context.learningRateMethod = LearningRate::RateMethod::FIXED;
+  context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
+  context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
+  context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
   context.minLeafSize = minLeafSize;
   context.maxDepth = maxDepth;
   context.minimumGainSplit = minimumGainSplit;
@@ -622,8 +626,8 @@ TEST(GradientBoostClassifierTest, TestContextWrittenWithCorrectValues) {
   ASSERT_EQ(context_archive.partitionSize, 6);
   ASSERT_EQ(context_archive.steps, 1010);
   ASSERT_EQ(context_archive.partitionRatio, .25);
-  ASSERT_EQ(context_archive.partitionSizeMethod, PartitionSize::SizeMethod::FIXED_PROPORTION);
-  ASSERT_EQ(context_archive.learningRateMethod, LearningRate::RateMethod::DECREASING);
+  ASSERT_EQ(context_archive.partitionSizeMethod, PartitionSize::PartitionSizeMethod::FIXED_PROPORTION);
+  ASSERT_EQ(context_archive.learningRateMethod, LearningRate::LearningRateMethod::DECREASING);
 
   // Default values
   ASSERT_EQ(context_archive.minLeafSize, 1);
@@ -653,8 +657,9 @@ TEST(GradientBoostClassifierTest, TestContextReadWrite) {
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .45; // .75
   context.recursiveFit = false;
-  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
-  context.learningRateMethod = LearningRate::RateMethod::FIXED;
+  context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
+  context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
+  context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
   context.minLeafSize = minLeafSize;
   context.maxDepth = maxDepth;
   context.minimumGainSplit = minimumGainSplit;
@@ -670,7 +675,7 @@ TEST(GradientBoostClassifierTest, TestContextReadWrite) {
   ASSERT_EQ(context_archive.partitionSize, 10);
   ASSERT_EQ(context_archive.partitionSize, context.partitionSize);
 
-  ASSERT_EQ(context_archive.partitionSizeMethod, PartitionSize::SizeMethod::FIXED);
+  ASSERT_EQ(context_archive.partitionSizeMethod, PartitionSize::PartitionSizeMethod::FIXED);
   ASSERT_EQ(context_archive.partitionSizeMethod, context.partitionSizeMethod);
 
 }
@@ -708,8 +713,9 @@ TEST(GradientBoostClassifierTest, TestWritePrediction) {
   context.serialize = true;
   context.serializePrediction = true;
   context.serializeColMask = true;
-  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
-  context.learningRateMethod = LearningRate::RateMethod::FIXED;
+  context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
+  context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
+  context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
   context.minLeafSize = minLeafSize;
   context.maxDepth = maxDepth;
   context.minimumGainSplit = minimumGainSplit;
@@ -790,8 +796,8 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
   context.serialize = true;
   context.serializePrediction = true;
   context.serializeColMask = false;
-  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED;
-  context.learningRateMethod = LearningRate::RateMethod::FIXED;
+  context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
+  context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
   context.minLeafSize = minLeafSize;
   context.maxDepth = maxDepth;
   context.minimumGainSplit = minimumGainSplit;
@@ -876,8 +882,9 @@ TEST(GradientBoostClassifierTest, TestIncrementalContextContent) {
   ASSERT_EQ(context.recursiveFit, true);
   ASSERT_EQ(context.serialize, true);
   ASSERT_EQ(context.serializePrediction, true);
-  ASSERT_EQ(context.partitionSizeMethod, PartitionSize::SizeMethod::FIXED);
-  ASSERT_EQ(context.learningRateMethod, LearningRate::RateMethod::FIXED);
+  ASSERT_EQ(context.partitionSizeMethod, PartitionSize::PartitionSizeMethod::FIXED);
+  ASSERT_EQ(context.learningRateMethod, LearningRate::LearningRateMethod::FIXED);
+  ASSERT_EQ(context.stepSizeMethod, StepSize::StepSizeMethod::LOG);
   ASSERT_EQ(context.minLeafSize, 1);
   ASSERT_EQ(context.maxDepth, 10);
   ASSERT_EQ(context.minimumGainSplit, 0.);

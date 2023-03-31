@@ -11,11 +11,22 @@ BASESTEPS=1000
 LEARNINGRATE=.0001
 RECURSIVE_FIT=true
 PARTITION_SIZE=100
-MINLEAFSIZE=2
-MAXDEPTH=25
+MINLEAFSIZE=1
+MAXDEPTH=10
 LOSS_FN=5
-COLSUBSAMPLE_RATIO=.45
-DATANAME=tic_tac_toe
+COLSUBSAMPLE_RATIO=.85
+DATANAME=titanic_train
+
+# STEPS=10
+# BASESTEPS=1000
+# LEARNINGRATE=.0001
+# RECURSIVE_FIT=true
+# PARTITION_SIZE=100
+# MINLEAFSIZE=2
+# MAXDEPTH=10
+# LOSS_FN=5
+# COLSUBSAMPLE_RATIO=.75
+# DATANAME=Hill_Valley_with_noise
 
 ((ITERS=$BASESTEPS / $STEPS))
 
@@ -42,6 +53,7 @@ $EXEC_CC \
 --serializeLabels true \
 --partitionSizeMethod 0 \
 --learningRateMethod 0 \
+--stepSizeMethod 0 \
 --minLeafSize $MINLEAFSIZE \
 --maxDepth $MAXDEPTH \
 --minimumGainSplit 0. \
@@ -68,6 +80,7 @@ $EXEC_CC \
 --serializeLabels false \
 --partitionSizeMethod 0 \
 --learningRateMethod 0 \
+--stepSizeMethod 0 \
 --minLeafSize $MINLEAFSIZE \
 --maxDepth $MAXDEPTH \
 --minimumGainSplit 0. \

@@ -62,8 +62,9 @@ auto main(int argc, char **argv) -> int {
   context.recursiveFit = true;
   context.serialize = false;
   context.serializationWindow = 100;
-  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED; // INCREASING
-  context.learningRateMethod = LearningRate::RateMethod::FIXED;   // DECREASING
+  context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
+  context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;   // DECREASING
+  context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
   context.minLeafSize = 1;
   context.maxDepth = 10;
   context.minimumGainSplit = 0.;

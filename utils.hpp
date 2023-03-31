@@ -27,7 +27,7 @@
 using namespace LossMeasures;
 
 namespace LearningRate {
-  enum class RateMethod {
+  enum class LearningRateMethod {
     FIXED = 0,
       INCREASING = 1,
       DECREASING = 2,
@@ -36,7 +36,7 @@ namespace LearningRate {
 } // namespace LearningRate
 
 namespace PartitionSize {
-  enum class SizeMethod { 
+  enum class PartitionSizeMethod { 
     FIXED = 0,
       FIXED_PROPORTION = 1,
       DECREASING = 2,
@@ -47,6 +47,12 @@ namespace PartitionSize {
   
 } // namespace PartitionSize
 
+namespace StepSize {
+  enum class StepSizeMethod {
+      LOG = 0,
+      PROPORTION = 1
+  };
+} // namespace StepSize
 
 namespace ClassifierContext{
   struct Context {
@@ -60,6 +66,9 @@ namespace ClassifierContext{
       maxDepth{maxDepth},
       numTrees{numTrees},
       removeRedundantLabels{false},
+      stepSizeMethod{StepSize::StepSizeMethod::LOG},
+      partitionSizeMethod{PartitionSize::PartitionSizeMethod::FIXED},
+      learningRateMethod{LearningRate::LearningRateMethod::FIXED},
       quietRun{false},
       recursiveFit{recursiveFit},
       serialize{false},
@@ -90,6 +99,7 @@ namespace ClassifierContext{
       recursiveFit = rhs.recursiveFit;
       partitionSizeMethod = rhs.partitionSizeMethod;
       learningRateMethod = rhs.learningRateMethod;
+      stepSizeMethod = rhs.stepSizeMethod;
       minLeafSize = rhs.minLeafSize;
       minimumGainSplit = rhs.minimumGainSplit;
       maxDepth = rhs.maxDepth;
@@ -115,8 +125,9 @@ namespace ClassifierContext{
     double rowSubsampleRatio;
     double colSubsampleRatio;
     bool recursiveFit;
-    PartitionSize::SizeMethod partitionSizeMethod;
-    LearningRate::RateMethod learningRateMethod;
+    PartitionSize::PartitionSizeMethod partitionSizeMethod;
+    LearningRate::LearningRateMethod learningRateMethod;
+    StepSize::StepSizeMethod stepSizeMethod;
     std::size_t minLeafSize;
     double minimumGainSplit;
     std::size_t maxDepth;
