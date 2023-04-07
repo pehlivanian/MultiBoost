@@ -63,10 +63,7 @@ namespace Objectives {
   template<typename DataType>
   void 
   ParametricContext<DataType>::compute_partial_sums() {
-    a_sums_ = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(n_+1, std::numeric_limits<DataType>::lowest()));
-    b_sums_ = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(n_+1, std::numeric_limits<DataType>::lowest()));
-    partialSums_ = std::vector<std::vector<DataType>>(n_, std::vector<DataType>(n_+1, 0.));
-  
+
     for (int i=0; i<n_; ++i) {
       a_sums_[i][i] = 0.;
       b_sums_[i][i] = 0.;
@@ -83,9 +80,6 @@ namespace Objectives {
   template<typename DataType>
   void
   ParametricContext<DataType>::compute_partial_sums_AVX256() {
-
-    a_sums_ = std::vector<std::vector<DataType>>(n_+1, std::vector<DataType>(n_, std::numeric_limits<DataType>::lowest()));
-    b_sums_ = std::vector<std::vector<DataType>>(n_+1, std::vector<DataType>(n_, std::numeric_limits<DataType>::lowest()));
 
     for (int j=0; j<n_; ++j) {
       a_sums_[j][j] = 0.;
@@ -125,9 +119,6 @@ namespace Objectives {
 
     const int numThreads = std::min(n_-2, NUMTHREADS);
 
-    a_sums_ = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(n_+1, std::numeric_limits<DataType>::lowest()));
-    b_sums_ = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(n_+1, std::numeric_limits<DataType>::lowest()));
-
     for (int i=0; i<n_; ++i) {
       a_sums_[i][i] = 0.;
       b_sums_[i][i] = 0.;
@@ -161,9 +152,6 @@ namespace Objectives {
   template<typename DataType>
   void 
   ParametricContext<DataType>::compute_scores() {
-    a_sums_ = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(n_+1, std::numeric_limits<DataType>::lowest()));
-    b_sums_ = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(n_+1, std::numeric_limits<DataType>::lowest()));
-    partialSums_ = std::vector<std::vector<DataType>>(n_, std::vector<DataType>(n_+1, 0.));
   
     for (int i=0; i<n_; ++i) {
       a_sums_[i][i] = 0.;
@@ -182,10 +170,6 @@ namespace Objectives {
   template<typename DataType>
   void
   ParametricContext<DataType>::compute_scores_AVX256() {
-
-    a_sums_ = std::vector<std::vector<DataType>>(n_+1, std::vector<DataType>(n_, std::numeric_limits<DataType>::lowest()));
-    b_sums_ = std::vector<std::vector<DataType>>(n_+1, std::vector<DataType>(n_, std::numeric_limits<DataType>::lowest()));
-    partialSums_ = std::vector<std::vector<DataType>>(n_, std::vector<DataType>(n_+1, 0.));
 
     for (int j=0; j<n_; ++j) {
       a_sums_[j][j] = 0.;
@@ -232,10 +216,6 @@ namespace Objectives {
 
     const int numThreads = std::min(n_-2, NUMTHREADS);
 
-    a_sums_ = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(n_+1, std::numeric_limits<DataType>::lowest()));
-    b_sums_ = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(n_+1, std::numeric_limits<DataType>::lowest()));
-    partialSums_ = std::vector<std::vector<DataType>>(n_, std::vector<DataType>(n_+1, 0.));
-  
     for (int i=0; i<n_; ++i) {
       a_sums_[i][i] = 0.;
       b_sums_[i][i] = 0.;
@@ -312,6 +292,7 @@ namespace Objectives {
   template<typename DataType>
   DataType 
   PoissonContext<DataType>::compute_score_multclust(int i, int j) {    
+    throw std::runtime_error("Deprecated; please use optimized versions");
     DataType C = std::accumulate(ParametricContext<DataType>::a_.cbegin()+i, 
 				 ParametricContext<DataType>::a_.cbegin()+j, 0.);
     DataType B = std::accumulate(ParametricContext<DataType>::b_.cbegin()+i, 
@@ -322,6 +303,7 @@ namespace Objectives {
   template<typename DataType>
   DataType 
   PoissonContext<DataType>::compute_score_riskpart(int i, int j) {
+    throw std::runtime_error("Deprecated; please use optimized versions");
     DataType C = std::accumulate(ParametricContext<DataType>::a_.cbegin()+i, 
 				 ParametricContext<DataType>::a_.cbegin()+j, 0.);
     DataType B = std::accumulate(ParametricContext<DataType>::b_.cbegin()+i, 
@@ -362,6 +344,7 @@ namespace Objectives {
   template<typename DataType>
   DataType 
   GaussianContext<DataType>::compute_score_multclust(int i, int j) {
+    throw std::runtime_error("Deprecated; please use optimized versions");
     DataType C = std::accumulate(ParametricContext<DataType>::a_.cbegin()+i, 
 				 ParametricContext<DataType>::a_.cbegin()+j, 0.);
     DataType B = std::accumulate(ParametricContext<DataType>::b_.cbegin()+i, 
@@ -372,6 +355,7 @@ namespace Objectives {
   template<typename DataType>
   DataType 
   GaussianContext<DataType>::compute_score_riskpart(int i, int j) {
+    throw std::runtime_error("Deprecated; please use optimized versions");
     DataType C = std::accumulate(ParametricContext<DataType>::a_.cbegin()+i, 
 				 ParametricContext<DataType>::a_.cbegin()+j, 0.);
     DataType B = std::accumulate(ParametricContext<DataType>::b_.cbegin()+i, 
@@ -411,6 +395,7 @@ namespace Objectives {
   template<typename DataType>
   DataType 
   RationalScoreContext<DataType>::compute_score_multclust(int i, int j) {
+    throw std::runtime_error("Deprecated; please use optimized versions");
     DataType score = std::pow(std::accumulate(ParametricContext<DataType>::a_.cbegin()+i, 
 					      ParametricContext<DataType>::a_.cbegin()+j, 0.), 2) /
       std::accumulate(ParametricContext<DataType>::b_.cbegin()+i, 
@@ -421,6 +406,7 @@ namespace Objectives {
   template<typename DataType>
   DataType 
   RationalScoreContext<DataType>::compute_score_riskpart(int i, int j) {
+    throw std::runtime_error("Deprecated; please use optimized versions");
     return compute_score_multclust(i, j);
   }
   
