@@ -42,6 +42,9 @@ namespace Objectives {
       a_{a},
       b_{b},
       n_{n},
+      a_sums_{std::vector<std::vector<DataType> >(n+1, std::vector<DataType>(n+1, std::numeric_limits<DataType>::lowest()))},
+      b_sums_{std::vector<std::vector<DataType> >(n+1, std::vector<DataType>(n+1, std::numeric_limits<DataType>::lowest()))},
+      partialSums_{std::vector<std::vector<DataType>>(n, std::vector<DataType>(n+1, 0.))},
       risk_partitioning_objective_{risk_partitioning_objective},
       use_rational_optimization_{use_rational_optimization},
       name_{name}

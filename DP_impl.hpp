@@ -17,10 +17,10 @@ DPSolver<DataType>::sort_by_priority(std::vector<DataType>& a, std::vector<DataT
 
   priority_sortind_ = ind;
 
-  std::vector<DataType> a_s, b_s;
-  for (auto i : ind) {
-    a_s.push_back(a[i]);
-    b_s.push_back(b[i]);
+  std::vector<DataType> a_s(n_), b_s(n_);
+  for (int i=0; i<n_; ++i) {
+    a_s[i] = a[ind[i]];
+    b_s[i] = b[ind[i]];
   }
 
   std::copy(a_s.cbegin(), a_s.cend(), a.begin());
