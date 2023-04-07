@@ -65,19 +65,27 @@ namespace Objectives {
     std::vector<std::vector<DataType>> get_partial_sums_b() const;
 
     // Really for testing purposes
+    // __compute_partial_sums__* fills a_sums_, b_sums_
     void __compute_partial_sums__() { compute_partial_sums(); }
     void __compute_partial_sums_AVX256__() { compute_partial_sums_AVX256(); }
     void __compute_partial_sums_parallel__() { compute_partial_sums_parallel(); }
+    
+    // __compute_scores__ fills a_sums_, b_sums_, partialSums_
+    // Note that partialSums_ is the precached scores by (i, j)
     void __compute_scores__() { compute_scores(); }
     void __compute_scores_parallel__() { compute_scores_parallel(); }
+    void __compute_scores_AVX256__() { compute_scores_AVX256(); }
+
+    // __compute_score__ computes the score by (i, j)
+    // based on precached a_sums_, b_sums_
     DataType __compute_score__(int i, int j) { return compute_score(i, j); }
-    DataType __compute_ambient_score__(int i, int j) { return compute_ambient_score(i, j); }
+    DataType __compute_ambient_score__(DataType a, DataType b) { return compute_ambient_score(a, b); }
 
   protected:
-    virtual DataType compute_score_multclust(int, int)		       = 0;
-    virtual DataType compute_score_multclust_optimized(int, int)       = 0;
-    virtual DataType compute_score_riskpart(int, int)		       = 0;
-    virtual DataType compute_score_riskpart_optimized(int, int)	       = 0;
+    virtual DataType compute_score_multclust(int, int)		         = 0;
+    virtual DataType compute_score_multclust_optimized(int, int)         = 0;
+    virtual DataType compute_score_riskpart(int, int)		         = 0;
+    virtual DataType compute_score_riskpart_optimized(int, int)		 = 0;
     virtual DataType compute_ambient_score_multclust(DataType, DataType) = 0;
     virtual DataType compute_ambient_score_riskpart(DataType, DataType)  = 0;
 

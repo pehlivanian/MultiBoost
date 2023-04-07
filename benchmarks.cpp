@@ -8,8 +8,14 @@
 #include <numeric>
 #include <random>
 
+#include <mlpack/core.hpp>
+
+#include "utils.hpp"
+#include "gradientboostclassifier.hpp"
 #include "score2.hpp"
 
+using namespace IB_utils;
+using namespace arma;
 using namespace Objectives;
 
 // 3-step process:
@@ -89,11 +95,73 @@ BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_float_compute_partial_sums_parall
   }
 }
 
-unsigned long long M = (1<<11);
+BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_float_compute_scores_serial, float)(benchmark::State& state) {
 
-BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_serial)->Arg(M);
-BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_AVX256)->Arg(M);
-BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_parallel)->Arg(M);
+  for (auto _ : state) {
+    context.__compute_scores__();
+  }
+}
+
+BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_float_compute_scores_AVX256, float)(benchmark::State& state) {
+  
+  for (auto _ : state) {
+    context.__compute_scores_AVX256__();
+  }
+}
+
+BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_float_compute_scores_parallel, float)(benchmark::State& state) {
+
+  for (auto _ : state) {
+    context.__compute_scores_parallel__();
+  }
+}
+
+// Tests of armadillo primitives
+void BM_colMask_arma_generation(benchmark::State& state) {
+
+  const unsigned int N = state.range(0);
+  const unsigned int n = 100;
+
+  for (auto _ : state) {
+      uvec r = sort(randperm(N, n));
+  }
+
+}
+
+void BM_colMask_stl_generation1(benchmark::State& state) {
+  
+  const unsigned int N = state.range(0);
+  const unsigned int n = 100;
+
+  for (auto _ : state) {
+    uvec r = PartitionUtils::sortedSubsample1(N, n);
+  }
+}
+
+void BM_colMask_stl_generation2(benchmark::State& state) {
+  
+  const unsigned int N = state.range(0);
+  const unsigned int n = 100;
+
+  for (auto _ : state) {
+    uvec r = PartitionUtils::sortedSubsample2(N, n);
+  }
+}
+
+// DP solver benchmarks
+BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_serial);
+BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_AVX256);
+BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_parallel);
+BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_scores_serial);
+BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_scores_AVX256);
+BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_scores_parallel);
+
+// armadillo benchmarks
+unsigned long N = (1<<12);
+
+BENCHMARK(BM_colMask_arma_generation)->Arg(N);
+BENCHMARK(BM_colMask_stl_generation1)->Arg(N);
+BENCHMARK(BM_colMask_stl_generation2)->Arg(N);
 
 BENCHMARK_MAIN();
 

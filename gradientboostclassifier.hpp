@@ -57,6 +57,8 @@ using namespace ClassifierContext;
 using namespace PartitionSize;
 using namespace LearningRate;
 
+using namespace IB_utils;
+
 struct predictionAfterClearedClassifiersException : public std::exception {
   const char* what() const throw () {
     return "Attempting to predict on a classifier that has been serialized and cleared";
@@ -123,6 +125,40 @@ public:
     std::vector<std::vector<int>> p{1, subset};
     return p;
   }
+
+  static uvec sortedSubsample1(std::size_t n, std::size_t numCols) {
+    float p = static_cast<float>(numCols)/static_cast<float>(n);     
+    uvec r(numCols);
+    int i=0, j=0;
+
+    while (numCols > 0) {
+      float s = (float)rand()/RAND_MAX;
+      if (s < p) {
+	r[i] = j;
+	i += 1;
+	numCols -= 1.; n -= 1.;
+	p = static_cast<float>(numCols)/static_cast<float>(n);
+      }
+      j+=1;
+    }
+    return r;
+  }
+
+  static uvec sortedSubsample2(std::size_t n, std::size_t numCols) {
+    uvec r(numCols);
+
+    std::size_t i=0, j=0;
+    while (numCols > 0) {
+      std::size_t s = rand() % n;
+      if (s < numCols) {
+	r[i] = j;
+	i += 1;numCols -= 1;
+      }
+      j += 1;n -= 1;
+    }
+    return r;
+  }
+
 };
 
 /**********************/

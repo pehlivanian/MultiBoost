@@ -356,6 +356,8 @@ template<typename ClassifierType>
 uvec
 GradientBoostClassifier<ClassifierType>::subsampleRows(size_t numRows) {
 
+  // XXX
+  // Necessary?
   uvec r = sort(randperm(n_, numRows));
   // uvec r = randperm(n_, numRows);
   return r;
@@ -365,6 +367,8 @@ template<typename ClassifierType>
 uvec
 GradientBoostClassifier<ClassifierType>::subsampleCols(size_t numCols) {
 
+  // XXX
+  // Necessary?
   uvec r = sort(randperm(m_, numCols));
   // uvec r = randperm(m_, numCols);
   return r;
@@ -470,7 +474,9 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
   if (!reuseColMask_) {
     int colRatio = static_cast<size_t>(m_ * col_subsample_ratio_);
-    colMask_ = subsampleCols(colRatio);
+    // Equivalent, second a little faster, see benchmarks
+    // colMask_ = subsampleCols(colRatio);
+    colMask_ = PartitionUtils::sortedSubsample2(m_, colRatio);
   }
 
   row_d labels_slice = labels_.submat(zeros<uvec>(1), colMask_);

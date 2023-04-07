@@ -1,11 +1,11 @@
 #ifndef __SCORE2_IMPL_HPP__
 #define __SCORE2_IMPL_HPP__
 
-#if !defined(SERIAL_CALCULATION)
-  #define SERIAL_CALCULATION
-#endif
+#undef SERIAL_CALCULATION
 #undef AVX256_CALCULATION
-#undef PARALLEL_CALCULATION
+#if !defined(PARALLEL_CALCULATION)
+  #define PARALLEL_CALCULATION
+#endif
 
 namespace {
   const int NUMTHREADS = 8;
@@ -292,14 +292,14 @@ namespace Objectives {
   template<typename DataType>
   void
   ParametricContext<DataType>::init() {
-    // XXX
+
 #if defined(SERIAL_CALCULATION)
     // naive version
     compute_scores();
 #elif defined(AVX256_CALCULATION)
     // AVX256 SIMD directives
     compute_scores_AVX256();
-#elif defind(PARALLEL_CALCULATION)
+#elif defined(PARALLEL_CALCULATION)
     // parallel version
     compute_scores_parallel();
 #endif
@@ -434,6 +434,8 @@ namespace Objectives {
   template<typename DataType>
   DataType 
   RationalScoreContext<DataType>::compute_score_multclust_optimized(int i, int j) {
+    // XXX
+    // This is not necessary
     auto& a_sums = ParametricContext<DataType>::a_sums_;
     auto& b_sums = ParametricContext<DataType>::b_sums_;
     DataType score = a_sums[i][j] * a_sums[i][j] / b_sums[i][j];
