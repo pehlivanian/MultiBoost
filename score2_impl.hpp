@@ -312,20 +312,20 @@ namespace Objectives {
   template<typename DataType>
   DataType 
   PoissonContext<DataType>::compute_score_multclust(int i, int j) {    
-    auto& a = ParametricContext<DataType>::a_;
-    auto& b = ParametricContext<DataType>::b_;
-    DataType C = std::accumulate(a.cbegin()+i, a.cbegin()+j, 0.);
-    DataType B = std::accumulate(b.cbegin()+i, b.cbegin()+j, 0.);
+    DataType C = std::accumulate(ParametricContext<DataType>::a_.cbegin()+i, 
+				 ParametricContext<DataType>::a_.cbegin()+j, 0.);
+    DataType B = std::accumulate(ParametricContext<DataType>::b_.cbegin()+i, 
+				 ParametricContext<DataType>::b_.cbegin()+j, 0.);
     return (C>B)? C*std::log(C/B) + B - C : 0.;
   }
 
   template<typename DataType>
   DataType 
   PoissonContext<DataType>::compute_score_riskpart(int i, int j) {
-    auto& a = ParametricContext<DataType>::a_;
-    auto& b = ParametricContext<DataType>::b_;
-    DataType C = std::accumulate(a.cbegin()+i, a.cbegin()+j, 0.);
-    DataType B = std::accumulate(b.cbegin()+i, b.cbegin()+j, 0.);
+    DataType C = std::accumulate(ParametricContext<DataType>::a_.cbegin()+i, 
+				 ParametricContext<DataType>::a_.cbegin()+j, 0.);
+    DataType B = std::accumulate(ParametricContext<DataType>::b_.cbegin()+i, 
+				 ParametricContext<DataType>::b_.cbegin()+j, 0.);
     return C*std::log(C/B);
   }
  
@@ -344,38 +344,38 @@ namespace Objectives {
   template<typename DataType>
   DataType 
   PoissonContext<DataType>::compute_score_riskpart_optimized(int i, int j) {
-    auto& a_sums = ParametricContext<DataType>::a_sums_;
-    auto& b_sums = ParametricContext<DataType>::b_sums_;
-    DataType score = a_sums[i][j]*std::log(a_sums[i][j]/b_sums[i][j]);
+    DataType score = ParametricContext<DataType>::a_sums_[i][j]*
+      std::log(ParametricContext<DataType>::a_sums_[i][j]/ParametricContext<DataType>::b_sums_[i][j]);
     return score;
   }
 
   template<typename DataType>
   DataType
   PoissonContext<DataType>::compute_score_multclust_optimized(int i, int j) {
-    auto& a_sums = ParametricContext<DataType>::a_sums_;
-    auto& b_sums = ParametricContext<DataType>::b_sums_;
-    DataType score = (a_sums[i][j] > b_sums[i][j]) ? a_sums[i][j]*std::log(a_sums[i][j]/b_sums[i][j]) + b_sums[i][j] - a_sums[i][j]: 0.;
+    DataType score = (ParametricContext<DataType>::a_sums_[i][j] > ParametricContext<DataType>::b_sums_[i][j]) ? 
+      ParametricContext<DataType>::a_sums_[i][j]*
+      std::log(ParametricContext<DataType>::a_sums_[i][j]/ParametricContext<DataType>::b_sums_[i][j]) + 
+      ParametricContext<DataType>::b_sums_[i][j] - ParametricContext<DataType>::a_sums_[i][j]: 0.;
     return score;
   }
 
   template<typename DataType>
   DataType 
   GaussianContext<DataType>::compute_score_multclust(int i, int j) {
-    auto& a = ParametricContext<DataType>::a_;
-    auto& b = ParametricContext<DataType>::b_;
-    DataType C = std::accumulate(a.cbegin()+i, a.cbegin()+j, 0.);
-    DataType B = std::accumulate(b.cbegin()+i, b.cbegin()+j, 0.);
+    DataType C = std::accumulate(ParametricContext<DataType>::a_.cbegin()+i, 
+				 ParametricContext<DataType>::a_.cbegin()+j, 0.);
+    DataType B = std::accumulate(ParametricContext<DataType>::b_.cbegin()+i, 
+				 ParametricContext<DataType>::b_.cbegin()+j, 0.);
     return (C>B)? .5*(std::pow(C,2)/B + B) - C : 0.;
   }
 
   template<typename DataType>
   DataType 
   GaussianContext<DataType>::compute_score_riskpart(int i, int j) {
-    auto& a = ParametricContext<DataType>::a_;
-    auto& b = ParametricContext<DataType>::b_;
-    DataType C = std::accumulate(a.cbegin()+i, a.cbegin()+j, 0.);
-    DataType B = std::accumulate(b.cbegin()+i, b.cbegin()+j, 0.);
+    DataType C = std::accumulate(ParametricContext<DataType>::a_.cbegin()+i, 
+				 ParametricContext<DataType>::a_.cbegin()+j, 0.);
+    DataType B = std::accumulate(ParametricContext<DataType>::b_.cbegin()+i, 
+				 ParametricContext<DataType>::b_.cbegin()+j, 0.);
     return C*C/2./B;
   }
   
@@ -394,28 +394,27 @@ namespace Objectives {
   template<typename DataType>
   DataType 
   GaussianContext<DataType>::compute_score_multclust_optimized(int i, int j) {
-    auto& a_sums = ParametricContext<DataType>::a_sums_;
-    auto& b_sums = ParametricContext<DataType>::b_sums_;
-    DataType score = (a_sums[i][j] > b_sums[i][j]) ? .5*(std::pow(a_sums[i][j], 2)/b_sums[i][j] + b_sums[i][j]) - a_sums[i][j] : 0.;
+    DataType score = (ParametricContext<DataType>::a_sums_[i][j] > ParametricContext<DataType>::b_sums_[i][j]) ? 
+      .5*(std::pow(ParametricContext<DataType>::a_sums_[i][j], 2)/ParametricContext<DataType>::b_sums_[i][j] + 
+	  ParametricContext<DataType>::b_sums_[i][j]) - ParametricContext<DataType>::a_sums_[i][j] : 0.;
     return score;
   }
    
   template<typename DataType>
   DataType 
   GaussianContext<DataType>::compute_score_riskpart_optimized(int i, int j) {
-    auto& a_sums = ParametricContext<DataType>::a_sums_;
-    auto& b_sums = ParametricContext<DataType>::b_sums_;
-    DataType score = a_sums[i][j]*a_sums[i][j]/2./b_sums[i][j];
+    DataType score = ParametricContext<DataType>::a_sums_[i][j]*
+      ParametricContext<DataType>::a_sums_[i][j]/2./ParametricContext<DataType>::b_sums_[i][j];
     return score;
   }
 
   template<typename DataType>
   DataType 
   RationalScoreContext<DataType>::compute_score_multclust(int i, int j) {
-    auto& a = ParametricContext<DataType>::a_;
-    auto& b = ParametricContext<DataType>::b_;
-    DataType score = std::pow(std::accumulate(a.cbegin()+i, a.cbegin()+j, 0.), 2) /
-      std::accumulate(b.cbegin()+i, b.cbegin()+j, 0.);
+    DataType score = std::pow(std::accumulate(ParametricContext<DataType>::a_.cbegin()+i, 
+					      ParametricContext<DataType>::a_.cbegin()+j, 0.), 2) /
+      std::accumulate(ParametricContext<DataType>::b_.cbegin()+i, 
+		      ParametricContext<DataType>::b_.cbegin()+j, 0.);
     return score;
   }
 
@@ -434,11 +433,8 @@ namespace Objectives {
   template<typename DataType>
   DataType 
   RationalScoreContext<DataType>::compute_score_multclust_optimized(int i, int j) {
-    // XXX
-    // This is not necessary
-    auto& a_sums = ParametricContext<DataType>::a_sums_;
-    auto& b_sums = ParametricContext<DataType>::b_sums_;
-    DataType score = a_sums[i][j] * a_sums[i][j] / b_sums[i][j];
+    DataType score = ParametricContext<DataType>::a_sums_[i][j] * ParametricContext<DataType>::a_sums_[i][j] / 
+      ParametricContext<DataType>::b_sums_[i][j];
     return score;
   }
 
