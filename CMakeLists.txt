@@ -242,7 +242,7 @@ endif()
 # arma ex not required
 MESSAGE(STATUS "Build armadillo ex: " ${BUILD_ARMA_EX})
 MESSAGE(STATUS "Build context builder: " ${BUILD_CONTEXT_BUILDER})
-MESSAGE(STATUS "Build DP solver ex: " ${BUILD_DP_SOLVER})
+MESSAGE(STATUS "Build DP solver ex: " ${BUILD_DP_SOLVER_EX})
 MESSAGE(STATUS "Build google tests: " ${BUILD_TESTS})
 MESSAGE(STATUS "Build google benchmarks: " ${BUILD_BENCHMARKS})
 MESSAGE(STATUS "Build inductive boost classifier: " ${BUILD_IBC})

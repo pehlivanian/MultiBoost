@@ -358,8 +358,9 @@ GradientBoostClassifier<ClassifierType>::subsampleRows(size_t numRows) {
 
   // XXX
   // Necessary?
-  uvec r = sort(randperm(n_, numRows));
+  // uvec r = sort(randperm(n_, numRows));
   // uvec r = randperm(n_, numRows);
+  uvec r = PartitionUtils::sortedSubsample2(n_, numRows);
   return r;
 }
 
@@ -369,8 +370,9 @@ GradientBoostClassifier<ClassifierType>::subsampleCols(size_t numCols) {
 
   // XXX
   // Necessary?
-  uvec r = sort(randperm(m_, numCols));
+  // uvec r = sort(randperm(m_, numCols));
   // uvec r = randperm(m_, numCols);
+  uvec r = PartitionUtils::sortedSubsample2(n_, numCols);
   return r;
 }
 
