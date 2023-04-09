@@ -29,7 +29,7 @@ GradientBoostClassClassifier<ClassifierType>::info(const mat& dataset) {
 
 template<typename ClassifierType>
 void
-GradientBoostMultiClassifier<ClassifierType>::contextInit_(MultiClassifierContext::CombinedContext&& context) {
+GradientBoostMultiClassifier<ClassifierType>::contextInit_(MultiClassifierContext::CombinedContext<ClassifierType>&& context) {
   // XXX
   DEBUG()
   ;
@@ -49,7 +49,7 @@ GradientBoostMultiClassifier<ClassifierType>::init_() {
   numClasses_ = uniqueVals.size();
 
   std::unique_ptr<C> classClassifier;
-  ClassifierContext::Context context = context_.context;
+  Context<ClassifierType> context = context_.context;
   
   if (allVOne_) {
     for (auto it=uniqueVals.begin(); it!=uniqueVals.end(); ++it) {

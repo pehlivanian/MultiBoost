@@ -129,7 +129,8 @@ namespace std {
 
 auto main(int argc, char **argv) -> int {
 
-  using T = Context;
+  using ClassifierType = DecisionTreeClassifier<std::size_t, std::size_t, double, std::size_t>;
+  using ContextT = Context<ClassifierType>;
 
   /* TYPICAL CASE
      ============
@@ -177,7 +178,7 @@ auto main(int argc, char **argv) -> int {
   bool					serializeLabels		= false;
   std::size_t				serializationWindow	= 1000;
 
-  std::string				fileName		= path(typeid(T).name());
+  std::string				fileName		= path(typeid(ContextT).name());
 
   options_description desc("Options");
   desc.add_options()
@@ -194,7 +195,7 @@ auto main(int argc, char **argv) -> int {
     ("rowSubsampleRatio",	value<double>(&rowSubsampleRatio),				"rowSubsampleRatio")
     ("colSubsampleRatio",	value<double>(&colSubsampleRatio),				"colSubsampleRatio")
     ("recursiveFit",		value<bool>(&recursiveFit),					"recursiveFit")
-    ("partitionSizeMethod",	value<PartitionSize::PartitionSizeMethod>(&partitionSizeMethod), "partitionSizeMethod")
+    ("partitionSizeMethod",	value<PartitionSize::PartitionSizeMethod>(&partitionSizeMethod),"partitionSizeMethod")
     ("learningRateMethod",	value<LearningRate::LearningRateMethod>(&learningRateMethod),	"learningRateMethod")
     ("stepSizeMethod",		value<StepSize::StepSizeMethod>(&stepSizeMethod),		"stepSizeMethod")
     ("minLeafSize",		value<std::size_t>(&minLeafSize),				"minLeafSize")
@@ -228,7 +229,7 @@ auto main(int argc, char **argv) -> int {
     std::cerr << desc << std::endl;
   }
 
-  ClassifierContext::Context context{};
+  ContextT context{};
 
   context.loss		= loss;
   context.partitionSize = partitionSize;
@@ -256,9 +257,9 @@ auto main(int argc, char **argv) -> int {
   context.serializeColMask = serializeColMask;
   context.serializationWindow = serializationWindow;
 
-  writeBinary<Context>(fileName, context);
+  writeBinary<ContextT>(fileName, context);
 
-  std::cout << "Context archive: " << fileName << std::endl;
+  std::cout << "DecisionTreeClassifier Context archive: " << fileName << std::endl;
 
   return 0;
 }

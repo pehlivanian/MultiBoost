@@ -10,6 +10,7 @@ using row_t = Row<std::size_t>;
 using namespace PartitionSize;
 using namespace LearningRate;
 using namespace LossMeasures;
+using namespace ClassifierContext;
 using namespace IB_utils;
 
 constexpr bool POST_EXTRAPOLATE = false;
@@ -18,98 +19,10 @@ namespace {
   const bool DIAGNOSTICS = false;
 }
 
-template<typename DataType, typename ClassifierType, typename... Args>
-void 
-DiscreteClassifierBase<DataType, ClassifierType, Args...>::encode(const Row<DataType>& labels_d, Row<std::size_t>& labels_t) {
-
-  Row<DataType> uniqueVals = sort(unique(labels_d));    
-
-  for (auto it=uniqueVals.begin(); it!=uniqueVals.end(); ++it) {
-
-    uvec ind = find(labels_d == *it);
-    std::size_t equiv = std::distance(it, uniqueVals.end()) - 1;
-
-    labels_t.elem(ind).fill(equiv);
-    leavesMap_.insert(std::make_pair(static_cast<std::size_t>(equiv), (*it)));
-
-  }
-}
-
-template<typename DataType, typename ClassifierType, typename... Args>
-void
-DiscreteClassifierBase<DataType, ClassifierType, Args...>::purge() {
-
-  labels_t_ = ones<Row<std::size_t>>(0);
-
-}
-
-template<typename DataType, typename ClassifierType, typename... Args>
-void 
-DiscreteClassifierBase<DataType, ClassifierType, Args...>::decode(const Row<std::size_t>& labels_t, Row<DataType>& labels_d) {
-
-  labels_d = Row<DataType>(labels_t.n_elem);
-  Row<std::size_t> uniqueVals = unique(labels_t);
-
-  for (auto it=uniqueVals.begin(); it!=uniqueVals.end(); ++it) {
-
-    uvec ind = find(labels_t == *it);
-    double equiv = leavesMap_[*it];
-    labels_d.elem(ind).fill(equiv);
-
-  }    
-}
-
-template<typename DataType, typename ClassifierType, typename... Args>
-void
-DiscreteClassifierBase<DataType, ClassifierType, Args...>::Classify_(const mat& dataset, Row<DataType>& labels) {
-
-  Row<std::size_t> labels_t;
-
-  classifier_->Classify(dataset, labels_t);
-  decode(labels_t, labels);
-  
-  // Check error
-  /*
-    Row<std::size_t> prediction;
-    classifier_->Classify(dataset_, prediction);
-    const double trainError = err(prediction, labels_t_);
-    for (size_t i=0; i<25; ++i)
-    std::cout << labels_t_[i] << " ::(2) " << prediction[i] << std::endl;
-    std::cout << "dataset size:    " << dataset.n_rows << " x " << dataset.n_cols << std::endl;
-    std::cout << "prediction size: " << prediction.n_rows << " x " << prediction.n_cols << std::endl;
-    std::cout << "Training error (2): " << trainError << "%." << std::endl;
-  */
-  
-}
-
-template<typename DataType, typename ClassifierType, typename... Args>
-void
-DiscreteClassifierBase<DataType, ClassifierType, Args...>::Classify_(const mat& dataset, Row<DataType>& labels, mat& predictions) {
-
-  Row<std::size_t> labels_t;
-  labels = Row<DataType>(dataset.n_cols);
-
-  classifier_->Classify(dataset, labels_t, predictions);
-  decode(labels_t, labels);
-}
-
-template<typename DataType, typename ClassifierType, typename... Args>
-void
-ContinuousClassifierBase<DataType, ClassifierType, Args...>::Classify_(const mat& dataset, Row<DataType>& labels) {
-
-  classifier_->Predict(dataset, labels);
-}
-
-template<typename DataType, typename ClassifierType, typename... Args>
-void
-DiscreteClassifierBase<DataType, ClassifierType, Args...>::setClassifier(const mat& dataset, Row<std::size_t>& labels, Args&&... args) {
-
-  classifier_.reset(new ClassifierType(dataset, labels, std::forward<Args>(args)...));
-}
 
 template<typename ClassifierType>
 void
-GradientBoostClassifier<ClassifierType>::childContext(ClassifierContext::Context& context, 
+GradientBoostClassifier<ClassifierType>::childContext(Context<ClassifierType>& context, 
 						      std::size_t subPartitionSize,
 						      double subLearningRate,
 						      std::size_t stepSize) {
@@ -140,7 +53,7 @@ GradientBoostClassifier<ClassifierType>::childContext(ClassifierContext::Context
 
 template<typename ClassifierType>
 void
-GradientBoostClassifier<ClassifierType>::contextInit_(ClassifierContext::Context&& context) {
+GradientBoostClassifier<ClassifierType>::contextInit_(Context<ClassifierType>&& context) {
 
   loss_				= context.loss;
   partitionSize_		= context.partitionSize;
@@ -160,6 +73,7 @@ GradientBoostClassifier<ClassifierType>::contextInit_(ClassifierContext::Context
   minimumGainSplit_		= context.minimumGainSplit;
   maxDepth_			= context.maxDepth;
   numTrees_			= context.numTrees;
+  classifierArgs_		= context.classifierArgs;
   serialize_			= context.serialize;
   serializePrediction_		= context.serializePrediction;
   serializeColMask_		= context.serializeColMask;
@@ -251,12 +165,9 @@ GradientBoostClassifier<ClassifierType>::init_() {
   row_d constantLabels = _constantLeaf();
   // row_d constantLabels = _randomLeaf();
   std::unique_ptr<ClassifierType> classifier;
-  classifier.reset(new ClassifierType(dataset_, 
+  classifier.reset(new ClassifierType(dataset_,
 				      constantLabels,
-				      partitionSize_,
-				      minLeafSize_,
-				      minimumGainSplit_,
-				      maxDepth_));
+				      std::move(classifierArgs_)));
 
   // first prediction
   if (!hasInitialPrediction_){
@@ -513,7 +424,7 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
     allLeaves(colMask_) = best_leaves;
 
-    ClassifierContext::Context context{};      
+    Context<ClassifierType> context{};      
     childContext(context, subPartitionSize, subLearningRate, subStepSize);
 
     // allLeaves may not strictly fit the definition of labels here - 
@@ -575,22 +486,15 @@ GradientBoostClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     
     classifier.reset(new ClassifierType(dataset_slice,
 					best_leaves,
-					std::move(partitionSize+1),
-					std::move(minLeafSize_),
-					std::move(minimumGainSplit_),
-					std::move(maxDepth_)));
+					std::move(classifierArgs_)));
   } else {
     // Fit classifier on {dataset, padded best_leaves}
     // Zero pad labels first
     allLeaves(colMask_) = best_leaves;
     
-    classifier.reset(new ClassifierType(dataset_, 
-					allLeaves, 
-					std::move(partitionSize+1), // Since 0 is an additional class value
-					std::move(minLeafSize_),
-					std::move(minimumGainSplit_),
-					std::move(maxDepth_)));
-  
+    classifier.reset(new ClassifierType(dataset_,
+					allLeaves,
+					std::move(classifierArgs_)));
   }
 
   mat probabilities;

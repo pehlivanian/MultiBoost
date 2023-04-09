@@ -142,10 +142,6 @@ auto main() -> int {
     auto dp_mc_scores = dp_mc.get_score_by_subset_extern();
     auto dp_mc_score = dp_mc.get_optimal_score_extern();
     
-    auto ltss = LTSSSolver(m, c, d);
-    auto ltss_opt = ltss.get_optimal_subset_extern();
-    auto ltss_score = ltss.get_optimal_score_extern();
-    
     std::cout << "\n========\nTRIAL: " << i << "\n========\n";
     std::cout << "\na: { ";
     std::copy(c.begin(), c.end(), std::ostream_iterator<double>(std::cout, " "));
@@ -169,12 +165,6 @@ auto main() -> int {
     std::cout << std::endl;
     std::cout << "\nPartition score: ";
     std::cout << dp_mc_score << std::endl;
-    std::cout << "\nLTSSSolver subset:\n";
-    std::cout << "=================\n";
-    std::copy(ltss_opt.begin(), ltss_opt.end(), std::ostream_iterator<int>(std::cout, " "));
-    std::cout << "\n";
-    std::cout << "\nScore: ";
-    std::cout << ltss_score << "\n";
     std::cout << "=================\n\n";
   
   }

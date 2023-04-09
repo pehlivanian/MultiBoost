@@ -1,7 +1,8 @@
 #!/bin/bash
 
+CLASSIFIER=DecisionTreeClassifier
 PATH=/home/charles/src/C++/sandbox/Inductive-Boost/build/
-EXEC_CC=${PATH}createContext
+EXEC_CC=${PATH}createContext${CLASSIFIER}
 
 CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCreifissa.cxt
 CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCreifissa.cxt

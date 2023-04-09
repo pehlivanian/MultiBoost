@@ -24,7 +24,10 @@
 
 #include "threadpool.hpp"
 #include "threadsafequeue.hpp"
+#include "utils.hpp"
 #include "gradientboostclassifier.hpp"
+
+using namespace ClassifierContext;
 
 namespace MultiClassifierContext {
   struct MultiContext {
@@ -45,19 +48,20 @@ namespace MultiClassifierContext {
       
   };
 
-  struct CombinedContext : ClassifierContext::Context{
-    CombinedContext(ClassifierContext::Context context, MultiContext overlay) : 
+  template<typename ClassifierType>
+  struct CombinedContext : Context<ClassifierType>{
+    CombinedContext(Context<ClassifierType> context, MultiContext overlay) : 
       context{context},
       allVOne{overlay.allVOne},
       steps{overlay.steps},
       serialize{overlay.serialize}
     {}
     CombinedContext() : 
-      ClassifierContext::Context{},
+      Context<ClassifierType>{},
       allVOne{false} 
     {}
       
-    ClassifierContext::Context context;
+    Context<ClassifierType> context;
     bool allVOne;
     bool serialize;
     std::size_t steps;
@@ -82,7 +86,7 @@ public:
 
   GradientBoostClassClassifier(const mat& dataset,
 			       const Row<std::size_t>& labels,
-			       ClassifierContext::Context context,
+			       Context<ClassifierType> context,
 			       std::size_t classValue) :
     GradientBoostClassifier<ClassifierType>(dataset, labels, context),
     classValue_{classValue}
@@ -92,7 +96,7 @@ public:
 			       const Row<std::size_t>& labels,
 			       const mat& dataset_oos,
 			       const Row<std::size_t>& labels_oos,
-			       ClassifierContext::Context context,
+			       Context<ClassifierType> context,
 			       std::size_t classValue) :
     GradientBoostClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, context),
     classValue_{classValue}
@@ -100,7 +104,7 @@ public:
   
   GradientBoostClassClassifier(const mat& dataset,
 			       const Row<std::size_t>& labels,
-			       ClassifierContext::Context context,
+			       Context<ClassifierType> context,
 			       ClassPair classValues,
 			       std::size_t num1,
 			       std::size_t num2) :
@@ -115,7 +119,7 @@ public:
 			       const Row<std::size_t>& labels,
 			       const mat& dataset_oos,
 			       const Row<std::size_t>& labels_oos,
-			       ClassifierContext::Context context,
+			       Context<ClassifierType> context,
 			       ClassPair classValues,
 			       std::size_t num1,
 			       std::size_t num2) :
@@ -128,7 +132,7 @@ public:
 
   GradientBoostClassClassifier(const mat& dataset,
 			       const Row<double>& labels,
-			       ClassifierContext::Context context,
+			       Context<ClassifierType> context,
 			       std::size_t classValue) :
     GradientBoostClassifier<ClassifierType>(dataset, labels, context),
     classValue_{classValue}
@@ -138,7 +142,7 @@ public:
 			       const Row<double>& labels,
 			       const mat& dataset_oos,
 			       const Row<double>& labels_oos,
-			       ClassifierContext::Context context,
+			       Context<ClassifierType> context,
 			       std::size_t classValue) :
     GradientBoostClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, context),
     classValue_{classValue}
@@ -146,7 +150,7 @@ public:
     
   GradientBoostClassClassifier(const mat& dataset,
 			       const Row<double>& labels,
-			       ClassifierContext::Context context,
+			       Context<ClassifierType> context,
 			       ClassPair classValues,
 			       std::size_t num1,
 			       std::size_t num2) :
@@ -161,7 +165,7 @@ public:
 			       const Row<double>& labels,
 			       const mat& dataset_oos,
 			       const Row<double>& labels_oos,
-			       ClassifierContext::Context context,
+			       Context<ClassifierType> context,
 			       ClassPair classValues,
 			       std::size_t num1,
 			       std::size_t num2) :
@@ -230,7 +234,7 @@ public:
 
   GradientBoostMultiClassifier(const mat& dataset,
 			       const Row<std::size_t>& labels,
-			       MultiClassifierContext::CombinedContext context) :
+			       MultiClassifierContext::CombinedContext<ClassifierType> context) :
     dataset_{dataset},
     labels_{conv_to<Row<double>>::from(labels)},
     hasOOSData_{false},
@@ -245,7 +249,7 @@ public:
 
   GradientBoostMultiClassifier(const mat& dataset,
 			       const Row<double>& labels,
-			       MultiClassifierContext::CombinedContext context) :
+			       MultiClassifierContext::CombinedContext<ClassifierType> context) :
     dataset_{dataset},
     labels_{labels},
     hasOOSData_{false},
@@ -262,7 +266,7 @@ public:
 			       const Row<std::size_t>& labels,
 			       const mat& dataset_oos,
 			       const Row<std::size_t>& labels_oos,
-			       MultiClassifierContext::CombinedContext context) :
+			       MultiClassifierContext::CombinedContext<ClassifierType> context) :
     dataset_{dataset},
     labels_{conv_to<Row<double>>::from(labels)},
     dataset_oos_{dataset_oos},
@@ -281,7 +285,7 @@ public:
 			       const Row<double>& labels,
 			       const mat& dataset_oos,
 			       const Row<double>& labels_oos,
-			       MultiClassifierContext::CombinedContext context) :
+			       MultiClassifierContext::CombinedContext<ClassifierType> context) :
     dataset_{dataset},
     labels_{labels},
     dataset_oos_{dataset_oos},
@@ -331,7 +335,7 @@ public:
 
 private:
   void init_();
-  void contextInit_(MultiClassifierContext::CombinedContext&&);
+  void contextInit_(MultiClassifierContext::CombinedContext<ClassifierType>&&);
   void fit_step(int stepNum);
 
   std::size_t numClasses_;
@@ -340,7 +344,7 @@ private:
   Row<double> labels_;
   Row<double> labels_oos_;
   Row<std::size_t> uniqueVals_;
-  MultiClassifierContext::CombinedContext context_;
+  MultiClassifierContext::CombinedContext<ClassifierType> context_;
   ClassifierList classClassifiers_;
 
   std::string indexName_;

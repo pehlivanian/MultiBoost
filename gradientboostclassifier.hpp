@@ -41,9 +41,10 @@
 
 #include "loss.hpp"
 #include "score2.hpp"
-#include "LTSS.hpp"
 #include "DP.hpp"
 #include "utils.hpp"
+#include "model.hpp"
+#include "classifier_traits.hpp"
 
 using namespace arma;
 using namespace mlpack;
@@ -59,333 +60,6 @@ using namespace LearningRate;
 
 using namespace IB_utils;
 
-struct predictionAfterClearedClassifiersException : public std::exception {
-  const char* what() const throw () {
-    return "Attempting to predict on a classifier that has been serialized and cleared";
-  };
-};
-
-// Helpers for gdb
-template<class Matrix>
-void print_matrix(Matrix matrix) {
-  matrix.print(std::cout);
-}
-
-template<class Row>
-void print_vector(Row row) {
-  row.print(std::cout);
-}
-
-template void print_matrix<arma::mat>(arma::mat matrix);
-template void print_vector<arma::rowvec>(arma::rowvec row);
-
-class __debug {
-public:
-  __debug(const char* fl, const char* fn, int ln) :
-    fl_{fl},
-    fn_{fn},
-    ln_{ln} 
-  {
-    std::cerr << "===> ENTER FILE: " << fl_
-	      << " FUNCTION: " << fn_
-	      <<" LINE: " << ln_ << std::endl;
-  }
-  ~__debug() {
-    std::cerr << "===< EXIT FILE:  " << fl_
-	      << " FUNCTION: " << fn_
-	      <<" LINE: " << ln_ << std::endl;
-  }
-private:
-  const char* fl_;
-  const char* fn_;
-  int ln_;
-};
-
-class PartitionUtils {
-public:
-  static std::vector<int> _shuffle(int sz) {
-
-    std::vector<int> ind(sz), r(sz);
-    std::iota(ind.begin(), ind.end(), 0);
-    
-    std::vector<std::vector<int>::iterator> v(static_cast<int>(ind.size()));
-    std::iota(v.begin(), v.end(), ind.begin());
-    
-    std::shuffle(v.begin(), v.end(), std::mt19937{std::random_device{}()});
-    
-    for (int i=0; i<v.size(); ++i) {
-      r[i] = *(v[i]);
-    }
-  }
-
-  static std::vector<std::vector<int>> _fullPartition(int sz) {
-    
-    std::vector<int> subset(sz);
-    std::iota(subset.begin(), subset.end(), 0);
-    std::vector<std::vector<int>> p{1, subset};
-    return p;
-  }
-
-  static uvec sortedSubsample1(std::size_t n, std::size_t numCols) {
-    float p = static_cast<float>(numCols)/static_cast<float>(n);     
-    uvec r(numCols);
-    int i=0, j=0;
-
-    while (numCols > 0) {
-      float s = (float)rand()/RAND_MAX;
-      if (s < p) {
-	r[i] = j;
-	i += 1;
-	numCols -= 1.; n -= 1.;
-	p = static_cast<float>(numCols)/static_cast<float>(n);
-      }
-      j+=1;
-    }
-    return r;
-  }
-
-  static uvec sortedSubsample2(std::size_t n, std::size_t numCols) {
-    uvec r(numCols);
-
-    std::size_t i=0, j=0;
-    while (numCols > 0) {
-      std::size_t s = rand() % n;
-      if (s < numCols) {
-	r[i] = j;
-	i += 1;numCols -= 1;
-      }
-      j += 1;n -= 1;
-    }
-    return r;
-  }
-
-};
-
-/**********************/
-/* CLASSIFIER CLASSES */
-/**********************/
-
-namespace ClassifierTypes {
-  using DecisionTreeRegressorType = DecisionTreeRegressor<MADGain, BestBinaryNumericSplit>;
-  using RandomForestClassifierType = RandomForest<>;
-  using DecisionTreeClassifierType = DecisionTree<>;
-
-  // using DecisionTreeClassifierType = DecisionTree<GiniGain, BestBinaryNumericSplit>;
-  // using DecisionTreeClassifierType = DecisionTree<GiniGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
-  // using DecisionTreeClassifierType = DecisionTreeRegressor<MADGain>;
-  // using DecisionTreeClassifierType = DecisionTreeRegressor<>;
-  // using DecisionTreeClassifierType = DecisionTreeRegressor<MSEGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
-  // using DecisionTreeClassifierType = DecisionTreeRegressor<InformationGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
-  
-};
-
-template<typename DataType, typename ClassifierType>
-class ClassifierBase {
-public:
-  ClassifierBase() = default;
-  ClassifierBase(std::string id) : id_{id} {}
-  virtual void Classify_(const mat&, Row<DataType>&) = 0;
-  virtual void purge() = 0;
-
-  std::string get_id() const { return id_; }
-
-  template<class Archive>
-  void serialize(Archive &ar) {
-    ar(id_);
-  }
-private:
-  std::string id_;
-};
-
-template<typename DataType, typename ClassifierType, typename... Args>
-class DiscreteClassifierBase : public ClassifierBase<DataType, ClassifierType> {
-public:
-  using LeavesMap = std::unordered_map<std::size_t, DataType>;
-
-  DiscreteClassifierBase(const mat& dataset, Row<DataType>& labels, Args&&... args) : 
-    ClassifierBase<DataType, ClassifierType>(typeid(*this).name())
-  {
-
-    labels_t_ = Row<std::size_t>(labels.n_cols);
-    encode(labels, labels_t_);
-    setClassifier(dataset, labels_t_, std::forward<Args>(args)...);
-    args_ = std::tuple<Args...>(args...);
-    
-    // Check error
-    /*
-      Row<std::size_t> prediction;
-      classifier_->Classify(dataset, prediction);
-      const double trainError = err(prediction, labels_t_);
-      for (size_t i=0; i<25; ++i)
-      std::cout << labels_t_[i] << " ::(1) " << prediction[i] << std::endl;
-      std::cout << "dataset size:    " << dataset.n_rows << " x " << dataset.n_cols << std::endl;
-      std::cout << "prediction size: " << prediction.n_rows << " x " << prediction.n_cols << std::endl;
-      std::cout << "Training error (1): " << trainError << "%." << std::endl;
-    */
-  
-  }
-
-  DiscreteClassifierBase(const LeavesMap& leavesMap, std::unique_ptr<ClassifierType> classifier) : 
-    leavesMap_{leavesMap},
-    classifier_{std::move(classifier)} {}
-
-  DiscreteClassifierBase() = default;
-  ~DiscreteClassifierBase() = default;
-
-  void setClassifier(const mat&, Row<std::size_t>&, Args&&...);
-  void Classify_(const mat&, Row<DataType>&) override;
-  void Classify_(const mat&, Row<DataType>&, mat&);
-  void purge() override;
-
-  template<class Archive>
-  void serialize(Archive &ar) {
-    ar(cereal::base_class<ClassifierBase<DataType, ClassifierType>>(this), CEREAL_NVP(leavesMap_));
-    ar(cereal::base_class<ClassifierBase<DataType, ClassifierType>>(this), CEREAL_NVP(classifier_));
-  }
-
-private:
-  void encode(const Row<DataType>&, Row<std::size_t>&); 
-  void decode(const Row<std::size_t>&, Row<DataType>&);
-
-  Row<std::size_t> labels_t_;
-  LeavesMap leavesMap_;
-  std::unique_ptr<ClassifierType> classifier_;
-  std::tuple<Args...> args_;
-
-};
-
-template<typename DataType, typename ClassifierType, typename... Args>
-class ContinuousClassifierBase : public ClassifierBase<DataType, ClassifierType> {
-public:  
-  ContinuousClassifierBase(const mat& dataset, Row<DataType>& labels, Args&&... args) : 
-    ClassifierBase<DataType, ClassifierType>(typeid(*this).name()) 
-  {
-
-    setClassifier(dataset, labels, std::forward<Args>(args)...);
-    args_ = std::tuple<Args...>(args...);
-  }
-
-  ContinuousClassifierBase(std::unique_ptr<ClassifierType> classifier) : classifier_{std::move(classifier)} {}
-
-  ContinuousClassifierBase() = default;
-  ~ContinuousClassifierBase() = default;
-  
-  void setClassifier(const mat&, Row<DataType>&, Args&&...);
-  void Classify_(const mat&, Row<DataType>&) override;
-  void purge() override {};
-
-  template<class Archive>
-  void serialize(Archive &ar) {
-
-    ar(cereal::base_class<ClassifierBase<DataType, ClassifierType>>(this), CEREAL_NVP(classifier_));
-  }
-
-private:
-  std::unique_ptr<ClassifierType> classifier_;
-  std::tuple<Args...> args_;
-};
-
-class RandomForestClassifier : public DiscreteClassifierBase<double, 
-							     ClassifierTypes::RandomForestClassifierType,
-							     std::size_t,
-							     std::size_t,
-							     std::size_t> {
-public:
-  RandomForestClassifier() = default;
-  
-  RandomForestClassifier(const mat& dataset, 
-			 Row<double>& labels, 
-			 std::size_t numClasses,
-			 std::size_t numTrees,
-			 std::size_t minLeafSize) : 
-    DiscreteClassifierBase<double, 
-			   ClassifierTypes::RandomForestClassifierType, 
-			   std::size_t,
-			   std::size_t, 
-			   std::size_t>(dataset, 
-					labels, 
-					std::move(numClasses),
-					std::move(numTrees),
-					std::move(minLeafSize))
-  {}
-  
-};
-
-class DecisionTreeClassifier : public DiscreteClassifierBase<double, 
-							     ClassifierTypes::DecisionTreeClassifierType,
-							     std::size_t,
-							     std::size_t,
-							     double,
-							     std::size_t> {
-public:
-  DecisionTreeClassifier() = default;
-
-  DecisionTreeClassifier(const mat& dataset, 
-			 Row<double>& labels,
-			 std::size_t numClasses,
-			 std::size_t minLeafSize,
-			 double minimumGainSplit,
-			 std::size_t maxDepth) : 
-    DiscreteClassifierBase<double, 
-			   ClassifierTypes::DecisionTreeClassifierType, 
-			   std::size_t, 
-			   std::size_t,
-			   double,
-			   std::size_t>(dataset, 
-					labels, 
-					std::move(numClasses), 
-					std::move(minLeafSize),
-					std::move(minimumGainSplit), 
-					std::move(maxDepth))
-    {}
-    
-  };
-
-class DecisionTreeRegressorClassifier : public ContinuousClassifierBase<double, 
-									ClassifierTypes::DecisionTreeRegressorType,
-									unsigned long,
-									double,
-									unsigned long> {
-public:
-  DecisionTreeRegressorClassifier() = default;
-
-  const unsigned long minLeafSize = 1;
-  const double minGainSplit = 0.0;
-  const unsigned long maxDepth = 100;
-
-  DecisionTreeRegressorClassifier(const mat& dataset,
-				  rowvec& labels,
-				  unsigned long minLeafSize=5,
-				  double minGainSplit=0.,
-				  unsigned long maxDepth=5) : 
-    ContinuousClassifierBase<double, 
-			     ClassifierTypes::DecisionTreeRegressorType,
-			     unsigned long,
-			     double,
-			     unsigned long>(dataset, 
-					    labels, 
-					    std::move(minLeafSize), 
-					    std::move(minGainSplit), 
-					    std::move(maxDepth))
-  {}
-  
-};
-
-template<typename T>
-struct classifier_traits {
-  using datatype = double;
-  using integrallabeltype = std::size_t;
-  using classifier = ClassifierTypes::DecisionTreeClassifierType;
-};
-
-template<>
-struct classifier_traits<DecisionTreeClassifier> {
-  using datatype = double;
-  using integrallabeltype = std::size_t;
-  using classifier = ClassifierTypes::DecisionTreeClassifierType;
-};
-
-
 template<typename ClassifierType>
 class GradientBoostClassifier : public ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 						      typename classifier_traits<ClassifierType>::classifier> {
@@ -394,6 +68,7 @@ public:
   using DataType = typename classifier_traits<ClassifierType>::datatype;
   using IntegralLabelType = typename classifier_traits<ClassifierType>::integrallabeltype;
   using Classifier = typename classifier_traits<ClassifierType>::classifier;
+  using ClassifierArgs = typename classifier_traits<ClassifierType>::classifierArgs;
   using ClassifierList = std::vector<std::unique_ptr<ClassifierBase<DataType, Classifier>>>;
 
   using Partition = std::vector<std::vector<int>>;
@@ -407,9 +82,12 @@ public:
   GradientBoostClassifier() = default;
   
   // 1
+  // mat	: arma::Mat<double>
+  // labels	: arma::Row<std::size_t> <- CONVERTED TO Row<double>
+  // context	: ClassifierContext::Context
   GradientBoostClassifier(const mat& dataset, 
 			  const Row<std::size_t>& labels,
-			  ClassifierContext::Context context) :
+			  Context<ClassifierType> context) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
     dataset_{dataset},
@@ -423,9 +101,12 @@ public:
   }
 
   // 2
+  // mat	: arma::Mat<double>
+  // labels	: arma::Row<double>
+  // context	: ClassifierContext::Context
   GradientBoostClassifier(const mat& dataset,
 			  const Row<double>& labels,
-			  ClassifierContext::Context context) :
+			  Context<ClassifierType> context) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
     dataset_{dataset},
@@ -439,11 +120,16 @@ public:
   }
 
   // 3
+  // mat		: arma::Mat<double>
+  // labels		: arma::Row<std::size_t> <- CONVERTED TO Row<double>
+  // dataset_oos	: arma::Mat<double>
+  // labels_oos		: Row<std::size_t> <- CONVERTED TO Row<double>
+  // context		: ClassifierContext::Context
   GradientBoostClassifier(const mat& dataset,
 			  const Row<std::size_t>& labels,
 			  const mat& dataset_oos,
 			  const Row<std::size_t>& labels_oos,
-			  ClassifierContext::Context context) :
+			  Context<ClassifierType> context) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
     dataset_{dataset},
@@ -459,11 +145,16 @@ public:
   }
 
   // 4
+  // mat		: arma::Mat<double>
+  // labels		: arma::Row<double>
+  // dataset_oos	: arma::Mat<double>
+  // labels_oos		: Row<double>
+  // context		: ClassifierContext::Context
   GradientBoostClassifier(const mat& dataset,
 			  const Row<double>& labels,
 			  const mat& dataset_oos,
 			  const Row<double>& labels_oos,
-			  ClassifierContext::Context context) :
+			  Context<ClassifierType> context) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
     dataset_{dataset},
@@ -479,11 +170,17 @@ public:
   }
 
   // 5
+  // mat		: arma::Mat<double>
+  // labels		: arma::Row<std::size_t> <- CONVERTED TO Row<double>
+  // dataset_oos	: arma::Mat<double>
+  // labels_oos		: Row<double>
+  // colMask		: uvec
+  // context		: ClassifierContext::Context
   GradientBoostClassifier(const mat& dataset,
 			  const Row<std::size_t>& labels,
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
-			  ClassifierContext::Context context) :
+			  Context<ClassifierType> context) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
     dataset_{dataset},
@@ -499,10 +196,14 @@ public:
   }
 
   // 6
+  // mat		: arma::Mat<double>
+  // labels		: arma::Row<std::size_t> <- CONVERTED TO Row<double>
+  // latestPrediction	: arma::Mat<double>
+  // context		: ClassifierContext::Context
   GradientBoostClassifier(const mat& dataset,
 			  const Row<std::size_t>& labels,
 			  const Row<double>& latestPrediction,
-			  ClassifierContext::Context context) :
+			  Context<ClassifierType> context) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
     dataset_{dataset},
@@ -517,11 +218,16 @@ public:
   }
    
   // 7
+  // mat		: arma::Mat<double>
+  // labels		: arma::Row<double>
+  // latestPrediction	: arma::Mat<double>
+  // colMask		: uvec
+  // context		: ClassifierContext::Context
   GradientBoostClassifier(const mat& dataset,
 			  const Row<double>& labels,
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
-			  ClassifierContext::Context context) :
+			  Context<ClassifierType> context) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
     dataset_{dataset},
@@ -537,10 +243,14 @@ public:
   }
 
   // 8
+  // mat		: arma::Mat<double>
+  // labels		: arma::Row<double>
+  // latestPrediction	: arma::Mat<double>
+  // context		: ClassifierContext::Context
   GradientBoostClassifier(const mat& dataset,
 			  const Row<double>& labels,
 			  const Row<double>& latestPrediction,
-			  ClassifierContext::Context context) :
+			  Context<ClassifierType> context) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
     dataset_{dataset},
@@ -555,13 +265,20 @@ public:
   }
 
   // 9
+  // mat		: arma::Mat<double>
+  // labels		: arma::Row<std::size_t> <- CONVERTED TO Row<double>
+  // dataset_oos	: arma::Mat<double>
+  // labels_oos		: Row<std::size_t> <- CONVERTED TO Row<double>
+  // latestPrediction	: arma::Mat<double>
+  // colMask		: uvec
+  // context		: ClassifierContext::Context
   GradientBoostClassifier(const mat& dataset,
 			  const Row<std::size_t>& labels,
 			  const mat& dataset_oos,
 			  const Row<std::size_t>& labels_oos,
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
-			  ClassifierContext::Context context) :
+			  Context<ClassifierType> context) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
     dataset_{dataset},
@@ -579,12 +296,18 @@ public:
   }
 
   // 10
+  // mat		: arma::Mat<double>
+  // labels		: arma::Row<std::size_t> <- CONVERTED TO Row<double>
+  // dataset_oos	: arma::Mat<double>
+  // labels_oos		: Row<std::size_t> <- CONVERTED TO Row<double>
+  // latestPrediction	: arma::Mat<double>
+  // context		: ClassifierContext::Context
   GradientBoostClassifier(const mat& dataset,
 			  const Row<std::size_t>& labels,
 			  const mat& dataset_oos,
 			  const Row<std::size_t>& labels_oos,
 			  const Row<double>& latestPrediction,
-			  ClassifierContext::Context context) :
+			  Context<ClassifierType> context) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
     dataset_{dataset},
@@ -601,13 +324,20 @@ public:
   }
 
   // 11
+  // mat		: arma::Mat<double>
+  // labels		: arma::Row<double>
+  // dataset_oos	: arma::Mat<double>
+  // labels_oos		: Row<double>
+  // latestPrediction	: arma::Mat<double>
+  // colMask		: uvec
+  // context		: ClassifierContext::Context
   GradientBoostClassifier(const mat& dataset,
 			  const Row<double>& labels,
 			  const mat& dataset_oos,
 			  const Row<double>& labels_oos,
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
-			  ClassifierContext::Context context) :
+			  Context<ClassifierType> context) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
     dataset_{dataset},
@@ -625,12 +355,18 @@ public:
   }
 
   // 12
+  // mat		: arma::Mat<double>
+  // labels		: arma::Row<double>
+  // dataset_oos	: arma::Mat<double>
+  // labels_oos		: Row<double>
+  // latestPrediction	: arma::Mat<double>
+  // context		: ClassifierContext::Context
   GradientBoostClassifier(const mat& dataset,
 			  const Row<double>& labels,
 			  const mat& dataset_oos,
 			  const Row<double>& labels_oos,
 			  const Row<double>& latestPrediction,
-			  ClassifierContext::Context context) :
+			  Context<ClassifierType> context) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::classifier>(typeid(*this).name()),
     dataset_{dataset},
@@ -705,8 +441,8 @@ public:
   }
 
 private:
-  void childContext(ClassifierContext::Context&, std::size_t, double, std::size_t);
-  void contextInit_(ClassifierContext::Context&&);
+  void childContext(Context<ClassifierType>&, std::size_t, double, std::size_t);
+  void contextInit_(Context<ClassifierType>&&);
   void init_();
   Row<double> _constantLeaf() const;
   Row<double> _randomLeaf() const;
@@ -768,6 +504,8 @@ private:
   std::size_t maxDepth_;
   std::size_t numTrees_;
 
+  ClassifierArgs classifierArgs_;
+
   ClassifierList classifiers_;
   PartitionList partitions_;
   PredictionList predictions_;
@@ -800,6 +538,7 @@ private:
 using DTC = ClassifierTypes::DecisionTreeClassifierType;
 using CTC = ClassifierTypes::DecisionTreeRegressorType;
 using RFC = ClassifierTypes::RandomForestClassifierType;
+
 using DiscreteClassifierBaseDTC = DiscreteClassifierBase<double, 
 						       DTC, 
 						       std::size_t,
@@ -816,27 +555,48 @@ using ContinuousClassifierBaseD = ContinuousClassifierBase<double,
 							   unsigned long,
 							   double,
 							   unsigned long>;
-using GradientBoostClassifierD = GradientBoostClassifier<DTC>;
 using ClassifierBaseDD = ClassifierBase<double, DTC>;
 using ClassifierBaseRD = ClassifierBase<double, RFC>;
 using ClassifierBaseCD = ClassifierBase<double, CTC>;
+
+using DecisionTreeRegressorClassifierBaseLDL = DecisionTreeRegressorClassifier<unsigned long, double, unsigned long>;
+using DecisionTreeClassifierBaseLLDL = DecisionTreeClassifier<unsigned long, unsigned long, double, unsigned long>;
+using RandomForestClassifierBaseLLL = RandomForestClassifier<unsigned long, unsigned long, unsigned long>;
+
+using GradientBoostClassifierDTC = GradientBoostClassifier<DecisionTreeClassifier>);
+using GradientBoostClassifierRFC = GradientBoostClassifier<RandomForestClassifier>);
+using GradientBoostClassifierCTC = GradientBoostClassifier<DecisionTreeRegressorClassifier>);
 
 // Register class with cereal
 CEREAL_REGISTER_TYPE(DiscreteClassifierBaseDTC);
 CEREAL_REGISTER_TYPE(DiscreteClassifierBaseRFC);
 CEREAL_REGISTER_TYPE(ContinuousClassifierBaseD);
 
-CEREAL_REGISTER_TYPE(DecisionTreeClassifier);
-CEREAL_REGISTER_TYPE(RandomForestClassifier);
-CEREAL_REGISTER_TYPE(DecisionTreeRegressorClassifier);
+CEREAL_REGISTER_TYPE(DecisionTreeClassifierBaseLLDL);
+CEREAL_REGISTER_TYPE(RandomForestClassifierBaseLLL);
+CEREAL_REGISTER_TYPE(DecisionTreeRegressorClassifierBaseLDL);
 
-CEREAL_REGISTER_TYPE(GradientBoostClassifier<DecisionTreeClassifier>);
+CEREAL_REGISTER_TYPE(GradientBoostClassifierDTC);
+CEREAL_REGISTER_TYPE(GradientBoostClassifierRFC);
+CEREAL_REGISTER_TYPE(GradientBoostClassifierCTC);
+
+
+// Register class with cereal
+CEREAL_REGISTER_TYPE(DiscreteClassifierBaseDTC);
+CEREAL_REGISTER_TYPE(DiscreteClassifierBaseRFC);
+CEREAL_REGISTER_TYPE(ContinuousClassifierBaseD);
+
+CEREAL_REGISTER_TYPE(DecisionTreeClassifierLLDL);
+CEREAL_REGISTER_TYPE(RandomForestClassifierLLL);
+CEREAL_REGISTER_TYPE(DecisionTreeRegressorClassifierLDL);
+
+CEREAL_REGISTER_TYPE(GradientBoostClassifier<DecisionTreeClassifierLLDL>);
+CEREAL_REGISTER_TYPE(GradientBoostClassifier<DecisionTreeRegressorClassifierLDL>);
 
 // Register class hierarchy with cereal
-CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseDD, GradientBoostClassifierD);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseDD, DecisionTreeClassifier);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseRD, RandomForestClassifier);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseCD, DecisionTreeRegressorClassifier);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseDD, DecisionTreeClassifierLLDL);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseRD, RandomForestClassifierLLL);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseCD, DecisionTreeRegressorClassifierLDL);
 
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseDD, DiscreteClassifierBaseDTC);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseRD, DiscreteClassifierBaseRFC);
@@ -859,7 +619,7 @@ namespace cereal {
   template<typename DataType, typename ClassifierType, typename... Args> 
   struct LoadAndConstruct<ContinuousClassifierBase<DataType, ClassifierType, Args...>> {
     template<class Archive>
-    static void load_and_construct(Archive &ar, cereal::construct<ContinuousClassifierBase<DataType, ClassifierType, Args...>> &construct) {
+    static void load_anod_construct(Archive &ar, cereal::construct<ContinuousClassifierBase<DataType, ClassifierType, Args...>> &construct) {
       std::unique_ptr<ClassifierType> classifier;
       ar(CEREAL_NVP(classifier));
       construct(std::move(classifier));

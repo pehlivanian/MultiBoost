@@ -8,7 +8,6 @@
 
 #include "score2.hpp"
 #include "DP.hpp"
-#include "LTSS.hpp"
 
 using namespace Objectives;
 

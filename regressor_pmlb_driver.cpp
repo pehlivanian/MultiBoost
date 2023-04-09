@@ -1,4 +1,4 @@
-#include "pmlb_driver.hpp"
+#include "regressor_pmlb_driver.hpp"
 
 using namespace arma;
 using namespace mlpack;
@@ -13,12 +13,12 @@ using namespace IB_utils;
 auto main(int argc, char **argv) -> int {
 
   Mat<double> dataset, trainDataset, testDataset;
-  Row<std::size_t> labels, trainLabels, testLabels;
-  Row<std::size_t> trainPrediction, testPrediction;
+  Row<double> labels, trainLabels, testLabels;
+  Row<double> trainPrediction, testPrediction;
 
-  if (!data::Load("/home/charles/Data/titanic_train_X.csv", dataset))
+  if (!data::Load("/home/charles/Data/Regression/1193_BNG_lowbwt_X.csv", dataset))
     throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/titanic_train_y.csv", labels))
+  if (!data::Load("/home/charles/Data/Regression/1193_BNG_lowbwt_y.csv", labels))
     throw std::runtime_error("Could not load file");
 
   data::Split(dataset, 
@@ -65,8 +65,9 @@ auto main(int argc, char **argv) -> int {
   context.maxDepth = 10;
   context.minimumGainSplit = 0.;
 
-  using classifier = GradientBoostClassifier<DecisionTreeClassifier>;
-  auto c = std::make_unique<classifier>(trainDataset, 
+  using DTR = DecisionTreeRegressorClassifier<unsigned long, double, unsigned long>;
+  using regressor = GradientBoostClassifier<DTR>;
+  auto c = std::make_unique<regressor>(trainDataset, 
 					trainLabels,
 					testDataset,
 					testLabels,
