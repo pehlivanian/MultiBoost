@@ -8,7 +8,7 @@ using namespace mlpack::util;
 using namespace std;
 
 using namespace LossMeasures;
-using namespace ClassifierContext;
+using namespace ModelContext;
 using namespace IB_utils;
 
 auto main(int argc, char **argv) -> int {
@@ -34,7 +34,7 @@ auto main(int argc, char **argv) -> int {
 	    << testDataset.n_rows << ")" << std::endl;
   
   
-  Context<DecisionTreeClassifer> context{};
+  Context context{};
   // context.loss = lossFunction::Savage;
   // context.loss = lossFunction::BinomialDeviance;
   // context.loss = lossFunction::MSE;

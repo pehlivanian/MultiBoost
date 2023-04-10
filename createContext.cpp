@@ -10,7 +10,7 @@
 #include "gradientboostclassifier.hpp"
 
 using namespace IB_utils;
-using namespace ClassifierContext;
+using namespace ModelContext;
 using namespace LossMeasures;
 
 using namespace boost::program_options;
@@ -129,9 +129,6 @@ namespace std {
 
 auto main(int argc, char **argv) -> int {
 
-  using ClassifierType = DecisionTreeClassifier<std::size_t, std::size_t, double, std::size_t>;
-  using ContextT = Context<ClassifierType>;
-
   /* TYPICAL CASE
      ============
      context.loss = lossFunction::Synthetic;
@@ -178,7 +175,7 @@ auto main(int argc, char **argv) -> int {
   bool					serializeLabels		= false;
   std::size_t				serializationWindow	= 1000;
 
-  std::string				fileName		= path(typeid(ContextT).name());
+  std::string				fileName		= path(typeid(Context).name());
 
   options_description desc("Options");
   desc.add_options()
@@ -229,7 +226,7 @@ auto main(int argc, char **argv) -> int {
     std::cerr << desc << std::endl;
   }
 
-  ContextT context{};
+  Context context{};
 
   context.loss		= loss;
   context.partitionSize = partitionSize;
@@ -257,7 +254,7 @@ auto main(int argc, char **argv) -> int {
   context.serializeColMask = serializeColMask;
   context.serializationWindow = serializationWindow;
 
-  writeBinary<ContextT>(fileName, context);
+  writeBinary<Context>(fileName, context);
 
   std::cout << "DecisionTreeClassifier Context archive: " << fileName << std::endl;
 

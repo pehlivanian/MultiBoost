@@ -54,7 +54,7 @@ option(BUILD_STEPWISE_PREDICT "Build stepwise predictor" ON)
 option(BUILD_TITANIC "Build titanic ex" OFF)
 
 # build multiclass pmlb driver
-option(BUILD_MULTICLASS "Build multiclass inductive boost classifier" ON)
+option(BUILD_MULTICLASS "Build multiclass inductive boost classifier" OFF)
 
 # Profile
 option(PROFILE_RESULTS "gprof enabled" OFF)
@@ -127,26 +127,39 @@ add_library(loss OBJECT loss.cpp)
 add_library(score2 OBJECT score2.cpp)
 add_library(utils OBJECT utils.cpp)
 add_library(replay OBJECT replay.cpp)
+add_library(classifier OBJECT classifier.cpp)
+add_library(regressor OBJECT regressor.cpp)
+add_library(DP OBJECT DP.cpp)
+add_library(threadsafequeue OBJECT threadsafequeue.cpp)
+add_library(gradientboostclassifier OBJECT gradientboostclassifier.cpp)
+# add_library(gradientboostmulticlassifier OBJECT gradientboostmulticlassifier.cpp)
 
 target_link_libraries(loss PUBLIC $<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> 
 	${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES}
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 
-add_library(DP OBJECT DP.cpp)
+target_link_libraries(classifier PUBLIC utils ${ARMADILLO_LIBRARIES}
+	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES}
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)	
+
+target_link_libraries(regressor PUBLIC utils ${ARMADILLO_LIBRARIES}
+	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES}
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)	
+
 target_link_libraries(DP PUBLIC utils 
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
-add_library(threadsafequeue OBJECT threadsafequeue.cpp)
+
 target_link_libraries(threadsafequeue PUBLIC pthread 
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
-add_library(gradientboostclassifier OBJECT gradientboostclassifier.cpp)
-target_link_libraries(gradientboostclassifier PUBLIC utils DP 
+
+target_link_libraries(gradientboostclassifier PUBLIC utils classifier DP 
 	${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
-add_library(gradientboostmulticlassifier OBJECT gradientboostmulticlassifier.cpp)
-target_link_libraries(gradientboostmulticlassifier PUBLIC threadsafequeue 
-	${ARMADILLO_LIBRARIES} pthread 
-	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+
+# target_link_libraries(gradientboostmulticlassifier PUBLIC threadsafequeue 
+# 	${ARMADILLO_LIBRARIES} pthread 
+# 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 
 # Armadillo example
 if (BUILD_ARMA_EX)
@@ -158,8 +171,8 @@ endif()
 
 # Context creation
 if (BUILD_CONTEXT_BUILDER)
-  add_executable(createContextDecisionTreeClassifier createContextDecisionTreeClassifier.cpp)
-  target_link_libraries(createContextDecisionTreeClassifier LINK_PUBLIC ${Boost_LIBRARIES} utils 
+  add_executable(createContext createContext.cpp)
+  target_link_libraries(createContext LINK_PUBLIC ${Boost_LIBRARIES} utils 
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 endif()
 

@@ -22,9 +22,10 @@
 #include <cereal/access.hpp>
 
 #include "loss.hpp"
-#include "classifier_traits.hpp"
+#include "model_traits.hpp"
 
 using namespace LossMeasures;
+using namespace Model_Traits;
 
 namespace LearningRate {
   enum class LearningRateMethod {
@@ -54,12 +55,9 @@ namespace StepSize {
   };
 } // namespace StepSize
 
-namespace ClassifierContext{
+namespace ModelContext{
 
-  template<typename ClassifierType>
   struct Context {
-    using ClassifierArgs = typename classifier_traits<ClassifierType>::classifierArgs;
-
     Context(std::size_t minLeafSize=1,
 	    double minimumGainSplit=.0,
 	    std::size_t maxDepth=100,
@@ -108,7 +106,6 @@ namespace ClassifierContext{
       minimumGainSplit = rhs.minimumGainSplit;
       maxDepth = rhs.maxDepth;
       numTrees = rhs.numTrees;
-      classifierArgs = rhs.classifierArgs;
       serialize = rhs.serialize;
       serializePrediction = rhs.serializePrediction;
       serializeColMask = rhs.serializeColMask;
@@ -137,7 +134,6 @@ namespace ClassifierContext{
     double minimumGainSplit;
     std::size_t maxDepth;
     std::size_t numTrees;
-    ClassifierArgs classifierArgs;
     bool serialize;
     bool serializePrediction;
     bool serializeColMask;
@@ -145,7 +141,7 @@ namespace ClassifierContext{
     bool serializeLabels;
     std::size_t serializationWindow;
   };
-} // namespace ClassifierContext
+} // namespace ModelContext
 
 class PartitionUtils {
 public:
