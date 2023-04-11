@@ -45,6 +45,7 @@
 #include "utils.hpp"
 #include "model.hpp"
 #include "classifier.hpp"
+#include "compositeclassifier.hpp"
 #include "model_traits.hpp"
 
 using namespace arma;

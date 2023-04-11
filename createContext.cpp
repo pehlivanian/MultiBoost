@@ -7,7 +7,6 @@
 
 #include "utils.hpp"
 #include "loss.hpp"
-#include "gradientboostclassifier.hpp"
 
 using namespace IB_utils;
 using namespace ModelContext;

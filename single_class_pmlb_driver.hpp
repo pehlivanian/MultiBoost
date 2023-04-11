@@ -16,6 +16,7 @@
 
 
 #include "loss.hpp"
+#include "classifiers.hpp"
 #include "gradientboostclassifier.hpp"
 #include "utils.hpp"
 

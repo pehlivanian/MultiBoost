@@ -22,10 +22,8 @@
 #include <cereal/access.hpp>
 
 #include "loss.hpp"
-#include "model_traits.hpp"
 
 using namespace LossMeasures;
-using namespace Model_Traits;
 
 namespace LearningRate {
   enum class LearningRateMethod {
