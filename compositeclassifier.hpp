@@ -20,7 +20,7 @@ public:
   using DataType		= typename model_traits<ClassifierType>::datatype;
   using IntegralLabelType	= typename model_traits<ClassifierType>::integrallabeltype;
   using Classifier		= typename model_traits<ClassifierType>::model;
-  using ClassifierArgs		= typename model_traits<ClassifierType>::modelArgs;
+  using AllClassifierArgs	= typename model_traits::AllClassifierArgs;
   using ClassifierList		= std::vector<std::unique_ptr<ClassifierBase<DataType>>>;
 
   using Partition		= std::vector<std::vector<int>>;
@@ -409,6 +409,8 @@ private:
   Leaves computeOptimalSplit(rowvec&, rowvec&, std::size_t, std::size_t, double, const uvec&);
 
   void setNextClassifier(const ClassifierType&);
+  AllClassifierArgs allClassifierArgs(std::size_t);
+
   int steps_;
   int baseSteps_;
   mat dataset_;

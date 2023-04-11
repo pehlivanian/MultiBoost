@@ -46,6 +46,12 @@ CompositeClassifier<ClassifierType>::childContext(Context& context,
 }
 
 template<typename ClassifierType>
+typename CompositeClassifier<ClassifierType>::AllClassifierArgs
+CompositeClassifier<ClassifierName>::allClassifierArgs(std::size_t numClasses) {
+  return std::make_tuple(numClasses, minLeafSize_, minGainSplit_, numTrees_, maxDepth_);
+}
+
+template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
 
@@ -158,10 +164,14 @@ CompositeClassifier<ClassifierType>::init_() {
   // don't overfit on first classifier
   row_d constantLabels = _constantLeaf();
   // row_d constantLabels = _randomLeaf();
+ 
+  // numClasses is always the first parameter for the classifier
+  // form parameter pack based on ClassifierType
   std::unique_ptr<ClassifierType> classifier;
+  auto classifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize_));
   classifier.reset(new ClassifierType(dataset_,
 				      constantLabels,
-				      std::move(classifierArgs_)));
+				      std::forward(classifierArgs)...);
 
   // first prediction
   if (!hasInitialPrediction_){
@@ -427,10 +437,10 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     // to remap the redundant values.
     std::unique_ptr<CompositeClassifier<ClassifierType>> classifier;
     classifier.reset(new CompositeClassifier<ClassifierType>(dataset_, 
-								 labels_, 
-								 latestPrediction_, 
-								 colMask_, 
-								 context));
+							     labels_, 
+							     latestPrediction_, 
+							     colMask_, 
+							     context));
 
     classifier->fit();
 
@@ -485,6 +495,9 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     // Fit classifier on {dataset, padded best_leaves}
     // Zero pad labels first
     allLeaves(colMask_) = best_leaves;
+
+    XXX
+    auto rootClassifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize_));
     
     classifier.reset(new ClassifierType(dataset_,
 					allLeaves,

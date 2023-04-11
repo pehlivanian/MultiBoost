@@ -21,6 +21,12 @@ using namespace mlpack::util;
 
 namespace Model_Traits {
 
+  using AllClassifierArgs = std::tuple<std::size_t,	// (0) numClasses
+				    std::size_t,	// (1) minLeafSize
+				    double,		// (2) minGainSplit
+				    std::size_t		// (3) numTrees
+				    std::size_t>;	// (4) maxDepth
+
   namespace ClassifierTypes {
     using RandomForestClassifierType = RandomForest<>;
     using DecisionTreeClassifierType = DecisionTree<>;
@@ -54,6 +60,9 @@ class RandomForestClassifier :
     public RandomForestClassifierBase<std::size_t, std::size_t, std::size_t> {
 
 public:
+
+  using Args = std::tuple<std::size_t, std::size_t, std::size_t>;
+
   RandomForestClassifier() = default;
 
   RandomForestClassifier(const mat& dataset,
@@ -66,6 +75,13 @@ public:
 								      std::move(numClasses),
 								      std::move(numTrees),
 								      std::move(minLeafSize)) {}
+
+  static Args _args(ModelTraits::AllClassifierArgs& p) {
+    return std::make_tuple<std::size_t, std::size_t, std::size_t>(std::get<0>(p),	// numClasses
+								  std::get<3>(p),	// numTrees
+								  std::get<1>(p));	// minLeafSize
+  }
+
 };
 
 template<typename... Args>
@@ -101,6 +117,13 @@ public:
 									      std::move(minGainSplit),
 									      std::move(maxDepth))
   {}
+  
+  static Args _args(ModelTraits::AllClassifierArgs& p) {
+    return std::make_tuple<std::size_t, std::size_t, double, std::size_t>(std::get<0>(p),	// numClasses
+									  std::get<1>(p),	// minLeafSize
+									  std::get<2>(p),	// minGainSplit
+									  std::get<4>(p));	// maxDepth
+  }
 };
 
 namespace Model_Traits {
