@@ -1,6 +1,8 @@
 #ifndef __COMPOSITE_CLASSIFIER_HPP__
 #define __COMPOSITE_CLASSIFIER_HPP__
 
+#include <tuple>
+
 #include <mlpack/core.hpp>
 
 #include "utils.hpp"
@@ -20,7 +22,7 @@ public:
   using DataType		= typename model_traits<ClassifierType>::datatype;
   using IntegralLabelType	= typename model_traits<ClassifierType>::integrallabeltype;
   using Classifier		= typename model_traits<ClassifierType>::model;
-  using AllClassifierArgs	= typename model_traits::AllClassifierArgs;
+  using AllClassifierArgs	= Model_Traits::AllClassifierArgs;
   using ClassifierList		= std::vector<std::unique_ptr<ClassifierBase<DataType>>>;
 
   using Partition		= std::vector<std::vector<int>>;
@@ -397,6 +399,12 @@ private:
   void fit_step(std::size_t);
   double computeLearningRate(std::size_t);
   std::size_t computePartitionSize(std::size_t, const uvec&);
+  
+  template<typename... Ts>
+  void createClassifier(std::unique_ptr<ClassifierType>&, 
+			const mat&,
+			const Row<double>&,
+			std::tuple<Ts...> const&);
 
   double computeSubLearningRate(std::size_t);
   std::size_t computeSubPartitionSize(std::size_t);
@@ -447,7 +455,7 @@ private:
   std::size_t maxDepth_;
   std::size_t numTrees_;
 
-  ClassifierArgs classifierArgs_;
+  AllClassifierArgs classifierArgs_;
 
   ClassifierList classifiers_;
   PartitionList partitions_;

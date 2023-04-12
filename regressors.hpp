@@ -67,14 +67,6 @@ public:
 
 namespace Model_Traits {
 
-  template<typename T>
-  struct model_traits {
-    using datatype = double;
-    using integrallabeltype = std::size_t;
-    using model = ClassifierTypes::DecisionTreeClassifierType;
-    using modelArgs = std::tuple<std::size_t, std::size_t, double, std::size_t>;
-  };
-
   template<>
   struct model_traits<DecisionTreeRegressorRegressor> {
     using datatype = double;

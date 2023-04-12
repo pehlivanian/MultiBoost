@@ -19,36 +19,36 @@ namespace {
 template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::childContext(Context& context, 
-						      std::size_t subPartitionSize,
-						      double subLearningRate,
-						      std::size_t stepSize) {
+						  std::size_t subPartitionSize,
+						  double subLearningRate,
+						  std::size_t stepSize) {
 
-    context.loss			= loss_;
-    context.partitionRatio		= std::min(1., 2*partitionRatio_);
-    context.learningRate		= subLearningRate;
-    context.baseSteps			= baseSteps_;
-    context.symmetrizeLabels		= false;
-    context.removeRedundantLabels	= true;
-    context.rowSubsampleRatio		= row_subsample_ratio_;
-    context.colSubsampleRatio		= col_subsample_ratio_;
-    context.recursiveFit		= true;
-    context.stepSizeMethod		= stepSizeMethod_;
-    context.partitionSizeMethod		= partitionSizeMethod_;
-    context.learningRateMethod		= learningRateMethod_;    
-    context.steps			= stepSize;
+  context.loss			= loss_;
+  context.partitionRatio		= std::min(1., 2*partitionRatio_);
+  context.learningRate		= subLearningRate;
+  context.baseSteps			= baseSteps_;
+  context.symmetrizeLabels		= false;
+  context.removeRedundantLabels	= true;
+  context.rowSubsampleRatio		= row_subsample_ratio_;
+  context.colSubsampleRatio		= col_subsample_ratio_;
+  context.recursiveFit		= true;
+  context.stepSizeMethod		= stepSizeMethod_;
+  context.partitionSizeMethod		= partitionSizeMethod_;
+  context.learningRateMethod		= learningRateMethod_;    
+  context.steps			= stepSize;
 
-    // Part of model args
-    context.numTrees			= numTrees_;
-    context.partitionSize		= subPartitionSize + 1;
-    context.minLeafSize			= minLeafSize_;
-    context.maxDepth			= maxDepth_;
-    context.minimumGainSplit		= minimumGainSplit_;
+  // Part of model args
+  context.numTrees			= numTrees_;
+  context.partitionSize		= subPartitionSize + 1;
+  context.minLeafSize			= minLeafSize_;
+  context.maxDepth			= maxDepth_;
+  context.minimumGainSplit		= minimumGainSplit_;
 }
 
 template<typename ClassifierType>
 typename CompositeClassifier<ClassifierType>::AllClassifierArgs
-CompositeClassifier<ClassifierName>::allClassifierArgs(std::size_t numClasses) {
-  return std::make_tuple(numClasses, minLeafSize_, minGainSplit_, numTrees_, maxDepth_);
+CompositeClassifier<ClassifierType>::allClassifierArgs(std::size_t numClasses) {
+  return std::make_tuple(numClasses, minLeafSize_, minimumGainSplit_, numTrees_, maxDepth_);
 }
 
 template<typename ClassifierType>
@@ -106,9 +106,21 @@ CompositeClassifier<ClassifierType>::_randomLeaf() const {
 }
 
 template<typename ClassifierType>
+template<typename... Ts>
+void
+CompositeClassifier<ClassifierType>::createClassifier(std::unique_ptr<ClassifierType>& classifier,
+						      const mat& dataset,
+						      const Row<double>& labels,
+						      std::tuple<Ts...> const& args) {
+  std::apply([&classifier, &dataset, &labels](Ts const&... args){ classifier.reset(dataset,
+										   labels,
+										   args...);}, args);
+}
+
+template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::updateClassifiers(std::unique_ptr<ClassifierBase<DataType>>&& classifier,
-							   Row<DataType>& prediction) {
+						       Row<DataType>& prediction) {
   latestPrediction_ += prediction;
   classifier->purge();
   classifiers_.push_back(std::move(classifier));
@@ -168,10 +180,12 @@ CompositeClassifier<ClassifierType>::init_() {
   // numClasses is always the first parameter for the classifier
   // form parameter pack based on ClassifierType
   std::unique_ptr<ClassifierType> classifier;
-  auto classifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize_));
-  classifier.reset(new ClassifierType(dataset_,
-				      constantLabels,
-				      std::forward(classifierArgs)...);
+  const typename ClassifierType::Args& classifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize_));
+  createClassifier(classifier, dataset_, constantLabels, classifierArgs);
+
+  // classifier.reset(new ClassifierType(dataset_,
+  // 				      constantLabels,
+  // 			      std::forward<typename ClassifierType::Args>(classifierArgs)));
 
   // first prediction
   if (!hasInitialPrediction_){
@@ -488,24 +502,24 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     uvec rowMask = linspace<uvec>(0, -1+n_, n_);
     auto dataset_slice = dataset_.submat(rowMask, colMask_);
     
+    auto rootClassifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize+1));
+    
     classifier.reset(new ClassifierType(dataset_slice,
 					best_leaves,
-					std::move(classifierArgs_)));
+					std::forward(rootClassifierArgs)));		     
   } else {
     // Fit classifier on {dataset, padded best_leaves}
     // Zero pad labels first
     allLeaves(colMask_) = best_leaves;
-
-    XXX
-    auto rootClassifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize_));
+    
+    auto rootClassifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize+1));
     
     classifier.reset(new ClassifierType(dataset_,
 					allLeaves,
-					std::move(classifierArgs_)));
+					std::forward(rootClassifierArgs)));
   }
 
-  mat probabilities;
-  classifier->Classify_(dataset_, prediction, probabilities);
+  classifier->Classify_(dataset_, prediction);
 
   updateClassifiers(std::move(classifier), prediction);
 
@@ -514,11 +528,11 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 template<typename ClassifierType>
 typename CompositeClassifier<ClassifierType>::Leaves
 CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
-							     rowvec& h,
-							     std::size_t stepNum, 
-							     std::size_t partitionSize,
-							     double learningRate,
-							     const uvec& colMask) {
+							 rowvec& h,
+							 std::size_t stepNum, 
+							 std::size_t partitionSize,
+							 double learningRate,
+							 const uvec& colMask) {
 
 
   // We should implement several methods here
@@ -634,7 +648,7 @@ CompositeClassifier<ClassifierType>::writeLabelsOOS() {
 template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::read(CompositeClassifier<ClassifierType>& rhs,
-					      std::string fileName) {
+					  std::string fileName) {
 
   using CerealT = CompositeClassifier<ClassifierType>;
   using CerealIArch = cereal::BinaryInputArchive;
@@ -715,7 +729,7 @@ CompositeClassifier<ClassifierType>::checkAccuracyOfArchive() {
     if (fabs(prediction[i] - yhat[i]) > eps) {
       std::cerr << "VIOLATION: (i, yhat[i], prediction[i]): " 
 		<< "( " << yhat[i] 
-		  << ", " << prediction[i]
+		<< ", " << prediction[i]
 		<< ") : "
 		<< "(diff, eps) = " << "(" << fabs(prediction[i]-yhat[i])
 		<< ", " << eps << ")" << std::endl;
@@ -935,12 +949,12 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
 template<typename ClassifierType>
 std::pair<rowvec, rowvec>
 CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& yhat,
-							       const Row<DataType>& y,
-							       const uvec& colMask) {
-
+							   const Row<DataType>& y,
+							   const uvec& colMask) {
+  
   rowvec g, h;
   lossFn_->loss(yhat, y, &g, &h);
-
+  
   return std::make_pair(g, h);
 }
 /*
@@ -950,7 +964,5 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
   }
   // 2.0*((sum(y_train==0)/len(y_train) - .5)**2 + (sum(y_train==1)/len(y_train) - .5)**2)
   */
-
-
 
 #endif

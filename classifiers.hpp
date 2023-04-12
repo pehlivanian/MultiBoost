@@ -2,6 +2,7 @@
 #define __CLASSIFIERS_HPP__
 
 #include <utility>
+#include <tuple>
 
 #include <mlpack/core.hpp>
 #include <mlpack/methods/decision_tree/decision_tree.hpp>
@@ -22,10 +23,10 @@ using namespace mlpack::util;
 namespace Model_Traits {
 
   using AllClassifierArgs = std::tuple<std::size_t,	// (0) numClasses
-				    std::size_t,	// (1) minLeafSize
-				    double,		// (2) minGainSplit
-				    std::size_t		// (3) numTrees
-				    std::size_t>;	// (4) maxDepth
+				       std::size_t,	// (1) minLeafSize
+				       double,		// (2) minGainSplit
+				       std::size_t,	// (3) numTrees
+				       std::size_t>;	// (4) maxDepth
 
   namespace ClassifierTypes {
     using RandomForestClassifierType = RandomForest<>;
@@ -76,10 +77,10 @@ public:
 								      std::move(numTrees),
 								      std::move(minLeafSize)) {}
 
-  static Args _args(ModelTraits::AllClassifierArgs& p) {
-    return std::make_tuple<std::size_t, std::size_t, std::size_t>(std::get<0>(p),	// numClasses
-								  std::get<3>(p),	// numTrees
-								  std::get<1>(p));	// minLeafSize
+  static Args _args(const Model_Traits::AllClassifierArgs& p) {
+    return std::make_tuple(std::get<0>(p),	// numClasses
+			   std::get<3>(p),	// numTrees
+			   std::get<1>(p));	// minLeafSize
   }
 
 };
@@ -102,6 +103,9 @@ class DecisionTreeClassifier :
   public DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t> {
 
 public:
+
+  using Args = std::tuple<std::size_t, std::size_t, double, std::size_t>;
+
   DecisionTreeClassifier() = default;
   
   DecisionTreeClassifier(const mat& dataset,
@@ -118,11 +122,11 @@ public:
 									      std::move(maxDepth))
   {}
   
-  static Args _args(ModelTraits::AllClassifierArgs& p) {
-    return std::make_tuple<std::size_t, std::size_t, double, std::size_t>(std::get<0>(p),	// numClasses
-									  std::get<1>(p),	// minLeafSize
-									  std::get<2>(p),	// minGainSplit
-									  std::get<4>(p));	// maxDepth
+  static Args _args(const Model_Traits::AllClassifierArgs& p) {
+    return std::make_tuple(std::get<0>(p),	// numClasses
+			   std::get<1>(p),	// minLeafSize
+			   std::get<2>(p),	// minGainSplit
+			   std::get<4>(p));	// maxDepth
   }
 };
 
