@@ -33,6 +33,8 @@ class Model {
 public:
   Model() = default;
   Model(std::string id) : id_{id} {}
+
+  virtual ~Model() = default;
   
   void Project(const mat& data, Row<DataType>& projection) { 
     Project_(data, projection); 

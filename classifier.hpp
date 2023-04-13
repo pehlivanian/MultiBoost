@@ -18,6 +18,8 @@ public:
   virtual void Classify(const mat& data, Row<DataType>& pred) { Classify_(data, pred); }
   virtual void purge() { purge_(); }
 
+  ~ClassifierBase() override = default;
+
 private:
   virtual void purge_() = 0;
   virtual void Classify_(const mat&, Row<DataType>&) = 0;

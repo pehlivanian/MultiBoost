@@ -2,6 +2,8 @@
 #define __COMPOSITE_CLASSIFIER_HPP__
 
 #include <tuple>
+#include <memory>
+#include <vector>
 
 #include <mlpack/core.hpp>
 
