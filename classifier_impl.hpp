@@ -20,7 +20,7 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::encode(const Row<Data
 
 template<typename DataType, typename ClassifierType, typename... Args>
 void
-DiscreteClassifierBase<DataType, ClassifierType, Args...>::purge() {
+DiscreteClassifierBase<DataType, ClassifierType, Args...>::purge_() {
 
   labels_t_ = ones<Row<std::size_t>>(0);
 

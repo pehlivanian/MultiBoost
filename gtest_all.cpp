@@ -16,7 +16,7 @@
 #include "replay.hpp"
 
 using namespace IB_utils;
-using namespace ClassifierContext;
+using namespace ModelContext;
 using namespace ClassifierTypes;
 
 using dataset_t = Mat<double>;

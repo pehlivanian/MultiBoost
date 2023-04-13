@@ -362,7 +362,6 @@ public:
   std::pair<double, double> getAB() const {return std::make_pair(a_, b_); }
   
   virtual void printStats(int);
-  void purge();
   std::string write();  
   std::string writeDataset();
   std::string writeDatasetOOS();
@@ -400,10 +399,12 @@ private:
   double computeLearningRate(std::size_t);
   std::size_t computePartitionSize(std::size_t, const uvec&);
   
+  void purge_() override;
+  
   template<typename... Ts>
   void createClassifier(std::unique_ptr<ClassifierType>&, 
 			const mat&,
-			const Row<double>&,
+			rowvec&,
 			std::tuple<Ts...> const&);
 
   double computeSubLearningRate(std::size_t);

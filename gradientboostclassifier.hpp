@@ -66,6 +66,8 @@ template<typename ClassifierType>
 class GradientBoostClassifier : public CompositeClassifier<ClassifierType> {
 public:
 
+  GradientBoostClassifier() = default;
+
   // 1
   // mat	: arma::Mat<double>
   // labels	: arma::Row<std::size_t> <- CONVERTED TO Row<double>

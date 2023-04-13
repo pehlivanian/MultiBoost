@@ -1,5 +1,9 @@
 #include "titanic_driver.hpp"
 
+using namespace ModelContext;
+using namespace PartitionSize;
+using namespace StepSize;
+using namespace LearningRate;
 
 auto main(int argc, char **argv) -> int {
 
@@ -28,7 +32,8 @@ auto main(int argc, char **argv) -> int {
 	    << testDataset.n_rows << ")" << std::endl;
   
   
-  ClassifierContext::Context context{};
+  Context context{};
+
   // context.loss = lossFunction::Savage;
   // context.loss = lossFunction::BinomialDeviance;
   // context.loss = lossFunction::MSE;
@@ -45,8 +50,8 @@ auto main(int argc, char **argv) -> int {
   context.recursiveFit = true;
   context.serialize = false;
   context.serializationWindow = 500;
-  context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED; // INCREASING
-  context.learningRateMethod = LearningRate::RateMethod::FIXED;   // DECREASING
+  context.partitionSizeMethod = PartitionSizeMethod::FIXED; // INCREASING
+  context.learningRateMethod = LearningRateMethod::FIXED;   // DECREASING
   context.minLeafSize = 1;
   context.maxDepth = 10;
   context.minimumGainSplit = 0.;

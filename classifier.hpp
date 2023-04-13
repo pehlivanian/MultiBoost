@@ -16,9 +16,10 @@ public:
   ClassifierBase(std::string id) : Model<DataType>(id) {}
 
   virtual void Classify(const mat& data, Row<DataType>& pred) { Classify_(data, pred); }
+  virtual void purge() { purge_(); }
 
 private:
-  virtual void purge() = 0;
+  virtual void purge_() = 0;
   virtual void Classify_(const mat&, Row<DataType>&) = 0;
 
   void Project_(const mat& data, Row<DataType>& pred) override { Classify_(data, pred); }
@@ -66,7 +67,7 @@ private:
   std::tuple<Args...> args_;
 
   void Classify_(const mat&, Row<DataType>&) override;
-  void purge() override;
+  void purge_() override;
 
 };
 

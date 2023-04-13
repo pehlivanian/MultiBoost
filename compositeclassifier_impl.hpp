@@ -110,11 +110,20 @@ template<typename... Ts>
 void
 CompositeClassifier<ClassifierType>::createClassifier(std::unique_ptr<ClassifierType>& classifier,
 						      const mat& dataset,
-						      const Row<double>& labels,
+						      rowvec& labels,
 						      std::tuple<Ts...> const& args) {
-  std::apply([&classifier, &dataset, &labels](Ts const&... args){ classifier.reset(dataset,
-										   labels,
-										   args...);}, args);
+  // mimic:
+  // classifier.reset(new ClassifierType(dataset_,
+  //  				      constantLabels,
+  // 				      std::forward<typename ClassifierType::Args>(classifierArgs)));
+
+  auto _c = [&classifier, &dataset, &labels](Ts const&... classArgs) { 
+    classifier.reset(new ClassifierType(dataset,
+					labels,
+					classArgs...)
+					);
+  };
+  std::apply(_c, args);
 }
 
 template<typename ClassifierType>
@@ -184,8 +193,8 @@ CompositeClassifier<ClassifierType>::init_() {
   createClassifier(classifier, dataset_, constantLabels, classifierArgs);
 
   // classifier.reset(new ClassifierType(dataset_,
-  // 				      constantLabels,
-  // 			      std::forward<typename ClassifierType::Args>(classifierArgs)));
+  //  				      constantLabels,
+  //				      std::forward<typename ClassifierType::Args>(classifierArgs)));
 
   // first prediction
   if (!hasInitialPrediction_){
@@ -193,7 +202,7 @@ CompositeClassifier<ClassifierType>::init_() {
   }
 
   Row<DataType> prediction;
-  classifier->Classify_(dataset_, prediction);
+  classifier->Classify(dataset_, prediction);
 
   // update classifier, predictions
   updateClassifiers(std::move(classifier), prediction);
@@ -236,7 +245,7 @@ CompositeClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& 
 
   for (const auto& classifier : classifiers_) {
     Row<DataType> predictionStep;
-    classifier->Classify_(dataset, predictionStep);
+    classifier->Classify(dataset, predictionStep);
     prediction += predictionStep;    
   }  
 
@@ -502,24 +511,26 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     uvec rowMask = linspace<uvec>(0, -1+n_, n_);
     auto dataset_slice = dataset_.submat(rowMask, colMask_);
     
-    auto rootClassifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize+1));
-    
-    classifier.reset(new ClassifierType(dataset_slice,
-					best_leaves,
-					std::forward(rootClassifierArgs)));		     
+    const typename ClassifierType::Args& rootClassifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize+1));
+    createClassifier(classifier, dataset_slice, best_leaves, rootClassifierArgs);
+
+    // classifier.reset(new ClassifierType(dataset_slice,
+    //				best_leaves,
+    //				std::forward(rootClassifierArgs)));		     
   } else {
     // Fit classifier on {dataset, padded best_leaves}
     // Zero pad labels first
     allLeaves(colMask_) = best_leaves;
+
+    const typename ClassifierType::Args& rootClassifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize+1));
+    createClassifier(classifier, dataset_, allLeaves, rootClassifierArgs);
     
-    auto rootClassifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize+1));
-    
-    classifier.reset(new ClassifierType(dataset_,
-					allLeaves,
-					std::forward(rootClassifierArgs)));
+    // classifier.reset(new ClassifierType(dataset_,
+    // 				allLeaves,
+    // 				std::forward(rootClassifierArgs)));
   }
 
-  classifier->Classify_(dataset_, prediction);
+  classifier->Classify(dataset_, prediction);
 
   updateClassifiers(std::move(classifier), prediction);
 
@@ -580,7 +591,7 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
 
 template<typename ClassifierType>
 void
-CompositeClassifier<ClassifierType>::purge() {
+CompositeClassifier<ClassifierType>::purge_() {
 
   dataset_ = ones<mat>(0,0);
   labels_ = ones<Row<double>>(0);

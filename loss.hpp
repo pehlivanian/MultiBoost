@@ -82,7 +82,7 @@ namespace LossMeasures {
   class BinomialDevianceLoss : public LossFunction<DataType> {
   public:
     BinomialDevianceLoss() = default;
-    BinomialDevianceLoss<DataType>* create() { return new BinomialDevianceLoss<DataType>(); }
+    BinomialDevianceLoss<DataType>* create() override { return new BinomialDevianceLoss<DataType>(); }
   private:
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
@@ -96,7 +96,7 @@ namespace LossMeasures {
   class MSELoss : public LossFunction<DataType> {
   public:
     MSELoss() = default;
-    MSELoss<DataType>* create() { return new MSELoss(); }
+    MSELoss<DataType>* create() override { return new MSELoss(); }
   private:
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
@@ -110,7 +110,7 @@ namespace LossMeasures {
   class ExpLoss : public LossFunction<DataType> {
   public:
     ExpLoss() = default;
-    ExpLoss<DataType>* create() { return new ExpLoss<DataType>(); }
+    ExpLoss<DataType>* create() override { return new ExpLoss<DataType>(); }
   private:
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
@@ -124,7 +124,7 @@ namespace LossMeasures {
   class SavageLoss : public LossFunction<DataType> {
   public:
     SavageLoss() = default;
-    SavageLoss<DataType>* create() { return new SavageLoss<DataType>(); }
+    SavageLoss<DataType>* create() override { return new SavageLoss<DataType>(); }
   private:
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
@@ -138,7 +138,7 @@ namespace LossMeasures {
   class ArctanLoss : public LossFunction<DataType> {
   public:
     ArctanLoss() = default;
-    ArctanLoss<DataType>* create() { return new ArctanLoss<DataType>(); }
+    ArctanLoss<DataType>* create() override { return new ArctanLoss<DataType>(); }
   private:
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
@@ -152,7 +152,7 @@ namespace LossMeasures {
   class SyntheticLoss : public LossFunction<DataType> {
   public:
     SyntheticLoss() = default;
-    SyntheticLoss<DataType>* create() { return new SyntheticLoss<DataType>(); }
+    SyntheticLoss<DataType>* create() override { return new SyntheticLoss<DataType>(); }
   private:
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
@@ -166,7 +166,7 @@ namespace LossMeasures {
   class SyntheticLossVar1 : public LossFunction<DataType> {
   public:
     SyntheticLossVar1() = default;
-    SyntheticLossVar1<DataType>* create() { return new SyntheticLossVar1<DataType>(); }
+    SyntheticLossVar1<DataType>* create() override { return new SyntheticLossVar1<DataType>(); }
   private:
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
@@ -180,7 +180,7 @@ namespace LossMeasures {
   class SyntheticLossVar2 : public LossFunction<DataType> {
   public:
     SyntheticLossVar2() = default;
-    SyntheticLossVar2<DataType>* create() { return new SyntheticLossVar2<DataType>(); }
+    SyntheticLossVar2<DataType>* create() override { return new SyntheticLossVar2<DataType>(); }
   private:
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
