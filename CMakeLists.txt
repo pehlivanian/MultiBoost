@@ -39,7 +39,7 @@ option(BUILD_BENCHMARKS "Build benchmark tests" ON)
 option(BUILD_SINGLECLASS "Build inductive boost classifier" ON)
 
 # build Inductive Boost Regressor
-option(BUILD_REGRESSOR "Build inductive boost regressor" ON)
+option(BUILD_REGRESSOR "Build inductive boost regressor" OFF)
 
 # build incremental driver
 option(BUILD_INC_DRIVER "Build incrmental fitter" ON)
