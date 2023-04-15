@@ -21,23 +21,21 @@ using namespace Model_Traits;
 template<typename ClassifierType>
 class CompositeClassifier : public ClassifierBase<typename model_traits<ClassifierType>::datatype,
 						  typename model_traits<ClassifierType>::model> {
+
 public:  
   using DataType		= typename model_traits<ClassifierType>::datatype;
   using IntegralLabelType	= typename model_traits<ClassifierType>::integrallabeltype;
   using Classifier		= typename model_traits<ClassifierType>::model;
-  using AllClassifierArgs	= Model_Traits::AllClassifierArgs;
   using ClassifierList		= std::vector<std::unique_ptr<ClassifierBase<DataType, Classifier>>>;
 
   using Partition		= std::vector<std::vector<int>>;
   using PartitionList		= std::vector<Partition>;
 
   using Leaves			= Row<double>;
-  using LeavesList		= std::vector<Leaves>;
   using Prediction		= Row<double>;
   using PredictionList		= std::vector<Prediction>;
 
   CompositeClassifier() = default;
-  CompositeClassifier(const CompositeClassifier&) = default;
 
   // 1
   // mat	: arma::Mat<double>

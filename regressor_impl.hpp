@@ -10,14 +10,9 @@ ContinuousRegressorBase<DataType, RegressorType, Args...>::Predict_(const mat& d
 
 template<typename DataType, typename RegressorType, typename... Args>
 void
-Continusus
-
-template<typename DataType, typename RegressorType, typename... Args>
-void
-ContinuousRegressorBase<DataType, RegressorType, Args...>::setRegressor(const mat& dataset, Row<std::size_t>& labels, Args&&... args) {
+ContinuousRegressorBase<DataType, RegressorType, Args...>::setRegressor(const mat& dataset, Row<DataType>& labels, Args&&... args) {
 
   regressor_.reset(new RegressorType(dataset, labels, std::forward<Args>(args)...));
 }
-
 
 #endif

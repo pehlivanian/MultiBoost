@@ -16,9 +16,10 @@ public:
   RegressorBase(std::string id) : Model<DataType, RegressorType>(id) {}
 
   virtual void Predict(const mat& data, Row<DataType>& pred) { Predict_(data, pred); }
+  virtual void purge() { purge_(); }
 
 private:
-  virtual void purge() = 0;
+  virtual void purge_() = 0;
   virtual void Predict_(const mat&, Row<DataType>&) = 0;
 
   void Project_(const mat& data, Row<DataType>& pred) override { Predict_(data, pred); }
@@ -44,6 +45,8 @@ public:
   template<class Archive>
   void serialize(Archive &ar) {
     ar(cereal::base_class<RegressorBase<DataType, RegressorType>>(this), CEREAL_NVP(regressor_));
+    // Don't serialize args_
+    ar(cereal::base_class<RegressorBase<DataType, RegressorType>>(this), CEREAL_NVP(args_));
   }
 
 private:
@@ -51,9 +54,10 @@ private:
   std::tuple<Args...> args_;
 
   void Predict_(const mat&, Row<DataType>&) override;
-  void purge() override {};
+  void purge_() override {};
 
 };
 
+#include "regressor_impl.hpp"
 
 #endif

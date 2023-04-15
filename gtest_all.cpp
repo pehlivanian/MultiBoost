@@ -520,8 +520,8 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips)
 
   for (auto _ : trials) {
     
-    T newClassifier;
-    GradientBoostClassifier<DecisionTreeClassifier> classifier = GradientBoostClassifier<DecisionTreeClassifier>(trainDataset, trainLabels, testDataset, testLabels, context);
+    T classifier, newClassifier;
+    classifier = T(trainDataset, trainLabels, testDataset, testLabels, context);
     classifier.fit();
 
     std::string fileName = classifier.write();

@@ -46,7 +46,7 @@ CompositeClassifier<ClassifierType>::childContext(Context& context,
 }
 
 template<typename ClassifierType>
-typename CompositeClassifier<ClassifierType>::AllClassifierArgs
+AllClassifierArgs
 CompositeClassifier<ClassifierType>::allClassifierArgs(std::size_t numClasses) {
   return std::make_tuple(numClasses, minLeafSize_, minimumGainSplit_, numTrees_, maxDepth_);
 }
@@ -133,7 +133,6 @@ CompositeClassifier<ClassifierType>::updateClassifiers(std::unique_ptr<Classifie
   latestPrediction_ += prediction;
   classifier->purge();
   classifiers_.push_back(std::move(classifier));
-  // predictions_.emplace_back(prediction);
 }
 
 template<typename ClassifierType>

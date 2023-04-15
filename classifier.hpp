@@ -54,6 +54,8 @@ public:
   void serialize(Archive &ar) {
     ar(cereal::base_class<ClassifierBase<DataType, ClassifierType>>(this), CEREAL_NVP(leavesMap_));
     ar(cereal::base_class<ClassifierBase<DataType, ClassifierType>>(this), CEREAL_NVP(classifier_));
+    // Don't serialize args_
+    // ar(cereal::base_class<ClassifierBase<DataType, ClassifierType>>(this), CEREAL_NVP(args_));
   }
 
 private:

@@ -4,7 +4,6 @@
 #include <utility>
 
 #include <mlpack/core.hpp>
-#include <mlpack/methods/decision_tree/decision_tree.hpp>
 #include <mlpack/methods/decision_tree/decision_tree_regressor.hpp>
 #include <mlpack/methods/decision_tree/information_gain.hpp>
 #include <mlpack/methods/decision_tree/gini_gain.hpp>
@@ -19,9 +18,15 @@ using namespace mlpack::tree;
 using namespace mlpack::data;
 using namespace mlpack::util;
 
+
 namespace Model_Traits {
 
+  using AllRegressorArgs = std::tuple<std::size_t,	// (0) minLeafSize
+				      double,		// (1) minGainSplit
+				      std::size_t>;	// (2) maxDepth
+  
   namespace RegressorTypes {
+
     using DecisionTreeRegressorRegressorType  = DecisionTreeRegressor<MADGain, BestBinaryNumericSplit>;
 
     // using DecisionTreeRegressorRegressorType = DecisionTreeRegressor<MADGain>;
@@ -51,6 +56,9 @@ class DecisionTreeRegressorRegressor :
   public DecisionTreeRegressorBase<std::size_t, double, std::size_t> {
   
 public:
+
+  using Args = std::tuple<std::size_t, double, std::size_t>;
+
   DecisionTreeRegressorRegressor() = default;
   DecisionTreeRegressorRegressor(const mat& dataset,
 				 rowvec& labels,
@@ -63,6 +71,13 @@ public:
 								std::move(minGainSplit),
 								std::move(maxDepth))
   {}
+
+  static Args _args(const Model_Traits::AllRegressorArgs& p) {
+    return std::make_tuple(std::get<0>(p),
+			   std::get<1>(p),
+			   std::get<2>(p));
+  }
+
 };
 
 namespace Model_Traits {
