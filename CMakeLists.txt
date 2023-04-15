@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.24)
 
 project(InductiveBoost)
 
+add_definitions(-w)
+
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 include(GNUInstallDirs)

@@ -103,7 +103,6 @@ class DecisionTreeClassifier :
   public DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t> {
 
 public:
-
   using Args = std::tuple<std::size_t, std::size_t, double, std::size_t>;
 
   DecisionTreeClassifier() = default;

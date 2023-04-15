@@ -28,14 +28,12 @@ void print_vector(Row row) {
 template void print_matrix<arma::mat>(arma::mat matrix);
 template void print_vector<arma::rowvec>(arma::rowvec row);
 
-template<typename DataType>
+template<typename DataType, typename ClassifierType>
 class Model {
 public:
   Model() = default;
   Model(std::string id) : id_{id} {}
 
-  virtual ~Model() = default;
-  
   void Project(const mat& data, Row<DataType>& projection) { 
     Project_(data, projection); 
   }

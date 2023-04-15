@@ -9,11 +9,11 @@
 
 using namespace arma;
 
-template<typename DataType>
-class RegressorBase : public Model<DataType> {
+template<typename DataType, typename RegressorType>
+class RegressorBase : public Model<DataType, RegressorType> {
 public:
   RegressorBase() = default;
-  RegressorBase(std::string id) : Model<DataType>(id) {}
+  RegressorBase(std::string id) : Model<DataType, RegressorType>(id) {}
 
   virtual void Predict(const mat& data, Row<DataType>& pred) { Predict_(data, pred); }
 
@@ -25,10 +25,10 @@ private:
 };
 
 template<typename DataType, typename RegressorType, typename... Args>
-class ContinuousRegressorBase : public RegressorBase<DataType> {
+class ContinuousRegressorBase : public RegressorBase<DataType, RegressorType> {
 public:  
   ContinuousRegressorBase(const mat& dataset, Row<DataType>& labels, Args&&... args) : 
-    RegressorBase<DataType>(typeid(*this).name()) 
+    RegressorBase<DataType, RegressorType>(typeid(*this).name()) 
   {
 
     setRegressor(dataset, labels, std::forward<Args>(args)...);
@@ -38,13 +38,12 @@ public:
   ContinuousRegressorBase(std::unique_ptr<RegressorType> regressor) : regressor_{std::move(regressor)} {}
 
   ContinuousRegressorBase() = default;
-  ~ContinuousRegressorBase() = default;
   
   void setRegressor(const mat&, Row<DataType>&, Args&&...);
 
   template<class Archive>
   void serialize(Archive &ar) {
-    ar(cereal::base_class<RegressorBase<DataType>>(this), CEREAL_NVP(regressor_));
+    ar(cereal::base_class<RegressorBase<DataType, RegressorType>>(this), CEREAL_NVP(regressor_));
   }
 
 private:

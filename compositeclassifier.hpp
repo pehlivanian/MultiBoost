@@ -19,13 +19,14 @@ using namespace ModelContext;
 using namespace Model_Traits;
 
 template<typename ClassifierType>
-class CompositeClassifier : public ClassifierBase<typename model_traits<ClassifierType>::datatype> {
+class CompositeClassifier : public ClassifierBase<typename model_traits<ClassifierType>::datatype,
+						  typename model_traits<ClassifierType>::model> {
 public:  
   using DataType		= typename model_traits<ClassifierType>::datatype;
   using IntegralLabelType	= typename model_traits<ClassifierType>::integrallabeltype;
   using Classifier		= typename model_traits<ClassifierType>::model;
   using AllClassifierArgs	= Model_Traits::AllClassifierArgs;
-  using ClassifierList		= std::vector<std::unique_ptr<ClassifierBase<DataType>>>;
+  using ClassifierList		= std::vector<std::unique_ptr<ClassifierBase<DataType, Classifier>>>;
 
   using Partition		= std::vector<std::vector<int>>;
   using PartitionList		= std::vector<Partition>;
@@ -36,7 +37,7 @@ public:
   using PredictionList		= std::vector<Prediction>;
 
   CompositeClassifier() = default;
-  virtual ~CompositeClassifier() = default;
+  CompositeClassifier(const CompositeClassifier&) = default;
 
   // 1
   // mat	: arma::Mat<double>
@@ -45,7 +46,8 @@ public:
   CompositeClassifier(const mat& dataset, 
 		      const Row<std::size_t>& labels,
 		      Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<double>>::from(labels)},
     hasOOSData_{false},
@@ -63,7 +65,8 @@ public:
   CompositeClassifier(const mat& dataset,
 			  const Row<double>& labels,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     hasOOSData_{false},
@@ -85,7 +88,8 @@ public:
 			  const mat& dataset_oos,
 			  const Row<std::size_t>& labels_oos,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<double>>::from(labels)},
     dataset_oos_{dataset_oos},
@@ -109,7 +113,8 @@ public:
 			  const mat& dataset_oos,
 			  const Row<double>& labels_oos,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     dataset_oos_{dataset_oos},
@@ -134,7 +139,8 @@ public:
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<double>>::from(labels)},
     hasOOSData_{false},
@@ -156,7 +162,8 @@ public:
 			  const Row<std::size_t>& labels,
 			  const Row<double>& latestPrediction,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<double>>::from(labels)},
     hasOOSData_{false},
@@ -179,7 +186,8 @@ public:
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     hasOOSData_{false},
@@ -201,7 +209,8 @@ public:
 			  const Row<double>& labels,
 			  const Row<double>& latestPrediction,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     hasOOSData_{false},
@@ -228,7 +237,8 @@ public:
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<double>>::from(labels)},
     dataset_oos_{dataset_oos},
@@ -256,7 +266,8 @@ public:
 			  const Row<std::size_t>& labels_oos,
 			  const Row<double>& latestPrediction,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<double>>::from(labels)},
     dataset_oos_{dataset_oos},
@@ -285,7 +296,8 @@ public:
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     dataset_oos_{dataset_oos},
@@ -313,7 +325,8 @@ public:
 			  const Row<double>& labels_oos,
 			  const Row<double>& latestPrediction,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     dataset_oos_{dataset_oos},
@@ -377,11 +390,11 @@ public:
 
   template<class Archive>
   void serialize(Archive &ar) {
-    ar(cereal::base_class<ClassifierBase<DataType>>(this), CEREAL_NVP(classifiers_));
-    ar(cereal::base_class<ClassifierBase<DataType>>(this), symmetrized_);
-    ar(cereal::base_class<ClassifierBase<DataType>>(this), a_);
-    ar(cereal::base_class<ClassifierBase<DataType>>(this), b_);
-    // ar(cereal::base_class<ClassifierBase<DataType>>(this), latestPrediction_);
+    ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), CEREAL_NVP(classifiers_));
+    ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), symmetrized_);
+    ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), a_);
+    ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), b_);
+    // ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), latestPrediction_);
   }
 
 private:
@@ -413,7 +426,7 @@ private:
   std::size_t computeSubPartitionSize(std::size_t);
   std::size_t computeSubStepSize(std::size_t);
 
-  void updateClassifiers(std::unique_ptr<ClassifierBase<DataType>>&&, Row<DataType>&);
+  void updateClassifiers(std::unique_ptr<ClassifierBase<DataType, Classifier>>&&, Row<DataType>&);
 
   std::pair<rowvec,rowvec> generate_coefficients(const Row<DataType>&, const uvec&);
   std::pair<rowvec,rowvec> generate_coefficients(const Row<DataType>&, const Row<DataType>&, const uvec&);

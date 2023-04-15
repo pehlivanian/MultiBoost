@@ -128,7 +128,7 @@ CompositeClassifier<ClassifierType>::createClassifier(std::unique_ptr<Classifier
 
 template<typename ClassifierType>
 void
-CompositeClassifier<ClassifierType>::updateClassifiers(std::unique_ptr<ClassifierBase<DataType>>&& classifier,
+CompositeClassifier<ClassifierType>::updateClassifiers(std::unique_ptr<ClassifierBase<DataType, Classifier>>&& classifier,
 						       Row<DataType>& prediction) {
   latestPrediction_ += prediction;
   classifier->purge();
