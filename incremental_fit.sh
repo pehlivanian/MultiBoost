@@ -2,13 +2,13 @@
 
 CLASSIFIER=DecisionTreeClassifier
 PATH=/home/charles/src/C++/sandbox/Inductive-Boost/build/
-EXEC_CC=${PATH}createContext${CLASSIFIER}
+EXEC_CC=${PATH}createContext
 
 CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCreifissa.cxt
 CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCreifissa.cxt
 
 STEPS=100
-BASESTEPS=10000
+BASESTEPS=1000
 LEARNINGRATE=.0001
 RECURSIVE_FIT=true
 PARTITION_SIZE=100

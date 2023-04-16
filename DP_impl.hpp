@@ -10,13 +10,13 @@ DPSolver<DataType>::sort_by_priority(std::vector<DataType>& a, std::vector<DataT
   std::vector<int> ind(a.size());
   std::iota(ind.begin(), ind.end(), 0);
 
-  std::stable_sort(ind.begin(), ind.end(),
-		   [&a, &b](int i, int j) {
-		     return (a[i]/b[i]) < (a[j]/b[j]);
-		   });
-
+  std::sort(ind.begin(), ind.end(),
+	    [&a, &b](int i, int j) {
+	      return (a[i]/b[i]) < (a[j]/b[j]);
+	    });
+  
   priority_sortind_ = ind;
-
+  
   std::vector<DataType> a_s(n_), b_s(n_);
   for (int i=0; i<n_; ++i) {
     a_s[i] = a[ind[i]];

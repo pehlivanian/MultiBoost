@@ -117,6 +117,7 @@ CompositeClassifier<ClassifierType>::createClassifier(std::unique_ptr<Classifier
   //  				      constantLabels,
   // 				      std::forward<typename ClassifierType::Args>(classifierArgs)));
 
+  // Instantiation of ClassifierType should include fit stage; look at profile results
   auto _c = [&classifier, &dataset, &labels](Ts const&... classArgs) { 
     classifier.reset(new ClassifierType(dataset,
 					labels,

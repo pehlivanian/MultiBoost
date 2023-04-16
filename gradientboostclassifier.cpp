@@ -1,5 +1,11 @@
 #include "gradientboostclassifier.hpp"
 
+/* 
+   --- <.> ___
+   OLD MODEL
+   --- <.> ___
+*/
+
 /*
   using DTC = ClassifierTypes::DecisionTreeClassifierType;
   using CTC = ClassifierTypes::DecisionTreeRegressorType;

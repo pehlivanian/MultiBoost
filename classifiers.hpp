@@ -13,6 +13,17 @@
 #include <mlpack/methods/decision_tree/multiple_random_dimension_select.hpp>
 #include <mlpack/methods/random_forest/random_forest.hpp>
 
+#include <cereal/types/polymorphic.hpp>
+#include <cereal/types/base_class.hpp>
+#include <cereal/archives/portable_binary.hpp>
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/json.hpp>
+#include <cereal/archives/xml.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/access.hpp>
+
 #include "classifier.hpp"
 
 using namespace mlpack;
@@ -155,5 +166,65 @@ namespace Model_Traits {
     using modelArgs = std::tuple<std::size_t, std::size_t, std::size_t>;
   };
 } // namespace Model_Traits
+
+
+////////////////////////////////////////////////////////
+// CEREAL DEFINITIONS, REGISTRATIONS, OVERLOADS, ETC. //
+////////////////////////////////////////////////////////
+
+using DTC = Model_Traits::ClassifierTypes::DecisionTreeClassifierType;
+using RFC = Model_Traits::ClassifierTypes::RandomForestClassifierType;
+
+using DTCB = DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t>;
+using RFCB = RandomForestClassifierBase<std::size_t, std::size_t, std::size_t>;
+
+using DiscreteClassifierBaseDTC = DiscreteClassifierBase<double, 
+							 Model_Traits::ClassifierTypes::DecisionTreeClassifierType,
+							 std::size_t,
+							 std::size_t,
+							 double,
+							 std::size_t>;
+using DiscreteClassifierBaseRFC = DiscreteClassifierBase<double,
+							 Model_Traits::ClassifierTypes::RandomForestClassifierType,
+							 std::size_t,
+							 std::size_t,
+							 std::size_t>;
+
+using ClassifierBaseDTC = ClassifierBase<double, Model_Traits::ClassifierTypes::DecisionTreeClassifierType>;
+using ClassifierBaseRFC = ClassifierBase<double, Model_Traits::ClassifierTypes::RandomForestClassifierType>;
+
+
+using ModelDTC = Model<double, Model_Traits::ClassifierTypes::DecisionTreeClassifierType>;
+using ModelRFC = Model<double, Model_Traits::ClassifierTypes::RandomForestClassifierType>;
+
+CEREAL_REGISTER_TYPE(ClassifierBaseDTC);
+CEREAL_REGISTER_TYPE(ClassifierBaseRFC);
+
+CEREAL_REGISTER_TYPE(DiscreteClassifierBaseDTC);
+CEREAL_REGISTER_TYPE(DiscreteClassifierBaseRFC);
+
+CEREAL_REGISTER_TYPE(DTCB);
+CEREAL_REGISTER_TYPE(RFCB);
+
+CEREAL_REGISTER_TYPE(DecisionTreeClassifier);
+CEREAL_REGISTER_TYPE(RandomForestClassifier);
+
+CEREAL_REGISTER_TYPE(ModelDTC);
+CEREAL_REGISTER_TYPE(ModelRFC);			      	
+
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTC, DecisionTreeClassifier);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelRFC, RandomForestClassifier);
+
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTC, DTCB);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelRFC, RFCB);
+
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTC, DiscreteClassifierBaseDTC);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelRFC, DiscreteClassifierBaseRFC);
+
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelRFC, ClassifierBaseDTC);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelRFC, ClassifierBaseRFC);
+
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseDTC, DecisionTreeClassifier);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseRFC, RandomForestClassifier);
 
 #endif
