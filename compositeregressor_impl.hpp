@@ -1,8 +1,7 @@
-#ifndef __COMPOSITECLASSIFIER_IMPL_HPP__
-#define __COMPOSITECLASSIFIER_IMPL_HPP__
+#ifndef __COMPOSITEREGRESSOR_IMPL_HPP__
+#define __COMPOSITEREGRESSOR_IMPL_HPP__
 
 using row_d = Row<double>;
-using row_t = Row<std::size_t>;
 
 using namespace PartitionSize;
 using namespace LearningRate;
@@ -11,24 +10,24 @@ using namespace ModelContext;
 using namespace Objectives;
 using namespace IB_utils;
 
-namespace {
+namespace FileScope {
   const bool POST_EXTRAPOLATE = false;
   const bool DIAGNOSTICS = false;
-}
+} // namespace FileScope
 
-template<typename ClassifierType>
+template<typename RegressorType>
 void
-CompositeClassifier<ClassifierType>::childContext(Context& context, 
-						  std::size_t subPartitionSize,
-						  double subLearningRate,
-						  std::size_t stepSize) {
+CompositeRegressor<RegressorType>::childContext(Context& context, 
+						std::size_t subPartitionSize,
+						double subLearningRate,
+						std::size_t stepSize) {
 
   context.loss			= loss_;
   context.partitionRatio	= std::min(1., 2*partitionRatio_);
   context.learningRate		= subLearningRate;
   context.baseSteps		= baseSteps_;
   context.symmetrizeLabels	= false;
-  context.removeRedundantLabels	= true;
+  context.removeRedundantLabels	= false;
   context.rowSubsampleRatio	= row_subsample_ratio_;
   context.colSubsampleRatio	= col_subsample_ratio_;
   context.recursiveFit		= true;
@@ -45,15 +44,15 @@ CompositeClassifier<ClassifierType>::childContext(Context& context,
   context.minimumGainSplit	= minimumGainSplit_;
 }
 
-template<typename ClassifierType>
-AllClassifierArgs
-CompositeClassifier<ClassifierType>::allClassifierArgs(std::size_t numClasses) {
-  return std::make_tuple(numClasses, minLeafSize_, minimumGainSplit_, numTrees_, maxDepth_);
+template<typename RegressorType>
+AllRegressorArgs
+CompositeRegressor<RegressorType>::allRegressorArgs() {
+  return std::make_tuple(minLeafSize_, minimumGainSplit_, maxDepth_);
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 void
-CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
+CompositeRegressor<RegressorType>::contextInit_(Context&& context) {
 
   loss_				= context.loss;
   partitionSize_		= context.partitionSize;
@@ -61,8 +60,6 @@ CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
   learningRate_			= context.learningRate;
   steps_			= context.steps;
   baseSteps_			= context.baseSteps;
-  symmetrized_			= context.symmetrizeLabels;
-  removeRedundantLabels_	= context.removeRedundantLabels;
   quietRun_			= context.quietRun;
   row_subsample_ratio_		= context.rowSubsampleRatio;
   col_subsample_ratio_		= context.colSubsampleRatio;
@@ -83,62 +80,61 @@ CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
 
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 row_d
-CompositeClassifier<ClassifierType>::_constantLeaf() const {
+CompositeRegressor<RegressorType>::_constantLeaf() const {
 
   row_d r;
   r.zeros(dataset_.n_cols);
   return r;
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 row_d
-CompositeClassifier<ClassifierType>::_randomLeaf() const {
+CompositeRegressor<RegressorType>::_randomLeaf() const {
 
   row_d r(dataset_.n_cols, arma::fill::none);
   std::mt19937 rng;
-  // std::uniform_int_distribution<std::size_t> dist{1, numVals};
   std::uniform_real_distribution<DataType> dist{-learningRate_, learningRate_};
   r.imbue([&](){ return dist(rng);});
   return r;
 
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 template<typename... Ts>
 void
-CompositeClassifier<ClassifierType>::createClassifier(std::unique_ptr<ClassifierType>& classifier,
-						      const mat& dataset,
-						      rowvec& labels,
-						      std::tuple<Ts...> const& args) {
+CompositeRegressor<RegressorType>::createRegressor(std::unique_ptr<RegressorType>& regressor,
+						   const mat& dataset,
+						   rowvec& labels,
+						   std::tuple<Ts...> const& args) {
   // mimic:
-  // classifier.reset(new ClassifierType(dataset_,
+  // regressor.reset(new RegressorType(dataset_,
   //  				      constantLabels,
-  // 				      std::forward<typename ClassifierType::Args>(classifierArgs)));
+  // 				      std::forward<typename RegressorType::Args>(regressorArgs)));
 
-  // Instantiation of ClassifierType should include fit stage; look at profile results
-  auto _c = [&classifier, &dataset, &labels](Ts const&... classArgs) { 
-    classifier.reset(new ClassifierType(dataset,
-					labels,
-					classArgs...)
-					);
+  // Instantiation of RegressorType should include fit stage; look at profile results
+  auto _c = [&regressor, &dataset, &labels](Ts const&... classArgs) { 
+    regressor.reset(new RegressorType(dataset,
+				      labels,
+				      classArgs...)
+		    );
   };
   std::apply(_c, args);
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 void
-CompositeClassifier<ClassifierType>::updateClassifiers(std::unique_ptr<ClassifierBase<DataType, Classifier>>&& classifier,
-						       Row<DataType>& prediction) {
+CompositeRegressor<RegressorType>::updateRegressors(std::unique_ptr<RegressorBase<DataType, Regressor>>&& regressor,
+						    Row<DataType>& prediction) {
   latestPrediction_ += prediction;
-  classifier->purge();
-  classifiers_.push_back(std::move(classifier));
+  regressor->purge();
+  regressors_.push_back(std::move(regressor));
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 void
-CompositeClassifier<ClassifierType>::init_() {
+CompositeRegressor<RegressorType>::init_() {
 
   
   // Serialize dataset, labels first
@@ -166,35 +162,24 @@ CompositeClassifier<ClassifierType>::init_() {
   std::size_t a=1, b=std::max(1, static_cast<int>(m_ * col_subsample_ratio_));
   partitionDist_ = std::uniform_int_distribution<std::size_t>(a, b);							      
 
-  // Make labels members of {-1,1}
-  // Note that we pass labels_oos to this classifier for OOS testing
-  // at regular intervals, but the external labels (hence labels_oos_)
-  // may be in {0,1} and we leave things like that.
-  assert(!(symmetrized_ && removeRedundantLabels_));
-  if (symmetrized_) {
-    symmetrizeLabels();
-  } else if (removeRedundantLabels_) {
-    auto uniqueVals = uniqueCloseAndReplace(labels_);
-  }
-
   // partitions
   Partition partition = PartitionUtils::_fullPartition(m_);
   partitions_.push_back(partition);
 
-  // classifiers
-  // don't overfit on first classifier
+  // regressors
+  // don't overfit on first regressor
   row_d constantLabels = _constantLeaf();
   // row_d constantLabels = _randomLeaf();
  
-  // numClasses is always the first parameter for the classifier
-  // form parameter pack based on ClassifierType
-  std::unique_ptr<ClassifierType> classifier;
-  const typename ClassifierType::Args& classifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize_));
-  createClassifier(classifier, dataset_, constantLabels, classifierArgs);
+  // numClasses is always the first parameter for the regressor
+  // form parameter pack based on RegressorType
+  std::unique_ptr<RegressorType> regressor;
+  const typename RegressorType::Args& regressorArgs = RegressorType::_args(allRegressorArgs());
+  createRegressor(regressor, dataset_, constantLabels, regressorArgs);
 
-  // classifier.reset(new ClassifierType(dataset_,
+  // regressor.reset(new RegressorType(dataset_,
   //  				      constantLabels,
-  //				      std::forward<typename ClassifierType::Args>(classifierArgs)));
+  //				      std::forward<typename RegressorType::Args>(regressorArgs)));
 
   // first prediction
   if (!hasInitialPrediction_){
@@ -202,40 +187,40 @@ CompositeClassifier<ClassifierType>::init_() {
   }
 
   Row<DataType> prediction;
-  classifier->Classify(dataset_, prediction);
+  regressor->Predict(dataset_, prediction);
 
-  // update classifier, predictions
-  updateClassifiers(std::move(classifier), prediction);
+  // update regressor, predictions
+  updateRegressors(std::move(regressor), prediction);
 
   // set loss function
   lossFn_ = lossMap<DataType>[loss_];
 
-  // ensure this is a leaf classifier for lowest-level call
+  // ensure this is a leaf regressor for lowest-level call
   if (partitionSize_ == 1) {
     recursiveFit_ = false;
   }
 
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 void
-CompositeClassifier<ClassifierType>::Predict(Row<DataType>& prediction) {
+CompositeRegressor<RegressorType>::Predict(Row<DataType>& prediction) {
 
   prediction = latestPrediction_;
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 void
-CompositeClassifier<ClassifierType>::Predict(Row<DataType>& prediction, const uvec& colMask) {
+CompositeRegressor<RegressorType>::Predict(Row<DataType>& prediction, const uvec& colMask) {
 
   Predict(prediction);
   prediction = prediction.submat(zeros<uvec>(1), colMask);
 
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 void
-CompositeClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
+CompositeRegressor<RegressorType>::Predict(const mat& dataset, Row<DataType>& prediction) {
 
   if (serialize_ && indexName_.size()) {
     throw predictionAfterClearedClassifiersException();
@@ -243,56 +228,17 @@ CompositeClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& 
 
   prediction = zeros<Row<DataType>>(dataset.n_cols);
 
-  for (const auto& classifier : classifiers_) {
+  for (const auto& regressor : regressors_) {
     Row<DataType> predictionStep;
-    classifier->Classify(dataset, predictionStep);
+    regressor->Predict(dataset, predictionStep);
     prediction += predictionStep;    
   }  
 
-  if (symmetrized_ and not ignoreSymmetrization) {
-    deSymmetrize(prediction);
-  }
-
 }
 
-template<typename ClassifierType>
-void
-CompositeClassifier<ClassifierType>::Predict(Row<typename CompositeClassifier<ClassifierType>::IntegralLabelType>& prediction) {
-
-  row_d prediction_d = conv_to<row_d>::from(prediction);
-  Predict(prediction_d);
-  prediction = conv_to<row_t>::from(prediction_d);
-}
-
-
-template<typename ClassifierType>
-void
-CompositeClassifier<ClassifierType>::Predict(Row<typename CompositeClassifier<ClassifierType>::IntegralLabelType>& prediction, const uvec& colMask) {
-
-  row_d prediction_d = conv_to<row_d>::from(prediction);
-  Predict(prediction_d, colMask);
-  prediction = conv_to<row_t>::from(prediction_d);
-}
-
-
-template<typename ClassifierType>
-void
-CompositeClassifier<ClassifierType>::Predict(const mat& dataset, Row<typename CompositeClassifier<ClassifierType>::IntegralLabelType>& prediction) {
-
-  row_d prediction_d;
-  Predict(dataset, prediction_d);
-
-  if (symmetrized_) {
-    deSymmetrize(prediction_d);
-  }
-
-  prediction = conv_to<row_t>::from(prediction_d);
-
-}
-
-template<typename ClassifierType>
+template<typename RegressorType>
 uvec
-CompositeClassifier<ClassifierType>::subsampleRows(size_t numRows) {
+CompositeRegressor<RegressorType>::subsampleRows(size_t numRows) {
 
   // XXX
   // Necessary?
@@ -302,9 +248,9 @@ CompositeClassifier<ClassifierType>::subsampleRows(size_t numRows) {
   return r;
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 uvec
-CompositeClassifier<ClassifierType>::subsampleCols(size_t numCols) {
+CompositeRegressor<RegressorType>::subsampleCols(size_t numCols) {
 
   // XXX
   // Necessary?
@@ -314,103 +260,9 @@ CompositeClassifier<ClassifierType>::subsampleCols(size_t numCols) {
   return r;
 }
 
-template<typename ClassifierType>
-Row<typename CompositeClassifier<ClassifierType>::DataType>
-CompositeClassifier<ClassifierType>::uniqueCloseAndReplace(Row<DataType>& labels) {
-
-  Row<DataType> uniqueVals = unique(labels);
-  double eps = static_cast<double>(std::numeric_limits<float>::epsilon());
-  
-  std::vector<std::pair<DataType, DataType>> uniqueByEps;
-  std::vector<DataType> uniqueVals_;
-  
-  uniqueVals_.push_back(uniqueVals[0]);
-  
-  for (int i=1; i<uniqueVals.n_cols; ++i) {
-    bool found = false;
-    for (const auto& el : uniqueVals_) {
-      if (fabs(uniqueVals[i] - el) <= eps) {
-	found = true;
-	uniqueByEps.push_back(std::make_pair(uniqueVals[i], el));
-      }
-    }
-    if (!found) {
-      uniqueVals_.push_back(uniqueVals[i]);
-    }      
-  }
-  
-  // Replace redundant values in labels_
-  for(const auto& el : uniqueByEps) {
-    uvec ind = find(labels_ == el.first);
-    labels.elem(ind).fill(el.second);
-  }
-
-  // Now uniqueVals_ matches labels_ characteristics
-  return uniqueVals_;
-}
-
-template<typename ClassifierType>
+template<typename RegressorType>
 void
-CompositeClassifier<ClassifierType>::symmetrizeLabels(Row<DataType>& labels) {
-
-  Row<DataType> uniqueVals = uniqueCloseAndReplace(labels);
-
-  if (uniqueVals.n_cols == 1) {
-
-    // a_ = fabs(1./uniqueVals(0)); b_ = 0.;
-    // labels = sign(labels);
-    a_ = 1.; b_ = 1.;
-    labels = ones<Row<double>>(labels.n_elem);
-  } else if (uniqueVals.size() == 2) {
-
-    double m = *std::min_element(uniqueVals.cbegin(), uniqueVals.cend());
-    double M = *std::max_element(uniqueVals.cbegin(), uniqueVals.cend());
-    a_ = 2./static_cast<double>(M-m);
-    b_ = static_cast<double>(m+M)/static_cast<double>(m-M);
-    labels = sign(a_*labels + b_);
-    // labels = sign(2 * labels - 1);      
-  } else if (uniqueVals.size() == 3) { // for the multiclass case, we may have values in {0, 1, 2}
-
-    uniqueVals = sort(uniqueVals);
-    double eps = static_cast<double>(std::numeric_limits<float>::epsilon());
-    if ((fabs(uniqueVals[0]) <= eps) &&
-	(fabs(uniqueVals[1]-.5) <= eps) &&
-	(fabs(uniqueVals[2]-1.) <= eps)) {
-      a_ = 2.; b_ = -1.;
-      labels = sign(a_*labels - 1);
-    }
-  }
-  else {
-
-    assert(uniqueVals.size() == 2);
-  }
-  
-}
-
-template<typename ClassifierType>
-void
-CompositeClassifier<ClassifierType>::symmetrizeLabels() {
-
-  symmetrizeLabels(labels_);
-}
-
-template<typename ClassifierType>
-void
-CompositeClassifier<ClassifierType>::symmetrize(Row<DataType>& prediction) {
-
-  prediction = sign(a_*prediction + b_);
-}
-
-template<typename ClassifierType>
-void
-CompositeClassifier<ClassifierType>::deSymmetrize(Row<DataType>& prediction) {
-
-  prediction = (sign(prediction) - b_)/ a_;
-}
-
-template<typename ClassifierType>
-void
-CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
+CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
 
   if (!reuseColMask_) {
     int colRatio = static_cast<size_t>(m_ * col_subsample_ratio_);
@@ -424,7 +276,8 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   Leaves allLeaves = zeros<row_d>(m_), best_leaves;
 
   Row<DataType> prediction, prediction_slice;
-  std::unique_ptr<ClassifierType> classifier;
+  
+  std::unique_ptr<RegressorType> regressor;
 
   //////////////////////////
   // BEGIN RECURSIVE STEP //
@@ -458,18 +311,18 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     // aside from the fact that it is of double type, it may have more 
     // than one class. So we don't want to symmetrize, but we want 
     // to remap the redundant values.
-    std::unique_ptr<CompositeClassifier<ClassifierType>> classifier;
-    classifier.reset(new CompositeClassifier<ClassifierType>(dataset_, 
-							     labels_, 
-							     latestPrediction_, 
-							     colMask_, 
-							     context));
+    std::unique_ptr<CompositeRegressor<RegressorType>> regressor;
+    regressor.reset(new CompositeRegressor<RegressorType>(dataset_, 
+							  labels_, 
+							  latestPrediction_, 
+							  colMask_, 
+							  context));
 
-    classifier->fit();
+    regressor->fit();
 
-    classifier->Predict(dataset_, prediction);
+    regressor->Predict(dataset_, prediction);
 
-    updateClassifiers(std::move(classifier), prediction);
+    updateRegressors(std::move(regressor), prediction);
 
   } 
   ////////////////////////
@@ -477,10 +330,10 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   ////////////////////////
   
   // If we are in recursive mode and partitionSize <= 2, fall through
-  // to this case for the leaf classifier
+  // to this case for the leaf regressor
 
-  if (DIAGNOSTICS)
-    std::cout << "FITTING CLASSIFIER FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
+  if (FileScope::DIAGNOSTICS)
+    std::cout << "FITTING REGRESSOR FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
 	      << partitionSize_ << ", "
 	      << stepNum << ", "
 	      << steps_ << ")"
@@ -503,47 +356,47 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 				    learningRate,
 				    colMask_);
   
-  if (POST_EXTRAPOLATE) {
-    // Fit classifier on {dataset_slice, best_leaves}, both subsets of the original data
+  if (FileScope::POST_EXTRAPOLATE) {
+    // Fit regressor on {dataset_slice, best_leaves}, both subsets of the original data
     // There will be no post-padding of zeros as that is not defined for OOS prediction, we
-    // just use the classifier below to predict on the larger dataset for this step's
+    // just use the regressor below to predict on the larger dataset for this step's
     // prediction
     uvec rowMask = linspace<uvec>(0, -1+n_, n_);
     auto dataset_slice = dataset_.submat(rowMask, colMask_);
     
-    const typename ClassifierType::Args& rootClassifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize+1));
-    createClassifier(classifier, dataset_slice, best_leaves, rootClassifierArgs);
+    const typename RegressorType::Args& rootRegressorArgs = RegressorType::_args(allRegressorArgs());
+    createRegressor(regressor, dataset_slice, best_leaves, rootRegressorArgs);
 
-    // classifier.reset(new ClassifierType(dataset_slice,
+    // regressor.reset(new RegressorType(dataset_slice,
     //				best_leaves,
-    //				std::forward(rootClassifierArgs)));		     
+    //				std::forward(rootRegressorArgs)));		     
   } else {
-    // Fit classifier on {dataset, padded best_leaves}
+    // Fit regressor on {dataset, padded best_leaves}
     // Zero pad labels first
     allLeaves(colMask_) = best_leaves;
 
-    const typename ClassifierType::Args& rootClassifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize+1));
-    createClassifier(classifier, dataset_, allLeaves, rootClassifierArgs);
+    const typename RegressorType::Args& rootRegressorArgs = RegressorType::_args(allRegressorArgs());
+    createRegressor(regressor, dataset_, allLeaves, rootRegressorArgs);
     
-    // classifier.reset(new ClassifierType(dataset_,
+    // regressor.reset(new RegressorType(dataset_,
     // 				allLeaves,
-    // 				std::forward(rootClassifierArgs)));
+    // 				std::forward(rootRegressorArgs)));
   }
 
-  classifier->Classify(dataset_, prediction);
+  regressor->Predict(dataset_, prediction);
 
-  updateClassifiers(std::move(classifier), prediction);
+  updateRegressors(std::move(regressor), prediction);
 
 }
 
-template<typename ClassifierType>
-typename CompositeClassifier<ClassifierType>::Leaves
-CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
-							 rowvec& h,
-							 std::size_t stepNum, 
-							 std::size_t partitionSize,
-							 double learningRate,
-							 const uvec& colMask) {
+template<typename RegressorType>
+typename CompositeRegressor<RegressorType>::Leaves
+CompositeRegressor<RegressorType>::computeOptimalSplit(rowvec& g,
+						       rowvec& h,
+						       std::size_t stepNum, 
+						       std::size_t partitionSize,
+						       double learningRate,
+						       const uvec& colMask) {
 
 
   // We should implement several methods here
@@ -589,9 +442,9 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
     
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 void
-CompositeClassifier<ClassifierType>::purge_() {
+CompositeRegressor<RegressorType>::purge_() {
 
   dataset_ = ones<mat>(0,0);
   labels_ = ones<Row<double>>(0);
@@ -606,107 +459,102 @@ CompositeClassifier<ClassifierType>::purge_() {
   // partitions_.clear();
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 std::string
-CompositeClassifier<ClassifierType>::write() {
+CompositeRegressor<RegressorType>::write() {
 
-  using CerealT = CompositeClassifier<ClassifierType>;
+  using CerealT = CompositeRegressor<RegressorType>;
   using CerealIArch = cereal::BinaryInputArchive;
   using CerealOArch = cereal::BinaryOutputArchive;
 
-  std::string fileName = dumps<CerealT, CerealIArch, CerealOArch>(*this, SerializedType::CLASSIFIER);
+  std::string fileName = dumps<CerealT, CerealIArch, CerealOArch>(*this, SerializedType::REGRESSOR);
   return fileName;
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 std::string
-CompositeClassifier<ClassifierType>::writeColMask() {
+CompositeRegressor<RegressorType>::writeColMask() {
 
   return IB_utils::writeColMask(colMask_);
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 std::string
-CompositeClassifier<ClassifierType>::writePrediction() {
+CompositeRegressor<RegressorType>::writePrediction() {
 
   return IB_utils::writePrediction(latestPrediction_);
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 std::string
-CompositeClassifier<ClassifierType>::writeDataset() {
+CompositeRegressor<RegressorType>::writeDataset() {
   return IB_utils::writeDatasetIS(dataset_);
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 std::string
-CompositeClassifier<ClassifierType>::writeDatasetOOS() {
+CompositeRegressor<RegressorType>::writeDatasetOOS() {
   return IB_utils::writeDatasetOOS(dataset_oos_);
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 std::string
-CompositeClassifier<ClassifierType>::writeLabels() {
+CompositeRegressor<RegressorType>::writeLabels() {
   return IB_utils::writeLabelsIS(labels_);
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 std::string
-CompositeClassifier<ClassifierType>::writeLabelsOOS() {
+CompositeRegressor<RegressorType>::writeLabelsOOS() {
   return IB_utils::writeLabelsOOS(labels_oos_);
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 void
-CompositeClassifier<ClassifierType>::read(CompositeClassifier<ClassifierType>& rhs,
-					  std::string fileName) {
+CompositeRegressor<RegressorType>::read(CompositeRegressor<RegressorType>& rhs,
+					std::string fileName) {
 
-  using CerealT = CompositeClassifier<ClassifierType>;
+  using CerealT = CompositeRegressor<RegressorType>;
   using CerealIArch = cereal::BinaryInputArchive;
   using CerealOArch = cereal::BinaryOutputArchive;  
 
   loads<CerealT, CerealIArch, CerealOArch>(rhs, fileName);
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 void
-CompositeClassifier<ClassifierType>::Predict(std::string index, const mat& dataset, Row<DataType>& prediction, bool postSymmetrize) {
+CompositeRegressor<RegressorType>::Predict(std::string index, const mat& dataset, Row<DataType>& prediction) {
 
   std::vector<std::string> fileNames;
   readIndex(index, fileNames);
 
-  using C = CompositeClassifier<ClassifierType>;
-  std::unique_ptr<C> classifierNew = std::make_unique<C>();
+  using C = CompositeRegressor<RegressorType>;
+  std::unique_ptr<C> regressorNew = std::make_unique<C>();
   prediction = zeros<Row<DataType>>(dataset.n_cols);
   Row<DataType> predictionStep;
 
-  bool ignoreSymmetrization = true;
   for (auto & fileName : fileNames) {
     auto tokens = strSplit(fileName, '_');
     if (tokens[0] == "CLS") {
       fileName = strJoin(tokens, '_', 1);
-      read(*classifierNew, fileName);
-      classifierNew->Predict(dataset, predictionStep, ignoreSymmetrization);
+      read(*regressorNew, fileName);
+      regressorNew->Predict(dataset, predictionStep);
       prediction += predictionStep;
     }
   }
 
-  if (postSymmetrize) {
-    deSymmetrize(prediction);
-  }
-
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 void
-CompositeClassifier<ClassifierType>::Predict(std::string index, Row<DataType>& prediction, bool postSymmetrize) {
+CompositeRegressor<RegressorType>::Predict(std::string index, Row<DataType>& prediction) {
 
-  Predict(index, dataset_, prediction, postSymmetrize);
+  Predict(index, dataset_, prediction);
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 void
-CompositeClassifier<ClassifierType>::commit() {
+CompositeRegressor<RegressorType>::commit() {
 
   std::string path, predictionPath, colMaskPath;
   path = write();
@@ -722,18 +570,18 @@ CompositeClassifier<ClassifierType>::commit() {
   }
   // std::copy(fileNames_.begin(), fileNames_.end(),std::ostream_iterator<std::string>(std::cout, "\n"));
   indexName_ = writeIndex(fileNames_);  
-  ClassifierList{}.swap(classifiers_);
+  RegressorList{}.swap(regressors_);
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 void
-CompositeClassifier<ClassifierType>::checkAccuracyOfArchive() {
+CompositeRegressor<RegressorType>::checkAccuracyOfArchive() {
 
   Row<DataType> yhat;
   Predict(yhat); 
 
   Row<DataType> prediction;
-  Predict(indexName_, prediction, false);
+  Predict(indexName_, prediction);
   
   float eps = std::numeric_limits<float>::epsilon();
   for (int i=0; i<prediction.n_elem; ++i) {
@@ -749,30 +597,22 @@ CompositeClassifier<ClassifierType>::checkAccuracyOfArchive() {
   std::cerr << "ACCURACY CHECKED" << std::endl;
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 void
-CompositeClassifier<ClassifierType>::printStats(int stepNum) {
+CompositeRegressor<RegressorType>::printStats(int stepNum) {
 
   Row<DataType> yhat;
   double r;
 
   if (serialize_) {
     // Prediction from current archive
-    Predict(indexName_, yhat, false);
+    Predict(indexName_, yhat);
     r = lossFn_->loss(yhat, labels_);
-    if (symmetrized_) {
-      deSymmetrize(yhat);
-      symmetrize(yhat);
-    }
     // checkAccuracyOfArchive();
   } else {
-    // Prediction from nonarchived classifier
+    // Prediction from nonarchived regressor
     Predict(yhat); 
     r = lossFn_->loss(yhat, labels_);
-    if (symmetrized_) {
-      deSymmetrize(yhat); 
-      symmetrize(yhat);
-    }
   }
 
   auto now = std::chrono::system_clock::now();
@@ -797,7 +637,7 @@ CompositeClassifier<ClassifierType>::printStats(int stepNum) {
   if (hasOOSData_) {
     Row<DataType> yhat_oos;
     if (serialize_) {
-      Predict(indexName_, dataset_oos_, yhat_oos, true);
+      Predict(indexName_, dataset_oos_, yhat_oos);
     } else {
       Predict(dataset_oos_, yhat_oos);
     }
@@ -811,9 +651,9 @@ CompositeClassifier<ClassifierType>::printStats(int stepNum) {
 
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 void
-CompositeClassifier<ClassifierType>::fit() {
+CompositeRegressor<RegressorType>::fit() {
 
   for (std::size_t stepNum=1; stepNum<=steps_; ++stepNum) {
     fit_step(stepNum);
@@ -840,16 +680,9 @@ CompositeClassifier<ClassifierType>::fit() {
 
 }
 
-template<typename ClassifierType>
-void
-CompositeClassifier<ClassifierType>::Classify(const mat& dataset, Row<DataType>& labels) {
-
-  Predict(dataset, labels);
-}
-
-template<typename ClassifierType>
+template<typename RegressorType>
 double
-CompositeClassifier<ClassifierType>::computeLearningRate(std::size_t stepNum) {
+CompositeRegressor<RegressorType>::computeLearningRate(std::size_t stepNum) {
 
   double learningRate;
 
@@ -873,31 +706,31 @@ CompositeClassifier<ClassifierType>::computeLearningRate(std::size_t stepNum) {
   return learningRate;
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 std::size_t
-CompositeClassifier<ClassifierType>::computeSubPartitionSize(std::size_t stepNum) {
+CompositeRegressor<RegressorType>::computeSubPartitionSize(std::size_t stepNum) {
 
   return static_cast<std::size_t>(partitionSize_/2);
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 double
-CompositeClassifier<ClassifierType>::computeSubLearningRate(std::size_t stepNum) {
+CompositeRegressor<RegressorType>::computeSubLearningRate(std::size_t stepNum) {
 
   return learningRate_;
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 std::size_t
-CompositeClassifier<ClassifierType>::computeSubStepSize(std::size_t stepNum) {
+CompositeRegressor<RegressorType>::computeSubStepSize(std::size_t stepNum) {
 
   double mult = 1.;
   return std::max(1, static_cast<int>(mult * std::log(steps_)));    
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 std::size_t
-CompositeClassifier<ClassifierType>::computePartitionSize(std::size_t stepNum, const uvec& colMask) {
+CompositeRegressor<RegressorType>::computePartitionSize(std::size_t stepNum, const uvec& colMask) {
 
   // stepNum is in range [1,...,context.steps]
 
@@ -943,9 +776,9 @@ CompositeClassifier<ClassifierType>::computePartitionSize(std::size_t stepNum, c
   return partitionSize;
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 std::pair<rowvec, rowvec>
-CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& labels, const uvec& colMask) {
+CompositeRegressor<RegressorType>::generate_coefficients(const Row<DataType>& labels, const uvec& colMask) {
 
   rowvec yhat;
   Predict(yhat, colMask);
@@ -957,11 +790,11 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
 
 }
 
-template<typename ClassifierType>
+template<typename RegressorType>
 std::pair<rowvec, rowvec>
-CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& yhat,
-							   const Row<DataType>& y,
-							   const uvec& colMask) {
+CompositeRegressor<RegressorType>::generate_coefficients(const Row<DataType>& yhat,
+							 const Row<DataType>& y,
+							 const uvec& colMask) {
   
   rowvec g, h;
   lossFn_->loss(yhat, y, &g, &h);
@@ -970,10 +803,12 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
 }
 /*
   double
-  CompositeClassifier<ClassifierType>::imbalance() {
+  CompositeRegressor<RegressorType>::imbalance() {
   ;
   }
   // 2.0*((sum(y_train==0)/len(y_train) - .5)**2 + (sum(y_train==1)/len(y_train) - .5)**2)
   */
+
+
 
 #endif

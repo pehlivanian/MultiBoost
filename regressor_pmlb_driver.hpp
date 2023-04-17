@@ -10,7 +10,8 @@
 #include <mlpack/core.hpp>
 
 #include "loss.hpp"
-#include "gradientboostclassifier.hpp"
+#include "regressors.hpp"
+#include "gradientboostregressor.hpp"
 #include "utils.hpp"
 
 #endif

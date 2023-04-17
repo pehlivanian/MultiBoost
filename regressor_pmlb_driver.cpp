@@ -8,6 +8,7 @@ using namespace mlpack::util;
 using namespace std;
 
 using namespace LossMeasures;
+using namespace ModelContext;
 using namespace IB_utils;
 
 auto main(int argc, char **argv) -> int {
@@ -33,7 +34,7 @@ auto main(int argc, char **argv) -> int {
 	    << testDataset.n_rows << ")" << std::endl;
   
   
-  ClassifierContext::Context context{};
+  Context context{};
   // context.loss = lossFunction::Savage;
   // context.loss = lossFunction::BinomialDeviance;
   // context.loss = lossFunction::MSE;
@@ -52,7 +53,7 @@ auto main(int argc, char **argv) -> int {
   context.removeRedundantLabels = false;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .25; // .75
-  context.recursiveFit = true;
+  context.recursiveFit = false;
   context.serialize = false;
   context.serializePrediction = false;
   context.serializeDataset = false;
@@ -65,8 +66,7 @@ auto main(int argc, char **argv) -> int {
   context.maxDepth = 10;
   context.minimumGainSplit = 0.;
 
-  using DTR = DecisionTreeRegressorClassifier<unsigned long, double, unsigned long>;
-  using regressor = GradientBoostClassifier<DTR>;
+  using regressor = GradientBoostRegressor<DecisionTreeRegressorRegressor>;
   auto c = std::make_unique<regressor>(trainDataset, 
 					trainLabels,
 					testDataset,

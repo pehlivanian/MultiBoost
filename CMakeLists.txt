@@ -42,7 +42,7 @@ option(BUILD_BENCHMARKS "Build benchmark tests" ON)
 option(BUILD_SINGLECLASS "Build inductive boost classifier" ON)
 
 # build Inductive Boost Regressor
-option(BUILD_REGRESSOR "Build inductive boost regressor" OFF)
+option(BUILD_REGRESSOR "Build inductive boost regressor" ON)
 
 # build incremental driver
 option(BUILD_INC_DRIVER "Build incrmental fitter" ON)
@@ -134,6 +134,7 @@ add_library(DP OBJECT DP.cpp)
 add_library(loss OBJECT loss.cpp)
 add_library(pmlb OBJECT pmlb.cpp)
 add_library(gradientboostclassifier OBJECT gradientboostclassifier.cpp)
+add_library(gradientboostregressor OBJECT gradientboostregressor.cpp)
 add_library(replay OBJECT replay.cpp)
 add_library(utils OBJECT utils.cpp)
 add_library(score2 OBJECT score2.cpp)
@@ -224,7 +225,7 @@ endif()
 # InductiveBoostRegressor driver on pmlb data
 if (BUILD_REGRESSOR)
   add_Executable(regressor_pmlb_driver regressor_pmlb_driver.cpp)
-  target_link_libraries(regressor_pmlb_driver utils loss gradientboostclassifier
+  target_link_libraries(regressor_pmlb_driver utils loss gradientboostregressor
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES}
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES} 
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)	

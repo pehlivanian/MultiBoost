@@ -1,9 +1,9 @@
 #include "gradientboostclassifier.hpp"
 
 /* 
-   --- <.> ___
-   OLD MODEL
-   --- <.> ___
+   --- <.> --- <.> --- <.>
+   OLD SERIALIZATION MODEL
+   --- <.> --- <.> --- <.>   
 */
 
 /*

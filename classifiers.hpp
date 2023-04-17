@@ -143,7 +143,7 @@ public:
 namespace Model_Traits {
 
   template<typename T>
-  struct model_traits {
+  struct classifier_traits {
     using datatype = double;
     using integrallabeltype = std::size_t;
     using model = ClassifierTypes::DecisionTreeClassifierType;
@@ -151,7 +151,7 @@ namespace Model_Traits {
   };
 
   template<>
-  struct model_traits<DecisionTreeClassifier> {
+  struct classifier_traits<DecisionTreeClassifier> {
     using datatype = double;
     using integrallabeltype = std::size_t;
     using model = ClassifierTypes::DecisionTreeClassifierType;
@@ -159,7 +159,7 @@ namespace Model_Traits {
   };
 
   template<>
-  struct model_traits<RandomForestClassifier> {
+  struct classifier_traits<RandomForestClassifier> {
     using datatype = double;
     using integrallabeltype = std::size_t;
     using model = ClassifierTypes::RandomForestClassifierType;
@@ -171,9 +171,6 @@ namespace Model_Traits {
 ////////////////////////////////////////////////////////
 // CEREAL DEFINITIONS, REGISTRATIONS, OVERLOADS, ETC. //
 ////////////////////////////////////////////////////////
-
-using DTC = Model_Traits::ClassifierTypes::DecisionTreeClassifierType;
-using RFC = Model_Traits::ClassifierTypes::RandomForestClassifierType;
 
 using DTCB = DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t>;
 using RFCB = RandomForestClassifierBase<std::size_t, std::size_t, std::size_t>;

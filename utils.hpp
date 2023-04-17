@@ -242,7 +242,8 @@ namespace IB_utils {
       DATASET_IS = 3,
       DATASET_OOS = 4,
       LABELS_IS = 5,
-      LABELS_OOS = 6
+      LABELS_OOS = 6,
+      REGRESSOR = 7
       };
 
   class DatasetArchive {

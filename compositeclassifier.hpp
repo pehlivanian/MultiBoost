@@ -19,13 +19,13 @@ using namespace ModelContext;
 using namespace Model_Traits;
 
 template<typename ClassifierType>
-class CompositeClassifier : public ClassifierBase<typename model_traits<ClassifierType>::datatype,
-						  typename model_traits<ClassifierType>::model> {
+class CompositeClassifier : public ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+						  typename classifier_traits<ClassifierType>::model> {
 
 public:  
-  using DataType		= typename model_traits<ClassifierType>::datatype;
-  using IntegralLabelType	= typename model_traits<ClassifierType>::integrallabeltype;
-  using Classifier		= typename model_traits<ClassifierType>::model;
+  using DataType		= typename classifier_traits<ClassifierType>::datatype;
+  using IntegralLabelType	= typename classifier_traits<ClassifierType>::integrallabeltype;
+  using Classifier		= typename classifier_traits<ClassifierType>::model;
   using ClassifierList		= std::vector<std::unique_ptr<ClassifierBase<DataType, Classifier>>>;
 
   using Partition		= std::vector<std::vector<int>>;
@@ -40,12 +40,12 @@ public:
   // 1
   // mat	: arma::Mat<double>
   // labels	: arma::Row<std::size_t> <- CONVERTED TO Row<double>
-  // context	: ClassifierContext::Context
+  // context	: ModelContext::Context
   CompositeClassifier(const mat& dataset, 
 		      const Row<std::size_t>& labels,
 		      Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<double>>::from(labels)},
     hasOOSData_{false},
@@ -59,12 +59,12 @@ public:
   // 2
   // mat	: arma::Mat<double>
   // labels	: arma::Row<double>
-  // context	: ClassifierContext::Context
+  // context	: ModelContext::Context
   CompositeClassifier(const mat& dataset,
 			  const Row<double>& labels,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     hasOOSData_{false},
@@ -80,14 +80,14 @@ public:
   // labels		: arma::Row<std::size_t> <- CONVERTED TO Row<double>
   // dataset_oos	: arma::Mat<double>
   // labels_oos		: Row<std::size_t> <- CONVERTED TO Row<double>
-  // context		: ClassifierContext::Context
+  // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
 			  const Row<std::size_t>& labels,
 			  const mat& dataset_oos,
 			  const Row<std::size_t>& labels_oos,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<double>>::from(labels)},
     dataset_oos_{dataset_oos},
@@ -105,14 +105,14 @@ public:
   // labels		: arma::Row<double>
   // dataset_oos	: arma::Mat<double>
   // labels_oos		: Row<double>
-  // context		: ClassifierContext::Context
+  // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
 			  const Row<double>& labels,
 			  const mat& dataset_oos,
 			  const Row<double>& labels_oos,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     dataset_oos_{dataset_oos},
@@ -131,14 +131,14 @@ public:
   // dataset_oos	: arma::Mat<double>
   // labels_oos		: Row<double>
   // colMask		: uvec
-  // context		: ClassifierContext::Context
+  // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
 			  const Row<std::size_t>& labels,
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<double>>::from(labels)},
     hasOOSData_{false},
@@ -155,13 +155,13 @@ public:
   // mat		: arma::Mat<double>
   // labels		: arma::Row<std::size_t> <- CONVERTED TO Row<double>
   // latestPrediction	: arma::Mat<double>
-  // context		: ClassifierContext::Context
+  // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
 			  const Row<std::size_t>& labels,
 			  const Row<double>& latestPrediction,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<double>>::from(labels)},
     hasOOSData_{false},
@@ -178,14 +178,14 @@ public:
   // labels		: arma::Row<double>
   // latestPrediction	: arma::Mat<double>
   // colMask		: uvec
-  // context		: ClassifierContext::Context
+  // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
 			  const Row<double>& labels,
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     hasOOSData_{false},
@@ -202,13 +202,13 @@ public:
   // mat		: arma::Mat<double>
   // labels		: arma::Row<double>
   // latestPrediction	: arma::Mat<double>
-  // context		: ClassifierContext::Context
+  // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
 			  const Row<double>& labels,
 			  const Row<double>& latestPrediction,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     hasOOSData_{false},
@@ -227,7 +227,7 @@ public:
   // labels_oos		: Row<std::size_t> <- CONVERTED TO Row<double>
   // latestPrediction	: arma::Mat<double>
   // colMask		: uvec
-  // context		: ClassifierContext::Context
+  // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
 			  const Row<std::size_t>& labels,
 			  const mat& dataset_oos,
@@ -235,8 +235,8 @@ public:
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<double>>::from(labels)},
     dataset_oos_{dataset_oos},
@@ -257,15 +257,15 @@ public:
   // dataset_oos	: arma::Mat<double>
   // labels_oos		: Row<std::size_t> <- CONVERTED TO Row<double>
   // latestPrediction	: arma::Mat<double>
-  // context		: ClassifierContext::Context
+  // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
 			  const Row<std::size_t>& labels,
 			  const mat& dataset_oos,
 			  const Row<std::size_t>& labels_oos,
 			  const Row<double>& latestPrediction,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<double>>::from(labels)},
     dataset_oos_{dataset_oos},
@@ -286,7 +286,7 @@ public:
   // labels_oos		: Row<double>
   // latestPrediction	: arma::Mat<double>
   // colMask		: uvec
-  // context		: ClassifierContext::Context
+  // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
 			  const Row<double>& labels,
 			  const mat& dataset_oos,
@@ -294,8 +294,8 @@ public:
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     dataset_oos_{dataset_oos},
@@ -323,8 +323,8 @@ public:
 			  const Row<double>& labels_oos,
 			  const Row<double>& latestPrediction,
 			  Context context) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     dataset_oos_{dataset_oos},
@@ -358,10 +358,6 @@ public:
   // 2 overloaded versions for archive classifier
   virtual void Predict(std::string, Row<DataType>&, bool=false);
   virtual void Predict(std::string, const mat&, Row<DataType>&, bool=false);
-
-  void Classify_(const mat& dataset, Row<DataType>& prediction) { 
-    Predict(dataset, prediction); 
-  }
 
   mat getDataset() const { return dataset_; }
   Row<DataType> getLatestPrediction() const { return latestPrediction_; }
@@ -412,6 +408,10 @@ private:
   double computeLearningRate(std::size_t);
   std::size_t computePartitionSize(std::size_t, const uvec&);
   
+  void Classify_(const mat& dataset, Row<DataType>& prediction) { 
+    Predict(dataset, prediction); 
+  }
+
   void purge_() override;
   
   template<typename... Ts>

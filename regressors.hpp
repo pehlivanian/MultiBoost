@@ -38,14 +38,14 @@ namespace Model_Traits {
 } // namespace Model_Traits
 
 template<typename... Args>
-class DecisionTreeRegressorBase : 
+class DecisionTreeRegressorRegressorBase : 
   public ContinuousRegressorBase<double,
 				 Model_Traits::RegressorTypes::DecisionTreeRegressorRegressorType,
 				 Args...> {
 public:
-  DecisionTreeRegressorBase() = default;
+  DecisionTreeRegressorRegressorBase() = default;
   
-  DecisionTreeRegressorBase(const mat& dataset,
+  DecisionTreeRegressorRegressorBase(const mat& dataset,
 				      rowvec& labels,
 				      Args&&... args) :
     ContinuousRegressorBase<double, Model_Traits::RegressorTypes::DecisionTreeRegressorRegressorType, Args...>(dataset, labels, std::forward<Args>(args)...) {}
@@ -53,7 +53,7 @@ public:
 };
 
 class DecisionTreeRegressorRegressor : 
-  public DecisionTreeRegressorBase<std::size_t, double, std::size_t> {
+  public DecisionTreeRegressorRegressorBase<std::size_t, double, std::size_t> {
   
 public:
 
@@ -65,7 +65,7 @@ public:
 				 std::size_t minLeafSize=1,
 				 double minGainSplit=0.,
 				 std::size_t maxDepth=100) :
-    DecisionTreeRegressorBase<std::size_t, double, std::size_t>(dataset, 
+    DecisionTreeRegressorRegressorBase<std::size_t, double, std::size_t>(dataset, 
 								labels, 
 								std::move(minLeafSize),
 								std::move(minGainSplit),
@@ -82,8 +82,16 @@ public:
 
 namespace Model_Traits {
 
+  template<typename RegressorType>
+  struct regressor_traits {
+    using datatype = double;
+    using integrallabeltype = std::size_t;
+    using model = RegressorTypes::DecisionTreeRegressorRegressorType;
+    using modelArgs = std::tuple<std::size_t, double, std::size_t>;
+  };
+  
   template<>
-  struct model_traits<DecisionTreeRegressorRegressor> {
+  struct regressor_traits<DecisionTreeRegressorRegressor> {
     using datatype = double;
     using integrallabeltype = std::size_t;
     using model = RegressorTypes::DecisionTreeRegressorRegressorType;
@@ -91,5 +99,37 @@ namespace Model_Traits {
   };
 
 } // namespace Model_Traits
+
+using DTRRB = DecisionTreeRegressorRegressorBase<std::size_t, double, std::size_t>;
+
+using ContinuousRegressorBaseDTRRB = ContinuousRegressorBase<double,
+							     Model_Traits::RegressorTypes::DecisionTreeRegressorRegressorType,
+							     std::size_t,
+							     double,
+							     std::size_t>;
+
+using RegressorBaseDTRR = RegressorBase<double, Model_Traits::RegressorTypes::DecisionTreeRegressorRegressorType>;
+							     
+using ModelDTRR = Model<double, Model_Traits::RegressorTypes::DecisionTreeRegressorRegressorType>;
+
+CEREAL_REGISTER_TYPE(RegressorBaseDTRR);
+
+CEREAL_REGISTER_TYPE(ContinuousRegressorBaseDTRRB);
+
+CEREAL_REGISTER_TYPE(DTRRB);
+
+CEREAL_REGISTER_TYPE(DecisionTreeRegressorRegressor);
+
+CEREAL_REGISTER_TYPE(ModelDTRR);
+
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTRR, DecisionTreeRegressorRegressor);
+
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTRR, DTRRB);
+
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTRR, ContinuousRegressorBaseDTRRB);
+
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTRR, RegressorBaseDTRR);
+
+CEREAL_REGISTER_POLYMORPHIC_RELATION(RegressorBaseDTRR, DecisionTreeRegressorRegressor);
 
 #endif
