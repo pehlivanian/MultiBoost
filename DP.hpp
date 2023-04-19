@@ -17,6 +17,7 @@
 #include <cmath>
 #include <math.h>
 
+// No use for eigen lib
 #undef EIGEN
 
 #if EIGEN
@@ -41,6 +42,9 @@ class DPSolver {
   using all_scores = std::pair<std::vector<std::vector<int> >, DataType>;
   using all_part_scores = std::vector<all_scores>;
 public:
+
+  DPSolver() = default;
+
   DPSolver(std::vector<DataType> a,
 	   std::vector<DataType> b,
 	   int T,

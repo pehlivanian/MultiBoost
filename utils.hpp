@@ -236,7 +236,7 @@ namespace IB_utils {
   };
   
   enum class SerializedType {
-    CLASSIFIER = 0,
+      CLASSIFIER = 0,
       PREDICTION = 1,
       COLMASK = 2,
       DATASET_IS = 3,
@@ -354,7 +354,8 @@ namespace IB_utils {
 	{3, "__DIS_"},
 	{4, "__DOOS_"},
 	{5, "__LIS_"},
-	{6, "__LOOS_"}
+	{6, "__LOOS_"},
+	{7, "__REG_"}
       };
     
     std::string pref = SerializedTypeMap[static_cast<std::underlying_type_t<SerializedType>>(typ)];

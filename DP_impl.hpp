@@ -145,6 +145,10 @@ DPSolver<DataType>::optimize_for_fixed_S(int S) {
 template<typename DataType>
 void
 DPSolver<DataType>::find_optimal_t() {
+
+  // Should not reach this
+  throw distributionException();
+
   std::vector<DataType> X; X.resize(subsets_and_scores_.size()); std::iota(X.begin(), X.end(), 1.);
   std::vector<DataType> scores, score_diffs;
   scores.resize(subsets_and_scores_.size()); score_diffs.resize(subsets_and_scores_.size());

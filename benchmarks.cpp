@@ -13,6 +13,7 @@
 #include "utils.hpp"
 #include "gradientboostclassifier.hpp"
 #include "score2.hpp"
+#include "DP.hpp"
 
 using namespace IB_utils;
 using namespace arma;
@@ -31,15 +32,18 @@ class ContextFixture : public benchmark::Fixture {
 public:
   using Context = RationalScoreContext<T>;
 
-  Context context;
   const unsigned int N = 1<<13;
+
+  Context context;
+  std::vector<T> a;
+  std::vector<T> b;
 
   ContextFixture() {
 
-    bool risk_partitioning_objective=true, use_rational_optimization=true;
-
-    std::vector<T> a(N), b(N);    
+    a.resize(N), b.resize(N);
     compute_ab(a, b);
+
+    bool risk_partitioning_objective=true, use_rational_optimization=true;
 
     context = RationalScoreContext<T>(a, 
 				      b, 
@@ -116,6 +120,33 @@ BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_float_compute_scores_parallel, fl
   }
 }
 
+BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_double_create_DPSolver, double)(benchmark::State& state) {
+  int n = 1<<13, T = 100;
+  bool risk_partitioning_objective = true;
+  bool use_rational_optimization = true;
+  bool sweep_down = false;
+  double gamma = 0.;
+  double reg_power=1.;
+  bool find_optimal_t = false;
+
+  DPSolver<double> dp;
+  std::vector<std::vector<int>> subsets;
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(dp = DPSolver(n, T, a, b,
+					   objective_fn::RationalScore,
+					   risk_partitioning_objective,
+					   use_rational_optimization,
+					   gamma,
+					   reg_power,
+					   sweep_down,
+					   find_optimal_t
+					   ));
+    benchmark::DoNotOptimize(subsets = dp.get_optimal_subsets_extern());
+  }
+
+}
+
 // Tests of armadillo primitives
 void BM_colMask_arma_generation(benchmark::State& state) {
 
@@ -158,6 +189,9 @@ BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_scores_parallel);
 
 // armadillo benchmarks
 unsigned long N = (1<<12);
+
+// DPSolver benchmarks
+BENCHMARK_REGISTER_F(ContextFixture, BM_double_create_DPSolver);
 
 BENCHMARK(BM_colMask_arma_generation)->Arg(N);
 BENCHMARK(BM_colMask_stl_generation1)->Arg(N);

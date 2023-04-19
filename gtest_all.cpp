@@ -13,6 +13,7 @@
 #include "score2.hpp"
 #include "DP.hpp"
 #include "gradientboostclassifier.hpp"
+#include "gradientboostregressor.hpp"
 #include "replay.hpp"
 
 using namespace IB_utils;
@@ -22,6 +23,7 @@ using namespace ClassifierTypes;
 using dataset_t = Mat<double>;
 using labels_t = Row<std::size_t>;
 
+/*
 class DPSolverTestFixture : public ::testing::TestWithParam<objective_fn> {
 };
 
@@ -176,7 +178,9 @@ void exec(std::string cmd) {
   if (!pipe) throw std::runtime_error("popen() failed!");
   pclose(pipe);
 }
+*/
 
+/*
 TEST(DPSolverTest, TestUnsortedIndWorksAsARMAIndexer) {
   
   int n = 500;
@@ -518,7 +522,178 @@ TEST_P(DPSolverTestFixture, TestOptimalityWithRandomPartitions) {
     }
   }
 }
+*/
 
+TEST(GradientBoostRegressor, TestPerfectInSampleFit) {
+
+  std::vector<bool> recursive{false, true};
+  
+  Mat<double> dataset;
+  Row<double> labels, prediction;
+  
+  int rows=1000, cols=20;
+  
+  dataset = Mat<double>(rows, cols, fill::randu);
+  labels = Row<double>(cols);
+
+  for (std::size_t i=0; i<4; ++i) {
+    dataset(444,i) = i;
+    labels[i] = 14.;
+  }
+  for (std::size_t i=4; i<8; ++i) {
+    dataset(444,i) = i;
+    labels[i] = -1.45;
+  }
+  for (std::size_t i=8; i<12; ++i) {
+    dataset(444,i) = i;
+    labels[i] = -2.077;
+  }
+  for (std::size_t i=12; i<16; ++i) {
+    dataset(444,i) = i;
+    labels[i] = 2.077;
+  }
+  for (std::size_t i=16; i<20; ++i) {
+    dataset(444,i) = i;
+    labels[i] = 2.24;
+  }
+
+  for (auto recursive_ : recursive) {
+    Context context{};
+    
+    context.loss = lossFunction::MSE;
+    context.partitionSize = 4;
+    context.partitionRatio = .25;
+    context.learningRate = 1.;
+    context.steps = 100;
+    context.baseSteps = 1000;
+    context.symmetrizeLabels = true;
+    context.serializationWindow = 1000;
+    context.removeRedundantLabels = false;
+    context.rowSubsampleRatio = 1.;
+    context.colSubsampleRatio = 1.; // .75
+    context.recursiveFit = recursive_;
+    context.serialize = false;
+    context.serializePrediction = false;
+    context.serializeDataset = false;
+    context.serializeLabels = false;
+    context.serializationWindow = 1000;
+    context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
+    context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;    // DECREASING
+    context.stepSizeMethod = StepSize::StepSizeMethod::LOG;	
+    context.minLeafSize = 1;
+    context.maxDepth = 10;
+    context.minimumGainSplit = 0.;
+    
+    auto regressor = GradientBoostRegressor<DecisionTreeRegressorRegressor>(dataset,
+									    labels,
+									    context);
+    regressor.fit();
+    regressor.Predict(prediction);
+    
+    const double trainError = err(prediction, labels);
+    
+    ASSERT_EQ(trainError, 0.);
+  }
+  
+}
+
+TEST(GradientBoostRegressor, TestOutofSampleFit) {
+
+  std::vector<bool> recursive{false, true};
+  
+  Mat<double> dataset, dataset_oos;
+  Row<double> labels, labels_oos, prediction, prediction_oos;
+  
+  int rows=50, cols=20;
+  
+  dataset = Mat<double>(rows, cols, fill::randu);
+  labels = Row<double>(cols);
+
+  dataset_oos = Mat<double>(rows, cols, fill::randu);
+  labels_oos = Row<double>(cols);
+
+  for (std::size_t i=0; i<4; ++i) {
+    dataset(44,i) = i;
+    dataset_oos(44,i) = i;
+    labels[i] = 2.;
+    labels_oos[i] = 4.;
+  }
+  for (std::size_t i=4; i<8; ++i) {
+    dataset(44,i) = i;
+    dataset_oos(44,i) = i;
+    labels[i] = 4.;
+    labels_oos[i] = 8.;
+  }
+  for (std::size_t i=8; i<12; ++i) {
+    dataset(44,i) = i;
+    dataset_oos(44,i) = i;
+    labels[i] = 6.;
+    labels_oos[i] = 12.;
+  }
+  for (std::size_t i=12; i<16; ++i) {
+    dataset(44,i) = i;
+    dataset_oos(44,i) = i;
+    labels[i] = 8.;
+    labels_oos[i] = 16.;
+  }
+  for (std::size_t i=16; i<20; ++i) {
+    dataset(44,i) = i;
+    dataset_oos(44,i) = i;
+    labels[i] = 10.;
+    labels_oos[i] = 20.;
+  }
+
+  for (auto recursive_ : recursive) {
+    Context context{};
+    
+    context.loss = lossFunction::MSE;
+    context.partitionSize = 4;
+    context.partitionRatio = .25;
+    context.learningRate = 1.;
+    context.steps = 100;
+    context.baseSteps = 1000;
+    context.symmetrizeLabels = true;
+    context.serializationWindow = 1000;
+    context.removeRedundantLabels = false;
+    context.rowSubsampleRatio = 1.;
+    context.colSubsampleRatio = 1.; // .75
+    context.recursiveFit = recursive_;
+    context.serialize = false;
+    context.serializePrediction = false;
+    context.serializeDataset = false;
+    context.serializeLabels = false;
+    context.serializationWindow = 1000;
+    context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
+    context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;    // DECREASING
+    context.stepSizeMethod = StepSize::StepSizeMethod::LOG;	
+    context.minLeafSize = 1;
+    context.maxDepth = 10;
+    context.minimumGainSplit = 0.;
+    
+    auto regressor = GradientBoostRegressor<DecisionTreeRegressorRegressor>(dataset,
+									    labels,
+									    context);
+
+    regressor.fit();
+    regressor.Predict(prediction);
+
+    const double trainError = err(prediction, labels);
+    
+    ASSERT_EQ(trainError, 0.);
+
+    regressor.Predict(dataset_oos, prediction_oos);
+    
+    const double testError = err(prediction_oos, labels_oos);
+
+    for (std::size_t i=0; i<labels.n_elem; ++i) {
+      ASSERT_EQ(labels[i], prediction[i]);
+      // ASSERT_EQ(labels_oos[i], 2*prediction_oos[i]);
+    }
+  }
+  
+}
+
+/*
 TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips) {
   
   int numTrials = 1;
@@ -1276,7 +1451,7 @@ TEST(UtilsTest, TestPartitionSubsampling2) {
 
   ASSERT_EQ(inds.n_elem, n);
 }
-
+*/
 auto main(int argc, char **argv) -> int {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

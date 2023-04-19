@@ -37,15 +37,15 @@ auto main(int argc, char **argv) -> int {
   Context context{};
   // context.loss = lossFunction::Savage;
   // context.loss = lossFunction::BinomialDeviance;
-  // context.loss = lossFunction::MSE;
+  context.loss = lossFunction::MSE;
   // context.loss = lossFunction::Exp;
   // context.loss = lossFunction::Arctan;
-  context.loss = lossFunction::Synthetic;
+  // context.loss = lossFunction::Synthetic;
   // context.loss = lossFunction::SyntheticVar1;
   // context.loss = lossFunction::SyntheticVar2;
   context.partitionSize = 100;
   context.partitionRatio = .25;
-  context.learningRate = .0001;
+  context.learningRate = 1.;
   context.steps = 100;
   context.baseSteps = 1000;
   context.symmetrizeLabels = true;
@@ -83,6 +83,14 @@ auto main(int argc, char **argv) -> int {
 
   std::cout << "TRAINING ERROR: " << trainError << "%." << std::endl;
   std::cout << "TEST ERROR    : " << testError << "%." << std::endl;
+
+  std::cout << "RESULTS" << std::endl;
+  for (std::size_t i=0; i<100; ++i) {
+    std::cout << trainLabels[i] << " : " << trainPrediction[i] << " :: "
+	      << testLabels[i] << " : " << testPrediction[i] 
+	      << std::endl;
+    
+  }
 
   return 0;
 }
