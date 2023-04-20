@@ -598,6 +598,18 @@ CompositeRegressor<RegressorType>::checkAccuracyOfArchive() {
 }
 
 template<typename RegressorType>
+double
+CompositeRegressor<RegressorType>::loss(const Row<DataType>& yhat, const Row<DataType>& y) {
+  return lossFn_->loss(yhat, y);
+}
+
+template<typename RegressorType>
+double
+CompositeRegressor<RegressorType>::loss(const Row<DataType>& yhat) {
+  return lossFn_->loss(yhat, labels_);
+}
+
+template<typename RegressorType>
 void
 CompositeRegressor<RegressorType>::printStats(int stepNum) {
 

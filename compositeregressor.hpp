@@ -209,6 +209,9 @@ public:
 
   std::string getIndexName() const { return indexName_; }
 
+  double loss(const Row<DataType>& yhat);
+  double loss(const Row<DataType>& y, const Row<DataType>& yhat);
+
   virtual void printStats(int);
   std::string write();  
   std::string writeDataset();

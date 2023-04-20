@@ -23,7 +23,6 @@ using namespace ClassifierTypes;
 using dataset_t = Mat<double>;
 using labels_t = Row<std::size_t>;
 
-/*
 class DPSolverTestFixture : public ::testing::TestWithParam<objective_fn> {
 };
 
@@ -178,9 +177,7 @@ void exec(std::string cmd) {
   if (!pipe) throw std::runtime_error("popen() failed!");
   pclose(pipe);
 }
-*/
 
-/*
 TEST(DPSolverTest, TestUnsortedIndWorksAsARMAIndexer) {
   
   int n = 500;
@@ -522,9 +519,8 @@ TEST_P(DPSolverTestFixture, TestOptimalityWithRandomPartitions) {
     }
   }
 }
-*/
 
-TEST(GradientBoostRegressor, TestPerfectInSampleFit) {
+TEST(GradientBoostRegressorTest, TestPerfectInSampleFit) {
 
   std::vector<bool> recursive{false, true};
   
@@ -597,7 +593,7 @@ TEST(GradientBoostRegressor, TestPerfectInSampleFit) {
   
 }
 
-TEST(GradientBoostRegressor, TestOutofSampleFit) {
+TEST(GradientBoostRegressorTest, TestOutofSampleFit) {
 
   std::vector<bool> recursive{false, true};
   
@@ -693,7 +689,6 @@ TEST(GradientBoostRegressor, TestOutofSampleFit) {
   
 }
 
-/*
 TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips) {
   
   int numTrials = 1;
@@ -1451,7 +1446,7 @@ TEST(UtilsTest, TestPartitionSubsampling2) {
 
   ASSERT_EQ(inds.n_elem, n);
 }
-*/
+
 auto main(int argc, char **argv) -> int {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

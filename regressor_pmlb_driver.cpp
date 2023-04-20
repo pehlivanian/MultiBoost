@@ -27,7 +27,7 @@ auto main(int argc, char **argv) -> int {
 	      trainDataset, 
 	      testDataset, 
 	      trainLabels, 
-	      testLabels, 0.2);
+	      testLabels, 0.8);
   std::cout << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
 	    << trainDataset.n_rows << ")" << std::endl;
   std::cout << "TEST DATASET:  (" << testDataset.n_cols << " x " 
@@ -43,8 +43,8 @@ auto main(int argc, char **argv) -> int {
   // context.loss = lossFunction::Synthetic;
   // context.loss = lossFunction::SyntheticVar1;
   // context.loss = lossFunction::SyntheticVar2;
-  context.partitionSize = 100;
-  context.partitionRatio = .25;
+  context.partitionSize = 10;
+  context.partitionRatio = 1.;
   context.learningRate = 1.;
   context.steps = 100;
   context.baseSteps = 1000;
@@ -58,7 +58,7 @@ auto main(int argc, char **argv) -> int {
   context.serializePrediction = false;
   context.serializeDataset = false;
   context.serializeLabels = false;
-  context.serializationWindow = 1000;
+  context.serializationWindow = 100;
   context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
   context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;    // DECREASING
   context.stepSizeMethod = StepSize::StepSizeMethod::LOG;	
@@ -80,12 +80,16 @@ auto main(int argc, char **argv) -> int {
 
   const double trainError = err(trainPrediction, trainLabels);
   const double testError = err(testPrediction, testLabels);
+  const double trainLoss = c->loss(trainPrediction, trainLabels);
+  const double testLoss = c->loss(testPrediction, testLabels);
 
   std::cout << "TRAINING ERROR: " << trainError << "%." << std::endl;
   std::cout << "TEST ERROR    : " << testError << "%." << std::endl;
+  std::cout << "TRAINING LOSS:  " << trainLoss << std::endl;
+  std::cout << "TEST LOSS:      " << testLoss << std::endl;
 
   std::cout << "RESULTS" << std::endl;
-  for (std::size_t i=0; i<100; ++i) {
+  for (std::size_t i=0; i<10; ++i) {
     std::cout << trainLabels[i] << " : " << trainPrediction[i] << " :: "
 	      << testLabels[i] << " : " << testPrediction[i] 
 	      << std::endl;

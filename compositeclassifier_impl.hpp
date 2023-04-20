@@ -34,7 +34,7 @@ CompositeClassifier<ClassifierType>::childContext(Context& context,
   context.recursiveFit		= true;
   context.stepSizeMethod	= stepSizeMethod_;
   context.partitionSizeMethod	= partitionSizeMethod_;
-  context.learningRateMethod	= learningRateMethod_;    
+  context.learningRateMethod	= learningRateMethod_;   
   context.steps			= stepSize;
 
   // Part of model args
