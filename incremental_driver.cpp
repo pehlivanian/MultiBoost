@@ -6,6 +6,7 @@ using namespace mlpack::tree;
 using namespace mlpack::data;
 using namespace mlpack::util;
 
+using namespace ModelContext;
 using namespace IB_utils;
 
 using namespace boost::program_options;
@@ -20,7 +21,7 @@ auto main(int argc, char **argv) -> int {
   bool mergeIndexFiles = false;
   Row<double> prediction;
 
-  ClassifierContext::Context context;
+  Context context;
 
   options_description desc("Options");
   desc.add_options()
@@ -51,7 +52,7 @@ auto main(int argc, char **argv) -> int {
   }
   
   // Get context
-  readBinary<ClassifierContext::Context>(contextFileName, context);
+  readBinary<Context>(contextFileName, context);
   context.quietRun = quietRun;
 
   // Get data

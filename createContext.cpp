@@ -7,10 +7,9 @@
 
 #include "utils.hpp"
 #include "loss.hpp"
-#include "gradientboostclassifier.hpp"
 
 using namespace IB_utils;
-using namespace ClassifierContext;
+using namespace ModelContext;
 using namespace LossMeasures;
 
 using namespace boost::program_options;
@@ -129,8 +128,6 @@ namespace std {
 
 auto main(int argc, char **argv) -> int {
 
-  using T = Context;
-
   /* TYPICAL CASE
      ============
      context.loss = lossFunction::Synthetic;
@@ -177,7 +174,7 @@ auto main(int argc, char **argv) -> int {
   bool					serializeLabels		= false;
   std::size_t				serializationWindow	= 1000;
 
-  std::string				fileName		= path(typeid(T).name());
+  std::string				fileName		= path(typeid(Context).name());
 
   options_description desc("Options");
   desc.add_options()
@@ -194,7 +191,7 @@ auto main(int argc, char **argv) -> int {
     ("rowSubsampleRatio",	value<double>(&rowSubsampleRatio),				"rowSubsampleRatio")
     ("colSubsampleRatio",	value<double>(&colSubsampleRatio),				"colSubsampleRatio")
     ("recursiveFit",		value<bool>(&recursiveFit),					"recursiveFit")
-    ("partitionSizeMethod",	value<PartitionSize::PartitionSizeMethod>(&partitionSizeMethod), "partitionSizeMethod")
+    ("partitionSizeMethod",	value<PartitionSize::PartitionSizeMethod>(&partitionSizeMethod),"partitionSizeMethod")
     ("learningRateMethod",	value<LearningRate::LearningRateMethod>(&learningRateMethod),	"learningRateMethod")
     ("stepSizeMethod",		value<StepSize::StepSizeMethod>(&stepSizeMethod),		"stepSizeMethod")
     ("minLeafSize",		value<std::size_t>(&minLeafSize),				"minLeafSize")
@@ -228,7 +225,7 @@ auto main(int argc, char **argv) -> int {
     std::cerr << desc << std::endl;
   }
 
-  ClassifierContext::Context context{};
+  Context context{};
 
   context.loss		= loss;
   context.partitionSize = partitionSize;
@@ -258,7 +255,7 @@ auto main(int argc, char **argv) -> int {
 
   writeBinary<Context>(fileName, context);
 
-  std::cout << "Context archive: " << fileName << std::endl;
+  std::cout << "DecisionTreeClassifier Context archive: " << fileName << std::endl;
 
   return 0;
 }

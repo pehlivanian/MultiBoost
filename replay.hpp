@@ -15,6 +15,7 @@
 #include "threadsafequeue.hpp"
 #include "threadpool.hpp"
 #include "gradientboostclassifier.hpp"
+#include "gradientboostregressor.hpp"
 
 using namespace arma;
 using namespace mlpack;

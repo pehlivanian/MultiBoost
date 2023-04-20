@@ -13,10 +13,11 @@
 #include "score2.hpp"
 #include "DP.hpp"
 #include "gradientboostclassifier.hpp"
+#include "gradientboostregressor.hpp"
 #include "replay.hpp"
 
 using namespace IB_utils;
-using namespace ClassifierContext;
+using namespace ModelContext;
 using namespace ClassifierTypes;
 
 using dataset_t = Mat<double>;
@@ -177,6 +178,49 @@ void exec(std::string cmd) {
   pclose(pipe);
 }
 
+TEST(DPSolverTest, TestUnsortedIndWorksAsARMAIndexer) {
+  
+  int n = 500;
+  int numTrials = 1000;
+  std::vector<bool> trials(numTrials);
+
+  std::default_random_engine gen;
+  gen.seed(std::random_device()());
+  std::uniform_real_distribution<float> dista(-10., 10.), distb(0., 10.);
+
+  float eps = std::numeric_limits<float>::epsilon();
+  
+  for (auto _ : trials) {
+    std::vector<float> a(n), b(n);
+    for (auto &el : a)
+      el = dista(gen);
+    for (auto &el : b)
+      el = distb(gen);
+
+    auto dp = DPSolver(n, 10, a, b, objective_fn::Gaussian, true, true);
+    auto opt = dp.get_optimal_subsets_extern();
+  
+    rowvec a_arma = arma::conv_to<rowvec>::from(a);
+    rowvec b_arma = arma::conv_to<rowvec>::from(b);
+
+    for (size_t i=0; i<opt.size(); ++i) {
+      auto subset = opt[i];
+      // unsorted ratio
+      uvec ind1 = arma::conv_to<uvec>::from(subset);
+      float res1 = sum(a_arma(ind1))/sum(b_arma(ind1));
+      
+      // sorted ratio
+      std::sort(subset.begin(), subset.end());
+      uvec ind2 = arma::conv_to<uvec>::from(subset);
+      float res2 = sum(a_arma(ind2))/sum(b_arma(ind2));
+
+      ASSERT_LT(fabs(res1-res2), eps);
+      
+    }
+  }
+
+}
+
 TEST(DPSolverTest, TestCachedScoresMatchAcrossMethods) {
   using namespace Objectives;
 
@@ -190,13 +234,13 @@ TEST(DPSolverTest, TestCachedScoresMatchAcrossMethods) {
   std::uniform_int_distribution<int> distRow(0, n-1);
   std::uniform_int_distribution<int> distCol(0, n);
 
-  std::vector<float> a(n), b(n);
-  for (auto &el : a)
-    el = dista(gen);
-  for (auto &el : b)
-    el = distb(gen);
-
   for (auto _ : trials) {
+    std::vector<float> a(n), b(n);
+    for (auto &el : a)
+      el = dista(gen);
+    for (auto &el : b)
+      el = distb(gen);
+
     RationalScoreContext<float>* context_serial = new RationalScoreContext{a, b, n, false, true};
     context_serial->__compute_partial_sums__();
     auto a_sums_serial = context_serial->get_partial_sums_a();
@@ -349,16 +393,18 @@ TEST(DPSolverTest, TestBaselines ) {
   std::vector<float> b1{3.43178016, 3.92117518, 7.29049707, 7.37995406, 4.80931901, 4.38572245,
       3.98044255, 0.59677897};
 
-  auto dp1 = DPSolver(8, 3, a1, b1, objective_fn::Poisson, false, true);
-  auto opt1 = dp1.get_optimal_subsets_extern();
-  
   auto dp = DPSolver(40, 5, a, b, objective_fn::Gaussian, true, true);
   auto opt = dp.get_optimal_subsets_extern();
 
   for (size_t i=0; i<expected.size(); ++i) {
     auto expected_subset = expected[i], opt_subset = opt[i];
+    std::sort(expected_subset.begin(), expected_subset.end());
+    std::sort(opt_subset.begin(), opt_subset.end());
     ASSERT_EQ(expected_subset.size(), opt_subset.size());
     for(size_t j=0; j<expected_subset.size(); ++j) {
+      if (expected_subset[j] != opt_subset[j]) {
+	std::cout << "HERE" << std::endl;
+      }
       ASSERT_EQ(expected_subset[j], opt_subset[j]);
     }
   }
@@ -472,6 +518,175 @@ TEST_P(DPSolverTestFixture, TestOptimalityWithRandomPartitions) {
       }
     }
   }
+}
+
+TEST(GradientBoostRegressorTest, TestPerfectInSampleFit) {
+
+  std::vector<bool> recursive{false, true};
+  
+  Mat<double> dataset;
+  Row<double> labels, prediction;
+  
+  int rows=1000, cols=20;
+  
+  dataset = Mat<double>(rows, cols, fill::randu);
+  labels = Row<double>(cols);
+
+  for (std::size_t i=0; i<4; ++i) {
+    dataset(444,i) = i;
+    labels[i] = 14.;
+  }
+  for (std::size_t i=4; i<8; ++i) {
+    dataset(444,i) = i;
+    labels[i] = -1.45;
+  }
+  for (std::size_t i=8; i<12; ++i) {
+    dataset(444,i) = i;
+    labels[i] = -2.077;
+  }
+  for (std::size_t i=12; i<16; ++i) {
+    dataset(444,i) = i;
+    labels[i] = 2.077;
+  }
+  for (std::size_t i=16; i<20; ++i) {
+    dataset(444,i) = i;
+    labels[i] = 2.24;
+  }
+
+  for (auto recursive_ : recursive) {
+    Context context{};
+    
+    context.loss = lossFunction::MSE;
+    context.partitionSize = 4;
+    context.partitionRatio = .25;
+    context.learningRate = 1.;
+    context.steps = 100;
+    context.baseSteps = 1000;
+    context.symmetrizeLabels = true;
+    context.serializationWindow = 1000;
+    context.removeRedundantLabels = false;
+    context.rowSubsampleRatio = 1.;
+    context.colSubsampleRatio = 1.; // .75
+    context.recursiveFit = recursive_;
+    context.serialize = false;
+    context.serializePrediction = false;
+    context.serializeDataset = false;
+    context.serializeLabels = false;
+    context.serializationWindow = 1000;
+    context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
+    context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;    // DECREASING
+    context.stepSizeMethod = StepSize::StepSizeMethod::LOG;	
+    context.minLeafSize = 1;
+    context.maxDepth = 10;
+    context.minimumGainSplit = 0.;
+    
+    auto regressor = GradientBoostRegressor<DecisionTreeRegressorRegressor>(dataset,
+									    labels,
+									    context);
+    regressor.fit();
+    regressor.Predict(prediction);
+    
+    const double trainError = err(prediction, labels);
+    
+    ASSERT_EQ(trainError, 0.);
+  }
+  
+}
+
+TEST(GradientBoostRegressorTest, TestOutofSampleFit) {
+
+  std::vector<bool> recursive{false, true};
+  
+  Mat<double> dataset, dataset_oos;
+  Row<double> labels, labels_oos, prediction, prediction_oos;
+  
+  int rows=50, cols=20;
+  
+  dataset = Mat<double>(rows, cols, fill::randu);
+  labels = Row<double>(cols);
+
+  dataset_oos = Mat<double>(rows, cols, fill::randu);
+  labels_oos = Row<double>(cols);
+
+  for (std::size_t i=0; i<4; ++i) {
+    dataset(44,i) = i;
+    dataset_oos(44,i) = i;
+    labels[i] = 2.;
+    labels_oos[i] = 4.;
+  }
+  for (std::size_t i=4; i<8; ++i) {
+    dataset(44,i) = i;
+    dataset_oos(44,i) = i;
+    labels[i] = 4.;
+    labels_oos[i] = 8.;
+  }
+  for (std::size_t i=8; i<12; ++i) {
+    dataset(44,i) = i;
+    dataset_oos(44,i) = i;
+    labels[i] = 6.;
+    labels_oos[i] = 12.;
+  }
+  for (std::size_t i=12; i<16; ++i) {
+    dataset(44,i) = i;
+    dataset_oos(44,i) = i;
+    labels[i] = 8.;
+    labels_oos[i] = 16.;
+  }
+  for (std::size_t i=16; i<20; ++i) {
+    dataset(44,i) = i;
+    dataset_oos(44,i) = i;
+    labels[i] = 10.;
+    labels_oos[i] = 20.;
+  }
+
+  for (auto recursive_ : recursive) {
+    Context context{};
+    
+    context.loss = lossFunction::MSE;
+    context.partitionSize = 4;
+    context.partitionRatio = .25;
+    context.learningRate = 1.;
+    context.steps = 100;
+    context.baseSteps = 1000;
+    context.symmetrizeLabels = true;
+    context.serializationWindow = 1000;
+    context.removeRedundantLabels = false;
+    context.rowSubsampleRatio = 1.;
+    context.colSubsampleRatio = 1.; // .75
+    context.recursiveFit = recursive_;
+    context.serialize = false;
+    context.serializePrediction = false;
+    context.serializeDataset = false;
+    context.serializeLabels = false;
+    context.serializationWindow = 1000;
+    context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
+    context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;    // DECREASING
+    context.stepSizeMethod = StepSize::StepSizeMethod::LOG;	
+    context.minLeafSize = 1;
+    context.maxDepth = 10;
+    context.minimumGainSplit = 0.;
+    
+    auto regressor = GradientBoostRegressor<DecisionTreeRegressorRegressor>(dataset,
+									    labels,
+									    context);
+
+    regressor.fit();
+    regressor.Predict(prediction);
+
+    const double trainError = err(prediction, labels);
+    
+    ASSERT_EQ(trainError, 0.);
+
+    regressor.Predict(dataset_oos, prediction_oos);
+    
+    const double testError = err(prediction_oos, labels_oos);
+
+    for (std::size_t i=0; i<labels.n_elem; ++i) {
+      ASSERT_EQ(labels[i], prediction[i]);
+      // ASSERT_EQ(labels_oos[i], 2*prediction_oos[i]);
+    }
+  }
+  
 }
 
 TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips) {

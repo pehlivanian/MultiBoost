@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.24)
 
 project(InductiveBoost)
 
+# Supress all warnings - to eliminate clutter when debugging compile errors
+# add_definitions(-w)
+
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 include(GNUInstallDirs)
@@ -21,7 +24,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # arma ex not required
-option(BUILD_ARMA_EX "Build armadillo ex" OFF)
+option(BUILD_ARMA_EX "Build armadillo ex" ON)
 
 # ClassifierContext::Context creation
 option(BUILD_CONTEXT_BUILDER "Build context builder" ON)
@@ -36,7 +39,10 @@ option(BUILD_TESTS "Build unit tests" ON)
 option(BUILD_BENCHMARKS "Build benchmark tests" ON)
 
 # build Inductive Boost Classifier
-option(BUILD_IBC "Build inductive boost classifier" ON)
+option(BUILD_SINGLECLASS "Build inductive boost classifier" ON)
+
+# build Inductive Boost Regressor
+option(BUILD_REGRESSOR "Build inductive boost regressor" ON)
 
 # build incremental driver
 option(BUILD_INC_DRIVER "Build incrmental fitter" ON)
@@ -48,10 +54,10 @@ option(BUILD_INC_PREDICT "Build incrmental predictor" ON)
 option(BUILD_STEPWISE_PREDICT "Build stepwise predictor" ON)
 
 # build titanic example
-option(BUILD_TITANIC "Build titanic ex" OFF)
+option(BUILD_TITANIC "Build titanic ex" ON)
 
 # build multiclass pmlb driver
-option(BUILD_MULTICLASS "Build multiclass inductive boost classifier" ON)
+option(BUILD_MULTICLASS "Build multiclass inductive boost classifier" OFF)
 
 # Profile
 option(PROFILE_RESULTS "gprof enabled" OFF)
@@ -120,61 +126,116 @@ endif()
 
 include_directories(${ARMADILLO_INCLUDE_DIRS})
 
+################
+# OBJECT FILES #
+################
+# object files
+add_library(DP OBJECT DP.cpp)
 add_library(loss OBJECT loss.cpp)
-add_library(score2 OBJECT score2.cpp)
-add_library(utils OBJECT utils.cpp)
+add_library(pmlb OBJECT pmlb.cpp)
+add_library(gradientboostclassifier OBJECT gradientboostclassifier.cpp)
+add_library(gradientboostregressor OBJECT gradientboostregressor.cpp)
 add_library(replay OBJECT replay.cpp)
+add_library(utils OBJECT utils.cpp)
+add_library(score2 OBJECT score2.cpp)
+add_library(classifier OBJECT classifier.cpp)
+add_library(regressor OBJECT regressor.cpp)
+add_library(compositeclassifier OBJECT compositeclassifier.cpp)
+add_library(threadsafequeue OBJECT threadsafequeue.cpp)
+# add_library(gradientboostmulticlassifier OBJECT gradientboostmulticlassifier.cpp)
 
-target_link_libraries(loss PUBLIC $<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
+###########
+# LINKAGE #
+###########
+target_link_libraries(DP PUBLIC utils score2
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+
+target_link_libraries(loss PUBLIC $<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> 
+	${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES}
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 
-add_library(LTSS OBJECT LTSS.cpp)
-target_link_libraries(LTSS PUBLIC utils $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
-add_library(DP OBJECT DP.cpp)
-target_link_libraries(DP PUBLIC LTSS utils $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
-add_library(threadsafequeue OBJECT threadsafequeue.cpp)
-target_link_libraries(threadsafequeue PUBLIC pthread $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
-add_library(gradientboostclassifier OBJECT gradientboostclassifier.cpp)
-target_link_libraries(gradientboostclassifier PUBLIC utils LTSS DP ${ARMADILLO_LIBRARIES} 
-	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
-add_library(gradientboostmulticlassifier OBJECT gradientboostmulticlassifier.cpp)
-target_link_libraries(gradientboostmulticlassifier PUBLIC threadsafequeue ${ARMADILLO_LIBRARIES} pthread 
+target_link_libraries(replay PUBLIC utils threadsafequeue gradientboostclassifier
+	${ARMADILLO_LIBRARIES}
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 
+target_link_libraries(utils PUBLIC loss
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+
+target_link_libraries(compositeclassifier PUBLIC utils score2 classifier DP
+	${ARMADILLO_LIBRARIES}
+	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES}
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)	
+
+target_link_libraries(classifier PUBLIC ${ARMADILLO_LIBRARIES}
+	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES}
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)	
+
+target_link_libraries(regressor PUBLIC ${ARMADILLO_LIBRARIES}
+	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES}
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)	
+
+target_link_libraries(threadsafequeue PUBLIC pthread 
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+
+target_link_libraries(gradientboostclassifier PUBLIC utils loss score2 DP classifier compositeclassifier
+	${ARMADILLO_LIBRARIES} 
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+
+# target_link_libraries(gradientboostmulticlassifier PUBLIC threadsafequeue 
+# 	${ARMADILLO_LIBRARIES} pthread 
+# 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+
+
+###############
+# EXECUTABLES #
+###############
 # Armadillo example
 if (BUILD_ARMA_EX)
   add_executable(arma_ex arma_ex.cpp)
-  target_link_libraries(arma_ex ${ARMADILLO_LIBRARIES} ${BLAS_LIBRARIES} $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+  target_link_libraries(arma_ex ${ARMADILLO_LIBRARIES} 
+	${BLAS_LIBRARIES} 
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 endif()
 
 # Context creation
 if (BUILD_CONTEXT_BUILDER)
   add_executable(createContext createContext.cpp)
-  target_link_libraries(createContext LINK_PUBLIC ${Boost_LIBRARIES} utils 
+  target_link_libraries(createContext LINK_PUBLIC ${Boost_LIBRARIES} utils loss
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 endif()
 
 # DP solver example	
 if (BUILD_DP_SOLVER_EX)
   add_executable(DP_solver_ex DP_solver_ex.cpp)
-  target_link_libraries(DP_solver_ex DP LTSS pthread 
+  target_link_libraries(DP_solver_ex DP score2 pthread 
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 endif()
 		  
 # InductiveBoostClassifier driver on pmlb data
-if (BUILD_IBC)
-  add_executable(pmlb_driver pmlb_driver.cpp)
-  target_link_libraries(pmlb_driver loss utils gradientboostclassifier 
+if (BUILD_SINGLECLASS)
+  add_executable(single_class_pmlb_driver single_class_pmlb_driver.cpp)
+  target_link_libraries(single_class_pmlb_driver loss utils
+	gradientboostclassifier
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES} 
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 endif()
 
+# InductiveBoostRegressor driver on pmlb data
+if (BUILD_REGRESSOR)
+  add_Executable(regressor_pmlb_driver regressor_pmlb_driver.cpp)
+  target_link_libraries(regressor_pmlb_driver utils loss gradientboostregressor
+	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES}
+	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES} 
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)	
+endif()
+
 # Incremental driver for sequential, serialized runs
 if (BUILD_INC_DRIVER)
   add_executable(incremental_driver incremental_driver.cpp)
-  target_link_libraries(incremental_driver LINK_PUBLIC ${Boost_LIBRARIES} ${Boost_SYSTEM_LIBRARY} loss utils 
+  target_link_libraries(incremental_driver LINK_PUBLIC ${Boost_LIBRARIES} 
+	${Boost_SYSTEM_LIBRARY} loss utils 
 	gradientboostclassifier 
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES} 
@@ -184,7 +245,8 @@ endif()
 # Incremental predictor for sequential, serialized runs
 if (BUILD_INC_PREDICT)
   add_executable(incremental_predict incremental_predict.cpp)
-  target_link_libraries(incremental_predict LINK_PUBLIC ${Boost_LIBRARIES} loss utils 
+  target_link_libraries(incremental_predict LINK_PUBLIC 
+	${Boost_LIBRARIES} loss utils 
 	gradientboostclassifier 
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES} 
@@ -195,7 +257,7 @@ endif()
 if (BUILD_STEPWISE_PREDICT)
   add_executable(stepwise_predict stepwise_predict.cpp)
   target_link_libraries(stepwise_predict LINK_PUBLIC ${Boost_LIBRARIES} loss utils 
-	gradientboostclassifier 
+	gradientboostclassifier replay
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> 
 	${BLAS_LIBRARIES} $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
@@ -204,8 +266,9 @@ endif()
 # Titanic dataset driver on pmlb data
 if (BUILD_TITANIC)
   add_executable(titanic_driver titanic_driver.cpp)
-  target_link_libraries(titanic_driver LINK_PUBLIC ${Boost_LIBRARIES} ${Boost_SYSTEM_LIBRARY} loss utils 
-	gradientboostclassifier 
+  target_link_libraries(titanic_driver LINK_PUBLIC ${Boost_LIBRARIES} 
+	${Boost_SYSTEM_LIBRARY} pmlb loss utils 
+	gradientboostclassifier replay
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES} 
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
@@ -214,7 +277,7 @@ endif()
 # Multiclass classification driver on pmlb data
 if (BUILD_MULTICLASS)
   add_executable(multiple_class_pmlb_driver multiple_class_pmlb_driver.cpp)
-  target_link_libraries(multiple_class_pmlb_driver loss utils gradientboostclassifier 
+  target_link_libraries(multiple_class_pmlb_driver pmlb loss utils gradientboostclassifier 
 	gradientboostmulticlassifier 
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES} 
@@ -225,7 +288,7 @@ if (BUILD_TESTS)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
   add_executable(gtest_all gtest_all.cpp)
   target_link_libraries(gtest_all LINK_PUBLIC ${Boost_SYSTEM_LIBRARY} utils replay DP 
-	gradientboostclassifier ${GTEST_LIBRARIES} 
+	score2 gradientboostclassifier ${GTEST_LIBRARIES} 
 	${ARMADILLO_LIBRARIES} pthread 
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 endif()
@@ -234,26 +297,27 @@ if (BUILD_BENCHMARKS)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/benchmarks)
   add_executable(benchmarks benchmarks.cpp)
   target_link_libraries(benchmarks benchmark::benchmark pthread utils
-	gradientboostclassifier 
+	score2 gradientboostclassifier 
 	${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 endif()
 
 # arma ex not required
-MESSAGE(STATUS "Build armadillo ex: " ${BUILD_ARMA_EX})
-MESSAGE(STATUS "Build context builder: " ${BUILD_CONTEXT_BUILDER})
-MESSAGE(STATUS "Build DP solver ex: " ${BUILD_DP_SOLVER_EX})
-MESSAGE(STATUS "Build google tests: " ${BUILD_TESTS})
-MESSAGE(STATUS "Build google benchmarks: " ${BUILD_BENCHMARKS})
-MESSAGE(STATUS "Build inductive boost classifier: " ${BUILD_IBC})
-MESSAGE(STATUS "Build incremental fitter: " ${BUILD_INC_DRIVER})
-MESSAGE(STATUS "Build incremental predictor: " ${BUILD_INC_PREDICT})
-MESSAGE(STATUS "Build stepwise predictor: " ${BUILD_STEPWISE_PREDICT})
-MESSAGE(STATUS "Build titanic ex: " ${BUILD_TITANIC})
+MESSAGE(STATUS "Build armadillo ex:                          " ${BUILD_ARMA_EX})
+MESSAGE(STATUS "Build context builder:                       " ${BUILD_CONTEXT_BUILDER})
+MESSAGE(STATUS "Build DP solver ex:                          " ${BUILD_DP_SOLVER_EX})
+MESSAGE(STATUS "Build google tests:                          " ${BUILD_TESTS})
+MESSAGE(STATUS "Build google benchmarks:                     " ${BUILD_BENCHMARKS})
+MESSAGE(STATUS "Build inductive boost classifier:            " ${BUILD_SINGLECLASS})
+MESSAGE(STATUS "Build inductive boost regressor:             " ${BUILD_REGRESSOR})
+MESSAGE(STATUS "Build incremental fitter:                    " ${BUILD_INC_DRIVER})
+MESSAGE(STATUS "Build incremental predictor:                 " ${BUILD_INC_PREDICT})
+MESSAGE(STATUS "Build stepwise predictor:                    " ${BUILD_STEPWISE_PREDICT})
+MESSAGE(STATUS "Build titanic ex:                            " ${BUILD_TITANIC})
 MESSAGE(STATUS "Build multiclass inductive boost classifier: " ${BUILD_MULTICLASS})
-MESSAGE(STATUS "Math optimizations: " ${MATH_OPTS})
-MESSAGE(STATUS "Gprof enabled: " ${PROFILE_RESULTS})
-MESSAGE(STATUS "Use OpenMP: " ${USE_OPENMP})
-MESSAGE(STATUS "Use autodiff lib: " ${USE_AUTODIFF})
-MESSAGE(STATUS "Use eigen lib: " ${USE_EIGEN})
+MESSAGE(STATUS "Math optimizations:                          " ${MATH_OPTS})
+MESSAGE(STATUS "Gprof enabled:                               " ${PROFILE_RESULTS})
+MESSAGE(STATUS "Use OpenMP:                                  " ${USE_OPENMP})
+MESSAGE(STATUS "Use autodiff lib:                            " ${USE_AUTODIFF})
+MESSAGE(STATUS "Use eigen lib:                               " ${USE_EIGEN})
 

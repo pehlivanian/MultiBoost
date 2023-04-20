@@ -1,5 +1,5 @@
-#ifndef __PMLB_DRIVER_HPP__
-#define __PMLB_DRIVER_HPP__
+#ifndef __SINGLE_CLASS_PMLB_DRIVER_HPP__
+#define __SINGLE_CLASS_PMLB_DRIVER_HPP__
 
 #include <iostream>
 #include <numeric>
@@ -16,6 +16,7 @@
 
 
 #include "loss.hpp"
+#include "classifiers.hpp"
 #include "gradientboostclassifier.hpp"
 #include "utils.hpp"
 

@@ -21,7 +21,6 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/access.hpp>
 
-#include "utils.hpp"
 #include "loss.hpp"
 
 using namespace LossMeasures;
@@ -54,7 +53,8 @@ namespace StepSize {
   };
 } // namespace StepSize
 
-namespace ClassifierContext{
+namespace ModelContext{
+
   struct Context {
     Context(std::size_t minLeafSize=1,
 	    double minimumGainSplit=.0,
@@ -139,7 +139,67 @@ namespace ClassifierContext{
     bool serializeLabels;
     std::size_t serializationWindow;
   };
-} // namespace ClassifierContext
+} // namespace ModelContext
+
+class PartitionUtils {
+public:
+  static std::vector<int> _shuffle(int sz) {
+
+    std::vector<int> ind(sz), r(sz);
+    std::iota(ind.begin(), ind.end(), 0);
+    
+    std::vector<std::vector<int>::iterator> v(static_cast<int>(ind.size()));
+    std::iota(v.begin(), v.end(), ind.begin());
+    
+    std::shuffle(v.begin(), v.end(), std::mt19937{std::random_device{}()});
+    
+    for (int i=0; i<v.size(); ++i) {
+      r[i] = *(v[i]);
+    }
+  }
+
+  static std::vector<std::vector<int>> _fullPartition(int sz) {
+    
+    std::vector<int> subset(sz);
+    std::iota(subset.begin(), subset.end(), 0);
+    std::vector<std::vector<int>> p{1, subset};
+    return p;
+  }
+
+  static uvec sortedSubsample1(std::size_t n, std::size_t numCols) {
+    float p = static_cast<float>(numCols)/static_cast<float>(n);     
+    uvec r(numCols);
+    int i=0, j=0;
+
+    while (numCols > 0) {
+      float s = (float)rand()/RAND_MAX;
+      if (s < p) {
+	r[i] = j;
+	i += 1;
+	numCols -= 1.; n -= 1.;
+	p = static_cast<float>(numCols)/static_cast<float>(n);
+      }
+      j+=1;
+    }
+    return r;
+  }
+
+  static uvec sortedSubsample2(std::size_t n, std::size_t numCols) {
+    uvec r(numCols);
+
+    std::size_t i=0, j=0;
+    while (numCols > 0) {
+      std::size_t s = rand() % n;
+      if (s < numCols) {
+	r[i] = j;
+	i += 1;numCols -= 1;
+      }
+      j += 1;n -= 1;
+    }
+    return r;
+  }
+
+};
 
 namespace IB_utils {
   using namespace arma;
@@ -153,14 +213,37 @@ namespace IB_utils {
     };
   };
 
+  class __debug {
+  public:
+    __debug(const char* fl, const char* fn, int ln) :
+      fl_{fl},
+      fn_{fn},
+      ln_{ln} 
+    {
+      std::cerr << "===> ENTER FILE: " << fl_
+		<< " FUNCTION: " << fn_
+		<<" LINE: " << ln_ << std::endl;
+    }
+    ~__debug() {
+      std::cerr << "===< EXIT FILE:  " << fl_
+		<< " FUNCTION: " << fn_
+		<<" LINE: " << ln_ << std::endl;
+    }
+  private:
+    const char* fl_;
+    const char* fn_;
+    int ln_;
+  };
+  
   enum class SerializedType {
-    CLASSIFIER = 0,
+      CLASSIFIER = 0,
       PREDICTION = 1,
       COLMASK = 2,
       DATASET_IS = 3,
       DATASET_OOS = 4,
       LABELS_IS = 5,
-      LABELS_OOS = 6
+      LABELS_OOS = 6,
+      REGRESSOR = 7
       };
 
   class DatasetArchive {
@@ -271,7 +354,8 @@ namespace IB_utils {
 	{3, "__DIS_"},
 	{4, "__DOOS_"},
 	{5, "__LIS_"},
-	{6, "__LOOS_"}
+	{6, "__LOOS_"},
+	{7, "__REG_"}
       };
     
     std::string pref = SerializedTypeMap[static_cast<std::underlying_type_t<SerializedType>>(typ)];
@@ -489,6 +573,6 @@ namespace IB_utils {
 
   bool comp(std::pair<std::size_t, std::size_t>&, std::pair<std::size_t, std::size_t>&);
 
-}
+} // namespace IB_utils
 
 #endif

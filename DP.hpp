@@ -17,6 +17,7 @@
 #include <cmath>
 #include <math.h>
 
+// No use for eigen lib
 #undef EIGEN
 
 #if EIGEN
@@ -30,10 +31,10 @@
 
 #include "utils.hpp"
 #include "score2.hpp"
-#include "LTSS.hpp"
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
+using namespace Objectives;
 using namespace IB_utils;
 
 template<typename DataType>
@@ -41,6 +42,9 @@ class DPSolver {
   using all_scores = std::pair<std::vector<std::vector<int> >, DataType>;
   using all_part_scores = std::vector<all_scores>;
 public:
+
+  DPSolver() = default;
+
   DPSolver(std::vector<DataType> a,
 	   std::vector<DataType> b,
 	   int T,
@@ -125,9 +129,6 @@ private:
   all_part_scores subsets_and_scores_;
   int optimal_num_clusters_OLS_;
   std::unique_ptr<ParametricContext<DataType>> context_;
-  // XXX
-  // Doesn't seem like it's needed
-  std::unique_ptr<LTSSSolver<DataType>> LTSSSolver_;
   
   void create();
   void createContext();
