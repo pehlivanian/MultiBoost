@@ -36,10 +36,10 @@ auto main(int argc, char **argv) -> int {
   }
 
   Row<double> prediction;
-  Replay<double, DecisionTreeClassifier>::PredictStep(classifierFileName, 
-						      datasetFileName,
-						      outFileName,
-						      false);
+  Replay<double, DecisionTreeClassifier>::ClassifyStep(classifierFileName, 
+						       datasetFileName,
+						       outFileName,
+						       false);
 
   return 0;
 }

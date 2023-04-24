@@ -30,7 +30,7 @@ auto main(int argc, char **argv) -> int {
   }
 
   Row<double> prediction_oos, labels_oos;
-  Replay<double, DecisionTreeClassifier>::PredictStepwise(indexFileName, prediction_oos, labels_oos, true);
+  Replay<double, DecisionTreeClassifier>::ClassifyStepwise(indexFileName, prediction_oos, labels_oos, true);
 
   const double testError = err(prediction_oos, labels_oos);
 

@@ -16,6 +16,7 @@
 #include "threadpool.hpp"
 #include "gradientboostclassifier.hpp"
 #include "gradientboostregressor.hpp"
+#include "model_traits.hpp"
 
 using namespace arma;
 using namespace mlpack;
@@ -25,6 +26,7 @@ using namespace mlpack::util;
 
 using namespace boost::process;
 
+using namespace Model_Traits;
 using namespace IB_utils;
 
 
@@ -34,15 +36,27 @@ public:
   Replay()  = default;
   ~Replay() = default;
 
-  static void Predict(std::string, const mat&, Row<DataType>&, bool=false);
+  // Classify methods are for classifiers
+  // Predict  methods are for regressors
+  static void Classify(std::string, const mat&, Row<DataType>&, bool=false);
+  static void Predict(std::string, const mat&, Row<DataType>&);
+
+  static void Classify(std::string, Row<DataType>&);
   static void Predict(std::string, Row<DataType>&);
 
-  static void PredictStepwise(std::string, Row<DataType>&, Row<DataType>&, bool=false, bool=false);
-  static void PredictStep(std::string, std::string, Row<double>&, bool=false);
-  static void PredictStep(std::string, std::string, std::string, bool=false);
+  static void ClassifyStepwise(std::string, Row<DataType>&, Row<DataType>&, bool=false, bool=false);
+  static void PredictStepwise(std::string, Row<DataType>&, Row<DataType>&, bool);
 
-  static void Classify(std::string, const mat&, Row<DataType>&, bool=false);
-  static void Classify(std::string, Row<DataType>&);
+  static void ClassifyStep(std::string, std::string, Row<double>&, bool=false);
+  static void PredictStep(std::string, std::string, Row<double>&);
+
+  static void ClassifyStep(std::string, std::string, std::string, bool=false);
+  static void PredictStep(std::string, std::string, std::string);
+
+
+  
+  
+
 
 private:
   static void desymmetrize(Row<DataType>&, double, double);

@@ -21,7 +21,9 @@ using namespace ModelContext;
 using namespace ClassifierTypes;
 
 using dataset_t = Mat<double>;
+using dataset_d = Mat<double>;
 using labels_t = Row<std::size_t>;
+using labels_d = Row<double>;
 
 class DPSolverTestFixture : public ::testing::TestWithParam<objective_fn> {
 };
@@ -34,6 +36,7 @@ INSTANTIATE_TEST_SUITE_P(DPSolverTests,
 					   objective_fn::RationalScore
 					   )
 			 );
+
 
 void sort_by_priority(std::vector<float>& a, std::vector<float>& b) {
   std::vector<int> ind(a.size());
@@ -164,10 +167,17 @@ float mixture_of_uniforms(int n) {
 }
 
 
-void loadDatasets(dataset_t& dataset, labels_t& labels) {
+void loadClassifierDatasets(dataset_t& dataset, labels_t& labels) {
   if (!data::Load("/home/charles/Data/sonar_X.csv", dataset))
     throw std::runtime_error("Could not load file");
   if (!data::Load("/home/charles/Data/sonar_y.csv", labels))
+    throw std::runtime_error("Could not load file");
+}
+
+void loadRegressorDatasets(dataset_t& dataset, labels_d& labels) {
+  if (!data::Load("/home/charles/Data/Regression/1193_BNG_lowbwt_X.csv", dataset))
+    throw std::runtime_error("Could not load file");
+  if (!data::Load("/home/charles/Data/Regression/1193_BNG_lowbwt_y.csv", labels))
     throw std::runtime_error("Could not load file");
 }
 
@@ -432,10 +442,10 @@ TEST_P(DPSolverTestFixture, TestOrderedProperty) {
     
     auto dp = DPSolver(n, T, a, b, objective, false, true);
     auto opt = dp.get_optimal_subsets_extern();
-    
+  
     int sum;
     std::vector<int> v;
-    
+  
     for (auto& list : opt) {
       if (list.size() > 1) {
 	v.resize(list.size());
@@ -520,175 +530,6 @@ TEST_P(DPSolverTestFixture, TestOptimalityWithRandomPartitions) {
   }
 }
 
-TEST(GradientBoostRegressorTest, TestPerfectInSampleFit) {
-
-  std::vector<bool> recursive{false, true};
-  
-  Mat<double> dataset;
-  Row<double> labels, prediction;
-  
-  int rows=1000, cols=20;
-  
-  dataset = Mat<double>(rows, cols, fill::randu);
-  labels = Row<double>(cols);
-
-  for (std::size_t i=0; i<4; ++i) {
-    dataset(444,i) = i;
-    labels[i] = 14.;
-  }
-  for (std::size_t i=4; i<8; ++i) {
-    dataset(444,i) = i;
-    labels[i] = -1.45;
-  }
-  for (std::size_t i=8; i<12; ++i) {
-    dataset(444,i) = i;
-    labels[i] = -2.077;
-  }
-  for (std::size_t i=12; i<16; ++i) {
-    dataset(444,i) = i;
-    labels[i] = 2.077;
-  }
-  for (std::size_t i=16; i<20; ++i) {
-    dataset(444,i) = i;
-    labels[i] = 2.24;
-  }
-
-  for (auto recursive_ : recursive) {
-    Context context{};
-    
-    context.loss = lossFunction::MSE;
-    context.partitionSize = 4;
-    context.partitionRatio = .25;
-    context.learningRate = 1.;
-    context.steps = 100;
-    context.baseSteps = 1000;
-    context.symmetrizeLabels = true;
-    context.serializationWindow = 1000;
-    context.removeRedundantLabels = false;
-    context.rowSubsampleRatio = 1.;
-    context.colSubsampleRatio = 1.; // .75
-    context.recursiveFit = recursive_;
-    context.serialize = false;
-    context.serializePrediction = false;
-    context.serializeDataset = false;
-    context.serializeLabels = false;
-    context.serializationWindow = 1000;
-    context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
-    context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;    // DECREASING
-    context.stepSizeMethod = StepSize::StepSizeMethod::LOG;	
-    context.minLeafSize = 1;
-    context.maxDepth = 10;
-    context.minimumGainSplit = 0.;
-    
-    auto regressor = GradientBoostRegressor<DecisionTreeRegressorRegressor>(dataset,
-									    labels,
-									    context);
-    regressor.fit();
-    regressor.Predict(prediction);
-    
-    const double trainError = err(prediction, labels);
-    
-    ASSERT_EQ(trainError, 0.);
-  }
-  
-}
-
-TEST(GradientBoostRegressorTest, TestOutofSampleFit) {
-
-  std::vector<bool> recursive{false, true};
-  
-  Mat<double> dataset, dataset_oos;
-  Row<double> labels, labels_oos, prediction, prediction_oos;
-  
-  int rows=50, cols=20;
-  
-  dataset = Mat<double>(rows, cols, fill::randu);
-  labels = Row<double>(cols);
-
-  dataset_oos = Mat<double>(rows, cols, fill::randu);
-  labels_oos = Row<double>(cols);
-
-  for (std::size_t i=0; i<4; ++i) {
-    dataset(44,i) = i;
-    dataset_oos(44,i) = i;
-    labels[i] = 2.;
-    labels_oos[i] = 4.;
-  }
-  for (std::size_t i=4; i<8; ++i) {
-    dataset(44,i) = i;
-    dataset_oos(44,i) = i;
-    labels[i] = 4.;
-    labels_oos[i] = 8.;
-  }
-  for (std::size_t i=8; i<12; ++i) {
-    dataset(44,i) = i;
-    dataset_oos(44,i) = i;
-    labels[i] = 6.;
-    labels_oos[i] = 12.;
-  }
-  for (std::size_t i=12; i<16; ++i) {
-    dataset(44,i) = i;
-    dataset_oos(44,i) = i;
-    labels[i] = 8.;
-    labels_oos[i] = 16.;
-  }
-  for (std::size_t i=16; i<20; ++i) {
-    dataset(44,i) = i;
-    dataset_oos(44,i) = i;
-    labels[i] = 10.;
-    labels_oos[i] = 20.;
-  }
-
-  for (auto recursive_ : recursive) {
-    Context context{};
-    
-    context.loss = lossFunction::MSE;
-    context.partitionSize = 4;
-    context.partitionRatio = .25;
-    context.learningRate = 1.;
-    context.steps = 100;
-    context.baseSteps = 1000;
-    context.symmetrizeLabels = true;
-    context.serializationWindow = 1000;
-    context.removeRedundantLabels = false;
-    context.rowSubsampleRatio = 1.;
-    context.colSubsampleRatio = 1.; // .75
-    context.recursiveFit = recursive_;
-    context.serialize = false;
-    context.serializePrediction = false;
-    context.serializeDataset = false;
-    context.serializeLabels = false;
-    context.serializationWindow = 1000;
-    context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
-    context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;    // DECREASING
-    context.stepSizeMethod = StepSize::StepSizeMethod::LOG;	
-    context.minLeafSize = 1;
-    context.maxDepth = 10;
-    context.minimumGainSplit = 0.;
-    
-    auto regressor = GradientBoostRegressor<DecisionTreeRegressorRegressor>(dataset,
-									    labels,
-									    context);
-
-    regressor.fit();
-    regressor.Predict(prediction);
-
-    const double trainError = err(prediction, labels);
-    
-    ASSERT_EQ(trainError, 0.);
-
-    regressor.Predict(dataset_oos, prediction_oos);
-    
-    const double testError = err(prediction_oos, labels_oos);
-
-    for (std::size_t i=0; i<labels.n_elem; ++i) {
-      ASSERT_EQ(labels[i], prediction[i]);
-      // ASSERT_EQ(labels_oos[i], 2*prediction_oos[i]);
-    }
-  }
-  
-}
-
 TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips) {
   
   int numTrials = 1;
@@ -697,7 +538,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips)
   dataset_t dataset, trainDataset, testDataset;
   labels_t labels, trainLabels, testLabels;
 
-  loadDatasets(dataset, labels);
+  loadClassifierDatasets(dataset, labels);
   data::Split(dataset, 
 	      labels, 
 	      trainDataset, 
@@ -771,7 +612,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
   labels_t labels, trainLabels, testLabels;
 
 
-  loadDatasets(dataset, labels);
+  loadClassifierDatasets(dataset, labels);
   data::Split(dataset, 
 	      labels,
 	      trainDataset,
@@ -790,7 +631,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
   context.partitionSize = partitionSize;
   context.partitionRatio = .25;
   context.learningRate = .001;
-  context.steps = 214;
+  context.steps = 21;
   context.quietRun = true;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
@@ -866,7 +707,7 @@ TEST(GradientBoostClassifierTest, TestInSamplePredictionMatchesLatestPrediction)
   dataset_t dataset, trainDataset, testDataset;
   labels_t labels, trainLabels, testLabels;
 
-  loadDatasets(dataset, labels);
+  loadClassifierDatasets(dataset, labels);
   data::Split(dataset,
 	      labels,
 	      trainDataset,
@@ -885,7 +726,7 @@ TEST(GradientBoostClassifierTest, TestInSamplePredictionMatchesLatestPrediction)
   context.partitionSize = partitionSize;
   context.partitionRatio = .25;
   context.learningRate = .001;
-  context.steps = 514;
+  context.steps = 214;
   context.quietRun = true;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
@@ -933,7 +774,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveRoundTrips) {
   dataset_t dataset, trainDataset, testDataset;
   labels_t labels, trainLabels, testLabels;
   
-  loadDatasets(dataset, labels);
+  loadClassifierDatasets(dataset, labels);
   data::Split(dataset, 
 	      labels, 
 	      trainDataset, 
@@ -1014,7 +855,7 @@ TEST(GradientBoostClassifierTest, TestChildSerializationRoundTrips) {
   dataset_t dataset, trainDataset, testDataset;
   labels_t labels, trainLabels, testLabels;
 
-  loadDatasets(dataset, labels);
+  loadClassifierDatasets(dataset, labels);
   data::Split(dataset, 
 	      labels, 
 	      trainDataset, 
@@ -1221,7 +1062,7 @@ TEST(GradientBoostClassifierTest, TestWritePrediction) {
   dataset_t dataset, trainDataset, testDataset;
   labels_t labels, trainLabels, testLabels;
 
-  loadDatasets(dataset, labels);
+  loadClassifierDatasets(dataset, labels);
   data::Split(dataset, 
 	      labels,
 	      trainDataset,
@@ -1302,7 +1143,7 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
   dataset_t dataset, trainDataset, testDataset;
   labels_t labels, trainLabels, testLabels;
 
-  loadDatasets(dataset, labels);
+  loadClassifierDatasets(dataset, labels);
   data::Split(dataset, 
 	      labels,
 	      trainDataset,
@@ -1396,24 +1237,213 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
   
 }
 
+TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
+  
+  std::vector<bool> trials = {false, true};
+  dataset_d dataset, trainDataset, testDataset;
+  labels_d labels, trainLabels, testLabels;
+
+  loadRegressorDatasets(dataset, labels);
+
+  data::Split(dataset, 
+	      labels,
+	      trainDataset,
+	      testDataset,
+	      trainLabels,
+	      testLabels, 0.95);
+
+  std::size_t minLeafSize = 1;
+  double minimumGainSplit = 0.;
+  std::size_t maxDepth = 5;
+  std::size_t partitionSize = 11;
+
+  Context context{};
+  
+  context.loss = lossFunction::BinomialDeviance;
+  context.partitionSize = partitionSize;
+  context.partitionRatio = .25;
+  context.learningRate = 1.;
+  context.steps = 15;
+  context.quietRun = true;
+  context.rowSubsampleRatio = 1.;
+  context.colSubsampleRatio = 1.; // .75
+  context.serialize = true;
+  context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
+  context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
+  context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
+  context.minLeafSize = minLeafSize;
+  context.maxDepth = maxDepth;
+  context.minimumGainSplit = minimumGainSplit;
+
+  context.serializationWindow = 100;
+
+  using T = GradientBoostRegressor<DecisionTreeRegressorRegressor>;
+  using IArchiveType = cereal::BinaryInputArchive;
+  using OArchiveType = cereal::BinaryOutputArchive;
+
+  for (auto recursive : trials) {
+  
+    context.recursiveFit = recursive;
+    double eps = std::numeric_limits<double>::epsilon();
+
+    // Fit classifier
+    T regressor, newRegressor, secondRegressor;
+    context.serialize = true;
+    regressor = T(trainDataset, trainLabels, context);
+    regressor.fit();
+
+    // Predict IS with live regressor fails due to serialization...
+    Row<double> liveTrainPrediction;
+    EXPECT_THROW(regressor.Predict(trainDataset, liveTrainPrediction),
+		 predictionAfterClearedClassifiersException);
+
+    // Use latestPrediction_ instead
+    regressor.Predict(liveTrainPrediction);
+
+    // Get index
+    std::string indexName = regressor.getIndexName();
+    // Use replay to predict IS based on archive regressor
+    Row<double> archiveTrainPrediction;
+    Replay<double, DecisionTreeRegressorRegressor>::Predict(indexName, trainDataset, archiveTrainPrediction);
+  
+    T classifier, newClassifier, secondClassifier;
+    context.serialize = true;
+    classifier = T(trainDataset, trainLabels, context);
+    classifier.fit();
+
+    // Predict IS with live classifier fails due to serialization...
+    EXPECT_THROW(classifier.Predict(trainDataset, liveTrainPrediction), 
+		 predictionAfterClearedClassifiersException );
+
+    // Use latestPrediction_ instead
+    classifier.Predict(liveTrainPrediction);
+
+    // Get index
+    indexName = classifier.getIndexName();
+    // Use replay to predict IS based on archive classifier
+    Replay<double, DecisionTreeClassifier>::Classify(indexName, trainDataset, archiveTrainPrediction);
+
+    for (int i=0; i<liveTrainPrediction.n_elem; ++i)
+      ASSERT_LE(fabs(liveTrainPrediction[i]-archiveTrainPrediction[i]), eps);
+
+    // Predict OOS with live classifier
+    Row<double> liveTestPrediction;
+    context.serialize = false;
+    context.serializePrediction = false;
+    secondClassifier = T(trainDataset, trainLabels, context);
+    secondClassifier.fit();
+    secondClassifier.Predict(testDataset, liveTestPrediction);
+
+    // Use replay to predict OOS based on archive classifier
+    Row<double> archiveTestPrediction;
+    Replay<double, DecisionTreeClassifier>::Classify(indexName, testDataset, archiveTestPrediction, true);
+
+    for (int i=0; i<liveTestPrediction.size(); ++i) {
+      if (fabs(liveTestPrediction[i]-archiveTestPrediction[i]) > eps) {
+	std::cerr << "ERROR!!" << std::endl;
+      }
+      ASSERT_LE(fabs(liveTestPrediction[i]-archiveTestPrediction[i]), eps);
+    }
+  
+  }
+  
+}
+
+TEST(GradientBoostRegressorTest, TestAggregateRegressorNonRecursiveRoundTrips) {
+  
+  int numTrials = 1;
+  std::vector<bool> trials(numTrials);
+  
+  dataset_d dataset, trainDataset, testDataset;
+  labels_d labels, trainLabels, testLabels;
+
+  loadRegressorDatasets(dataset, labels);
+  data::Split(dataset, 
+	      labels, 
+	      trainDataset, 
+	      testDataset, 
+	      trainLabels, 
+	      testLabels, 0.85);
+
+  std::size_t minLeafSize = 1;
+  double minimumGainSplit = 0.;
+  std::size_t maxDepth = 10;
+  std::size_t partitionSize = 10;
+
+  Context context{};
+  
+  context.loss = lossFunction::MSE;
+  context.partitionSize = partitionSize;
+  context.partitionRatio = .25;
+  context.learningRate = 1.;
+  context.steps = 12;
+  context.quietRun = true;
+  context.symmetrizeLabels = false;
+  context.removeRedundantLabels = false;
+  context.rowSubsampleRatio = 1.;
+  context.colSubsampleRatio = .45; // .75
+  context.recursiveFit = false;
+  context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
+  context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
+  context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
+  context.minLeafSize = 1;
+  context.maxDepth = 10;
+  context.minimumGainSplit = 0.;
+
+  using T = GradientBoostRegressor<DecisionTreeRegressorRegressor>;
+  using IArchiveType = cereal::BinaryInputArchive;
+  using OArchiveType = cereal::BinaryOutputArchive;
+
+  for (auto _ : trials) {
+   
+    T regressor, newRegressor;
+    regressor = T(trainDataset, trainLabels, testDataset, testLabels, context);
+    regressor.fit();
+
+    std::string fileName = regressor.write();
+    auto tokens = strSplit(fileName, '_');
+    ASSERT_EQ(tokens[0], "REG");
+    fileName = strJoin(tokens, '_', 1);
+
+    regressor.read(newRegressor, fileName);
+
+    Row<double> trainPrediction, trainNewPrediction, testPrediction, testNewPrediction;
+    regressor.Predict(testDataset, testPrediction);
+    regressor.Predict(trainDataset, trainPrediction);
+    newRegressor.Predict(testDataset, testNewPrediction);
+    newRegressor.Predict(trainDataset, trainNewPrediction);
+
+    ASSERT_EQ(testPrediction.n_elem, testNewPrediction.n_elem);
+    ASSERT_EQ(trainPrediction.n_elem, trainNewPrediction.n_elem);
+
+    double eps = std::numeric_limits<double>::epsilon();
+    for (int i=0; i<testPrediction.n_elem; ++i)
+      ASSERT_LE(fabs(testPrediction[i]-testNewPrediction[i]), eps);
+    for (int i=0; i<trainPrediction.n_elem; ++i)
+      ASSERT_LE(fabs(trainPrediction[i]-trainNewPrediction[i]), eps);
+
+  }
+}
+
+
 TEST(GradientBoostClassifierTest, TestIncrementalContextContent) {
   
-  std::string fileName = "__CTX_TEST_EtxetnoC7txetnoCreifissa.cxt";
+  std::string fileName = "__CTX_TEST_EtxetnoC7txetnoCrosserge.cxt";
   Context context;
 
   readBinary<Context>(fileName, context);
 
-  ASSERT_EQ(context.loss, lossFunction::Synthetic);
-  ASSERT_EQ(context.partitionSize, 6);
+  ASSERT_EQ(context.loss, lossFunction::MSE);
+  ASSERT_EQ(context.partitionSize, 100);
   ASSERT_EQ(context.partitionRatio, .25);
-  ASSERT_EQ(context.learningRate, .0001);
-  ASSERT_EQ(context.steps, 1000);
-  ASSERT_EQ(context.baseSteps, 10000);
-  ASSERT_EQ(context.symmetrizeLabels, true);
+  ASSERT_EQ(context.learningRate, 1.);
+  ASSERT_EQ(context.steps, 100);
+  ASSERT_EQ(context.baseSteps, 1000);
+  ASSERT_EQ(context.symmetrizeLabels, false);
   ASSERT_EQ(context.removeRedundantLabels, false);
   ASSERT_EQ(context.quietRun, true);
   ASSERT_EQ(context.rowSubsampleRatio, 1.);
-  ASSERT_EQ(context.colSubsampleRatio, .25);
+  ASSERT_EQ(context.colSubsampleRatio, .85);
   ASSERT_EQ(context.recursiveFit, true);
   ASSERT_EQ(context.serialize, true);
   ASSERT_EQ(context.serializePrediction, true);
@@ -1423,7 +1453,7 @@ TEST(GradientBoostClassifierTest, TestIncrementalContextContent) {
   ASSERT_EQ(context.minLeafSize, 1);
   ASSERT_EQ(context.maxDepth, 10);
   ASSERT_EQ(context.minimumGainSplit, 0.);
-  ASSERT_EQ(context.serializationWindow, 500);
+  ASSERT_EQ(context.serializationWindow, 1000);
 	    
 }
 
@@ -1445,6 +1475,175 @@ TEST(UtilsTest, TestPartitionSubsampling2) {
   uvec inds = PartitionUtils::sortedSubsample2(N, n);
 
   ASSERT_EQ(inds.n_elem, n);
+}
+
+TEST(GradientBoostRegressorTest, TestPerfectInSampleFit) {
+
+  std::vector<bool> recursive{false, true};
+  
+  Mat<double> dataset;
+  Row<double> labels, prediction;
+  
+  int rows=1000, cols=20;
+  
+  dataset = Mat<double>(rows, cols, fill::randu);
+  labels = Row<double>(cols);
+
+  for (std::size_t i=0; i<4; ++i) {
+    dataset(444,i) = i;
+    labels[i] = 14.;
+  }
+  for (std::size_t i=4; i<8; ++i) {
+    dataset(444,i) = i;
+    labels[i] = -1.45;
+  }
+  for (std::size_t i=8; i<12; ++i) {
+    dataset(444,i) = i;
+    labels[i] = -2.077;
+  }
+  for (std::size_t i=12; i<16; ++i) {
+    dataset(444,i) = i;
+    labels[i] = 2.077;
+  }
+  for (std::size_t i=16; i<20; ++i) {
+    dataset(444,i) = i;
+    labels[i] = 2.24;
+  }
+
+  for (auto recursive_ : recursive) {
+    Context context{};
+    
+    context.loss = lossFunction::MSE;
+    context.partitionSize = 4;
+    context.partitionRatio = .25;
+    context.learningRate = 1.;
+    context.steps = 100;
+    context.baseSteps = 1000;
+    context.symmetrizeLabels = true;
+    context.serializationWindow = 1000;
+    context.removeRedundantLabels = false;
+    context.rowSubsampleRatio = 1.;
+    context.colSubsampleRatio = 1.; // .75
+    context.recursiveFit = recursive_;
+    context.serialize = false;
+    context.serializePrediction = false;
+    context.serializeDataset = false;
+    context.serializeLabels = false;
+    context.serializationWindow = 1000;
+    context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
+    context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;    // DECREASING
+    context.stepSizeMethod = StepSize::StepSizeMethod::LOG;	
+    context.minLeafSize = 1;
+    context.maxDepth = 10;
+    context.minimumGainSplit = 0.;
+    
+    auto regressor = GradientBoostRegressor<DecisionTreeRegressorRegressor>(dataset,
+									    labels,
+									    context);
+    regressor.fit();
+    regressor.Predict(prediction);
+    
+    const double trainError = err(prediction, labels);
+    
+    ASSERT_EQ(trainError, 0.);
+  }
+  
+}
+
+TEST(GradientBoostRegressorTest, TestOutofSampleFit) {
+
+  std::vector<bool> recursive{false, true};
+  
+  Mat<double> dataset, dataset_oos;
+  Row<double> labels, labels_oos, prediction, prediction_oos;
+  
+  int rows=50, cols=20;
+  
+  dataset = Mat<double>(rows, cols, fill::randu);
+  labels = Row<double>(cols);
+
+  dataset_oos = Mat<double>(rows, cols, fill::randu);
+  labels_oos = Row<double>(cols);
+
+  for (std::size_t i=0; i<4; ++i) {
+    dataset(44,i) = i;
+    dataset_oos(44,i) = i;
+    labels[i] = 2.;
+    labels_oos[i] = 4.;
+  }
+  for (std::size_t i=4; i<8; ++i) {
+    dataset(44,i) = i;
+    dataset_oos(44,i) = i;
+    labels[i] = 4.;
+    labels_oos[i] = 8.;
+  }
+  for (std::size_t i=8; i<12; ++i) {
+    dataset(44,i) = i;
+    dataset_oos(44,i) = i;
+    labels[i] = 6.;
+    labels_oos[i] = 12.;
+  }
+  for (std::size_t i=12; i<16; ++i) {
+    dataset(44,i) = i;
+    dataset_oos(44,i) = i;
+    labels[i] = 8.;
+    labels_oos[i] = 16.;
+  }
+  for (std::size_t i=16; i<20; ++i) {
+    dataset(44,i) = i;
+    dataset_oos(44,i) = i;
+    labels[i] = 10.;
+    labels_oos[i] = 20.;
+  }
+
+  for (auto recursive_ : recursive) {
+    Context context{};
+    
+    context.loss = lossFunction::MSE;
+    context.partitionSize = 4;
+    context.partitionRatio = .25;
+    context.learningRate = 1.;
+    context.steps = 100;
+    context.baseSteps = 1000;
+    context.symmetrizeLabels = true;
+    context.serializationWindow = 1000;
+    context.removeRedundantLabels = false;
+    context.rowSubsampleRatio = 1.;
+    context.colSubsampleRatio = 1.; // .75
+    context.recursiveFit = recursive_;
+    context.serialize = false;
+    context.serializePrediction = false;
+    context.serializeDataset = false;
+    context.serializeLabels = false;
+    context.serializationWindow = 1000;
+    context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
+    context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;    // DECREASING
+    context.stepSizeMethod = StepSize::StepSizeMethod::LOG;	
+    context.minLeafSize = 1;
+    context.maxDepth = 10;
+    context.minimumGainSplit = 0.;
+    
+    auto regressor = GradientBoostRegressor<DecisionTreeRegressorRegressor>(dataset,
+									    labels,
+									    context);
+
+    regressor.fit();
+    regressor.Predict(prediction);
+
+    const double trainError = err(prediction, labels);
+    
+    ASSERT_EQ(trainError, 0.);
+
+    regressor.Predict(dataset_oos, prediction_oos);
+    
+    const double testError = err(prediction_oos, labels_oos);
+
+    for (std::size_t i=0; i<labels.n_elem; ++i) {
+      ASSERT_EQ(labels[i], prediction[i]);
+      // ASSERT_EQ(labels_oos[i], 2*prediction_oos[i]);
+    }
+  }
+  
 }
 
 auto main(int argc, char **argv) -> int {

@@ -72,7 +72,7 @@ auto main(int argc, char **argv) -> int {
   if (!data::Load("/home/charles/Data/titanic_test_y.csv", testLabels))
     throw std::runtime_error("Could not load file");
 
-  Replay<double, DecisionTreeClassifier>::Predict(indexName, testDataset, testPrediction);
+  Replay<double, DecisionTreeClassifier>::Classify(indexName, testDataset, testPrediction);
   
   std::cout << "HERE" << std::endl;
 

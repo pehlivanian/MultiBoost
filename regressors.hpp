@@ -82,6 +82,11 @@ public:
 
 namespace Model_Traits {
 
+  template<>
+  struct is_classifier<DecisionTreeRegressorRegressor> {
+    bool operator()() { return false; }
+  };
+
   template<typename RegressorType>
   struct regressor_traits {
     using datatype = double;

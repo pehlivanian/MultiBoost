@@ -255,7 +255,7 @@ auto main(int argc, char **argv) -> int {
 
   writeBinary<Context>(fileName, context);
 
-  std::cout << "DecisionTreeClassifier Context archive: " << fileName << std::endl;
+  std::cout << "Context archive: " << fileName << std::endl;
 
   return 0;
 }
