@@ -105,6 +105,7 @@ CompositeClassifier<ClassifierType>::_randomLeaf() const {
 
 }
 
+// XXX
 template<typename ClassifierType>
 template<typename... Ts>
 void
@@ -239,6 +240,7 @@ CompositeClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& 
 
   if (serialize_ && indexName_.size()) {
     throw predictionAfterClearedClassifiersException();
+    return;
   }
 
   prediction = zeros<Row<DataType>>(dataset.n_cols);

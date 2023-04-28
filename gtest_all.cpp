@@ -37,7 +37,6 @@ INSTANTIATE_TEST_SUITE_P(DPSolverTests,
 					   )
 			 );
 
-
 void sort_by_priority(std::vector<float>& a, std::vector<float>& b) {
   std::vector<int> ind(a.size());
   std::iota(ind.begin(), ind.end(), 0);
@@ -691,9 +690,6 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
     Replay<double, DecisionTreeClassifier>::Classify(indexName, testDataset, archiveTestPrediction, true);
 
     for (int i=0; i<liveTestPrediction.size(); ++i) {
-      if (fabs(liveTestPrediction[i]-archiveTestPrediction[i]) > eps) {
-	std::cerr << "ERROR!!" << std::endl;
-      }
       ASSERT_LE(fabs(liveTestPrediction[i]-archiveTestPrediction[i]), eps);
     }
 
@@ -1239,7 +1235,7 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
 
 TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
   
-  std::vector<bool> trials = {false, true};
+  std::vector<bool> trials = {true, false};
   dataset_d dataset, trainDataset, testDataset;
   labels_d labels, trainLabels, testLabels;
 
@@ -1259,7 +1255,7 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
 
   Context context{};
   
-  context.loss = lossFunction::BinomialDeviance;
+  context.loss = lossFunction::MSE;
   context.partitionSize = partitionSize;
   context.partitionRatio = .25;
   context.learningRate = 1.;
@@ -1286,7 +1282,7 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
     context.recursiveFit = recursive;
     double eps = std::numeric_limits<double>::epsilon();
 
-    // Fit classifier
+    // Fit regressor
     T regressor, newRegressor, secondRegressor;
     context.serialize = true;
     regressor = T(trainDataset, trainLabels, context);
@@ -1306,42 +1302,22 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
     Row<double> archiveTrainPrediction;
     Replay<double, DecisionTreeRegressorRegressor>::Predict(indexName, trainDataset, archiveTrainPrediction);
   
-    T classifier, newClassifier, secondClassifier;
-    context.serialize = true;
-    classifier = T(trainDataset, trainLabels, context);
-    classifier.fit();
-
-    // Predict IS with live classifier fails due to serialization...
-    EXPECT_THROW(classifier.Predict(trainDataset, liveTrainPrediction), 
-		 predictionAfterClearedClassifiersException );
-
-    // Use latestPrediction_ instead
-    classifier.Predict(liveTrainPrediction);
-
-    // Get index
-    indexName = classifier.getIndexName();
-    // Use replay to predict IS based on archive classifier
-    Replay<double, DecisionTreeClassifier>::Classify(indexName, trainDataset, archiveTrainPrediction);
-
     for (int i=0; i<liveTrainPrediction.n_elem; ++i)
       ASSERT_LE(fabs(liveTrainPrediction[i]-archiveTrainPrediction[i]), eps);
 
-    // Predict OOS with live classifier
+    // Predict OOS with live regressor
     Row<double> liveTestPrediction;
     context.serialize = false;
     context.serializePrediction = false;
-    secondClassifier = T(trainDataset, trainLabels, context);
-    secondClassifier.fit();
-    secondClassifier.Predict(testDataset, liveTestPrediction);
+    secondRegressor = T(trainDataset, trainLabels, context);
+    secondRegressor.fit();
+    secondRegressor.Predict(testDataset, liveTestPrediction);
 
     // Use replay to predict OOS based on archive classifier
     Row<double> archiveTestPrediction;
-    Replay<double, DecisionTreeClassifier>::Classify(indexName, testDataset, archiveTestPrediction, true);
+    Replay<double, DecisionTreeRegressorRegressor>::Predict(indexName, testDataset, archiveTestPrediction);
 
     for (int i=0; i<liveTestPrediction.size(); ++i) {
-      if (fabs(liveTestPrediction[i]-archiveTestPrediction[i]) > eps) {
-	std::cerr << "ERROR!!" << std::endl;
-      }
       ASSERT_LE(fabs(liveTestPrediction[i]-archiveTestPrediction[i]), eps);
     }
   

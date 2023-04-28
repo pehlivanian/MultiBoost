@@ -4,6 +4,8 @@
 #include <tuple>
 #include <memory>
 #include <vector>
+#include <iterator>
+#include <algorithm>
 
 #include <mlpack/core.hpp>
 

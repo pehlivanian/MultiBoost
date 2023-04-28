@@ -224,6 +224,7 @@ CompositeRegressor<RegressorType>::Predict(const mat& dataset, Row<DataType>& pr
 
   if (serialize_ && indexName_.size()) {
     throw predictionAfterClearedClassifiersException();
+    return;
   }
 
   prediction = zeros<Row<DataType>>(dataset.n_cols);
@@ -311,6 +312,7 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
     // aside from the fact that it is of double type, it may have more 
     // than one class. So we don't want to symmetrize, but we want 
     // to remap the redundant values.
+
     std::unique_ptr<CompositeRegressor<RegressorType>> regressor;
     regressor.reset(new CompositeRegressor<RegressorType>(dataset_, 
 							  labels_, 
