@@ -311,7 +311,7 @@ namespace IB_utils {
   // Filter typeinfo string to generate unique filenames for serialization tests.
   inline std::string FilterFileName(const std::string& inputString)
   {
-    // Take the last valid 32 characters for the filename.
+    // Take the last valid 24 characters for the filename.
     std::string fileName;
     for (auto it = inputString.rbegin(); it != inputString.rend() &&
 	   fileName.size() != 24; ++it)
