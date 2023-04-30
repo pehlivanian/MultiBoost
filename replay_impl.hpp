@@ -168,7 +168,7 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
 	
 	ipstream pipe_stream;
 	// child c("gcc --version", std_out > pipe_stream);
-	std::string cmd = "./build/incremental_classify";
+	std::string cmd = "./build/replay_classify_stepwise";
 
 	cmd += " --datasetFileName "	+ datasetOOSFileName;
 	cmd += " --classifierFileName " + classifierFileName;
