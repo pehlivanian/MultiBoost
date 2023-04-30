@@ -129,9 +129,9 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
 	
 	auto task = [&results_queue, classifierFileName, datasetOOSFileName](Row<double>& prediction){
 	  ClassifyStep(classifierFileName,
-		      datasetOOSFileName,
-		      prediction,
-		      false);
+		       datasetOOSFileName,
+		       prediction,
+		       false);
 	  results_queue.push(prediction);
 	  return 0;
 	};
@@ -259,8 +259,7 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
 	auto task = [&results_queue, regressorFileName, datasetOOSFileName](Row<double>& prediction){
 	  PredictStep(regressorFileName,
 		      datasetOOSFileName,
-		      prediction,
-		      false);
+		      prediction);
 	  results_queue.push(prediction);
 	  return 0;
 	};
@@ -288,7 +287,7 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
 
     for (auto &fileName : fileNames) {
       auto tokens = strSplit(fileName, '_');
-      if (tokens[0] == "CLS") {
+      if (tokens[0] == "REG") {
 	regressorFileName = strJoin(tokens, '_', 1);
 	std::string outFile = outFilePref + std::to_string(regressorNum) + ".prd";
 	// Call PredictStep at this point, but 

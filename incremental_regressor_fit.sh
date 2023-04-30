@@ -77,3 +77,5 @@ $EXEC_CC \
 --minimumGainSplit $MINGAINSPLIT \
 --serializationWindow 1000 \
 --fileName $CONTEXT_PATH_RUNS
+
+EXEC_STEP=${PATH}incremental_predict

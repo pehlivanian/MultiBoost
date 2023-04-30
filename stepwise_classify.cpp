@@ -1,4 +1,4 @@
-#include "stepwise_predict.hpp"
+#include "stepwise_classify.hpp"
 
 using namespace boost::program_options;
 
@@ -25,16 +25,17 @@ auto main(int argc, char **argv) -> int {
 	  
   }
   catch (const std::exception& e) {
-    std::cerr << "ERROR: " << e.what() << std::endl;
+    std::cerr << "ERROR [STEPWISE_CLASSIFY]: " << e.what() << std::endl;
     std::cerr << desc << std::endl;
   }
 
   Row<double> prediction_oos, labels_oos;
-  Replay<double, DecisionTreeRegressorRegressor>::PredictStepwise(indexFileName, prediction_oos, labels_oos, true);
+  Replay<double, DecisionTreeClassifier>::ClassifyStepwise(indexFileName, prediction_oos, labels_oos, true);
 
   const double testError = err(prediction_oos, labels_oos);
 
   std::cout << "TEST ERROR    : " << testError << "%." << std::endl;
+
 
 
   return 0;

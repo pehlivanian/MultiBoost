@@ -51,11 +51,7 @@ public:
   static void PredictStep(std::string, std::string, Row<double>&);
 
   static void ClassifyStep(std::string, std::string, std::string, bool=false);
-  static void PredictStep(std::string, std::string, std::string);
-
-
-  
-  
+  static void PredictStep(std::string, std::string, std::string);  
 
 
 private:

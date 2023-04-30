@@ -16,7 +16,7 @@ MINLEAFSIZE=1
 MAXDEPTH=10
 LOSS_FN=5
 COLSUBSAMPLE_RATIO=.85
-DATANAME=magic
+DATANAME=hungarian
 
 # STEPS=10
 # BASESTEPS=1000
@@ -30,9 +30,6 @@ DATANAME=magic
 # DATANAME=Hill_Valley_with_noise
 
 ((ITERS=$BASESTEPS / $STEPS))
-
-# Predict OOS
-EXEC_PRED=${PATH}stepwise_predict
 
 # create context for first run
 $EXEC_CC \
@@ -88,11 +85,16 @@ $EXEC_CC \
 --serializationWindow 1000 \
 --fileName $CONTEXT_PATH_RUNS
 
-EXEC_STEP=${PATH}incremental_driver 
+# Incremental IS classifier fit
+EXEC_INC=${PATH}incremental_classify
 
-n=1
+# Classify OOS for diagnostics
+EXEC_PRED_OOS=${PATH}stepwise_classify
+
 # First run
-INDEX_NAME_STEP=$($EXEC_STEP \
+n=1
+
+INDEX_NAME_STEP=$($EXEC_INC \
 --contextFileName $CONTEXT_PATH_RUN1 \
 --dataName $DATANAME \
 --mergeIndexFiles false \
@@ -101,8 +103,8 @@ INDEX_NAME_STEP=$($EXEC_STEP \
 echo ${n}" : "${INDEX_NAME_STEP}
 ((n=n+1))
 
-# Predict OOS
-$EXEC_PRED \
+# Classify OOS
+$EXEC_PRED_OOS \
 --indexFileName $INDEX_NAME_STEP
 
 # Subsequent runs
@@ -113,7 +115,7 @@ do
   fi
 
   # Fit step
-  INDEX_NAME_STEP=$($EXEC_STEP \
+  INDEX_NAME_STEP=$($EXEC_INC \
   --contextFileName $CONTEXT_PATH_RUNS \
   --dataName $DATANAME \
   --quietRun true \
@@ -123,8 +125,8 @@ do
 
   echo ${n}" : "${INDEX_NAME_STEP}
 
-  # Predict OOS
-  $EXEC_PRED \
+  # Classify OOS
+  $EXEC_PRED_OOS \
   --indexFileName $INDEX_NAME_STEP
 
   ((n=n+1))

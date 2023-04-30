@@ -1,5 +1,5 @@
-#ifndef __INCREMENTAL_DRIVER_HPP__
-#define __INCREMENTAL_DRIVER_HPP__
+#ifndef __INCREMENTAL_CLASSIFY_HPP__
+#define __INCREMENTAL_CLASSIFY_HPP__
 
 #include <iostream>
 #include <numeric>

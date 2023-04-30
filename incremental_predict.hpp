@@ -12,7 +12,7 @@
 #include <boost/program_options.hpp>
 
 #include "utils.hpp"
-#include "gradientboostclassifier.hpp"
+#include "gradientboostregressor.hpp"
 #include "replay.hpp"
 
 using namespace arma;

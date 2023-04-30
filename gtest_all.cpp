@@ -976,6 +976,44 @@ TEST(DPSolverTest, TestParallelScoresMatchSerialScores) {
   }
 }
 
+TEST(GradientBoostRegressorTest, TestContextWrittenWithCorrectValues) {
+  
+  std::size_t minLeafSize = 1;
+  double minimumGainSplit = 0.;
+  std::size_t maxDepth = 5;
+  std::size_t partitionSize = 11;
+
+  Context context_archive;
+
+  std::string fileName = "ctx_cls.dat";
+  std::string cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/createContext ";
+
+  cmd += "--loss 0 --partitionSize 41 --partitionRatio .25 ";
+  cmd += "--partitionSizeMethod 0 --learningRateMethod 0 ";
+  cmd += "--learningRate 1. --steps 4122 --symmetrizeLabels false ";
+  cmd += "--fileName ctx_cls.dat";
+
+  exec(cmd);
+
+  readBinary<Context>(fileName, context_archive);
+
+  // Uset set values
+  ASSERT_EQ(context_archive.loss, lossFunction::MSE);
+  ASSERT_EQ(context_archive.partitionSize, 41);
+  ASSERT_EQ(context_archive.steps, 4122);
+  ASSERT_EQ(context_archive.partitionRatio, .25);
+  ASSERT_EQ(context_archive.partitionSizeMethod, PartitionSize::PartitionSizeMethod::FIXED);
+  ASSERT_EQ(context_archive.learningRateMethod, LearningRate::LearningRateMethod::FIXED);
+  ASSERT_EQ(context_archive.symmetrizeLabels, false);
+
+  // Default values
+  ASSERT_EQ(context_archive.minLeafSize, 1);
+  ASSERT_EQ(context_archive.recursiveFit, true);
+  ASSERT_EQ(context_archive.rowSubsampleRatio, 1.);
+  ASSERT_EQ(context_archive.colSubsampleRatio, .25);
+
+}
+
 TEST(GradientBoostClassifierTest, TestContextWrittenWithCorrectValues) {
 
   std::size_t minLeafSize = 1;
@@ -983,15 +1021,15 @@ TEST(GradientBoostClassifierTest, TestContextWrittenWithCorrectValues) {
   std::size_t maxDepth = 10;
   std::size_t partitionSize = 10;
 
-  Context context{}, context_archive;
+  Context context_archive;
   
-  std::string fileName = "__Context_gtest.dat";
+  std::string fileName = "ctx_reg.dat";
   std::string cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/createContext ";
 
   cmd += "--loss 1 --partitionSize 6 --partitionRatio .25 ";
   cmd += "--partitionSizeMethod 1 --learningRateMethod 2 ";
   cmd += "--learningRate .01 --steps 1010 --symmetrizeLabels true ";
-  cmd += "--fileName __Context_gtest.dat";
+  cmd += "--fileName ctx_reg.dat";
 
   exec(cmd);
 
@@ -1629,6 +1667,37 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorNonRecursiveRoundTrips) {
 
 
 TEST(GradientBoostClassifierTest, TestIncrementalContextContent) {
+  
+  std::string fileName = "__CTX_TEST_EtxetnoC7txetnoCrosserge.cxt";
+  Context context;
+
+  readBinary<Context>(fileName, context);
+
+  ASSERT_EQ(context.loss, lossFunction::MSE);
+  ASSERT_EQ(context.partitionSize, 100);
+  ASSERT_EQ(context.partitionRatio, .25);
+  ASSERT_EQ(context.learningRate, 1.);
+  ASSERT_EQ(context.steps, 100);
+  ASSERT_EQ(context.baseSteps, 1000);
+  ASSERT_EQ(context.symmetrizeLabels, false);
+  ASSERT_EQ(context.removeRedundantLabels, false);
+  ASSERT_EQ(context.quietRun, true);
+  ASSERT_EQ(context.rowSubsampleRatio, 1.);
+  ASSERT_EQ(context.colSubsampleRatio, .85);
+  ASSERT_EQ(context.recursiveFit, true);
+  ASSERT_EQ(context.serialize, true);
+  ASSERT_EQ(context.serializePrediction, true);
+  ASSERT_EQ(context.partitionSizeMethod, PartitionSize::PartitionSizeMethod::FIXED);
+  ASSERT_EQ(context.learningRateMethod, LearningRate::LearningRateMethod::FIXED);
+  ASSERT_EQ(context.stepSizeMethod, StepSize::StepSizeMethod::LOG);
+  ASSERT_EQ(context.minLeafSize, 1);
+  ASSERT_EQ(context.maxDepth, 10);
+  ASSERT_EQ(context.minimumGainSplit, 0.);
+  ASSERT_EQ(context.serializationWindow, 1000);
+	    
+}
+
+TEST(GradientBoostRegressorTest, TestIncrementalContextContent) {
   
   std::string fileName = "__CTX_TEST_EtxetnoC7txetnoCrosserge.cxt";
   Context context;

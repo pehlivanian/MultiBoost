@@ -1,4 +1,4 @@
-#include "incremental_driver.hpp"
+#include "incremental_classify.hpp"
 
 using namespace arma;
 using namespace mlpack;
@@ -47,7 +47,7 @@ auto main(int argc, char **argv) -> int {
 	  
   }
   catch (const std::exception& e) {
-    std::cerr << "ERROR: " << e.what() << std::endl;
+    std::cerr << "ERROR [INCREMENTAL_CLASSIFY]: " << e.what() << std::endl;
     std::cerr << desc << std::endl;
   }
   

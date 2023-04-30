@@ -44,11 +44,14 @@ option(BUILD_SINGLECLASS "Build inductive boost classifier" ON)
 # build Inductive Boost Regressor
 option(BUILD_REGRESSOR "Build inductive boost regressor" ON)
 
-# build incremental driver
-option(BUILD_INC_DRIVER "Build incrmental fitter" ON)
+# build incremental classifier
+option(BUILD_INC_CLASSIFY "Build incrmental classifier" ON)
 
 # build incremental predictor
 option(BUILD_INC_PREDICT "Build incrmental predictor" ON)
+
+# build stepwise classifier
+option(BUILD_STEPWISE_CLASSIFY "Build stepwise classifier" ON)
 
 # build stepwise predictor
 option(BUILD_STEPWISE_PREDICT "Build stepwise predictor" ON)
@@ -100,7 +103,7 @@ if (USE_OPENMP)
   find_package(OpenMP)
 endif()
 
-if (BUILD_CONTEXT_BUILDER OR BUILD_INC_DRIVER OR BUILD_INC_PREDICT)
+if (BUILD_CONTEXT_BUILDER OR BUILD_INC_CLASSIFY OR BUILD_INC_PREDICT)
   find_package(Boost COMPONENTS system program_options REQUIRED)	
   # find_package(Boost COMPONENTS system REQUIRED)
   include_directories(${Boost_INCLUDE_DIR})
@@ -232,9 +235,9 @@ if (BUILD_REGRESSOR)
 endif()
 
 # Incremental driver for sequential, serialized runs
-if (BUILD_INC_DRIVER)
-  add_executable(incremental_driver incremental_driver.cpp)
-  target_link_libraries(incremental_driver LINK_PUBLIC ${Boost_LIBRARIES} 
+if (BUILD_INC_CLASSIFY)
+  add_executable(incremental_classify incremental_classify.cpp)
+  target_link_libraries(incremental_classify LINK_PUBLIC ${Boost_LIBRARIES} 
 	${Boost_SYSTEM_LIBRARY} loss utils 
 	gradientboostclassifier 
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
@@ -253,11 +256,21 @@ if (BUILD_INC_PREDICT)
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 endif()
 
+# Stepwise classifier for sequential, serialized runs
+if (BUILD_STEPWISE_CLASSIFY)
+  add_executable(stepwise_classify stepwise_classify.cpp)
+  target_link_libraries(stepwise_classify LINK_PUBLIC ${Boost_LIBRARIES} loss utils 
+	gradientboostclassifier replay
+	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
+	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> 
+	${BLAS_LIBRARIES} $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+endif()
+
 # Stepwise predictor for sequential, serialized runs
 if (BUILD_STEPWISE_PREDICT)
   add_executable(stepwise_predict stepwise_predict.cpp)
   target_link_libraries(stepwise_predict LINK_PUBLIC ${Boost_LIBRARIES} loss utils 
-	gradientboostclassifier replay
+	gradientboostregressor replay
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> 
 	${BLAS_LIBRARIES} $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
@@ -310,8 +323,9 @@ MESSAGE(STATUS "Build google tests:                          " ${BUILD_TESTS})
 MESSAGE(STATUS "Build google benchmarks:                     " ${BUILD_BENCHMARKS})
 MESSAGE(STATUS "Build inductive boost classifier:            " ${BUILD_SINGLECLASS})
 MESSAGE(STATUS "Build inductive boost regressor:             " ${BUILD_REGRESSOR})
-MESSAGE(STATUS "Build incremental fitter:                    " ${BUILD_INC_DRIVER})
+MESSAGE(STATUS "Build incremental classifier:                " ${BUILD_INC_CLASSIFY})
 MESSAGE(STATUS "Build incremental predictor:                 " ${BUILD_INC_PREDICT})
+MESSAGE(STATUS "Build stepwise classifier:                   " ${BUILD_STEPWISE_CLASSIFY})
 MESSAGE(STATUS "Build stepwise predictor:                    " ${BUILD_STEPWISE_PREDICT})
 MESSAGE(STATUS "Build titanic ex:                            " ${BUILD_TITANIC})
 MESSAGE(STATUS "Build multiclass inductive boost classifier: " ${BUILD_MULTICLASS})

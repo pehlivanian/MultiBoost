@@ -7,14 +7,14 @@ auto main(int argc, char **argv) -> int {
   using Cls = GradientBoostClassifier<DecisionTreeClassifier>;
 
   std::string datasetFileName;
-  std::string classifierFileName;
+  std::string regressorFileName;
   std::string outFileName;
 
   options_description desc("Options");
   desc.add_options()
     ("help,h", "Help screen")
     ("datasetFileName",		value<std::string>(&datasetFileName),		"datasetFileName")
-    ("classifierFileName",	value<std::string>(&classifierFileName),	"classifierFileName")
+    ("regressorFileName",	value<std::string>(&regressorFileName),		"regressorFileName")
     ("outFileName",		value<std::string>(&outFileName),		"outFileName");
 
   variables_map vm;
@@ -36,10 +36,9 @@ auto main(int argc, char **argv) -> int {
   }
 
   Row<double> prediction;
-  Replay<double, DecisionTreeClassifier>::ClassifyStep(classifierFileName, 
-						       datasetFileName,
-						       outFileName,
-						       false);
+  Replay<double, DecisionTreeRegressorRegressor>::PredictStep(regressorFileName,
+							      datasetFileName,
+							      outFileName);
 
   return 0;
 }
