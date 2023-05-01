@@ -1,24 +1,41 @@
 #include "incremental_predict.hpp"
 
+using namespace mlpack;
+using namespace mlpack::tree;
+using namespace mlpack::data;
+using namespace mlpack::util;
+
+using namespace ModelContext;
+using namespace IB_utils;
+
 using namespace boost::program_options;
 
 auto main(int argc, char **argv) -> int {
 
-  using Cls = GradientBoostClassifier<DecisionTreeClassifier>;
+  std::string dataName;
+  std::string contextFileName;
+  std::string indexName;
+  bool quietRun = true;
+  bool warmStart = false;
+  bool mergeIndexFiles = false;
+  double splitRatio = .2;
+  Row<double> prediction;
 
-  std::string datasetFileName;
-  std::string regressorFileName;
-  std::string outFileName;
+  Context context;
 
   options_description desc("Options");
   desc.add_options()
     ("help,h", "Help screen")
-    ("datasetFileName",		value<std::string>(&datasetFileName),		"datasetFileName")
-    ("regressorFileName",	value<std::string>(&regressorFileName),		"regressorFileName")
-    ("outFileName",		value<std::string>(&outFileName),		"outFileName");
+    ("contextFileName",	value<std::string>(&contextFileName),	"contextFileName")
+    ("dataName",	value<std::string>(&dataName),		"dataName")
+    ("splitRatio",	value<double>(&splitRatio),		"splitRatio")
+    ("quietRun",	value<bool>(&quietRun),			"quietRun")
+    ("warmStart",	value<bool>(&warmStart),		"warmStart")
+    ("mergeIndexFiles",	value<bool>(&mergeIndexFiles),		"mergeIndexFiles")
+    ("indexName",	value<std::string>(&indexName),		"indexName");
 
   variables_map vm;
-  
+    
   try {
     store(parse_command_line(argc, argv, desc), vm);
 
@@ -31,14 +48,73 @@ auto main(int argc, char **argv) -> int {
 	  
   }
   catch (const std::exception& e) {
-    std::cerr << "ERROR: " << e.what() << std::endl;
+    std::cerr << "ERROR [INCREMENTAL_PREDICT]: " << e.what() << std::endl;
     std::cerr << desc << std::endl;
   }
+  
+  // Get context
+  readBinary<Context>(contextFileName, context);
+  context.quietRun = quietRun;
 
-  Row<double> prediction;
-  Replay<double, DecisionTreeRegressorRegressor>::PredictStep(regressorFileName,
-							      datasetFileName,
-							      outFileName);
+  // Get data
+  std::string absPath = "/home/charles/Data/Regression/";
+  std::string XPath = absPath + dataName + "_X.csv";
+  std::string yPath = absPath + dataName + "_y.csv";
+
+  Mat<double> dataset, trainDataset, testDataset;
+  Row<double> labels, trainLabels, testLabels;
+  Row<double> trainPrediction, testPrediction;
+
+  if (!data::Load(XPath, dataset))
+    throw std::runtime_error("Could not load file");
+  if (!data::Load(yPath, labels))
+    throw std::runtime_error("Could not load file");
+
+  data::Split(dataset, 
+	      labels, 
+	      trainDataset, 
+	      testDataset, 
+	      trainLabels, 
+	      testLabels, 
+	      splitRatio);
+  std::cerr << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
+  	    << trainDataset.n_rows << ")" << std::endl;
+  std::cerr << "TEST DATASET:  (" << testDataset.n_cols << " x " 
+	    << testDataset.n_rows << ")" << std::endl;
+  
+  // Create regressor
+  // Get prediction if warmStart
+  using regressor = GradientBoostRegressor<DecisionTreeRegressorRegressor>;
+  using CPtr = std::unique_ptr<regressor>;
+  CPtr c;
+
+  if (warmStart) {
+    readPrediction(indexName, prediction);
+    c = std::make_unique<regressor>(trainDataset,
+				    trainLabels,
+				    testDataset,
+				    testLabels,
+				    prediction,
+				    context);
+  } else {
+    c = std::make_unique<regressor>(trainDataset, 
+				    trainLabels,
+				    testDataset,
+				    testLabels,
+				    context);
+  }
+
+  // Fit
+  c->fit();
+
+  // Get indexName
+  std::string indexNameNew = c->getIndexName();
+
+  // Combine information in index
+  if (mergeIndexFiles)
+    mergeIndices(indexName, indexNameNew);
+
+  std::cout << indexNameNew << std::endl;
 
   return 0;
 }

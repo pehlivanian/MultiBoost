@@ -5,7 +5,9 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <optional>
 #include <memory>
+#include <cmath>
 
 #include <mlpack/core.hpp>
 #include <boost/process.hpp>
@@ -28,9 +30,10 @@ using namespace boost::process;
 
 using namespace Model_Traits;
 using namespace IB_utils;
+using namespace LossMeasures;
 
 
-template<typename DataType, typename ClassifierType>
+template<typename DataType, typename ModelType>
 class Replay {
 public:
   Replay()  = default;
@@ -45,14 +48,13 @@ public:
   static void Predict(std::string, Row<DataType>&);
 
   static void ClassifyStepwise(std::string, Row<DataType>&, Row<DataType>&, bool=false, bool=false);
-  static void PredictStepwise(std::string, Row<DataType>&, Row<DataType>&, bool);
+  static std::optional<double>  PredictStepwise(std::string, Row<DataType>&, Row<DataType>&, bool, bool=false);
 
   static void ClassifyStep(std::string, std::string, Row<double>&, bool=false);
   static void PredictStep(std::string, std::string, Row<double>&);
 
   static void ClassifyStep(std::string, std::string, std::string, bool=false);
   static void PredictStep(std::string, std::string, std::string);  
-
 
 private:
   static void desymmetrize(Row<DataType>&, double, double);

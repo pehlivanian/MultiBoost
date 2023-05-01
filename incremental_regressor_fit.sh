@@ -8,8 +8,8 @@ CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCrosserge.cxt
 CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCrosserge.cxt
 
 STEPS=100
-BASESTEPS=1000
-LEARNINGRATE=1.
+BASESTEPS=10000
+LEARNINGRATE=.0001
 RECURSIVE_FIT=true
 PARTITION_SIZE=100
 MINLEAFSIZE=1
@@ -18,11 +18,9 @@ MAXDEPTH=10
 LOSS_FN=0
 COLSUBSAMPLE_RATIO=.85
 DATANAME=1193_BNG_lowbwt
+SPLITRATIO=0.97
 
 ((ITERS=$BASESTEPS / $STEPS))
-
-# Predict OOS
-EXEC_PRED=${PATH}stepwise_predict
 
 # create context for first run
 $EXEC_CC \
@@ -78,4 +76,53 @@ $EXEC_CC \
 --serializationWindow 1000 \
 --fileName $CONTEXT_PATH_RUNS
 
-EXEC_STEP=${PATH}incremental_predict
+# Incremental IS regressor fit
+EXEC_INC=${PATH}incremental_predict
+
+# Predict OOS for diagnostics
+EXEC_PRED_OOS=${PATH}stepwise_predict
+
+# First run
+n=1
+
+INDEX_NAME_STEP=$($EXEC_INC \
+--contextFileName $CONTEXT_PATH_RUN1 \
+--dataName $DATANAME \
+--splitRatio $SPLITRATIO \
+--mergeIndexFiles false \
+--warmStart false)
+
+echo ${n}" : "${INDEX_NAME_STEP}
+((n=n+1))
+
+# Predict OOS
+$EXEC_PRED_OOS \
+--indexFileName $INDEX_NAME_STEP
+
+# Subsequent runs
+for (( ; ; ));
+do
+  if [ $n -eq $ITERS ]; then
+    break
+  fi
+
+  # Fit step
+  INDEX_NAME_STEP=$($EXEC_INC \
+  --contextFileName $CONTEXT_PATH_RUNS \
+  --dataName $DATANAME \
+  --splitRatio $SPLITRATIO \
+  --quietRun true \
+  --mergeIndexFiles true \
+  --warmStart true \
+  --indexName $INDEX_NAME_STEP)
+
+  echo ${n}" : "${INDEX_NAME_STEP}
+
+  # Predict OOS
+  $EXEC_PRED_OOS \
+  --indexFileName $INDEX_NAME_STEP
+
+  ((n=n+1))
+done
+
+

@@ -1,25 +1,25 @@
-#include "replay_classify_stepwise.hpp"
+#include "replay_predict_stepwise.hpp"
 
 using namespace boost::program_options;
 
 auto main(int argc, char **argv) -> int {
 
   std::string datasetFileName;
-  std::string classifierFileName;
+  std::string regressorFileName;
   std::string outFileName;
 
   options_description desc("Options");
   desc.add_options()
     ("help,h", "Help screen")
     ("datasetFileName",		value<std::string>(&datasetFileName),		"datasetFileName")
-    ("classifierFileName",	value<std::string>(&classifierFileName),	"classifierFileName")
+    ("regressorFileName",	value<std::string>(&regressorFileName),		"regressorFileName")
     ("outFileName",		value<std::string>(&outFileName),		"outFileName");
 
   variables_map vm;
   
   try {
     store(parse_command_line(argc, argv, desc), vm);
-
+ 
     if (vm.count("help")) {
       std::cout << "Context creator helper" << std::endl
 		<< desc << std::endl;
@@ -34,10 +34,9 @@ auto main(int argc, char **argv) -> int {
   }
 
   Row<double> prediction;
-  Replay<double, DecisionTreeClassifier>::ClassifyStep(classifierFileName,
-						       datasetFileName,
-						       outFileName,
-						       false);
+  Replay<double, DecisionTreeRegressorRegressor>::PredictStep(regressorFileName,
+							      datasetFileName,
+							      outFileName);
 
   return 0;
 }

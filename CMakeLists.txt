@@ -56,6 +56,12 @@ option(BUILD_STEPWISE_CLASSIFY "Build stepwise classifier" ON)
 # build stepwise predictor
 option(BUILD_STEPWISE_PREDICT "Build stepwise predictor" ON)
 
+# build stepwise classifier for replay
+option(BUILD_REPLAY_CLASSIFY_STEPWISE "Build replay stepwise classifier" ON)
+
+# build stepwise regressor for replay
+option(BUILD_REPLAY_PREDICT_STEPWISE "Build replay stepwise regressor" ON)
+
 # build titanic example
 option(BUILD_TITANIC "Build titanic ex" ON)
 
@@ -238,7 +244,7 @@ endif()
 if (BUILD_INC_CLASSIFY)
   add_executable(incremental_classify incremental_classify.cpp)
   target_link_libraries(incremental_classify LINK_PUBLIC ${Boost_LIBRARIES} 
-	${Boost_SYSTEM_LIBRARY} loss utils 
+	${Boost_SYSTEM_LIBRARY} utils 
 	gradientboostclassifier 
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES} 
@@ -249,7 +255,7 @@ endif()
 if (BUILD_INC_PREDICT)
   add_executable(incremental_predict incremental_predict.cpp)
   target_link_libraries(incremental_predict LINK_PUBLIC 
-	${Boost_LIBRARIES} loss utils 
+	${Boost_LIBRARIES} utils 
 	gradientboostclassifier 
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES} 
@@ -261,6 +267,26 @@ if (BUILD_STEPWISE_CLASSIFY)
   add_executable(stepwise_classify stepwise_classify.cpp)
   target_link_libraries(stepwise_classify LINK_PUBLIC ${Boost_LIBRARIES} loss utils 
 	gradientboostclassifier replay
+	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
+	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> 
+	${BLAS_LIBRARIES} $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+endif()
+
+# Stepwise classifier for replay 
+if (BUILD_REPLAY_CLASSIFY_STEPWISE)
+  add_executable(replay_classify_stepwise replay_classify_stepwise.cpp)
+  target_link_libraries(replay_classify_stepwise LINK_PUBLIC ${Boost_LIBRARIES} utils
+	gradientboostclassifier replay
+	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
+	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> 
+	${BLAS_LIBRARIES} $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+endif()
+
+# Stepwise regressor for replay 
+if (BUILD_REPLAY_PREDICT_STEPWISE)
+  add_executable(replay_predict_stepwise replay_predict_stepwise.cpp)
+  target_link_libraries(replay_predict_stepwise LINK_PUBLIC ${Boost_LIBRARIES} utils
+	gradientboostregressor replay
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> 
 	${BLAS_LIBRARIES} $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
@@ -327,6 +353,8 @@ MESSAGE(STATUS "Build incremental classifier:                " ${BUILD_INC_CLASS
 MESSAGE(STATUS "Build incremental predictor:                 " ${BUILD_INC_PREDICT})
 MESSAGE(STATUS "Build stepwise classifier:                   " ${BUILD_STEPWISE_CLASSIFY})
 MESSAGE(STATUS "Build stepwise predictor:                    " ${BUILD_STEPWISE_PREDICT})
+MESSAGE(STATUS "Build replay stepwise classifier:            " ${BUILD_REPLAY_CLASSIFY_STEPWISE})
+MESSAGE(STATUS "Build replay stepwise regressor:             " ${BUILD_REPLAY_PREDICT_STEPWISE})
 MESSAGE(STATUS "Build titanic ex:                            " ${BUILD_TITANIC})
 MESSAGE(STATUS "Build multiclass inductive boost classifier: " ${BUILD_MULTICLASS})
 MESSAGE(STATUS "Math optimizations:                          " ${MATH_OPTS})

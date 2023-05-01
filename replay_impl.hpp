@@ -205,11 +205,12 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
 
 
 template<typename DataType, typename RegressorType>
-void
+std::optional<double>
 Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
 						 Row<DataType>& prediction,
 						 Row<DataType>& labels_oos,
-						 bool distribute) {
+						 bool distribute,
+						 bool include_loss) {
   
   std::vector<std::string> fileNames, predictionFileNames;
   readIndex(indexName, fileNames);
@@ -296,7 +297,7 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
 	
 	ipstream pipe_stream;
 	// child c("gcc --version", std_out > pipe_stream);
-	std::string cmd = "./build/incremental_predict";
+	std::string cmd = "./build/replay_predict_stepwise";
 
 	cmd += " --datasetFileName "	+ datasetOOSFileName;
 	cmd += " --regressorFileName "  + regressorFileName;
@@ -322,6 +323,20 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
       prediction+= predictionStep;
     }    
 
+  }
+
+  if (include_loss) {
+    using R = GradientBoostRegressor<RegressorType>;
+    std::unique_ptr<R> regressor = std::make_unique<R>();
+
+    read(*regressor, regressorFileName);
+    auto lossFn = lossMap<DataType>[regressor->getLoss()];
+
+    double r = std::sqrt(lossFn->loss(prediction, labels_oos));
+    return r;
+
+  } else {
+    return std::nullopt;
   }
   
 }

@@ -25,16 +25,14 @@ auto main(int argc, char **argv) -> int {
 	  
   }
   catch (const std::exception& e) {
-    std::cerr << "ERROR: " << e.what() << std::endl;
+    std::cerr << "ERROR [STEPWISE_PREDICT]: " << e.what() << std::endl;
     std::cerr << desc << std::endl;
   }
 
   Row<double> prediction_oos, labels_oos;
-  Replay<double, DecisionTreeRegressorRegressor>::PredictStepwise(indexFileName, prediction_oos, labels_oos, true);
+  const auto testError = Replay<double, DecisionTreeRegressorRegressor>::PredictStepwise(indexFileName, prediction_oos, labels_oos, true, true);
 
-  const double testError = err(prediction_oos, labels_oos);
-
-  std::cout << "TEST ERROR    : " << testError << "%." << std::endl;
+  std::cout << "TEST ERROR    : " << testError.value_or(-1.) << std::endl;
 
 
   return 0;

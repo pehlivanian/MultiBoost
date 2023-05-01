@@ -12,7 +12,6 @@
 
 #include <mlpack/core.hpp>
 
-#include "loss.hpp"
 #include "gradientboostclassifier.hpp"
 #include "utils.hpp"
 
