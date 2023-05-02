@@ -27,7 +27,7 @@ auto main(int argc, char **argv) -> int {
 	      trainDataset, 
 	      testDataset, 
 	      trainLabels, 
-	      testLabels, 0.60);
+	      testLabels, 0.20);
   std::cout << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
 	    << trainDataset.n_rows << ")" << std::endl;
   std::cout << "TEST DATASET:  (" << testDataset.n_cols << " x " 
@@ -45,7 +45,7 @@ auto main(int argc, char **argv) -> int {
   // context.loss = lossFunction::SyntheticVar2;
   context.partitionSize = 100;
   context.partitionRatio = 1.;
-  context.learningRate = 1.0;
+  context.learningRate = .01;
   context.steps = 100;
   context.baseSteps = 1000;
   context.symmetrizeLabels = false;

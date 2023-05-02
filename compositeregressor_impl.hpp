@@ -12,7 +12,7 @@ using namespace IB_utils;
 
 namespace FileScope {
   const bool POST_EXTRAPOLATE = false;
-  const bool DIAGNOSTICS = false;
+  const bool DIAGNOSTICS = true;
 } // namespace FileScope
 
 template<typename RegressorType>
