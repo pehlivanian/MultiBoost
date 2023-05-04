@@ -738,7 +738,8 @@ template<typename RegressorType>
 std::size_t
 CompositeRegressor<RegressorType>::computeSubStepSize(std::size_t stepNum) {
 
-  double mult = 1.;
+  // XXX
+  double mult = 2.;
   return std::max(1, static_cast<int>(mult * std::log(steps_)));    
 }
 
