@@ -235,13 +235,9 @@ CompositeClassifier<ClassifierType>::Predict(Row<DataType>& prediction, const uv
 }
 
 template<typename ClassifierType>
+template<typename MatType>
 void
-CompositeClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
-
-  if (serialize_ && indexName_.size()) {
-    throw predictionAfterClearedClassifiersException();
-    return;
-  }
+CompositeClassifier<ClassifierType>::_predict_in_loop(MatType&& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
 
   prediction = zeros<Row<DataType>>(dataset.n_cols);
 
@@ -254,7 +250,33 @@ CompositeClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& 
   if (symmetrized_ and not ignoreSymmetrization) {
     deSymmetrize(prediction);
   }
+  
+}
 
+template<typename ClassifierType>
+void
+CompositeClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
+
+  if (serialize_ && indexName_.size()) {
+    throw predictionAfterClearedClassifiersException();
+    return;
+  }
+  
+  _predict_in_loop(dataset, prediction, ignoreSymmetrization);
+
+}
+
+template<typename ClassifierType>
+void 
+CompositeClassifier<ClassifierType>::Predict(mat&& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
+
+  if (serialize_ && indexName_.size()) {
+    throw predictionAfterClearedClassifiersException();
+    return;
+  }
+  
+  _predict_in_loop(std::move(dataset), prediction, ignoreSymmetrization);
+  
 }
 
 template<typename ClassifierType>
@@ -293,6 +315,20 @@ CompositeClassifier<ClassifierType>::Predict(const mat& dataset, Row<typename Co
 }
 
 template<typename ClassifierType>
+void
+CompositeClassifier<ClassifierType>::Predict(mat&& dataset, Row<typename CompositeClassifier<ClassifierType>::IntegralLabelType>& prediction) {
+
+  row_d prediction_d;
+  Predict(std::move(dataset), prediction_d);
+
+  if (symmetrized_) {
+    deSymmetrize(prediction_d);
+  }
+
+  prediction = conv_to<row_t>::from(prediction_d);
+}
+
+template<typename ClassifierType>
 uvec
 CompositeClassifier<ClassifierType>::subsampleRows(size_t numRows) {
 
@@ -328,7 +364,7 @@ CompositeClassifier<ClassifierType>::uniqueCloseAndReplace(Row<DataType>& labels
   
   uniqueVals_.push_back(uniqueVals[0]);
   
-  for (int i=1; i<uniqueVals.n_cols; ++i) {
+  for (std::size_t i=1; i<uniqueVals.n_cols; ++i) {
     bool found = false;
     for (const auto& el : uniqueVals_) {
       if (fabs(uniqueVals[i] - el) <= eps) {
@@ -547,6 +583,7 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
 							 double learningRate,
 							 const uvec& colMask) {
 
+  (void)stepNum;
 
   // We should implement several methods here
   // XXX
@@ -671,11 +708,12 @@ CompositeClassifier<ClassifierType>::read(CompositeClassifier<ClassifierType>& r
 }
 
 template<typename ClassifierType>
+template<typename MatType>
 void
-CompositeClassifier<ClassifierType>::Predict(std::string index, const mat& dataset, Row<DataType>& prediction, bool postSymmetrize) {
-
-  std::vector<std::string> fileNames;
-  readIndex(index, fileNames);
+CompositeClassifier<ClassifierType>::_predict_in_loop_archive(std::vector<std::string>& fileNames, 
+							      MatType&& dataset, 
+							      Row<DataType>& prediction, 
+							      bool postSymmetrize) {
 
   using C = CompositeClassifier<ClassifierType>;
   std::unique_ptr<C> classifierNew = std::make_unique<C>();
@@ -688,7 +726,7 @@ CompositeClassifier<ClassifierType>::Predict(std::string index, const mat& datas
     if (tokens[0] == "CLS") {
       fileName = strJoin(tokens, '_', 1);
       read(*classifierNew, fileName);
-      classifierNew->Predict(dataset, predictionStep, ignoreSymmetrization);
+      classifierNew->Predict(std::forward<MatType>(dataset), predictionStep, ignoreSymmetrization);
       prediction += predictionStep;
     }
   }
@@ -696,7 +734,28 @@ CompositeClassifier<ClassifierType>::Predict(std::string index, const mat& datas
   if (postSymmetrize) {
     deSymmetrize(prediction);
   }
+  
+}
 
+template<typename ClassifierType>
+void
+CompositeClassifier<ClassifierType>::Predict(std::string index, const mat& dataset, Row<DataType>& prediction, bool postSymmetrize) {
+
+  std::vector<std::string> fileNames;
+  readIndex(index, fileNames);
+
+  _predict_in_loop_archive(fileNames, dataset, prediction, postSymmetrize);
+
+}
+
+template<typename ClassifierType>
+void
+CompositeClassifier<ClassifierType>::Predict(std::string index, mat&& dataset, Row<DataType>& prediction, bool postSymmetrize) {
+  
+  std::vector<std::string> fileNames;
+  readIndex(index, fileNames);
+
+  _predict_in_loop_archive(fileNames, dataset, prediction, postSymmetrize);
 }
 
 template<typename ClassifierType>
@@ -778,8 +837,8 @@ CompositeClassifier<ClassifierType>::printStats(int stepNum) {
   }
 
   auto now = std::chrono::system_clock::now();
-  auto UTC = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
   auto in_time_t = std::chrono::system_clock::to_time_t(now);
+  // auto UTC = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
   
   std::stringstream datetime;
   datetime << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d_%X");
@@ -817,7 +876,7 @@ template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::fit() {
 
-  for (std::size_t stepNum=1; stepNum<=steps_; ++stepNum) {
+  for (int stepNum=1; stepNum<=steps_; ++stepNum) {
     fit_step(stepNum);
     
     if ((stepNum > 5) && ((stepNum%serializationWindow_) == 1)) {
@@ -853,15 +912,17 @@ template<typename ClassifierType>
 double
 CompositeClassifier<ClassifierType>::computeLearningRate(std::size_t stepNum) {
 
-  double learningRate;
+  double learningRate = learningRate_;
 
   if (learningRateMethod_ == LearningRateMethod::FIXED) {
 
     learningRate = learningRate_;
+
   } else if (learningRateMethod_ == LearningRateMethod::DECREASING) {
 
     double A = learningRate_, B = -log(.5) / static_cast<double>(steps_);
     learningRate = A * exp(-B * (-1 + stepNum));
+
   } else if (learningRateMethod_ == LearningRateMethod::INCREASING) {
 
     double A = learningRate_, B = log(2.) / static_cast<double>(steps_);
@@ -878,6 +939,8 @@ CompositeClassifier<ClassifierType>::computeLearningRate(std::size_t stepNum) {
 template<typename ClassifierType>
 std::size_t
 CompositeClassifier<ClassifierType>::computeSubPartitionSize(std::size_t stepNum) {
+  
+  (void)stepNum;
 
   return static_cast<std::size_t>(partitionSize_/2);
 }
@@ -886,12 +949,16 @@ template<typename ClassifierType>
 double
 CompositeClassifier<ClassifierType>::computeSubLearningRate(std::size_t stepNum) {
 
+  (void)stepNum;
+
   return learningRate_;
 }
 
 template<typename ClassifierType>
 std::size_t
 CompositeClassifier<ClassifierType>::computeSubStepSize(std::size_t stepNum) {
+
+  (void)stepNum;
 
   double mult = 1.;
   return std::max(1, static_cast<int>(mult * std::log(steps_)));    
@@ -903,39 +970,45 @@ CompositeClassifier<ClassifierType>::computePartitionSize(std::size_t stepNum, c
 
   // stepNum is in range [1,...,context.steps]
 
-  std::size_t partitionSize;
+  std::size_t partitionSize = partitionSize_;
   double lowRatio = .05;
   double highRatio = .95;
   int attach = 1000;
 
   if (partitionSizeMethod_ == PartitionSizeMethod::FIXED) {
 
-    return partitionSize_;
+    partitionSize = partitionSize_;
+
   } else if (partitionSizeMethod_ == PartitionSizeMethod::FIXED_PROPORTION) {
 
     partitionSize = static_cast<std::size_t>(partitionRatio_ * row_subsample_ratio_ * colMask.n_rows);
+
   } else if (partitionSizeMethod_ == PartitionSizeMethod::DECREASING) {
 
     double A = colMask.n_rows, B = log(colMask.n_rows)/steps_;
     partitionSize = std::max(1, static_cast<int>(A * exp(-B * (-1 + stepNum))));
+
   } else if (partitionSizeMethod_ == PartitionSizeMethod::INCREASING) {
 
     double A = 2., B = log(colMask.n_rows)/static_cast<double>(steps_);
     partitionSize = std::max(1, static_cast<int>(A * exp(B * (-1 + stepNum))));
+
   } else if (partitionSizeMethod_ == PartitionSizeMethod::RANDOM) {
 
     partitionSize = partitionDist_(default_engine_);
-    ;
+
   } else if (partitionSizeMethod_ == PartitionSizeMethod::MULTISCALE) {
 
-    if ((stepNum%attach) < (attach/2)) {
+    if ((stepNum%attach) < static_cast<std::size_t>(attach/2)) {
 
       partitionSize = static_cast<std::size_t>(lowRatio * col_subsample_ratio_ * colMask.n_rows);
       partitionSize = partitionSize >= 1 ? partitionSize : 1;
+
     } else {
 
       partitionSize = static_cast<std::size_t>(highRatio * col_subsample_ratio_ * colMask.n_rows);
       partitionSize = partitionSize >= 1 ? partitionSize : 1;
+
     }
   }
   
@@ -965,6 +1038,8 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
 							   const Row<DataType>& y,
 							   const uvec& colMask) {
   
+  (void)colMask;
+
   rowvec g, h;
   lossFn_->loss(yhat, y, &g, &h);
   

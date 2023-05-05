@@ -1,5 +1,5 @@
 #ifndef __REGRESSOR_PMLB_DRIVER_HPP__
-#define __RETRESSOR_PMLB_DRIVER_HPP__
+#define __REGRESSOR_PMLB_DRIVER_HPP__
 
 #include <iostream>
 #include <numeric>

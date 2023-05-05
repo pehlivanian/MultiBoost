@@ -196,11 +196,19 @@ public:
   // predict on subset of dataset defined by uvec; sum step prediction vectors
   virtual void Predict(Row<DataType>&, const uvec&);
   // predict OOS, loop through and call Predict_ on individual regressors, sum
-  virtual void Predict(const mat&, Row<DataType>&);
+  virtual void Predict(const mat&, Row<DataType>&) override;
+  virtual void Predict(mat&&, Row<DataType>&) override;
   
   // 2 overloaded versions for archive regressor
   virtual void Predict(std::string, Row<DataType>&);
   virtual void Predict(std::string, const mat&, Row<DataType>&);
+  virtual void Predict(std::string, mat&&, Row<DataType>&);
+
+  template<typename MatType>
+  void _predict_in_loop(MatType&&, Row<DataType>&);
+  
+  template<typename MatType>
+  void _predict_in_loop_archive(std::vector<std::string>&, MatType&&, Row<DataType>&);
   
   mat getDataset() const { return dataset_; }
   Row<DataType> getLatestPrediction() const { return latestPrediction_; }
@@ -249,6 +257,9 @@ private:
   void Predict_(const mat& dataset, Row<DataType>& prediction) override { 
     Predict(dataset, prediction);
   }
+  void Predict_(mat&& dataset, Row<DataType>& prediction) override {
+    Predict(std::move(dataset), prediction);
+  }
 
   void purge_() override;
   
@@ -277,6 +288,11 @@ private:
   Row<double> labels_;
   mat dataset_oos_;
   Row<double> labels_oos_;
+
+  bool hasOOSData_;
+  bool hasInitialPrediction_;
+  bool reuseColMask_;
+
   std::size_t partitionSize_;
   double partitionRatio_;
   Row<DataType> latestPrediction_;
@@ -312,12 +328,10 @@ private:
 
   std::mt19937 mersenne_engine_{std::random_device{}()};
   std::default_random_engine default_engine_;
-  std::uniform_int_distribution<std::size_t> partitionDist_{1, 
-      static_cast<std::size_t>(m_ * col_subsample_ratio_)};
+  std::uniform_int_distribution<std::size_t> partitionDist_;
   // call by partitionDist_(default_engine_)
 
   bool quietRun_;
-  bool reuseColMask_;
 
   bool recursiveFit_;
   bool serialize_;
@@ -325,9 +339,6 @@ private:
   bool serializeColMask_;
   bool serializeDataset_;
   bool serializeLabels_;
-
-  bool hasOOSData_;
-  bool hasInitialPrediction_;
 
   std::size_t serializationWindow_;
   std::string indexName_;

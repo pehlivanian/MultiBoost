@@ -176,7 +176,7 @@ public:
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
 			  Context context) :
-    CompositeClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, latestPrediction, colMask) {}
+    CompositeClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, latestPrediction, colMask, context) {}
 
   // 10
   // mat		: arma::Mat<double>
@@ -208,7 +208,7 @@ public:
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
 			  Context context) :
-    CompositeClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, latestPrediction, colMask) {}
+    CompositeClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, latestPrediction, colMask, context) {}
 
   // 12
   // mat		: arma::Mat<double>

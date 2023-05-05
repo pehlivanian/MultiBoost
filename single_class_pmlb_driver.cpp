@@ -11,7 +11,7 @@ using namespace LossMeasures;
 using namespace ModelContext;
 using namespace IB_utils;
 
-auto main(int argc, char **argv) -> int {
+auto main() -> int {
 
   Mat<double> dataset, trainDataset, testDataset;
   Row<std::size_t> labels, trainLabels, testLabels;

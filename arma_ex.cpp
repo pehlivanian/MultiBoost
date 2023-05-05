@@ -42,7 +42,7 @@ void decode(const row_t& labels_t,
   }
 }
 
-auto main(int argc, char **argv) -> int {
+auto main() -> int {
 
   mat dataset = mat(10, 100, arma::fill::randu);
   row_d labels_d(100);

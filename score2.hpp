@@ -104,10 +104,10 @@ namespace Objectives {
 
     std::vector<DataType> a_;
     std::vector<DataType> b_;
-    std::vector<std::vector<DataType>> partialSums_;
     int n_;
     std::vector<std::vector<DataType> > a_sums_;
     std::vector<std::vector<DataType> > b_sums_;
+    std::vector<std::vector<DataType>> partialSums_;
     bool risk_partitioning_objective_;
     bool use_rational_optimization_;
     std::string name_;

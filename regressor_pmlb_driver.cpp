@@ -11,7 +11,7 @@ using namespace LossMeasures;
 using namespace ModelContext;
 using namespace IB_utils;
 
-auto main(int argc, char **argv) -> int {
+auto main() -> int {
 
   Mat<double> dataset, trainDataset, testDataset;
   Row<double> labels, trainLabels, testLabels;
@@ -43,22 +43,23 @@ auto main(int argc, char **argv) -> int {
   // context.loss = lossFunction::Synthetic;
   // context.loss = lossFunction::SyntheticVar1;
   // context.loss = lossFunction::SyntheticVar2;
-  context.partitionSize = 10;
+  context.partitionSize = 50;
   context.partitionRatio = 1.;
-  context.learningRate = .001;
-  context.steps = 100;
-  context.baseSteps = 1000;
+  context.learningRate = .1;
+  context.steps = 15;
+  context.baseSteps = 10000;
   context.symmetrizeLabels = false;
   context.serializationWindow = 1000;
   context.removeRedundantLabels = false;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .1; // .75
   context.recursiveFit = true;
+  context.quietRun = false;
   context.serialize = false;
   context.serializePrediction = false;
   context.serializeDataset = false;
   context.serializeLabels = false;
-  context.serializationWindow = 100;
+  context.serializationWindow = 1;
   context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
   context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;    // DECREASING
   context.stepSizeMethod = StepSize::StepSizeMethod::LOG;	

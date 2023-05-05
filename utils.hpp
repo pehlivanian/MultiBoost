@@ -56,28 +56,29 @@ namespace StepSize {
 namespace ModelContext{
 
   struct Context {
+
     Context(std::size_t minLeafSize=1,
 	    double minimumGainSplit=.0,
 	    std::size_t maxDepth=100,
 	    std::size_t numTrees=10,
 	    bool recursiveFit=false) : 
+      baseSteps{-1},
+      removeRedundantLabels{false},
+      quietRun{false},
+      recursiveFit{recursiveFit},
+      partitionSizeMethod{PartitionSize::PartitionSizeMethod::FIXED},
+      learningRateMethod{LearningRate::LearningRateMethod::FIXED},
+      stepSizeMethod{StepSize::StepSizeMethod::LOG},
       minLeafSize{minLeafSize},
       minimumGainSplit{minimumGainSplit},
       maxDepth{maxDepth},
       numTrees{numTrees},
-      removeRedundantLabels{false},
-      stepSizeMethod{StepSize::StepSizeMethod::LOG},
-      partitionSizeMethod{PartitionSize::PartitionSizeMethod::FIXED},
-      learningRateMethod{LearningRate::LearningRateMethod::FIXED},
-      quietRun{false},
-      recursiveFit{recursiveFit},
       serialize{false},
       serializePrediction{false},
+      serializeColMask{false},
       serializeDataset{false},
       serializeLabels{false},
-      serializeColMask{false},
-      serializationWindow{500},
-      baseSteps{-1}
+      serializationWindow{500}
     {}
 
     Context(const Context& rhs) {
@@ -153,9 +154,11 @@ public:
     
     std::shuffle(v.begin(), v.end(), std::mt19937{std::random_device{}()});
     
-    for (int i=0; i<v.size(); ++i) {
+    for (std::size_t i=0; i<v.size(); ++i) {
       r[i] = *(v[i]);
     }
+
+    return r;
   }
 
   static std::vector<std::vector<int>> _fullPartition(int sz) {
@@ -170,9 +173,10 @@ public:
     float p = static_cast<float>(numCols)/static_cast<float>(n);     
     uvec r(numCols);
     int i=0, j=0;
+    float max_ = (float)(RAND_MAX);
 
     while (numCols > 0) {
-      float s = (float)rand()/RAND_MAX;
+      float s = (float)rand()/max_;
       if (s < p) {
 	r[i] = j;
 	i += 1;
@@ -197,6 +201,11 @@ public:
       j += 1;n -= 1;
     }
     return r;
+  }
+
+  static uvec sortedSubsample(std::size_t n, std::size_t numCols) {
+    // Faster option; see benchmarks.cpp
+    return sortedSubsample2(n, numCols);
   }
 
 };
@@ -440,7 +449,8 @@ namespace IB_utils {
   template<typename CharT>
   tstring<CharT> strJoin(const std::vector<tstring<CharT>> &tokens, char delim, int firstInd) {
     tstring<CharT> r;
-    for (int i=firstInd; i<tokens.size(); ++i) {
+    int size_ = static_cast<int>(tokens.size());
+    for (int i=firstInd; i<size_; ++i) {
       if (!r.size())
 	r = tokens[i];
       else
@@ -539,9 +549,8 @@ namespace IB_utils {
     std::size_t readBytes = 0;
     std::ifstream ifs{fileName, std::ios::ate | std::ios::binary};
     if (ifs.is_open()) {
-      auto length = static_cast<std::size_t>(ifs.tellg());
+
       ifs.seekg(0, std::ios_base::beg);
-      char* buffer[length];
 
       try {
 	ifs.read(reinterpret_cast<char*>(&obj), sizeof(T));

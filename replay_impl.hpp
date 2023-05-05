@@ -85,7 +85,6 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
   readIndex(indexName, fileNames);
 
   int n_rows, n_cols;
-  bool ignoreSymmetrization = true;
   mat dataset, dataset_oos;
   Row<DataType> labels, predictionStep;
   int classifierNum = 0;
@@ -146,12 +145,12 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
     prediction = zeros<Row<DataType>>(n_cols);
     
     for (auto &item : futures) {
-      auto r = item.get();
+      item.get();
     }
     
     while (!results_queue.empty()) {
       Row<double> predictionStep;
-      bool valid = results_queue.waitPop(predictionStep);
+      results_queue.waitPop(predictionStep);
       prediction += predictionStep;
     }
     
@@ -275,12 +274,12 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
     prediction = zeros<Row<DataType>>(n_cols);
     
     for (auto &item : futures) {
-      auto r = item.get();
+      item.get();
     }
     
     while (!results_queue.empty()) {
       Row<double> predictionStep;
-      bool valid = results_queue.waitPop(predictionStep);
+      results_queue.waitPop(predictionStep);
       prediction += predictionStep;
     }
     

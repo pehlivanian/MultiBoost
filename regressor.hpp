@@ -15,14 +15,20 @@ public:
   RegressorBase() = default;
   RegressorBase(std::string id) : Model<DataType, RegressorType>(id) {}
 
+  virtual ~RegressorBase() = default;
+
   virtual void Predict(const mat& data, Row<DataType>& pred) { Predict_(data, pred); }
+  virtual void Predict(mat&& data, Row<DataType>& pred) { Predict_(data, pred); }
+
   virtual void purge() { purge_(); }
 
 private:
   virtual void purge_() = 0;
   virtual void Predict_(const mat&, Row<DataType>&) = 0;
+  virtual void Predict_(mat&&, Row<DataType>&) = 0;
 
   void Project_(const mat& data, Row<DataType>& pred) override { Predict_(data, pred); }
+  void Project_(mat&& data, Row<DataType>& pred) override { Predict_(std::move(data), pred); }
 };
 
 template<typename DataType, typename RegressorType, typename... Args>
@@ -37,8 +43,9 @@ public:
   }
 
   ContinuousRegressorBase(std::unique_ptr<RegressorType> regressor) : regressor_{std::move(regressor)} {}
-
   ContinuousRegressorBase() = default;
+
+  virtual ~ContinuousRegressorBase() = default;
   
   void setRegressor(const mat&, Row<DataType>&, Args&&...);
 
@@ -54,6 +61,8 @@ private:
   std::tuple<Args...> args_;
 
   void Predict_(const mat&, Row<DataType>&) override;
+  void Predict_(mat&& mat, Row<DataType>&) override;
+
   void purge_() override {};
 
 };

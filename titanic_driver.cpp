@@ -5,7 +5,7 @@ using namespace PartitionSize;
 using namespace StepSize;
 using namespace LearningRate;
 
-auto main(int argc, char **argv) -> int {
+auto main() -> int {
 
   using namespace arma;
   using namespace mlpack;

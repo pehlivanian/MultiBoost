@@ -219,6 +219,19 @@ CompositeRegressor<RegressorType>::Predict(Row<DataType>& prediction, const uvec
 }
 
 template<typename RegressorType>
+template<typename MatType>
+void
+CompositeRegressor<RegressorType>::_predict_in_loop(MatType&& dataset, Row<DataType>& prediction) {
+  prediction = zeros<Row<DataType>>(dataset.n_cols);
+
+  for (const auto& regressor : regressors_) {
+    Row<DataType> predictionStep;
+    regressor->Predict(std::forward<MatType>(dataset), predictionStep);
+    prediction += predictionStep;    
+  }  
+
+}
+template<typename RegressorType>
 void
 CompositeRegressor<RegressorType>::Predict(const mat& dataset, Row<DataType>& prediction) {
 
@@ -227,14 +240,19 @@ CompositeRegressor<RegressorType>::Predict(const mat& dataset, Row<DataType>& pr
     return;
   }
 
-  prediction = zeros<Row<DataType>>(dataset.n_cols);
+  _predict_in_loop(dataset, prediction);
+}
 
-  for (const auto& regressor : regressors_) {
-    Row<DataType> predictionStep;
-    regressor->Predict(dataset, predictionStep);
-    prediction += predictionStep;    
-  }  
+template<typename RegressorType>
+void
+CompositeRegressor<RegressorType>::Predict(mat&& dataset, Row<DataType>& prediction) {
+  
+  if (serialize_ && indexName_.size()) {
+    throw predictionAfterClearedClassifiersException();
+    return;
+  }
 
+  _predict_in_loop(std::move(dataset), prediction);
 }
 
 template<typename RegressorType>
@@ -401,6 +419,8 @@ CompositeRegressor<RegressorType>::computeOptimalSplit(rowvec& g,
 						       const uvec& colMask) {
 
 
+  (void)stepNum;
+
   // We should implement several methods here
   // XXX
   std::vector<double> gv = arma::conv_to<std::vector<double>>::from(g);
@@ -524,11 +544,11 @@ CompositeRegressor<RegressorType>::read(CompositeRegressor<RegressorType>& rhs,
 }
 
 template<typename RegressorType>
+template<typename MatType>
 void
-CompositeRegressor<RegressorType>::Predict(std::string index, const mat& dataset, Row<DataType>& prediction) {
-
-  std::vector<std::string> fileNames;
-  readIndex(index, fileNames);
+CompositeRegressor<RegressorType>::_predict_in_loop_archive(std::vector<std::string>& fileNames, 
+							    MatType&& dataset, 
+							    Row<DataType>& prediction) {
 
   using C = CompositeRegressor<RegressorType>;
   std::unique_ptr<C> regressorNew = std::make_unique<C>();
@@ -540,11 +560,32 @@ CompositeRegressor<RegressorType>::Predict(std::string index, const mat& dataset
     if (tokens[0] == "CLS") {
       fileName = strJoin(tokens, '_', 1);
       read(*regressorNew, fileName);
-      regressorNew->Predict(dataset, predictionStep);
+      regressorNew->Predict(std::forward<MatType>(dataset), predictionStep);
       prediction += predictionStep;
     }
   }
+  
+}
 
+template<typename RegressorType>
+void
+CompositeRegressor<RegressorType>::Predict(std::string index, const mat& dataset, Row<DataType>& prediction) {
+
+  std::vector<std::string> fileNames;
+  readIndex(index, fileNames);
+
+  _predict_in_loop_archive(fileNames, dataset, prediction);
+
+}
+
+template<typename RegressorType>
+void
+CompositeRegressor<RegressorType>::Predict(std::string index, mat&& dataset, Row<DataType>& prediction) {
+
+  std::vector<std::string> fileNames;
+  readIndex(index, fileNames);
+
+  _predict_in_loop_archive(fileNames, std::move(dataset), prediction);
 }
 
 template<typename RegressorType>
@@ -630,8 +671,8 @@ CompositeRegressor<RegressorType>::printStats(int stepNum) {
   }
 
   auto now = std::chrono::system_clock::now();
-  auto UTC = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
   auto in_time_t = std::chrono::system_clock::to_time_t(now);
+  // auto UTC = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
   
   std::stringstream datetime;
   datetime << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d_%X");
@@ -655,12 +696,14 @@ CompositeRegressor<RegressorType>::printStats(int stepNum) {
     } else {
       Predict(dataset_oos_, yhat_oos);
     }
-    double error_oos = err(yhat_oos, labels_oos_);
+    
+    const double loss_oos = lossFn_->loss(yhat_oos, labels_oos_);
+    
     std::cout << suff<< ": "
 	      << "(PARTITION SIZE = " << partitionSize_
 	      << ", STEPS = " << steps_ << ") "
 	      << "STEP: " << stepNum
-	      << " OOS ERROR: " << error_oos << "%" << std::endl;
+	      << " OOS ERROR: " << loss_oos << std::endl;
   }
 
 }
@@ -669,16 +712,14 @@ template<typename RegressorType>
 void
 CompositeRegressor<RegressorType>::fit() {
 
-  for (std::size_t stepNum=1; stepNum<=steps_; ++stepNum) {
+  for (int stepNum=1; stepNum<=steps_; ++stepNum) {
     fit_step(stepNum);
-    
-    if ((stepNum > 5) && ((stepNum%serializationWindow_) == 1)) {
-      if (serialize_) {
-	commit();
-      }
-      if (!quietRun_) {
-	printStats(stepNum);
-      }
+          
+    if (serialize_) {
+      commit();
+    }
+    if (!quietRun_) {
+      printStats(stepNum);
     }
     
   }
@@ -698,7 +739,7 @@ template<typename RegressorType>
 double
 CompositeRegressor<RegressorType>::computeLearningRate(std::size_t stepNum) {
 
-  double learningRate;
+  double learningRate = learningRate_;
 
   if (learningRateMethod_ == LearningRateMethod::FIXED) {
 
@@ -712,6 +753,7 @@ CompositeRegressor<RegressorType>::computeLearningRate(std::size_t stepNum) {
     double A = learningRate_, B = log(2.) / static_cast<double>(steps_);
 
     learningRate = A * exp(B * (-1 + stepNum));
+
   }
 
   // if ((stepNum%100)==0)
@@ -724,6 +766,8 @@ template<typename RegressorType>
 std::size_t
 CompositeRegressor<RegressorType>::computeSubPartitionSize(std::size_t stepNum) {
 
+  (void)stepNum;
+
   return static_cast<std::size_t>(partitionSize_/2);
 }
 
@@ -731,12 +775,16 @@ template<typename RegressorType>
 double
 CompositeRegressor<RegressorType>::computeSubLearningRate(std::size_t stepNum) {
 
+  (void)stepNum;
+
   return learningRate_;
 }
 
 template<typename RegressorType>
 std::size_t
 CompositeRegressor<RegressorType>::computeSubStepSize(std::size_t stepNum) {
+
+  (void)stepNum;
 
   // XXX
   double mult = 2.;
@@ -749,14 +797,15 @@ CompositeRegressor<RegressorType>::computePartitionSize(std::size_t stepNum, con
 
   // stepNum is in range [1,...,context.steps]
 
-  std::size_t partitionSize;
+  std::size_t partitionSize = partitionSize_;
   double lowRatio = .05;
   double highRatio = .95;
   int attach = 1000;
 
   if (partitionSizeMethod_ == PartitionSizeMethod::FIXED) {
 
-    return partitionSize_;
+    partitionSize = partitionSize_;
+
   } else if (partitionSizeMethod_ == PartitionSizeMethod::FIXED_PROPORTION) {
 
     partitionSize = static_cast<std::size_t>(partitionRatio_ * row_subsample_ratio_ * colMask.n_rows);
@@ -771,10 +820,10 @@ CompositeRegressor<RegressorType>::computePartitionSize(std::size_t stepNum, con
   } else if (partitionSizeMethod_ == PartitionSizeMethod::RANDOM) {
 
     partitionSize = partitionDist_(default_engine_);
-    ;
+
   } else if (partitionSizeMethod_ == PartitionSizeMethod::MULTISCALE) {
 
-    if ((stepNum%attach) < (attach/2)) {
+    if ((stepNum%attach) < static_cast<std::size_t>(attach/2)) {
 
       partitionSize = static_cast<std::size_t>(lowRatio * col_subsample_ratio_ * colMask.n_rows);
       partitionSize = partitionSize >= 1 ? partitionSize : 1;
@@ -811,19 +860,12 @@ CompositeRegressor<RegressorType>::generate_coefficients(const Row<DataType>& yh
 							 const Row<DataType>& y,
 							 const uvec& colMask) {
   
+  (void)colMask;
+
   rowvec g, h;
   lossFn_->loss(yhat, y, &g, &h);
   
   return std::make_pair(g, h);
 }
-/*
-  double
-  CompositeRegressor<RegressorType>::imbalance() {
-  ;
-  }
-  // 2.0*((sum(y_train==0)/len(y_train) - .5)**2 + (sum(y_train==1)/len(y_train) - .5)**2)
-  */
-
-
 
 #endif

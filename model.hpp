@@ -49,6 +49,7 @@ private:
   std::string id_;
 
   virtual void Project_(const mat&, Row<DataType>&) = 0;
+  virtual void Project_(mat&&, Row<DataType>&) = 0;
 };
 
 namespace Model_Traits {

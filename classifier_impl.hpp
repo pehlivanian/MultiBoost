@@ -60,5 +60,15 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::Classify_(const mat& 
   
 }
 
+template<typename DataType, typename ClassifierType, typename... Args>
+void
+DiscreteClassifierBase<DataType, ClassifierType, Args...>::Classify_(mat&& dataset, Row<DataType>& labels) {
+
+  Row<std::size_t> labels_t;
+  
+  classifier_->Classify(std::move(dataset), labels_t);
+  decode(labels_t, labels);
+}
+
 
 #endif

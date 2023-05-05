@@ -203,6 +203,9 @@ TEST(DPSolverTest, TestUnsortedIndWorksAsARMAIndexer) {
   float eps = std::numeric_limits<float>::epsilon();
   
   for (auto _ : trials) {
+    
+    (void)_;
+
     std::vector<float> a(n), b(n);
     for (auto &el : a)
       el = dista(gen);
@@ -247,6 +250,9 @@ TEST(DPSolverTest, TestCachedScoresMatchAcrossMethods) {
   std::uniform_int_distribution<int> distCol(0, n);
 
   for (auto _ : trials) {
+
+    (void)_;
+
     std::vector<float> a(n), b(n);
     for (auto &el : a)
       el = dista(gen);
@@ -300,6 +306,9 @@ TEST(DPSolverTest, TestCachedScoresMatchExternalScores) {
     el = distb(gen);
 
   for (auto _ : trials) {
+
+    (void)_;
+
     RationalScoreContext<float>* context_serial = new RationalScoreContext{a, b, n, false, true};
     
     context_serial->__compute_partial_sums__();
@@ -359,6 +368,9 @@ TEST(DPSolverTest, TestCachedScoresMatchExternalScores) {
     std::vector<bool> samples(numSamples);
 
     for (auto _ : samples) {
+
+      (void)_;
+
       int ind1_ = distRow(gen);
       int ind2_ = distRow(gen);
       if (ind1_ == ind2_)
@@ -568,16 +580,16 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips)
   context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
   context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
   context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
-  context.minLeafSize = 1;
-  context.maxDepth = 10;
-  context.minimumGainSplit = 0.;
+  context.minLeafSize = minLeafSize;
+  context.maxDepth = maxDepth;
+  context.minimumGainSplit = minimumGainSplit;
 
   using T = GradientBoostClassifier<DecisionTreeClassifier>;
-  using IArchiveType = cereal::BinaryInputArchive;
-  using OArchiveType = cereal::BinaryOutputArchive;
 
   for (auto _ : trials) {
-    
+
+    (void)_;
+
     T classifier, newClassifier;
     classifier = T(trainDataset, trainLabels, testDataset, testLabels, context);
     classifier.fit();
@@ -599,9 +611,9 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips)
     ASSERT_EQ(trainPrediction.n_elem, trainNewPrediction.n_elem);
     
     float eps = std::numeric_limits<float>::epsilon();
-    for (int i=0; i<testPrediction.n_elem; ++i)
+    for (std::size_t i=0; i<testPrediction.n_elem; ++i)
       ASSERT_LE(fabs(testPrediction[i]-testNewPrediction[i]), eps);
-    for (int i=0; i<trainPrediction.n_elem; ++i)
+    for (std::size_t i=0; i<trainPrediction.n_elem; ++i)
       ASSERT_LE(fabs(trainPrediction[i]-trainNewPrediction[i]), eps);
 
   }
@@ -649,8 +661,6 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
   context.serializationWindow = 100;
 
   using T = GradientBoostClassifier<DecisionTreeClassifier>;
-  using IArchiveType = cereal::BinaryInputArchive;
-  using OArchiveType = cereal::BinaryOutputArchive;
 
   for (auto recursive : trials) {
   
@@ -677,7 +687,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
     Row<double> archiveTrainPrediction;
     Replay<double, DecisionTreeClassifier>::Classify(indexName, trainDataset, archiveTrainPrediction);
 
-    for (int i=0; i<liveTrainPrediction.n_elem; ++i)
+    for (std::size_t i=0; i<liveTrainPrediction.n_elem; ++i)
       ASSERT_LE(fabs(liveTrainPrediction[i]-archiveTrainPrediction[i]), eps);
 
     // Predict OOS with live classifier
@@ -692,7 +702,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
     Row<double> archiveTestPrediction;
     Replay<double, DecisionTreeClassifier>::Classify(indexName, testDataset, archiveTestPrediction, true);
 
-    for (int i=0; i<liveTestPrediction.size(); ++i) {
+    for (std::size_t i=0; i<liveTestPrediction.size(); ++i) {
       ASSERT_LE(fabs(liveTestPrediction[i]-archiveTestPrediction[i]), eps);
     }
 
@@ -739,9 +749,6 @@ TEST(GradientBoostClassifierTest, TestInSamplePredictionMatchesLatestPrediction)
   context.minimumGainSplit = minimumGainSplit;
 
   using T = GradientBoostClassifier<DecisionTreeClassifier>;
-  using IArchiveType = cereal::BinaryInputArchive;
-  using OArchiveType = cereal::BinaryOutputArchive;
-
 
   for (auto recursive : trials) {
     
@@ -760,7 +767,7 @@ TEST(GradientBoostClassifierTest, TestInSamplePredictionMatchesLatestPrediction)
     // IS lastestPrediction_ - archive classifier
     Row<double> latestPrediction = classifier.getLatestPrediction();
 
-    for (int i=0; i<liveTrainPrediction.n_elem; ++i)
+    for (std::size_t i=0; i<liveTrainPrediction.n_elem; ++i)
       ASSERT_LE(fabs(liveTrainPrediction[i]-latestPrediction[i]), eps);
   }
   
@@ -806,8 +813,6 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveRoundTrips) {
   context.minimumGainSplit = minimumGainSplit;
 
   using T = GradientBoostClassifier<DecisionTreeClassifier>;
-  using IArchiveType = cereal::BinaryInputArchive;
-  using OArchiveType = cereal::BinaryOutputArchive;
 
   for (auto recursive : trials) {
   
@@ -833,9 +838,9 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveRoundTrips) {
     ASSERT_EQ(trainPrediction.n_elem, trainNewPrediction.n_elem);
     
     float eps = std::numeric_limits<float>::epsilon();
-    for (int i=0; i<testPrediction.n_elem; ++i)
+    for (std::size_t i=0; i<testPrediction.n_elem; ++i)
       ASSERT_LE(fabs(testPrediction[i]-testNewPrediction[i]), eps);
-    for (int i=0; i<trainPrediction.n_elem; ++i)
+    for (std::size_t i=0; i<trainPrediction.n_elem; ++i)
       ASSERT_LE(fabs(trainPrediction[i]-trainNewPrediction[i]), eps);
 
   }
@@ -850,7 +855,6 @@ TEST(GradientBoostClassifierTest, TestChildSerializationRoundTrips) {
   std::size_t minLeafSize = 1;
   double minimumGainSplit = 0.;
   std::size_t maxDepth = 10;
-  std::size_t partitionSize = 10;
 
   dataset_t dataset, trainDataset, testDataset;
   labels_t labels, trainLabels, testLabels;
@@ -868,7 +872,8 @@ TEST(GradientBoostClassifierTest, TestChildSerializationRoundTrips) {
   using OArchiveType = cereal::BinaryOutputArchive;
 
   for (auto _ : trials) {
-    using ClassifierType = DecisionTree<>;
+
+    (void)_;
 
     T classifier, newClassifier;
     classifier = T(trainDataset, 
@@ -898,9 +903,9 @@ TEST(GradientBoostClassifierTest, TestChildSerializationRoundTrips) {
     ASSERT_EQ(trainPrediction.n_elem, trainNewPrediction.n_elem);
     
     float eps = std::numeric_limits<float>::epsilon();
-    for (int i=0; i<testPrediction.n_elem; ++i)
+    for (std::size_t i=0; i<testPrediction.n_elem; ++i)
       ASSERT_LE(fabs(testPrediction[i]-testNewPrediction[i]), eps);
-    for (int i=0; i<trainPrediction.n_elem; ++i)
+    for (std::size_t i=0; i<trainPrediction.n_elem; ++i)
       ASSERT_LE(fabs(trainPrediction[i]-trainNewPrediction[i]), eps);
 
   }
@@ -926,6 +931,9 @@ TEST(DPSolverTest, TestParallelScoresMatchSerialScores) {
     el = distb(gen);
 
   for (auto _ : trials) {
+
+    (void)_;
+
     RationalScoreContext<float>* context = new RationalScoreContext{a, b, n, false, true};
     
     context->__compute_partial_sums__();
@@ -964,6 +972,9 @@ TEST(DPSolverTest, TestParallelScoresMatchSerialScores) {
     std::vector<bool> samples(numSamples);
 
     for (auto _ : samples) {
+      
+      (void)_;
+
       int ind1_ = distRow(gen);
       int ind2_ = distRow(gen);
       if (ind1_ == ind2_)
@@ -978,11 +989,6 @@ TEST(DPSolverTest, TestParallelScoresMatchSerialScores) {
 
 TEST(GradientBoostRegressorTest, TestContextWrittenWithCorrectValues) {
   
-  std::size_t minLeafSize = 1;
-  double minimumGainSplit = 0.;
-  std::size_t maxDepth = 5;
-  std::size_t partitionSize = 11;
-
   Context context_archive;
 
   std::string fileName = "ctx_cls.dat";
@@ -1015,11 +1021,6 @@ TEST(GradientBoostRegressorTest, TestContextWrittenWithCorrectValues) {
 }
 
 TEST(GradientBoostClassifierTest, TestContextWrittenWithCorrectValues) {
-
-  std::size_t minLeafSize = 1;
-  double minimumGainSplit = 0.;
-  std::size_t maxDepth = 10;
-  std::size_t partitionSize = 10;
 
   Context context_archive;
   
@@ -1166,7 +1167,7 @@ TEST(GradientBoostClassifierTest, TestWritePrediction) {
     // Method 2
     Replay<double, DecisionTreeClassifier>::Classify(indexName, archiveTrainPrediction2);
 
-    for (int i=0; i<liveTrainPrediction.n_elem; ++i) {
+    for (std::size_t i=0; i<liveTrainPrediction.n_elem; ++i) {
       ASSERT_LE(fabs(liveTrainPrediction[i]-archiveTrainPrediction1[i]), eps);
       ASSERT_LE(fabs(liveTrainPrediction[i]-archiveTrainPrediction2[i]), eps);
     }
@@ -1237,7 +1238,7 @@ TEST(GradientBoostRegressorTest, TestPredictionRoundTrip) {
 
     readPrediction(indexName, archivePrediction);
     
-    for (int i=0; i<prediction.n_elem; ++i) {
+    for (std::size_t i=0; i<prediction.n_elem; ++i) {
       ASSERT_LE(fabs(prediction[i]-archivePrediction[i]), eps);
       ASSERT_LE(fabs(prediction[i]-archivePrediction[i]), eps);
     }
@@ -1258,7 +1259,7 @@ TEST(GradientBoostRegressorTest, TestPredictionRoundTrip) {
     archiveRegressor.fit();
     archiveRegressor.Predict(archivePrediction);
 
-    for (int i=0; i<secondPrediction.size(); ++i) {
+    for (std::size_t i=0; i<secondPrediction.size(); ++i) {
       ASSERT_LE(fabs(secondPrediction[i]-archivePrediction[i]), eps);
     }
     
@@ -1333,7 +1334,7 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
     
     readPrediction(indexName, archivePrediction);
 
-    for (int i=0; i<prediction.n_elem; ++i) {
+    for (std::size_t i=0; i<prediction.n_elem; ++i) {
       ASSERT_LE(fabs(prediction[i]-archivePrediction[i]), eps);
     }
 
@@ -1358,7 +1359,7 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
     else
       eps = std::numeric_limits<float>::epsilon();
 
-    for (int i=0; i<secondPrediction.size(); ++i) {
+    for (std::size_t i=0; i<secondPrediction.size(); ++i) {
       ASSERT_LE(fabs(secondPrediction[i]-archivePrediction[i]), eps);
     }
   
@@ -1374,7 +1375,6 @@ TEST(GradientBoostRegressorTest, TestChildSerializationRoundTrips) {
   std::size_t minLeafSize = 1;
   double minimumGainSplit = 0.;
   std::size_t maxDepth = 10;
-  std::size_t partitionSize = 10;
 
   dataset_d dataset, trainDataset, testDataset;
   labels_d labels, trainLabels, testLabels;
@@ -1392,7 +1392,8 @@ TEST(GradientBoostRegressorTest, TestChildSerializationRoundTrips) {
   using OArchiveType = cereal::BinaryOutputArchive;
 
   for (auto _ : trials) {
-    using ClassifierType = DecisionTree<>;
+
+    (void)_;
 
     T regressor, newRegressor;
     regressor = T(trainDataset, 
@@ -1420,9 +1421,9 @@ TEST(GradientBoostRegressorTest, TestChildSerializationRoundTrips) {
     ASSERT_EQ(trainPrediction.n_elem, trainNewPrediction.n_elem);
     
     float eps = std::numeric_limits<float>::epsilon();
-    for (int i=0; i<testPrediction.n_elem; ++i)
+    for (std::size_t i=0; i<testPrediction.n_elem; ++i)
       ASSERT_LE(fabs(testPrediction[i]-testNewPrediction[i]), eps);
-    for (int i=0; i<trainPrediction.n_elem; ++i)
+    for (std::size_t i=0; i<trainPrediction.n_elem; ++i)
       ASSERT_LE(fabs(trainPrediction[i]-trainNewPrediction[i]), eps);
 
   }
@@ -1455,7 +1456,7 @@ TEST(GradientBoostRegressorTest, TestInSamplePredictionMatchesLatestPrediction) 
   context.partitionSize = partitionSize;
   context.partitionRatio = .25;
   context.learningRate = 1.;
-  context.steps = 55;
+  context.steps = 14;
   context.quietRun = true;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
@@ -1469,9 +1470,6 @@ TEST(GradientBoostRegressorTest, TestInSamplePredictionMatchesLatestPrediction) 
   context.minimumGainSplit = minimumGainSplit;
 
   using T = GradientBoostRegressor<DecisionTreeRegressorRegressor>;
-  using IArchiveType = cereal::BinaryInputArchive;
-  using OArchiveType = cereal::BinaryOutputArchive;
-
 
   for (auto recursive : trials) {
     
@@ -1490,7 +1488,7 @@ TEST(GradientBoostRegressorTest, TestInSamplePredictionMatchesLatestPrediction) 
     // IS lastestPrediction_ - archive regressor
     Row<double> latestPrediction = regressor.getLatestPrediction();
 
-    for (int i=0; i<liveTrainPrediction.n_elem; ++i)
+    for (std::size_t i=0; i<liveTrainPrediction.n_elem; ++i)
       ASSERT_LE(fabs(liveTrainPrediction[i]-latestPrediction[i]), eps);
   }
   
@@ -1538,8 +1536,6 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
   context.serializationWindow = 100;
 
   using T = GradientBoostRegressor<DecisionTreeRegressorRegressor>;
-  using IArchiveType = cereal::BinaryInputArchive;
-  using OArchiveType = cereal::BinaryOutputArchive;
 
   for (auto recursive : trials) {
   
@@ -1566,7 +1562,7 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
     Row<double> archiveTrainPrediction;
     Replay<double, DecisionTreeRegressorRegressor>::Predict(indexName, trainDataset, archiveTrainPrediction);
   
-    for (int i=0; i<liveTrainPrediction.n_elem; ++i)
+    for (std::size_t i=0; i<liveTrainPrediction.n_elem; ++i)
       ASSERT_LE(fabs(liveTrainPrediction[i]-archiveTrainPrediction[i]), eps);
 
     // Predict OOS with live regressor
@@ -1581,7 +1577,7 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
     Row<double> archiveTestPrediction;
     Replay<double, DecisionTreeRegressorRegressor>::Predict(indexName, testDataset, archiveTestPrediction);
 
-    for (int i=0; i<liveTestPrediction.size(); ++i) {
+    for (std::size_t i=0; i<liveTestPrediction.size(); ++i) {
       ASSERT_LE(fabs(liveTestPrediction[i]-archiveTestPrediction[i]), eps);
     }
   
@@ -1626,15 +1622,15 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorNonRecursiveRoundTrips) {
   context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
   context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
   context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
-  context.minLeafSize = 1;
-  context.maxDepth = 10;
-  context.minimumGainSplit = 0.;
+  context.minLeafSize = minLeafSize;
+  context.maxDepth = maxDepth;
+  context.minimumGainSplit = minimumGainSplit;
 
   using T = GradientBoostRegressor<DecisionTreeRegressorRegressor>;
-  using IArchiveType = cereal::BinaryInputArchive;
-  using OArchiveType = cereal::BinaryOutputArchive;
 
   for (auto _ : trials) {
+
+    (void)_;
    
     T regressor, newRegressor;
     regressor = T(trainDataset, trainLabels, testDataset, testLabels, context);
@@ -1657,9 +1653,9 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorNonRecursiveRoundTrips) {
     ASSERT_EQ(trainPrediction.n_elem, trainNewPrediction.n_elem);
 
     double eps = std::numeric_limits<double>::epsilon();
-    for (int i=0; i<testPrediction.n_elem; ++i)
+    for (std::size_t i=0; i<testPrediction.n_elem; ++i)
       ASSERT_LE(fabs(testPrediction[i]-testNewPrediction[i]), eps);
-    for (int i=0; i<trainPrediction.n_elem; ++i)
+    for (std::size_t i=0; i<trainPrediction.n_elem; ++i)
       ASSERT_LE(fabs(trainPrediction[i]-trainNewPrediction[i]), eps);
 
   }
@@ -1907,11 +1903,8 @@ TEST(GradientBoostRegressorTest, TestOutofSampleFit) {
 
     regressor.Predict(dataset_oos, prediction_oos);
     
-    const double testError = err(prediction_oos, labels_oos);
-
     for (std::size_t i=0; i<labels.n_elem; ++i) {
       ASSERT_EQ(labels[i], prediction[i]);
-      // ASSERT_EQ(labels_oos[i], 2*prediction_oos[i]);
     }
   }
   

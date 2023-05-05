@@ -15,14 +15,20 @@ public:
   ClassifierBase() = default;
   ClassifierBase(std::string id) : Model<DataType, ClassifierType>(id) {}
 
+  virtual ~ClassifierBase() = default;
+
   virtual void Classify(const mat& data, Row<DataType>& pred) { Classify_(data, pred); }
+  virtual void Classify(mat&& data, Row<DataType>& pred) { Classify_(std::move(data), pred); }
+
   virtual void purge() { purge_(); }
 
 private:
   virtual void purge_() = 0;
   virtual void Classify_(const mat&, Row<DataType>&) = 0;
+  virtual void Classify_(mat&&, Row<DataType>&) = 0;
 
   void Project_(const mat& data, Row<DataType>& pred) override { Classify_(data, pred); }
+  void Project_(mat&& data, Row<DataType>& pred) override { Classify_(std::move(data), pred); }
   
 };
 
@@ -47,6 +53,7 @@ public:
     classifier_{std::move(classifier)} {}
 
   DiscreteClassifierBase() = default;
+  virtual ~DiscreteClassifierBase() = default;
 
   void setClassifier(const mat&, Row<std::size_t>&, Args&&...);
 
@@ -68,6 +75,7 @@ private:
   std::tuple<Args...> args_;
 
   void Classify_(const mat&, Row<DataType>&) override;
+  void Classify_(mat&&, Row<DataType>&) override;
   void purge_() override;
 
 };

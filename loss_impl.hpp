@@ -55,6 +55,7 @@ MSELoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) 
 template<typename DataType>
 void
 MSELoss<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
+  (void)yhat;
   rowvec f(y.n_cols, arma::fill::ones);
   *hess = 2 * f;
 }
@@ -297,6 +298,8 @@ template<typename DataType>
 void
 SyntheticLoss<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
 
+  (void)yhat;
+
   // OLD
   rowvec f(y.n_cols, arma::fill::ones);
   *hess = f;
@@ -350,6 +353,9 @@ SyntheticLossVar1<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowv
 template<typename DataType>
 void
 SyntheticLossVar1<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
+
+  (void)yhat;
+
   rowvec f(y.n_cols, arma::fill::ones);
   *hess = f;
 }
@@ -395,6 +401,9 @@ SyntheticLossVar2<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowv
 template<typename DataType>
 void
 SyntheticLossVar2<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
+
+  (void)yhat;
+
   rowvec f(y.n_cols, arma::fill::ones);
   *hess = f;
 }
