@@ -787,7 +787,7 @@ CompositeRegressor<RegressorType>::computeSubStepSize(std::size_t stepNum) {
   (void)stepNum;
 
   // XXX
-  double mult = 2.;
+  double mult = 1.;
   return std::max(1, static_cast<int>(mult * std::log(steps_)));    
 }
 
