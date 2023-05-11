@@ -62,21 +62,22 @@ DPSolver<DataType>::createContext() {
 template<typename DataType>
 void 
 DPSolver<DataType>::create() {
+  
   // reset optimal_score_
   optimal_score_ = 0.;
-
+  
   // sort vectors by priority function G(x,y) = x/y
   sort_by_priority(a_, b_);
-
+  
   // create context
   createContext();
-    
+  
   // Initialize matrix
   maxScore_ = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(T_+1, std::numeric_limits<DataType>::lowest()));
   nextStart_ = std::vector<std::vector<int> >(n_, std::vector<int>(T_+1, -1));
   subsets_ = std::vector<std::vector<int> >(T_, std::vector<int>());
   score_by_subset_ = std::vector<DataType>(T_, 0.);
-
+  
   // Fill in first,second columns corresponding to T = 0,1
   for(int j=0; j<2; ++j) {
     for (int i=0; i<n_; ++i) {

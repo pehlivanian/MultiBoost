@@ -7,6 +7,8 @@
 #include <map>
 #include <vector>
 #include <limits>
+#include <chrono>
+#include <memory>
 #include <type_traits>
 #include <mlpack/core.hpp>
 
@@ -243,6 +245,43 @@ namespace IB_utils {
     const char* fn_;
     int ln_;
   };
+
+  template<typename Clock=std::chrono::high_resolution_clock,
+	   typename Units=typename Clock::duration>
+  class __timer {
+  public:
+    __timer() : start_point_(Clock::now()) {}
+    __timer(std::string& msg) : msg_{msg}, start_point_{Clock::now()} {}
+    __timer(std::string&& msg) : msg_{std::move(msg)}, start_point_{Clock::now()} {}
+
+    ~__timer() { 
+      unsigned int elapsed = elapsed_time(); 
+      if (!msg_.empty()) {
+	std::cerr << msg_ << " :: ";
+      }
+      std::cerr << "ELAPSED: " << elapsed 
+		<< std::endl; 
+    }
+
+    unsigned int elapsed_time() const {
+      std::atomic_thread_fence(std::memory_order_relaxed);
+      auto counted_time = std::chrono::duration_cast<Units>(Clock::now() - start_point_).count();
+      std::atomic_thread_fence(std::memory_order_relaxed);
+      return static_cast<unsigned int>(counted_time);
+    }
+    
+  private:
+    std::string msg_;
+    const typename Clock::time_point start_point_;
+    
+  };
+
+  using precise_timer = __timer<std::chrono::high_resolution_clock,
+			      std::chrono::microseconds>;
+  using system_timer = __timer<std::chrono::system_clock,
+			     std::chrono::microseconds>;
+  using monotonic_timer = __timer<std::chrono::steady_clock,
+				std::chrono::microseconds>;
   
   enum class SerializedType {
       CLASSIFIER = 0,
@@ -330,7 +369,8 @@ namespace IB_utils {
       }
 
     auto now = std::chrono::system_clock::now();
-    auto UTC = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    // auto UTC = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    auto UTC = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
     auto in_time_t = std::chrono::system_clock::to_time_t(now);
 
     std::stringstream datetime;

@@ -12,7 +12,7 @@ using namespace IB_utils;
 
 namespace FileScope {
   const bool POST_EXTRAPOLATE = false;
-  const bool DIAGNOSTICS = true;
+  const bool DIAGNOSTICS = false;
 } // namespace FileScope
 
 template<typename RegressorType>
@@ -38,7 +38,7 @@ CompositeRegressor<RegressorType>::childContext(Context& context,
 
   // Part of model args
   context.numTrees		= numTrees_;
-  context.partitionSize		= subPartitionSize + 1;
+  context.partitionSize		= subPartitionSize;
   context.minLeafSize		= minLeafSize_;
   context.maxDepth		= maxDepth_;
   context.minimumGainSplit	= minimumGainSplit_;
@@ -436,15 +436,17 @@ CompositeRegressor<RegressorType>::computeOptimalSplit(rowvec& g,
 
   // std::cout << "PARTITION SIZE: " << T << std::endl;
 
-  auto dp = DPSolver(n, T, gv, hv,
-		     objective_fn::RationalScore,
-		     risk_partitioning_objective,
-		     use_rational_optimization,
-		     gamma,
-		     reg_power,
-		     sweep_down,
-		     find_optimal_t
-		     );
+  DPSolver<double> dp;
+
+  dp = DPSolver(n, T, gv, hv,
+		objective_fn::RationalScore,
+		risk_partitioning_objective,
+		use_rational_optimization,
+		gamma,
+		reg_power,
+		sweep_down,
+		find_optimal_t
+		);
   
   auto subsets = dp.get_optimal_subsets_extern();
   
@@ -723,16 +725,17 @@ CompositeRegressor<RegressorType>::fit() {
     }
     
   }
-
+  
   // Serialize residual
-  if (serialize_)
+  if (serialize_) {
     commit();
-
+  }
+  
   // print final stats
   if (!quietRun_) {
     printStats(steps_);
   }
-
+  
 }
 
 template<typename RegressorType>

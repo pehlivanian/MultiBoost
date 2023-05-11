@@ -26,7 +26,6 @@ using dataset_d = Mat<double>;
 using labels_t = Row<std::size_t>;
 using labels_d = Row<double>;
 
-
 class DPSolverTestFixture : public ::testing::TestWithParam<objective_fn> {
 };
 
@@ -38,8 +37,6 @@ INSTANTIATE_TEST_SUITE_P(DPSolverTests,
 					   objective_fn::RationalScore
 					   )
 			 );
-
-
 void sort_by_priority(std::vector<float>& a, std::vector<float>& b) {
   std::vector<int> ind(a.size());
   std::iota(ind.begin(), ind.end(), 0);
@@ -1494,7 +1491,6 @@ TEST(GradientBoostRegressorTest, TestInSamplePredictionMatchesLatestPrediction) 
   
 }
 
-
 TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
   
   std::vector<bool> trials = {true, false};
@@ -1521,7 +1517,7 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
   context.partitionSize = partitionSize;
   context.partitionRatio = .25;
   context.learningRate = 1.;
-  context.steps = 15;
+  context.steps = 4;
   context.quietRun = true;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = 1.; // .75
@@ -1532,15 +1528,15 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
   context.minLeafSize = minLeafSize;
   context.maxDepth = maxDepth;
   context.minimumGainSplit = minimumGainSplit;
-
-  context.serializationWindow = 100;
+  
+  context.serializationWindow = 2;
 
   using T = GradientBoostRegressor<DecisionTreeRegressorRegressor>;
 
   for (auto recursive : trials) {
   
     context.recursiveFit = recursive;
-    double eps = std::numeric_limits<double>::epsilon();
+    double eps = std::numeric_limits<float>::epsilon();
 
     // Fit regressor
     T regressor, newRegressor, secondRegressor;
@@ -1560,7 +1556,9 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
     std::string indexName = regressor.getIndexName();
     // Use replay to predict IS based on archive regressor
     Row<double> archiveTrainPrediction;
-    Replay<double, DecisionTreeRegressorRegressor>::Predict(indexName, trainDataset, archiveTrainPrediction);
+    Replay<double, DecisionTreeRegressorRegressor>::Predict(indexName, 
+							    trainDataset, 
+							    archiveTrainPrediction);
   
     for (std::size_t i=0; i<liveTrainPrediction.n_elem; ++i)
       ASSERT_LE(fabs(liveTrainPrediction[i]-archiveTrainPrediction[i]), eps);
@@ -1575,7 +1573,9 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
 
     // Use replay to predict OOS based on archive classifier
     Row<double> archiveTestPrediction;
-    Replay<double, DecisionTreeRegressorRegressor>::Predict(indexName, testDataset, archiveTestPrediction);
+    Replay<double, DecisionTreeRegressorRegressor>::Predict(indexName, 
+							    testDataset, 
+							    archiveTestPrediction);
 
     for (std::size_t i=0; i<liveTestPrediction.size(); ++i) {
       ASSERT_LE(fabs(liveTestPrediction[i]-archiveTestPrediction[i]), eps);

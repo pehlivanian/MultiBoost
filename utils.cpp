@@ -53,7 +53,8 @@ namespace IB_utils {
   std::string writeIndex(const std::vector<std::string>& fileNames) {
 
     auto now = std::chrono::system_clock::now();
-    auto UTC = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    // auto UTC = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    auto UTC = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
     auto in_time_t = std::chrono::system_clock::to_time_t(now);
     
     std::stringstream datetime;

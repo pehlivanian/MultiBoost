@@ -27,7 +27,7 @@ auto main() -> int {
 	      trainDataset, 
 	      testDataset, 
 	      trainLabels, 
-	      testLabels, 0.20);
+	      testLabels, 0.50);
   std::cout << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
 	    << trainDataset.n_rows << ")" << std::endl;
   std::cout << "TEST DATASET:  (" << testDataset.n_cols << " x " 
@@ -43,7 +43,7 @@ auto main() -> int {
   // context.loss = lossFunction::Synthetic;
   // context.loss = lossFunction::SyntheticVar1;
   // context.loss = lossFunction::SyntheticVar2;
-  context.partitionSize = 1000;
+  context.partitionSize = 500;
   context.partitionRatio = 1.;
   context.learningRate = .01;
   context.steps = 500;
