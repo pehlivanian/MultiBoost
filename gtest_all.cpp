@@ -208,10 +208,15 @@ TEST(DPSolverTest, TestCachedSolverMatchesUncachedSolver) {
     for (auto &el : b)
       el = distb(gen);
 
-    auto dp_uncached = DPSolver<float>(n, 25, a, b, objective_fn::Gaussian, true, true, (float)0., 1, false, false);
-    auto dp_cached   = DPSolver<float>(n, 25, a, b, objective_fn::Gaussian, true, true, (float)0., 1, false, false);
+    auto dp_uncached = DPSolver<float>(n, 25, a, b, objective_fn::Gaussian, true, true, (float)0., 1, false, false, false);
+    auto dp_cached   = DPSolver<float>(n, 25, a, b, objective_fn::Gaussian, true, true, (float)0., 1, false, false, true);
     auto opt_uncached = dp_uncached.get_optimal_subsets_extern();
     auto opt_cached = dp_cached.get_optimal_subsets_extern();
+
+    auto s1 = dp_uncached.get_optimal_score_extern();
+    auto s2 = dp_uncached.get_score_by_subset_extern();
+    auto s3 = dp_cached.get_optimal_score_extern();
+    auto s4 = dp_cached.get_score_by_subset_extern();
 
     ASSERT_EQ(opt_uncached.size(), opt_cached.size());
 
@@ -581,78 +586,79 @@ TEST_P(DPSolverTestFixture, TestOptimalityWithRandomPartitions) {
   }
 }
 
-TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips) {
-  
-  int numTrials = 1;
+TEST(DPSolverTest, TestParallelScoresMatchSerialScores) {
+  using namespace Objectives;
+
+  int n = 100;
+  int numTrials = 1000;
   std::vector<bool> trials(numTrials);
   
-  dataset_t dataset, trainDataset, testDataset;
-  labels_t labels, trainLabels, testLabels;
+  std::default_random_engine gen;
+  gen.seed(std::random_device()());
+  std::uniform_real_distribution<float> dista(-10., 10.), distb(0., 10.);
+  std::uniform_int_distribution<int> distRow(0, n-1);
+  std::uniform_int_distribution<int> distCol(0, n);
 
-  loadClassifierDatasets(dataset, labels);
-  data::Split(dataset, 
-	      labels, 
-	      trainDataset, 
-	      testDataset, 
-	      trainLabels, 
-	      testLabels, 0.2);
-
-  std::size_t minLeafSize = 1;
-  double minimumGainSplit = 0.;
-  std::size_t maxDepth = 10;
-  std::size_t partitionSize = 10;
-
-  Context context{};
-  
-  context.loss = lossFunction::BinomialDeviance;
-  context.partitionSize = partitionSize;
-  context.partitionRatio = .25;
-  context.learningRate = .01;
-  context.steps = 17;
-  context.quietRun = true;
-  context.symmetrizeLabels = true;
-  context.rowSubsampleRatio = 1.;
-  context.colSubsampleRatio = .45; // .75
-  context.recursiveFit = false;
-  context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
-  context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
-  context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
-  context.minLeafSize = minLeafSize;
-  context.maxDepth = maxDepth;
-  context.minimumGainSplit = minimumGainSplit;
-
-  using T = GradientBoostClassifier<DecisionTreeClassifier>;
+  std::vector<float> a(n), b(n);
+  for (auto &el : a)
+    el = dista(gen);
+  for (auto &el : b)
+    el = distb(gen);
 
   for (auto _ : trials) {
 
     (void)_;
 
-    T classifier, newClassifier;
-    classifier = T(trainDataset, trainLabels, testDataset, testLabels, context);
-    classifier.fit();
-
-    std::string fileName = classifier.write();
-    auto tokens = strSplit(fileName, '_');
-    ASSERT_EQ(tokens[0], "CLS");
-    fileName = strJoin(tokens, '_', 1);
-
-    classifier.read(newClassifier, fileName);
-
-    Row<double> trainPrediction, trainNewPrediction, testPrediction, testNewPrediction;
-    classifier.Predict(testDataset, testPrediction);
-    classifier.Predict(trainDataset, trainPrediction);
-    newClassifier.Predict(testDataset, testNewPrediction);
-    newClassifier.Predict(trainDataset, trainNewPrediction);
+    RationalScoreContext<float>* context = new RationalScoreContext{a, b, n, false, true};
     
-    ASSERT_EQ(testPrediction.n_elem, testNewPrediction.n_elem);
-    ASSERT_EQ(trainPrediction.n_elem, trainNewPrediction.n_elem);
-    
-    float eps = std::numeric_limits<float>::epsilon();
-    for (std::size_t i=0; i<testPrediction.n_elem; ++i)
-      ASSERT_LE(fabs(testPrediction[i]-testNewPrediction[i]), eps);
-    for (std::size_t i=0; i<trainPrediction.n_elem; ++i)
-      ASSERT_LE(fabs(trainPrediction[i]-trainNewPrediction[i]), eps);
+    context->__compute_partial_sums__();
+    auto a_sums_serial = context->get_partial_sums_a();
+    auto b_sums_serial = context->get_partial_sums_b();
 
+    auto partialSums_serial = std::vector<std::vector<float>>(n, std::vector<float>(n, 0.));
+    
+    for (int i=0; i<n; ++i) {
+      for (int j=i; j<n; ++j) {
+	partialSums_serial[i][j] = context->__compute_score__(i, j);
+      }
+    }
+    context->__compute_scores_parallel__();    
+    auto partialSums_serial_from_context = context->get_scores();
+
+    context->__compute_partial_sums_parallel__();
+    auto a_sums_parallel = context->get_partial_sums_a();
+    auto b_sums_parallel = context->get_partial_sums_b();
+    
+    auto partialSums_parallel = std::vector<std::vector<float>>(n, std::vector<float>(n, 0.));
+
+    for (int i=0; i<n; ++i) {
+      for (int j=i; j<n; ++j) {
+	partialSums_parallel[i][j] = context->__compute_score__(i, j);
+      }
+    }
+    
+    int ind1 = distRow(gen);
+    int ind2 = distCol(gen);
+    
+    ASSERT_EQ(a_sums_serial[ind1][ind2], a_sums_parallel[ind1][ind2]);
+    ASSERT_EQ(b_sums_serial[ind1][ind2], b_sums_parallel[ind1][ind2]);    
+    
+    int numSamples = 1000;
+    std::vector<bool> samples(numSamples);
+
+    for (auto _ : samples) {
+      
+      (void)_;
+
+      int ind1_ = distRow(gen);
+      int ind2_ = distRow(gen);
+      if (ind1_ == ind2_)
+	continue;
+
+      ASSERT_EQ(partialSums_serial[ind1_][ind2_], partialSums_parallel[ind1_][ind2_]);
+      ASSERT_EQ(partialSums_serial[ind1_][ind2_], partialSums_serial_from_context[ind1_][ind2_]);
+      ASSERT_EQ(partialSums_parallel[ind1_][ind2_], partialSums_serial_from_context[ind1_][ind2_]);
+    }
   }
 }
 
@@ -948,81 +954,81 @@ TEST(GradientBoostClassifierTest, TestChildSerializationRoundTrips) {
   }
 }
 
-TEST(DPSolverTest, TestParallelScoresMatchSerialScores) {
-  using namespace Objectives;
-
-  int n = 100;
-  int numTrials = 1000;
+TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips) {
+  
+  int numTrials = 1;
   std::vector<bool> trials(numTrials);
   
-  std::default_random_engine gen;
-  gen.seed(std::random_device()());
-  std::uniform_real_distribution<float> dista(-10., 10.), distb(0., 10.);
-  std::uniform_int_distribution<int> distRow(0, n-1);
-  std::uniform_int_distribution<int> distCol(0, n);
+  dataset_t dataset, trainDataset, testDataset;
+  labels_t labels, trainLabels, testLabels;
 
-  std::vector<float> a(n), b(n);
-  for (auto &el : a)
-    el = dista(gen);
-  for (auto &el : b)
-    el = distb(gen);
+  loadClassifierDatasets(dataset, labels);
+  data::Split(dataset, 
+	      labels, 
+	      trainDataset, 
+	      testDataset, 
+	      trainLabels, 
+	      testLabels, 0.2);
+
+  std::size_t minLeafSize = 1;
+  double minimumGainSplit = 0.;
+  std::size_t maxDepth = 10;
+  std::size_t partitionSize = 10;
+
+  Context context{};
+  
+  context.loss = lossFunction::BinomialDeviance;
+  context.partitionSize = partitionSize;
+  context.partitionRatio = .25;
+  context.learningRate = .01;
+  context.steps = 17;
+  context.quietRun = true;
+  context.symmetrizeLabels = true;
+  context.rowSubsampleRatio = 1.;
+  context.colSubsampleRatio = .45; // .75
+  context.recursiveFit = false;
+  context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
+  context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
+  context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
+  context.minLeafSize = minLeafSize;
+  context.maxDepth = maxDepth;
+  context.minimumGainSplit = minimumGainSplit;
+
+  using T = GradientBoostClassifier<DecisionTreeClassifier>;
 
   for (auto _ : trials) {
 
     (void)_;
 
-    RationalScoreContext<float>* context = new RationalScoreContext{a, b, n, false, true};
-    
-    context->__compute_partial_sums__();
-    auto a_sums_serial = context->get_partial_sums_a();
-    auto b_sums_serial = context->get_partial_sums_b();
+    T classifier, newClassifier;
+    classifier = T(trainDataset, trainLabels, testDataset, testLabels, context);
+    classifier.fit();
 
-    auto partialSums_serial = std::vector<std::vector<float>>(n, std::vector<float>(n, 0.));
-    
-    for (int i=0; i<n; ++i) {
-      for (int j=i; j<n; ++j) {
-	partialSums_serial[i][j] = context->__compute_score__(i, j);
-      }
-    }
-    context->__compute_scores_parallel__();    
-    auto partialSums_serial_from_context = context->get_scores();
+    std::string fileName = classifier.write();
+    auto tokens = strSplit(fileName, '_');
+    ASSERT_EQ(tokens[0], "CLS");
+    fileName = strJoin(tokens, '_', 1);
 
-    context->__compute_partial_sums_parallel__();
-    auto a_sums_parallel = context->get_partial_sums_a();
-    auto b_sums_parallel = context->get_partial_sums_b();
-    
-    auto partialSums_parallel = std::vector<std::vector<float>>(n, std::vector<float>(n, 0.));
+    classifier.read(newClassifier, fileName);
 
-    for (int i=0; i<n; ++i) {
-      for (int j=i; j<n; ++j) {
-	partialSums_parallel[i][j] = context->__compute_score__(i, j);
-      }
-    }
+    Row<double> trainPrediction, trainNewPrediction, testPrediction, testNewPrediction;
+    classifier.Predict(testDataset, testPrediction);
+    classifier.Predict(trainDataset, trainPrediction);
+    newClassifier.Predict(testDataset, testNewPrediction);
+    newClassifier.Predict(trainDataset, trainNewPrediction);
     
-    int ind1 = distRow(gen);
-    int ind2 = distCol(gen);
+    ASSERT_EQ(testPrediction.n_elem, testNewPrediction.n_elem);
+    ASSERT_EQ(trainPrediction.n_elem, trainNewPrediction.n_elem);
     
-    ASSERT_EQ(a_sums_serial[ind1][ind2], a_sums_parallel[ind1][ind2]);
-    ASSERT_EQ(b_sums_serial[ind1][ind2], b_sums_parallel[ind1][ind2]);    
-    
-    int numSamples = 1000;
-    std::vector<bool> samples(numSamples);
+    float eps = std::numeric_limits<float>::epsilon();
+    for (std::size_t i=0; i<testPrediction.n_elem; ++i)
+      ASSERT_LE(fabs(testPrediction[i]-testNewPrediction[i]), eps);
+    for (std::size_t i=0; i<trainPrediction.n_elem; ++i)
+      ASSERT_LE(fabs(trainPrediction[i]-trainNewPrediction[i]), eps);
 
-    for (auto _ : samples) {
-      
-      (void)_;
-
-      int ind1_ = distRow(gen);
-      int ind2_ = distRow(gen);
-      if (ind1_ == ind2_)
-	continue;
-
-      ASSERT_EQ(partialSums_serial[ind1_][ind2_], partialSums_parallel[ind1_][ind2_]);
-      ASSERT_EQ(partialSums_serial[ind1_][ind2_], partialSums_serial_from_context[ind1_][ind2_]);
-      ASSERT_EQ(partialSums_parallel[ind1_][ind2_], partialSums_serial_from_context[ind1_][ind2_]);
-    }
   }
 }
+
 
 TEST(GradientBoostRegressorTest, TestContextWrittenWithCorrectValues) {
   

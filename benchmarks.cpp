@@ -121,7 +121,7 @@ BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_float_compute_scores_parallel, fl
 }
 
 BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_double_create_DPSolver_cache, double)(benchmark::State& state) {
-  int n = 1<<13, T = 500;
+  int n = 1<<11, T = 500;
   bool risk_partitioning_objective = true;
   bool use_rational_optimization = true;
   bool sweep_down = false;
@@ -149,7 +149,7 @@ BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_double_create_DPSolver_cache, dou
 
 }
 BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_double_create_DPSolver_no_cache, double)(benchmark::State& state) {
-  int n = 1<<13, T = 500;
+  int n = 1<<11, T = 500;
   bool risk_partitioning_objective = true;
   bool use_rational_optimization = true;
   bool sweep_down = false;
