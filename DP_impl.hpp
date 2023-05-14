@@ -33,24 +33,24 @@ DPSolver<DataType>::createContext() {
   // create reference to score function
   if (parametric_dist_ == objective_fn::Gaussian) {
     context_ = std::make_unique<GaussianContext<DataType>>(a_, 
-						 b_, 
-						 n_, 
-						 risk_partitioning_objective_,
-						 use_rational_optimization_);
+							   b_, 
+							   n_, 
+							   risk_partitioning_objective_,
+							   use_rational_optimization_);
   }
   else if (parametric_dist_ == objective_fn::Poisson) {
     context_ = std::make_unique<PoissonContext<DataType>>(a_, 
-						b_, 
-						n_,
-						risk_partitioning_objective_,
-						use_rational_optimization_);
+							  b_, 
+							  n_,
+							  risk_partitioning_objective_,
+							  use_rational_optimization_);
   }
   else if (parametric_dist_ == objective_fn::RationalScore) {
     context_ = std::make_unique<RationalScoreContext<DataType>>(a_, 
-						      b_, 
-						      n_,
-						      risk_partitioning_objective_,
-						      use_rational_optimization_);
+								b_, 
+								n_,
+								risk_partitioning_objective_,
+								use_rational_optimization_);
   }
   else {
     throw distributionException();
@@ -72,11 +72,18 @@ DPSolver<DataType>::create() {
   // create context
   createContext();
   
-  // Initialize matrix
+  // Allocate matrix
   maxScore_ = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(T_+1, std::numeric_limits<DataType>::lowest()));
   nextStart_ = std::vector<std::vector<int> >(n_, std::vector<int>(T_+1, -1));
   subsets_ = std::vector<std::vector<int> >(T_, std::vector<int>());
   score_by_subset_ = std::vector<DataType>(T_, 0.);
+
+  // Allocate compute cache, don't initialize
+  if (use_compute_cache_) {
+    cache_ = (int**)malloc(sizeof(int*)*n_);
+    for (int i=0; i<n_; ++i)
+      cache_[i] = (int*)malloc(sizeof(int)*n_);
+  }
   
   // Fill in first,second columns corresponding to T = 0,1
   for(int j=0; j<2; ++j) {
@@ -86,27 +93,67 @@ DPSolver<DataType>::create() {
     }
   }
 
-  // Fill in column-by-column from the left
-  DataType score;
-  DataType maxScore;
+  // Attempt to cache
+  DataType score, maxScore;
   int maxNextStart = -1;
-  for(int j=2; j<=T_; ++j) {
+
+  // j == 2 case
+  if (use_compute_cache_) {
+    int j0=2;
     for (int i=0; i<n_; ++i) {
       maxScore = std::numeric_limits<DataType>::lowest();
-      for (int k=i+1; k<=(n_-(j-1)); ++k) {
-	score = compute_score(i,k) + maxScore_[k][j-1];
+      for (int k=i+1; k<=(n_-1); ++k) {
+	cache_[i][k] = compute_score(i,k);
+	score = cache_[k][i] + maxScore_[k][j0-1];
 	if (score > maxScore) {
 	  maxScore = score;
 	  maxNextStart = k;
 	}
       }
-      maxScore_[i][j] = maxScore;
-      nextStart_[i][j] = maxNextStart;
-      // Only need the initial entry in last column
-      if (j == T_)
-	break;
+      maxScore_[i][j0] = maxScore;
+      nextStart_[i][j0] = maxNextStart;
+    }
+
+    // j = 3..T_ cases
+    for(int j=3; j<=T_; ++j) {
+      for (int i=0; i<n_; ++i) {
+	maxScore = std::numeric_limits<DataType>::lowest();
+	for (int k=i+1; k<=(n_-(j-1)); ++k) {
+	  score = cache_[i][k] + maxScore_[k][j-1];
+	  if (score > maxScore) {
+	    maxScore = score;
+	    maxNextStart = k;
+	  }
+	}
+	maxScore_[i][j] = maxScore;
+	nextStart_[i][j] = maxNextStart;
+	// Only need the initial entry in last column
+	if (j == T_)
+	  break;
+      }
+    }  
+  } else {
+
+    // Fill in column-by-column from the left
+    for(int j=2; j<=T_; ++j) {
+      for (int i=0; i<n_; ++i) {
+	maxScore = std::numeric_limits<DataType>::lowest();
+	for (int k=i+1; k<=(n_-(j-1)); ++k) {
+	  score = compute_score(i,k) + maxScore_[k][j-1];
+	  if (score > maxScore) {
+	    maxScore = score;
+	    maxNextStart = k;
+	  }
+	}
+	maxScore_[i][j] = maxScore;
+	nextStart_[i][j] = maxNextStart;
+	// Only need the initial entry in last column
+	if (j == T_)
+	  break;
+      }
     }
   }
+
 }
 
 template<typename DataType>
@@ -225,7 +272,7 @@ DPSolver<DataType>::optimize() {
 template<typename DataType>
 void
 DPSolver<DataType>::reorder_subsets(std::vector<std::vector<int> >& subsets, 
-			  std::vector<DataType>& score_by_subsets) {
+				    std::vector<DataType>& score_by_subsets) {
   std::vector<int> ind(subsets.size(), 0);
   std::iota(ind.begin(), ind.end(), 0.);
 

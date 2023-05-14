@@ -120,14 +120,15 @@ BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_float_compute_scores_parallel, fl
   }
 }
 
-BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_double_create_DPSolver, double)(benchmark::State& state) {
-  int n = 1<<13, T = 100;
+BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_double_create_DPSolver_cache, double)(benchmark::State& state) {
+  int n = 1<<13, T = 500;
   bool risk_partitioning_objective = true;
   bool use_rational_optimization = true;
   bool sweep_down = false;
   double gamma = 0.;
   double reg_power=1.;
   bool find_optimal_t = false;
+  bool use_compute_cache = true;
 
   DPSolver<double> dp;
   std::vector<std::vector<int>> subsets;
@@ -140,7 +141,36 @@ BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_double_create_DPSolver, double)(b
 					   gamma,
 					   reg_power,
 					   sweep_down,
-					   find_optimal_t
+					   find_optimal_t,
+					   use_compute_cache
+					   ));
+    benchmark::DoNotOptimize(subsets = dp.get_optimal_subsets_extern());
+  }
+
+}
+BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_double_create_DPSolver_no_cache, double)(benchmark::State& state) {
+  int n = 1<<13, T = 500;
+  bool risk_partitioning_objective = true;
+  bool use_rational_optimization = true;
+  bool sweep_down = false;
+  double gamma = 0.;
+  double reg_power=1.;
+  bool find_optimal_t = false;
+  bool use_compute_cache = false;
+
+  DPSolver<double> dp;
+  std::vector<std::vector<int>> subsets;
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(dp = DPSolver(n, T, a, b,
+					   objective_fn::RationalScore,
+					   risk_partitioning_objective,
+					   use_rational_optimization,
+					   gamma,
+					   reg_power,
+					   sweep_down,
+					   find_optimal_t,
+					   use_compute_cache
 					   ));
     benchmark::DoNotOptimize(subsets = dp.get_optimal_subsets_extern());
   }
@@ -180,22 +210,27 @@ void BM_colMask_stl_generation2(benchmark::State& state) {
 }
 
 // DP solver benchmarks
+/*
 BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_serial);
 BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_AVX256);
 BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_parallel);
 BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_scores_serial);
 BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_scores_AVX256);
 BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_scores_parallel);
-
-// armadillo benchmarks
-unsigned long N = (1<<12);
+*/
 
 // DPSolver benchmarks
-BENCHMARK_REGISTER_F(ContextFixture, BM_double_create_DPSolver);
+BENCHMARK_REGISTER_F(ContextFixture, BM_double_create_DPSolver_no_cache);
+BENCHMARK_REGISTER_F(ContextFixture, BM_double_create_DPSolver_cache);
+
+/*
+// armadillo benchmarks
+unsigned long N = (1<<12);
 
 BENCHMARK(BM_colMask_arma_generation)->Arg(N);
 BENCHMARK(BM_colMask_stl_generation1)->Arg(N);
 BENCHMARK(BM_colMask_stl_generation2)->Arg(N);
+*/
 
 BENCHMARK_MAIN();
 

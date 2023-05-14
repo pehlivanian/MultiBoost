@@ -31,6 +31,7 @@ struct optimizationFlagException : public std::exception {
 namespace Objectives {
   template<typename DataType>
   class ParametricContext {
+
   public:
     ParametricContext(std::vector<DataType> a, 
 		      std::vector<DataType> b, 
@@ -47,9 +48,17 @@ namespace Objectives {
       partialSums_{std::vector<std::vector<DataType>>(n, std::vector<DataType>(n+1, 0.))},
       risk_partitioning_objective_{risk_partitioning_objective},
       use_rational_optimization_{use_rational_optimization},
+      // cache_{CacheType(n_+1, std::vector<int>(n_+1))},
       name_{name}
 
-    {}
+    {	
+      if (false) {
+	cache_ = (int**)malloc(sizeof(int*)*(n_+1));
+	for (int i=0; i<n_+1; ++i)
+	  cache_[i] = (int*)malloc(sizeof(int)*(n_+1));
+	memset(cache_, -1, sizeof(cache_));
+      }
+    }
 
     ParametricContext() = default;
     virtual ~ParametricContext() = default;
@@ -86,11 +95,15 @@ namespace Objectives {
 
   protected:
     virtual DataType compute_score_multclust(int, int)		         = 0;
-    virtual DataType compute_score_multclust_optimized(int, int)         = 0;
     virtual DataType compute_score_riskpart(int, int)		         = 0;
-    virtual DataType compute_score_riskpart_optimized(int, int)		 = 0;
     virtual DataType compute_ambient_score_multclust(DataType, DataType) = 0;
     virtual DataType compute_ambient_score_riskpart(DataType, DataType)  = 0;
+
+    virtual DataType compute_score_multclust_optimized(int, int)         = 0;
+    virtual DataType compute_score_riskpart_optimized(int, int)		 = 0;
+
+    DataType compute_score_multclust_memoized(int, int);
+    DataType compute_score_riskpart_memoized(int, int);
 
     void compute_partial_sums();
     void compute_partial_sums_AVX256();
@@ -111,6 +124,8 @@ namespace Objectives {
     bool risk_partitioning_objective_;
     bool use_rational_optimization_;
     std::string name_;
+
+    int **cache_;
 
   };
 
