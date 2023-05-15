@@ -187,54 +187,6 @@ void exec(std::string cmd) {
   pclose(pipe);
 }
 
-TEST(DPSolverTest, TestCachedSolverMatchesUncachedSolver) {
-  
-  int n = 500;
-  int numTrials = 1000;
-  std::vector<bool> trials(numTrials);
-
-  std::default_random_engine gen;
-  gen.seed(std::random_device()());
-  std::uniform_real_distribution<float> dista(-10., 10.), distb(0., 10.);
-
-  float eps = std::numeric_limits<float>::epsilon();
-
-  for (auto _ : trials) {
-    
-    (void)_;
-    std::vector<float> a(n), b(n);
-    for (auto &el : a)
-      el = dista(gen);
-    for (auto &el : b)
-      el = distb(gen);
-
-    auto dp_uncached = DPSolver<float>(n, 25, a, b, objective_fn::Gaussian, true, true, (float)0., 1, false, false, false);
-    auto dp_cached   = DPSolver<float>(n, 25, a, b, objective_fn::Gaussian, true, true, (float)0., 1, false, false, true);
-    auto opt_uncached = dp_uncached.get_optimal_subsets_extern();
-    auto opt_cached = dp_cached.get_optimal_subsets_extern();
-
-    auto s1 = dp_uncached.get_optimal_score_extern();
-    auto s2 = dp_uncached.get_score_by_subset_extern();
-    auto s3 = dp_cached.get_optimal_score_extern();
-    auto s4 = dp_cached.get_score_by_subset_extern();
-
-    ASSERT_EQ(opt_uncached.size(), opt_cached.size());
-
-    for (size_t i=0; i<opt_uncached.size(); ++i) {
-      auto subset_uncached = opt_uncached[i], subset_cached = opt_cached[i];
-      std::sort(subset_uncached.begin(), subset_uncached.end());
-      std::sort(subset_cached.begin(), subset_cached.end());
-      ASSERT_EQ(subset_uncached.size(), subset_cached.size());
-      for (size_t j=0; j<subset_uncached.size(); ++j) {
-	ASSERT_EQ(subset_uncached[j], subset_cached[j]);
-      }
-    }
-
-  }
-    
-}
-
-
 TEST(DPSolverTest, TestUnsortedIndWorksAsARMAIndexer) {
   
   int n = 500;

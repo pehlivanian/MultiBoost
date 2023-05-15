@@ -120,7 +120,7 @@ BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_float_compute_scores_parallel, fl
   }
 }
 
-BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_double_create_DPSolver_cache, double)(benchmark::State& state) {
+BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_double_create_DPSolver, double)(benchmark::State& state) {
   int n = 1<<11, T = 500;
   bool risk_partitioning_objective = true;
   bool use_rational_optimization = true;
@@ -128,7 +128,6 @@ BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_double_create_DPSolver_cache, dou
   double gamma = 0.;
   double reg_power=1.;
   bool find_optimal_t = false;
-  bool use_compute_cache = true;
 
   DPSolver<double> dp;
   std::vector<std::vector<int>> subsets;
@@ -141,37 +140,8 @@ BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_double_create_DPSolver_cache, dou
 					   gamma,
 					   reg_power,
 					   sweep_down,
-					   find_optimal_t,
-					   use_compute_cache
-					   ));
-    benchmark::DoNotOptimize(subsets = dp.get_optimal_subsets_extern());
-  }
+					   find_optimal_t));
 
-}
-BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_double_create_DPSolver_no_cache, double)(benchmark::State& state) {
-  int n = 1<<11, T = 500;
-  bool risk_partitioning_objective = true;
-  bool use_rational_optimization = true;
-  bool sweep_down = false;
-  double gamma = 0.;
-  double reg_power=1.;
-  bool find_optimal_t = false;
-  bool use_compute_cache = false;
-
-  DPSolver<double> dp;
-  std::vector<std::vector<int>> subsets;
-
-  for (auto _ : state) {
-    benchmark::DoNotOptimize(dp = DPSolver(n, T, a, b,
-					   objective_fn::RationalScore,
-					   risk_partitioning_objective,
-					   use_rational_optimization,
-					   gamma,
-					   reg_power,
-					   sweep_down,
-					   find_optimal_t,
-					   use_compute_cache
-					   ));
     benchmark::DoNotOptimize(subsets = dp.get_optimal_subsets_extern());
   }
 
@@ -220,8 +190,7 @@ BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_scores_parallel);
 */
 
 // DPSolver benchmarks
-BENCHMARK_REGISTER_F(ContextFixture, BM_double_create_DPSolver_no_cache);
-BENCHMARK_REGISTER_F(ContextFixture, BM_double_create_DPSolver_cache);
+BENCHMARK_REGISTER_F(ContextFixture, BM_double_create_DPSolver);
 
 /*
 // armadillo benchmarks

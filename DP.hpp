@@ -54,8 +54,7 @@ public:
 	   DataType gamma=0.,
 	   int reg_power=1.,
 	   bool sweep_down=false,
-	   bool find_optimal_t=false,
-	   bool use_compute_cache=true
+	   bool find_optimal_t=false
 	   ) :
     n_{static_cast<int>(a.size())},
     T_{T},
@@ -69,9 +68,7 @@ public:
     reg_power_{reg_power},
     sweep_down_{sweep_down},
     find_optimal_t_{find_optimal_t},
-    optimal_num_clusters_OLS_{0},
-    use_compute_cache_{use_compute_cache}
-    
+    optimal_num_clusters_OLS_{0}    
   { _init(); }
 
   DPSolver(int n,
@@ -84,8 +81,7 @@ public:
 	   DataType gamma=0.,
 	   int reg_power=1.,
 	   bool sweep_down=false,
-	   bool find_optimal_t=false,
-	   bool use_compute_cache=true
+	   bool find_optimal_t=false
 	   ) :
     n_{n},
     T_{T},
@@ -99,8 +95,7 @@ public:
     reg_power_{reg_power},
     sweep_down_{sweep_down},
     find_optimal_t_{find_optimal_t},
-    optimal_num_clusters_OLS_{0},
-    use_compute_cache_{use_compute_cache}
+    optimal_num_clusters_OLS_{0}
   
   { _init(); }
 
@@ -130,13 +125,10 @@ private:
   int reg_power_;
   bool sweep_down_;
   bool find_optimal_t_;
-  bool use_compute_cache_;
   all_part_scores subsets_and_scores_;
   int optimal_num_clusters_OLS_;
   std::unique_ptr<ParametricContext<DataType>> context_;
 
-  int **cache_;
-  
   void create();
   void createContext();
   void create_multiple_clustering_case();

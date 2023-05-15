@@ -73,88 +73,41 @@ DPSolver<DataType>::create() {
   createContext();
   
   // Allocate matrix
-  maxScore_        = std::vector<std::vector<DataType> >(n_, std::vector<DataType>(T_+1, std::numeric_limits<DataType>::lowest()));
-  nextStart_       = std::vector<std::vector<int> >(n_, std::vector<int>(T_+1, -1));
+  maxScore_        = std::vector<std::vector<DataType> >(T_+1, std::vector<DataType>(n_, std::numeric_limits<DataType>::lowest()));
+  nextStart_       = std::vector<std::vector<int> >(T_+1, std::vector<int>(n_, -1));
   subsets_         = std::vector<std::vector<int> >(T_, std::vector<int>());
   score_by_subset_ = std::vector<DataType>(T_, 0.);
   
   // Fill in first,second columns corresponding to T = 0,1
   for(int j=0; j<2; ++j) {
     for (int i=0; i<n_; ++i) {
-      maxScore_[i][j] = (j==0)?0.:compute_score(i,n_);
-      nextStart_[i][j] = (j==0)?-1:n_;
+      maxScore_[j][i] = (j==0)?0.:compute_score(i,n_);
+      nextStart_[j][i] = (j==0)?-1:n_;
     }
   }
   
-  if (use_compute_cache_) {
-    cache_ = (int**)malloc(sizeof(int*)*n_);
-    for (int i=0; i<n_; ++i)
-      cache_[i] = (int*)malloc(sizeof(int)*n_);
-    
-    // Attempt to cache
-    // Fill in column-by-column from the left
-    DataType score;
-    DataType maxScore;
-    int maxNextStart;
-
-    int j0 = 2;
-    for (int i=0; i<n_; ++i) {
+  // Fill in column-by-column from the left
+  DataType score;
+  DataType maxScore;
+  int maxNextStart;
+  for(int j=2; j<=T_; ++j) {
+    for (int i=0; i<=n_-j; ++i) {
       maxScore = std::numeric_limits<DataType>::lowest();
       maxNextStart = -1;
-      for (int k=i+1; k<=(n_-1); ++k) {
-	score = compute_score(i,k) + maxScore_[k][j0-1];
+      for (int k=i+1; k<=(n_-(j-1)); ++k) {
+	score = compute_score(i,k) + maxScore_[j-1][k];
 	if (score > maxScore) {
 	  maxScore = score;
 	  maxNextStart = k;
 	}
       }
-      maxScore_[i][j0] = maxScore;
-      nextStart_[i][j0] = maxNextStart;
+      maxScore_[j][i] = maxScore;
+      nextStart_[j][i] = maxNextStart;
+      // Only need the initial entry in last column
+      if (j == T_)
+	break;
     }
-
-    for(int j=3; j<=T_; ++j) {
-      for (int i=0; i<n_; ++i) {
-	maxScore = std::numeric_limits<DataType>::lowest();
-	maxNextStart = -1;
-	for (int k=i+1; k<=(n_-(j-1)); ++k) {
-	  score = compute_score(i,k) + maxScore_[k][j-1];
-	  if (score > maxScore) {
-	    maxScore = score;
-	    maxNextStart = k;
-	  }
-	}
-	maxScore_[i][j] = maxScore;
-	nextStart_[i][j] = maxNextStart;
-	// Only need the initial entry in last column
-	if (j == T_)
-	  break;
-      }
-    }       
-  } else {
-
-    // Fill in column-by-column from the left
-    DataType score;
-    DataType maxScore;
-    int maxNextStart;
-    for(int j=2; j<=T_; ++j) {
-      for (int i=0; i<n_; ++i) {
-	maxScore = std::numeric_limits<DataType>::lowest();
-	maxNextStart = -1;
-	for (int k=i+1; k<=(n_-(j-1)); ++k) {
-	  score = compute_score(i,k) + maxScore_[k][j-1];
-	  if (score > maxScore) {
-	    maxScore = score;
-	    maxNextStart = k;
-	  }
-	}
-	maxScore_[i][j] = maxScore;
-	nextStart_[i][j] = maxNextStart;
-	// Only need the initial entry in last column
-	if (j == T_)
-	  break;
-      }
-    }       
-  }
+  }       
   
 }
 
@@ -168,7 +121,7 @@ DPSolver<DataType>::optimize_for_fixed_S(int S) {
   auto score_by_subset = std::vector<DataType>(S, 0.);
 
   for (int t=S; t>0; --t) {
-    nextInd = nextStart_[currentInd][t];
+    nextInd = nextStart_[t][currentInd];
     for (int i=currentInd; i<nextInd; ++i) {
       subsets[S-t].push_back(priority_sortind_[i]);
     }
@@ -181,7 +134,7 @@ DPSolver<DataType>::optimize_for_fixed_S(int S) {
     reorder_subsets(subsets, score_by_subset);
   }
 
-  // subtract regularization term
+  // Subtract regularization term
   optimal_score -= gamma_ * std::pow(S, reg_power_);
 
   // Retain score_by_subsets if S is maximal
