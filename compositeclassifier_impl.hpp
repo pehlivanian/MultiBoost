@@ -144,7 +144,8 @@ CompositeClassifier<ClassifierType>::init_() {
   if (serialize_ || serializePrediction_ ||
       serializeColMask_ || serializeDataset_ ||
       serializeLabels_) {
-    fldr_ = boost::filesystem::path{};
+    fldr_ = IB_utils::FilterDigestLocation();
+    boost::filesystem::create_directory(fldr_);
   }
 
   // Serialize dataset, labels first
@@ -658,7 +659,7 @@ CompositeClassifier<ClassifierType>::write() {
   using CerealIArch = cereal::BinaryInputArchive;
   using CerealOArch = cereal::BinaryOutputArchive;
 
-  std::string fileName = dumps<CerealT, CerealIArch, CerealOArch>(*this, SerializedType::CLASSIFIER);
+  std::string fileName = dumps<CerealT, CerealIArch, CerealOArch>(*this, SerializedType::CLASSIFIER, fldr_);
   return fileName;
 }
 
@@ -666,38 +667,38 @@ template<typename ClassifierType>
 std::string
 CompositeClassifier<ClassifierType>::writeColMask() {
 
-  return IB_utils::writeColMask(colMask_);
+  return IB_utils::writeColMask(colMask_, fldr_);
 }
 
 template<typename ClassifierType>
 std::string
 CompositeClassifier<ClassifierType>::writePrediction() {
 
-  return IB_utils::writePrediction(latestPrediction_);
+  return IB_utils::writePrediction(latestPrediction_, fldr_);
 }
 
 template<typename ClassifierType>
 std::string
 CompositeClassifier<ClassifierType>::writeDataset() {
-  return IB_utils::writeDatasetIS(dataset_);
+  return IB_utils::writeDatasetIS(dataset_, fldr_);
 }
 
 template<typename ClassifierType>
 std::string
 CompositeClassifier<ClassifierType>::writeDatasetOOS() {
-  return IB_utils::writeDatasetOOS(dataset_oos_);
+  return IB_utils::writeDatasetOOS(dataset_oos_, fldr_);
 }
 
 template<typename ClassifierType>
 std::string
 CompositeClassifier<ClassifierType>::writeLabels() {
-  return IB_utils::writeLabelsIS(labels_);
+  return IB_utils::writeLabelsIS(labels_, fldr_);
 }
 
 template<typename ClassifierType>
 std::string
 CompositeClassifier<ClassifierType>::writeLabelsOOS() {
-  return IB_utils::writeLabelsOOS(labels_oos_);
+  return IB_utils::writeLabelsOOS(labels_oos_, fldr_);
 }
 
 template<typename ClassifierType>
@@ -709,7 +710,7 @@ CompositeClassifier<ClassifierType>::read(CompositeClassifier<ClassifierType>& r
   using CerealIArch = cereal::BinaryInputArchive;
   using CerealOArch = cereal::BinaryOutputArchive;  
 
-  loads<CerealT, CerealIArch, CerealOArch>(rhs, fileName);
+  loads<CerealT, CerealIArch, CerealOArch>(rhs, fileName, fldr_);
 }
 
 template<typename ClassifierType>
@@ -747,7 +748,7 @@ void
 CompositeClassifier<ClassifierType>::Predict(std::string index, const mat& dataset, Row<DataType>& prediction, bool postSymmetrize) {
 
   std::vector<std::string> fileNames;
-  readIndex(index, fileNames);
+  readIndex(index, fileNames, fldr_);
 
   _predict_in_loop_archive(fileNames, dataset, prediction, postSymmetrize);
 
@@ -758,7 +759,7 @@ void
 CompositeClassifier<ClassifierType>::Predict(std::string index, mat&& dataset, Row<DataType>& prediction, bool postSymmetrize) {
   
   std::vector<std::string> fileNames;
-  readIndex(index, fileNames);
+  readIndex(index, fileNames, fldr_);
 
   _predict_in_loop_archive(fileNames, dataset, prediction, postSymmetrize);
 }
@@ -787,7 +788,7 @@ CompositeClassifier<ClassifierType>::commit() {
     fileNames_.push_back(colMaskPath);
   }
   // std::copy(fileNames_.begin(), fileNames_.end(),std::ostream_iterator<std::string>(std::cout, "\n"));
-  indexName_ = writeIndex(fileNames_);  
+  indexName_ = writeIndex(fileNames_, fldr_);  
   ClassifierList{}.swap(classifiers_);
 }
 

@@ -12,6 +12,7 @@
 #include <mlpack/core.hpp>
 #include <boost/process.hpp>
 #include <boost/process/child.hpp>
+#include <boost/filesystem.hpp>
 
 #include "utils.hpp"
 #include "threadsafequeue.hpp"
@@ -41,11 +42,11 @@ public:
 
   // Classify methods are for classifiers
   // Predict  methods are for regressors
-  static void Classify(std::string, const mat&, Row<DataType>&, bool=false);
-  static void Predict(std::string, const mat&, Row<DataType>&);
+  static void Classify(std::string, const mat&, Row<DataType>&, boost::filesystem::path=boost::filesystem::path{}, bool=false);
+  static void Predict(std::string, const mat&, Row<DataType>&, boost::filesystem::path=boost::filesystem::path{});
 
-  static void Classify(std::string, Row<DataType>&);
-  static void Predict(std::string, Row<DataType>&);
+  static void Classify(std::string, Row<DataType>&, boost::filesystem::path=boost::filesystem::path{});
+  static void Predict(std::string, Row<DataType>&, boost::filesystem::path=boost::filesystem::path{});
 
   static void ClassifyStepwise(std::string, Row<DataType>&, Row<DataType>&, bool=false, bool=false);
   static std::optional<double>  PredictStepwise(std::string, Row<DataType>&, Row<DataType>&, bool, bool=false);

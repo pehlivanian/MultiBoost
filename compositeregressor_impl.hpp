@@ -139,7 +139,8 @@ CompositeRegressor<RegressorType>::init_() {
   if (serialize_ || serializePrediction_ ||
       serializeColMask_ || serializeDataset_ ||
       serializeLabels_) {
-    fldr_ = boost::filesystem::path{};
+    fldr_ = IB_utils::FilterDigestLocation();
+    boost::filesystem::create_directory(fldr_);
   }
 
   // Serialize dataset, labels first
@@ -496,7 +497,7 @@ CompositeRegressor<RegressorType>::write() {
   using CerealIArch = cereal::BinaryInputArchive;
   using CerealOArch = cereal::BinaryOutputArchive;
 
-  std::string fileName = dumps<CerealT, CerealIArch, CerealOArch>(*this, SerializedType::REGRESSOR);
+  std::string fileName = dumps<CerealT, CerealIArch, CerealOArch>(*this, SerializedType::REGRESSOR, fldr_);
   return fileName;
 }
 
@@ -547,7 +548,7 @@ CompositeRegressor<RegressorType>::read(CompositeRegressor<RegressorType>& rhs,
   using CerealIArch = cereal::BinaryInputArchive;
   using CerealOArch = cereal::BinaryOutputArchive;  
 
-  loads<CerealT, CerealIArch, CerealOArch>(rhs, fileName);
+  loads<CerealT, CerealIArch, CerealOArch>(rhs, fileName, fldr_);
 }
 
 template<typename RegressorType>
@@ -579,7 +580,7 @@ void
 CompositeRegressor<RegressorType>::Predict(std::string index, const mat& dataset, Row<DataType>& prediction) {
 
   std::vector<std::string> fileNames;
-  readIndex(index, fileNames);
+  readIndex(index, fileNames, fldr_);
 
   _predict_in_loop_archive(fileNames, dataset, prediction);
 
@@ -590,7 +591,7 @@ void
 CompositeRegressor<RegressorType>::Predict(std::string index, mat&& dataset, Row<DataType>& prediction) {
 
   std::vector<std::string> fileNames;
-  readIndex(index, fileNames);
+  readIndex(index, fileNames, fldr_);
 
   _predict_in_loop_archive(fileNames, std::move(dataset), prediction);
 }
@@ -619,7 +620,7 @@ CompositeRegressor<RegressorType>::commit() {
     fileNames_.push_back(colMaskPath);
   }
   // std::copy(fileNames_.begin(), fileNames_.end(),std::ostream_iterator<std::string>(std::cout, "\n"));
-  indexName_ = writeIndex(fileNames_);  
+  indexName_ = writeIndex(fileNames_, fldr_);  
   RegressorList{}.swap(regressors_);
 }
 

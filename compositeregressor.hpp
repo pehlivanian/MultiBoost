@@ -220,6 +220,7 @@ public:
   RegressorList getRegressors() const { return regressors_; }
 
   std::string getIndexName() const { return indexName_; }
+  boost::filesystem::path getFldr() const { return fldr_; }
 
   lossFunction getLoss() const { return loss_; }
 

@@ -37,6 +37,7 @@ INSTANTIATE_TEST_SUITE_P(DPSolverTests,
 					   objective_fn::RationalScore
 					   )
 			 );
+
 void sort_by_priority(std::vector<float>& a, std::vector<float>& b) {
   std::vector<int> ind(a.size());
   std::iota(ind.begin(), ind.end(), 0);
@@ -614,6 +615,7 @@ TEST(DPSolverTest, TestParallelScoresMatchSerialScores) {
   }
 }
 
+
 TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
   
   std::vector<bool> trials = {false, true};
@@ -676,11 +678,13 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
     // Use latestPrediction_ instead
     classifier.Predict(liveTrainPrediction);
 
-    // Get index
+    // Get index, fldr
     std::string indexName = classifier.getIndexName();
+    boost::filesystem::path fldr = classifier.getFldr();
+
     // Use replay to predict IS based on archive classifier
     Row<double> archiveTrainPrediction;
-    Replay<double, DecisionTreeClassifier>::Classify(indexName, trainDataset, archiveTrainPrediction);
+    Replay<double, DecisionTreeClassifier>::Classify(indexName, trainDataset, archiveTrainPrediction, fldr);
 
     for (std::size_t i=0; i<liveTrainPrediction.n_elem; ++i)
       ASSERT_LE(fabs(liveTrainPrediction[i]-archiveTrainPrediction[i]), eps);
@@ -695,7 +699,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
 
     // Use replay to predict OOS based on archive classifier
     Row<double> archiveTestPrediction;
-    Replay<double, DecisionTreeClassifier>::Classify(indexName, testDataset, archiveTestPrediction, true);
+    Replay<double, DecisionTreeClassifier>::Classify(indexName, testDataset, archiveTestPrediction, fldr, true);
 
     for (std::size_t i=0; i<liveTestPrediction.size(); ++i) {
       ASSERT_LE(fabs(liveTestPrediction[i]-archiveTestPrediction[i]), eps);
@@ -1155,12 +1159,13 @@ TEST(GradientBoostClassifierTest, TestWritePrediction) {
     // Use replay to predict IS based on archive classifier
     Row<double> archiveTrainPrediction1, archiveTrainPrediction2;
     std::string indexName = classifier.getIndexName();
+    boost::filesystem::path fldr = classifier.getFldr();
 
     // Method 1
-    Replay<double, DecisionTreeClassifier>::Classify(indexName, trainDataset, archiveTrainPrediction1);
+    Replay<double, DecisionTreeClassifier>::Classify(indexName, trainDataset, archiveTrainPrediction1, fldr);
 
     // Method 2
-    Replay<double, DecisionTreeClassifier>::Classify(indexName, archiveTrainPrediction2);
+    Replay<double, DecisionTreeClassifier>::Classify(indexName, archiveTrainPrediction2, fldr);
 
     for (std::size_t i=0; i<liveTrainPrediction.n_elem; ++i) {
       ASSERT_LE(fabs(liveTrainPrediction[i]-archiveTrainPrediction1[i]), eps);
@@ -1230,8 +1235,9 @@ TEST(GradientBoostRegressorTest, TestPredictionRoundTrip) {
     regressor.Predict(prediction);
 
     std::string indexName = regressor.getIndexName();
+    boost::filesystem::path fldr = regressor.getFldr();
 
-    readPrediction(indexName, archivePrediction);
+    readPrediction(indexName, archivePrediction, fldr);
     
     for (std::size_t i=0; i<prediction.n_elem; ++i) {
       ASSERT_LE(fabs(prediction[i]-archivePrediction[i]), eps);
@@ -1326,8 +1332,9 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
     classifier.Predict(prediction);
 
     std::string indexName = classifier.getIndexName();
+    boost::filesystem::path fldr = classifier.getFldr();
     
-    readPrediction(indexName, archivePrediction);
+    readPrediction(indexName, archivePrediction, fldr);
 
     for (std::size_t i=0; i<prediction.n_elem; ++i) {
       ASSERT_LE(fabs(prediction[i]-archivePrediction[i]), eps);
@@ -1552,11 +1559,13 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
 
     // Get index
     std::string indexName = regressor.getIndexName();
+    boost::filesystem::path fldr = regressor.getFldr();
     // Use replay to predict IS based on archive regressor
     Row<double> archiveTrainPrediction;
     Replay<double, DecisionTreeRegressorRegressor>::Predict(indexName, 
 							    trainDataset, 
-							    archiveTrainPrediction);
+							    archiveTrainPrediction,
+							    fldr);
   
     for (std::size_t i=0; i<liveTrainPrediction.n_elem; ++i)
       ASSERT_LE(fabs(liveTrainPrediction[i]-archiveTrainPrediction[i]), eps);
@@ -1573,7 +1582,8 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
     Row<double> archiveTestPrediction;
     Replay<double, DecisionTreeRegressorRegressor>::Predict(indexName, 
 							    testDataset, 
-							    archiveTestPrediction);
+							    archiveTestPrediction,
+							    fldr);
 
     for (std::size_t i=0; i<liveTestPrediction.size(); ++i) {
       ASSERT_LE(fabs(liveTestPrediction[i]-archiveTestPrediction[i]), eps);

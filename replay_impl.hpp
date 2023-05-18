@@ -342,17 +342,19 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
 
 template<typename DataType, typename ClassifierType>
 void
-Replay<DataType, ClassifierType>::Classify(std::string indexName, Row<DataType>& prediction) {
+Replay<DataType, ClassifierType>::Classify(std::string indexName, 
+					   Row<DataType>& prediction,
+					   boost::filesystem::path fldr) {
 
   Row<DataType> predictionNew;
   std::vector<std::string> fileNames;
-  readIndex(indexName, fileNames);
+  readIndex(indexName, fileNames, fldr);
 
   for  (auto &fileName : fileNames) {
     auto tokens = strSplit(fileName, '_');
     if (tokens[0] == "PRED") {
       fileName = strJoin(tokens, '_', 1);
-      read(predictionNew, fileName);
+      read(predictionNew, fileName, fldr);
       prediction = predictionNew;
     }
   }
@@ -365,10 +367,11 @@ void
 Replay<DataType, ClassifierType>::Classify(std::string indexName,
 					   const mat& dataset,
 					   Row<DataType>& prediction,
+					   boost::filesystem::path fldr,
 					   bool deSymmetrize) {
 
   std::vector<std::string> fileNames;
-  readIndex(indexName, fileNames);
+  readIndex(indexName, fileNames, fldr);
 
   using C = GradientBoostClassifier<ClassifierType>;
   std::unique_ptr<C> classifierNew = std::make_unique<C>();
@@ -383,7 +386,7 @@ Replay<DataType, ClassifierType>::Classify(std::string indexName,
     auto tokens = strSplit(fileName, '_');
     if (tokens[0] == "CLS") {
       fileName = strJoin(tokens, '_', 1);
-      read(*classifierNew, fileName);
+      read(*classifierNew, fileName, fldr);
       classifierNew->Predict(dataset, predictionStep, ignoreSymmetrization);
       prediction += predictionStep;
 
@@ -399,9 +402,10 @@ template<typename DataType, typename RegressorType>
 void
 Replay<DataType, RegressorType>::Predict(std::string indexName,
 					 const mat& dataset,
-					 Row<DataType>& prediction) {
+					 Row<DataType>& prediction,
+					 boost::filesystem::path fldr) {
   std::vector<std::string> fileNames;
-  readIndex(indexName, fileNames);
+  readIndex(indexName, fileNames, fldr);
 
   using R = GradientBoostRegressor<RegressorType>;
   std::unique_ptr<R> regressorNew = std::make_unique<R>();
@@ -413,7 +417,7 @@ Replay<DataType, RegressorType>::Predict(std::string indexName,
     auto tokens = strSplit(fileName, '_');
     if (tokens[0] == "REG") {
       fileName = strJoin(tokens, '_', 1);
-      read(*regressorNew, fileName);
+      read(*regressorNew, fileName, fldr);
       regressorNew->Predict(dataset, predictionStep);
       prediction += predictionStep;
     }
@@ -422,17 +426,19 @@ Replay<DataType, RegressorType>::Predict(std::string indexName,
 
 template<typename DataType, typename RegressorType>
 void
-Replay<DataType, RegressorType>::Predict(std::string indexName, Row<DataType>& prediction) {
+Replay<DataType, RegressorType>::Predict(std::string indexName, 
+					 Row<DataType>& prediction,
+					 boost::filesystem::path fldr) {
 
   Row<DataType> predictionNew;
   std::vector<std::string> fileNames;
-  readIndex(indexName, fileNames);
+  readIndex(indexName, fileNames, fldr);
 
   for  (auto &fileName : fileNames) {
     auto tokens = strSplit(fileName, '_');
     if (tokens[0] == "PRED") {
       fileName = strJoin(tokens, '_', 1);
-      read(predictionNew, fileName);
+      read(predictionNew, fileName, fldr);
       prediction = predictionNew;
     }
   }

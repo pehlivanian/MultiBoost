@@ -379,6 +379,7 @@ public:
   ClassifierList getClassifiers() const { return classifiers_; }
 
   std::string getIndexName() const { return indexName_; }
+  boost::filesystem::path getFldr() const { return fldr_; }
 
   std::pair<double, double> getAB() const {return std::make_pair(a_, b_); }
   
