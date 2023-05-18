@@ -2,23 +2,23 @@
 
 namespace IB_utils {
 
-  std::string writeColMask(const uvec& colMask) {
+  std::string writeColMask(const uvec& colMask, boost::filesystem::path fldr) {
     
     ColMaskArchive cma{colMask};
-    std::string fileName = dumps<ColMaskArchive, CerealIArch, CerealOArch>(cma, SerializedType::COLMASK);
+    std::string fileName = dumps<ColMaskArchive, CerealIArch, CerealOArch>(cma, SerializedType::COLMASK, fldr);
     return fileName;
     
   }
 
-  std::string writeDatasetIS(const mat& dataset) {
+  std::string writeDatasetIS(const mat& dataset, boost::filesystem::path fldr) {
     DatasetArchive da{dataset};
-    std::string fileName = dumps<DatasetArchive, CerealIArch, CerealOArch>(da, SerializedType::DATASET_IS);
+    std::string fileName = dumps<DatasetArchive, CerealIArch, CerealOArch>(da, SerializedType::DATASET_IS, fldr);
     return fileName;
   }
 
-  std::string writeDatasetOOS(const mat& dataset) {
+  std::string writeDatasetOOS(const mat& dataset, boost::filesystem::path fldr) {
     DatasetArchive da{dataset};
-    std::string fileName = dumps<DatasetArchive, CerealIArch, CerealOArch>(da, SerializedType::DATASET_OOS);
+    std::string fileName = dumps<DatasetArchive, CerealIArch, CerealOArch>(da, SerializedType::DATASET_OOS, fldr);
     return fileName;    
   }
 
@@ -37,9 +37,18 @@ namespace IB_utils {
     return a.second > b.second;
   }
 
-  std::string writeIndex(const std::vector<std::string>& fileNames, std::string path) {
+  std::string writeIndex(const std::vector<std::string>& fileNames, std::string path, boost::filesystem::path fldr) {
     
-    std::ofstream ofs{path, std::ios::binary|std::ios::out};
+    std::string abs_path;
+    
+    if (fldr.string().size()) {
+      fldr /= path;
+      abs_path = fldr.string();
+    } else {
+      abs_path = path;
+    }
+    
+    std::ofstream ofs{abs_path, std::ios::binary|std::ios::out};
     if (ofs.is_open()) {
       for (auto &fileName : fileNames) {
 	ofs << fileName << "\n";
@@ -50,7 +59,7 @@ namespace IB_utils {
     return path;
   }
 
-  std::string writeIndex(const std::vector<std::string>& fileNames) {
+  std::string writeIndex(const std::vector<std::string>& fileNames, boost::filesystem::path fldr) {
 
     auto now = std::chrono::system_clock::now();
     // auto UTC = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
@@ -61,11 +70,21 @@ namespace IB_utils {
     datetime << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d_%X");
     std::string path = std::to_string(UTC) + "_index_" + datetime.str() + ".gnd";
     
-    return writeIndex(fileNames, path);
+    return writeIndex(fileNames, path, fldr);
   }
 
-  void readIndex(std::string path, std::vector<std::string>& fileNames) {
-    std::ifstream ifs{path, std::ios::binary|std::ios::in};
+  void readIndex(std::string path, std::vector<std::string>& fileNames, boost::filesystem::path fldr) {
+
+    std::string abs_path;
+
+    if (fldr.string().size()) {
+      fldr /= path;
+      abs_path = fldr.string();
+    } else {
+      abs_path = path;
+    }
+
+    std::ifstream ifs{abs_path, std::ios::binary|std::ios::in};
     std::vector<std::string>().swap(fileNames);
     std::string fileName;
 
@@ -77,7 +96,17 @@ namespace IB_utils {
     ifs.close();
   }
 
-  void mergeIndices(std::string pathOld, std::string pathNew) {
+  void mergeIndices(std::string pathOld, std::string pathNew, boost::filesystem::path fldr) {
+
+    if (fldr.string().size()) {
+      boost::filesystem::path fldr2{fldr};
+
+      fldr /= pathOld;
+      pathOld = fldr.string();
+
+      fldr2 /= pathNew;
+      pathNew = fldr2.string();      
+    }
 
     // Prepend information in old file to new file, save in updated 
     // new file
@@ -101,7 +130,7 @@ namespace IB_utils {
     }
     ifsNew.close();
 
-    writeIndex(fileNames, pathNew);
+    writeIndex(fileNames, pathNew, fldr);
     
   }
 

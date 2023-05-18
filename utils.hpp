@@ -12,6 +12,8 @@
 #include <type_traits>
 #include <mlpack/core.hpp>
 
+#include <boost/filesystem.hpp>
+
 #include <cereal/types/polymorphic.hpp>
 #include <cereal/types/base_class.hpp>
 #include <cereal/archives/portable_binary.hpp>
@@ -25,6 +27,8 @@
 
 #include "loss.hpp"
 
+// using fs = CXX_FILESYSTEM_NAMESPACE;
+using namespace boost::filesystem;
 using namespace LossMeasures;
 
 namespace LearningRate {
@@ -356,6 +360,23 @@ namespace IB_utils {
     uvec colMask_;
   };
 
+  // For directory digest
+  inline boost::filesystem::path FilterDigestLocation() {
+    auto now = std::chrono::system_clock::now();
+    auto UTC = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    
+    std::stringstream datetime;
+    datetime << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d_%X");
+    std::string suff = "_digest__" + std::to_string(UTC) + "_" + datetime.str();
+
+    auto path = boost::filesystem::current_path();
+    path /= suff;
+
+    return path;
+    
+  }
+
   // Filter typeinfo string to generate unique filenames for serialization tests.
   inline std::string FilterFileName(const std::string& inputString)
   {
@@ -381,8 +402,17 @@ namespace IB_utils {
   }
 
   template<typename T, typename IARchiveType, typename OArchiveType>
-  void dumps(T& t, std::string fileName) {
-    std::ofstream ofs(fileName, std::ios::binary);
+  void dumps(T& t, std::string fileName, boost::filesystem::path fldr=boost::filesystem::path{}) {
+    std::string abs_path;
+
+    if (fldr.string().size()) {
+      fldr /= fileName;
+      abs_path = fldr.string();
+    } else {
+      abs_path = fileName;
+    }
+
+    std::ofstream ofs(abs_path, std::ios::binary);
     {
       OArchiveType o(ofs);
 
@@ -393,7 +423,7 @@ namespace IB_utils {
   }
 
   template<typename T, typename IArchiveType, typename OArchiveType>
-  std::string dumps(T& t, SerializedType typ) {
+  std::string dumps(T& t, SerializedType typ, boost::filesystem::path fldr=boost::filesystem::path{}) {
 
     std::map<int, std::string> SerializedTypeMap = 
       {
@@ -411,14 +441,24 @@ namespace IB_utils {
 
     std::string fileName = FilterFileName(typeid(T).name());
 
-    dumps<T, IArchiveType, OArchiveType>(t, fileName);
+    dumps<T, IArchiveType, OArchiveType>(t, fileName, fldr);
 
     return pref + fileName;
   }
 
   template<typename T, typename IArchiveType, typename OArchiveType>
-  void loads(T& t, std::string fileName) {
-    std::ifstream ifs{fileName, std::ios::binary};
+  void loads(T& t, std::string fileName, boost::filesystem::path fldr=boost::filesystem::path{}) {
+
+    std::string abs_path;
+
+    if (fldr.string().size()) {
+      fldr /= fileName;
+      abs_path = fldr.string();
+    } else {
+      abs_path = fileName;
+    }
+
+    std::ifstream ifs{abs_path, std::ios::binary};
     
     {
       IArchiveType i(ifs);
@@ -430,42 +470,42 @@ namespace IB_utils {
   }
 
   template<typename T>
-  void read(T& rhs, std::string fileName) {
-    using CerealT = T;
-    loads<CerealT, CerealIArch, CerealOArch>(rhs, fileName);
+  void read(T& rhs, std::string fileName, boost::filesystem::path fldr=boost::filesystem::path{}) {
+    using CerealT = T;    
+    loads<CerealT, CerealIArch, CerealOArch>(rhs, fileName, fldr);
   }
     
   template<typename DataType>
-  void writePrediction(const Row<DataType>& prediction, std::string fileName) {
+  void writePrediction(const Row<DataType>& prediction, std::string fileName, boost::filesystem::path fldr=boost::filesystem::path{}) {
     PredictionArchive pa{prediction};
-    dumps<PredictionArchive<DataType>, CerealIArch, CerealOArch>(pa, fileName);
+    dumps<PredictionArchive<DataType>, CerealIArch, CerealOArch>(pa, fileName, fldr);
   }
 
   template<typename DataType>
-  std::string writePrediction(const Row<DataType>& prediction) {
+  std::string writePrediction(const Row<DataType>& prediction, boost::filesystem::path fldr=boost::filesystem::path{}) {
 
     PredictionArchive pa{prediction};
-    std::string fileName = dumps<PredictionArchive<DataType>, CerealIArch, CerealOArch>(pa, SerializedType::PREDICTION);
+    std::string fileName = dumps<PredictionArchive<DataType>, CerealIArch, CerealOArch>(pa, SerializedType::PREDICTION, fldr);
     return fileName;
   }
 
   template<typename DataType>
-  std::string writeLabelsIS(const Row<DataType>& labels) {
+  std::string writeLabelsIS(const Row<DataType>& labels, boost::filesystem::path fldr=boost::filesystem::path{}) {
     LabelsArchive la{labels};
-    std::string fileName = dumps<LabelsArchive<DataType>, CerealIArch, CerealOArch>(la, SerializedType::LABELS_IS);
+    std::string fileName = dumps<LabelsArchive<DataType>, CerealIArch, CerealOArch>(la, SerializedType::LABELS_IS, fldr);
     return fileName;
   }
 
   template<typename DataType>
-  std::string writeLabelsOOS(const Row<DataType>& labels) {
+  std::string writeLabelsOOS(const Row<DataType>& labels, boost::filesystem::path fldr=boost::filesystem::path{}) {
     LabelsArchive la{labels};
-    std::string fileName = dumps<LabelsArchive<DataType>, CerealIArch, CerealOArch>(la, SerializedType::LABELS_OOS);
+    std::string fileName = dumps<LabelsArchive<DataType>, CerealIArch, CerealOArch>(la, SerializedType::LABELS_OOS, fldr);
     return fileName;
   }
 
-  std::string writeColMask(const uvec&);
-  std::string writeDatasetIS(const mat&);
-  std::string writeDatasetOOS(const mat&);
+  std::string writeColMask(const uvec&, boost::filesystem::path fldr=boost::filesystem::path{});
+  std::string writeDatasetIS(const mat&, boost::filesystem::path fldr=boost::filesystem::path{});
+  std::string writeDatasetOOS(const mat&, boost::filesystem::path fldr=boost::filesystem::path{});
 
   double err(const Row<std::size_t>& yhat, const Row<std::size_t>& y);
   double err(const Row<double>& yhat, const Row<double>& y, double=-1.);
@@ -500,10 +540,20 @@ namespace IB_utils {
   }
 
   template<typename T, typename IArchiveType, typename OArchiveType>
-  void SerializeObject(T& t, T& newT)
+  void SerializeObject(T& t, T& newT, boost::filesystem::path fldr=boost::filesystem::path{})
   {
+
     std::string fileName = FilterFileName(typeid(T).name());
-    std::ofstream ofs(fileName, std::ios::binary);
+
+    std::string abs_path;
+    if (fldr.string().size()) {
+      fldr /= fileName;
+      abs_path = fldr.string();
+    } else {
+      abs_path = fileName;
+    }
+
+    std::ofstream ofs(abs_path, std::ios::binary);
     
     {
       OArchiveType o(ofs);
@@ -513,7 +563,7 @@ namespace IB_utils {
     }
     ofs.close();
 
-    std::ifstream ifs(fileName, std::ios::binary);
+    std::ifstream ifs(abs_path, std::ios::binary);
 
     {
       IArchiveType i(ifs);
@@ -522,14 +572,22 @@ namespace IB_utils {
     }
     ifs.close();
 	
-    // remove(fileName.c_str());
+    // remove(abs_path.c_str());
   }
 
   template<typename T, typename IArchiveType, typename OArchiveType>
-  void SerializePointerObject(T* t, T*& newT)
+  void SerializePointerObject(T* t, T*& newT, boost::filesystem::path fldr=boost::filesystem::path{})
   {
     std::string fileName = FilterFileName(typeid(T).name());
-    std::ofstream ofs(fileName, std::ios::binary);
+    std::string abs_path;
+    if (fldr.string().size()) {
+      fldr /= fileName;
+      abs_path = fldr.string();
+    } else {
+      abs_path = fileName;
+    }
+
+    std::ofstream ofs(abs_path, std::ios::binary);
 
     {
       OArchiveType o(ofs);
@@ -537,14 +595,14 @@ namespace IB_utils {
     }
     ofs.close();
 
-    std::ifstream ifs(fileName, std::ios::binary);
+    std::ifstream ifs(abs_path, std::ios::binary);
 
     {
       IArchiveType i(ifs);
       i(CEREAL_POINTER(newT));
     }
     ifs.close();
-    // remove(fileName.c_str());
+    // remove(abs_path.c_str());
   }
 
   /* e.g.
@@ -555,20 +613,29 @@ namespace IB_utils {
   */
 
   template<typename T, typename IArchiveType, typename OArchiveType>
-  void SerializePointerObject(T* t, T*& newT);
+  void SerializePointerObject(T* t, T*& newT, boost::filesystem::path fldr);
 
-
-  std::string writeIndex(const std::vector<std::string>&);
-  std::string writeIndex(const std::vector<std::string>&, std::string);
-  void readIndex(std::string, std::vector<std::string>&);
-  void mergeIndices(std::string, std::string);
+  std::string writeIndex(const std::vector<std::string>&, boost::filesystem::path fldr=boost::filesystem::path{});
+  std::string writeIndex(const std::vector<std::string>&, std::string, boost::filesystem::path fldr=boost::filesystem::path{});
+  void readIndex(std::string, std::vector<std::string>&, boost::filesystem::path fldr=boost::filesystem::path{});
+  void mergeIndices(std::string, std::string, boost::filesystem::path fldr=boost::filesystem::path{});
 
   template<typename T>
   void 
   writeBinary(std::string fileName,
-	      const T& data) {
+	      const T& data,
+	      boost::filesystem::path fldr=boost::filesystem::path{}) {
     auto success = false;
-    std::ofstream ofs{fileName, std::ios::binary};
+
+    std::string abs_path;
+    if (fldr.string().size()) {
+      fldr /= fileName;
+      abs_path = fldr.string();
+    } else {
+      abs_path = fileName;
+    }
+
+    std::ofstream ofs{abs_path, std::ios::binary};
     if (ofs.is_open()) {
 
       try {
@@ -576,7 +643,7 @@ namespace IB_utils {
 	success = true;
       }
       catch(std::ios_base::failure &) {
-	std::cerr << "Failed to write to " << fileName << std::endl;
+	std::cerr << "Failed to write to " << abs_path << std::endl;
       }
       ofs.close();
     }
@@ -585,9 +652,19 @@ namespace IB_utils {
   template<typename T>
   void
   readBinary(std::string fileName,
-	     T& obj) {
+	     T& obj,
+	     boost::filesystem::path fldr=boost::filesystem::path{}) {
+
+    std::string abs_path;
+    if (fldr.string().size()) {
+      fldr /= fileName;
+      abs_path = fldr.string();
+    } else {
+      abs_path = fileName;
+    }    
+
     std::size_t readBytes = 0;
-    std::ifstream ifs{fileName, std::ios::ate | std::ios::binary};
+    std::ifstream ifs{abs_path, std::ios::ate | std::ios::binary};
     if (ifs.is_open()) {
 
       ifs.seekg(0, std::ios_base::beg);
@@ -597,23 +674,23 @@ namespace IB_utils {
 	readBytes = static_cast<std::size_t>(ifs.gcount());
       }
       catch(std::ios_base::failure &) {
-	std::cerr << "Failed to read from " << fileName << std::endl;
+	std::cerr << "Failed to read from " << abs_path << std::endl;
       }
       ifs.close();
     }
   }
 
   template<typename DataType>
-  void readPrediction(std::string indexName, Row<DataType>& prediction) {
+  void readPrediction(std::string indexName, Row<DataType>& prediction, boost::filesystem::path fldr=boost::filesystem::path{}) {
     Row<DataType> predictionNew;  
     std::vector<std::string> fileNames;
-    readIndex(indexName, fileNames);
+    readIndex(indexName, fileNames, fldr);
     
     for (auto &fileName : fileNames) {
       auto tokens = strSplit(fileName, '_');
       if (tokens[0] == "PRED") {
 	fileName = strJoin(tokens, '_', 1);
-	read(predictionNew, fileName);
+	read(predictionNew, fileName, fldr);
 	prediction = predictionNew;
       }
     }

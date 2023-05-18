@@ -53,13 +53,13 @@ auto main() -> int {
   context.removeRedundantLabels = false;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .5; // .75
-  context.recursiveFit = true;
+  context.recursiveFit = false;
   context.quietRun = false;
   context.serialize = false;
   context.serializePrediction = false;
   context.serializeDataset = false;
   context.serializeLabels = false;
-  context.serializationWindow = 1;
+  context.serializationWindow = 10;
   context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
   context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;    // DECREASING
   context.stepSizeMethod = StepSize::StepSizeMethod::LOG;	

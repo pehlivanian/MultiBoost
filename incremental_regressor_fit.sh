@@ -7,18 +7,18 @@ EXEC_CC=${PATH}createContext
 CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCrosserge.cxt
 CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCrosserge.cxt
 
-STEPS=100
+STEPS=2
 BASESTEPS=10000
 LEARNINGRATE=.01
-RECURSIVE_FIT=true
-PARTITION_SIZE=400
+RECURSIVE_FIT=false
+PARTITION_SIZE=500
 MINLEAFSIZE=1
 MINGAINSPLIT=0.
 MAXDEPTH=10
 LOSS_FN=0
-COLSUBSAMPLE_RATIO=.1
+COLSUBSAMPLE_RATIO=.5
 DATANAME=1193_BNG_lowbwt
-SPLITRATIO=0.99
+SPLITRATIO=0.50
 
 ((ITERS=$BASESTEPS / $STEPS))
 
@@ -46,7 +46,7 @@ $EXEC_CC \
 --minLeafSize $MINLEAFSIZE \
 --maxDepth $MAXDEPTH \
 --minimumGainSplit $MINGAINSPLIT \
---serializationWindow 1000 \
+--serializationWindow 10 \
 --fileName $CONTEXT_PATH_RUN1
 
 # create context for subsequent runs
@@ -73,7 +73,7 @@ $EXEC_CC \
 --minLeafSize $MINLEAFSIZE \
 --maxDepth $MAXDEPTH \
 --minimumGainSplit $MINGAINSPLIT \
---serializationWindow 1000 \
+--serializationWindow 10 \
 --fileName $CONTEXT_PATH_RUNS
 
 # Incremental IS regressor fit
@@ -84,6 +84,8 @@ EXEC_PRED_OOS=${PATH}stepwise_predict
 
 # First run
 n=1
+
+echo ${n}" : STEPWISE PREDICT"
 
 INDEX_NAME_STEP=$($EXEC_INC \
 --contextFileName $CONTEXT_PATH_RUN1 \
@@ -105,6 +107,8 @@ do
   if [ $n -eq $ITERS ]; then
     break
   fi
+
+  echo ${n}" : STEPWISE PREDICT"
 
   # Fit step
   INDEX_NAME_STEP=$($EXEC_INC \

@@ -5,6 +5,8 @@
 #include <memory>
 #include <vector>
 
+#include <boost/filesystem.hpp>
+
 #include <mlpack/core.hpp>
 
 #include "utils.hpp"
@@ -511,6 +513,8 @@ private:
 
   std::size_t serializationWindow_;
   std::string indexName_;
+
+  boost::filesystem::path fldr_{};
 
 };
 

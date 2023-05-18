@@ -136,7 +136,12 @@ template<typename RegressorType>
 void
 CompositeRegressor<RegressorType>::init_() {
 
-  
+  if (serialize_ || serializePrediction_ ||
+      serializeColMask_ || serializeDataset_ ||
+      serializeLabels_) {
+    fldr_ = boost::filesystem::path{};
+  }
+
   // Serialize dataset, labels first
   if (serializeDataset_) {
     std::string path;
@@ -427,12 +432,12 @@ CompositeRegressor<RegressorType>::computeOptimalSplit(rowvec& g,
   std::vector<double> hv = arma::conv_to<std::vector<double>>::from(h);
 
   int n = colMask.n_rows, T = partitionSize;
-  bool risk_partitioning_objective = true;
-  bool use_rational_optimization = true;
-  bool sweep_down = false;
-  double gamma = 0.;
-  double reg_power=1.;
-  bool find_optimal_t = false;
+  bool risk_partitioning_objective	= true;
+  bool use_rational_optimization	= true;
+  bool sweep_down			= false;
+  double gamma				= 0.;
+  double reg_power			= 1.;
+  bool find_optimal_t			= false;
 
   // std::cout << "PARTITION SIZE: " << T << std::endl;
 
@@ -499,38 +504,38 @@ template<typename RegressorType>
 std::string
 CompositeRegressor<RegressorType>::writeColMask() {
 
-  return IB_utils::writeColMask(colMask_);
+  return IB_utils::writeColMask(colMask_, fldr_);
 }
 
 template<typename RegressorType>
 std::string
 CompositeRegressor<RegressorType>::writePrediction() {
 
-  return IB_utils::writePrediction(latestPrediction_);
+  return IB_utils::writePrediction(latestPrediction_, fldr_);
 }
 
 template<typename RegressorType>
 std::string
 CompositeRegressor<RegressorType>::writeDataset() {
-  return IB_utils::writeDatasetIS(dataset_);
+  return IB_utils::writeDatasetIS(dataset_, fldr_);
 }
 
 template<typename RegressorType>
 std::string
 CompositeRegressor<RegressorType>::writeDatasetOOS() {
-  return IB_utils::writeDatasetOOS(dataset_oos_);
+  return IB_utils::writeDatasetOOS(dataset_oos_, fldr_);
 }
 
 template<typename RegressorType>
 std::string
 CompositeRegressor<RegressorType>::writeLabels() {
-  return IB_utils::writeLabelsIS(labels_);
+  return IB_utils::writeLabelsIS(labels_, fldr_);
 }
 
 template<typename RegressorType>
 std::string
 CompositeRegressor<RegressorType>::writeLabelsOOS() {
-  return IB_utils::writeLabelsOOS(labels_oos_);
+  return IB_utils::writeLabelsOOS(labels_oos_, fldr_);
 }
 
 template<typename RegressorType>

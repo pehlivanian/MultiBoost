@@ -102,6 +102,11 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
+# find_package(Filesystem)
+if (NOT Filesystem_FOUND)
+  find_package(Boost COMPONENTS filesystem)
+endif()
+
 find_package(Armadillo REQUIRED)
 find_package(BLAS REQUIRED)
 
@@ -168,8 +173,17 @@ target_link_libraries(replay PUBLIC utils threadsafequeue gradientboostclassifie
 	${ARMADILLO_LIBRARIES}
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 
-target_link_libraries(utils PUBLIC loss
-	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+if (Filesystem_FOUND)
+  target_compile_definitions(utils PUBLIC -DCXX_FILESYSTEM_HEADER=<filesystem.hpp>)
+  target_compile_definitions(utils PUBLIC -DCXX_FILESYSTEM_NAMESPACE=std::filesystem)
+  target_link_libraries(utils PUBLIC loss std::filesystem 
+	  $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+elseif(Boost_FOUND)
+  target_compile_definitions(utils PUBLIC -DCXX_FILESYSTEM_HEADER=<boost/filesystem.hpp>)
+  target_compile_definitions(utils PUBLIC -DCXX_FILESYSTEM_NAMESPACE=boost::filesystem)
+  target_link_libraries(utils PUBLIC loss Boost::filesystem
+      	  $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+endif()
 
 target_link_libraries(compositeclassifier PUBLIC utils score2 classifier DP
 	${ARMADILLO_LIBRARIES}

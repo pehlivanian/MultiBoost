@@ -180,26 +180,22 @@ void BM_colMask_stl_generation2(benchmark::State& state) {
 }
 
 // DP solver benchmarks
-/*
 BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_serial);
 BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_AVX256);
 BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_parallel);
 BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_scores_serial);
 BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_scores_AVX256);
 BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_scores_parallel);
-*/
 
 // DPSolver benchmarks
 BENCHMARK_REGISTER_F(ContextFixture, BM_double_create_DPSolver);
 
-/*
 // armadillo benchmarks
 unsigned long N = (1<<12);
 
 BENCHMARK(BM_colMask_arma_generation)->Arg(N);
 BENCHMARK(BM_colMask_stl_generation1)->Arg(N);
 BENCHMARK(BM_colMask_stl_generation2)->Arg(N);
-*/
 
 BENCHMARK_MAIN();
 

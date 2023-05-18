@@ -30,6 +30,10 @@ DPSolver<DataType>::sort_by_priority(std::vector<DataType>& a, std::vector<DataT
 template<typename DataType>
 void 
 DPSolver<DataType>::createContext() {
+  
+  // Cap T_ by n_
+  T_ = (T_ <= n_)? T_ : n_;
+
   // create reference to score function
   if (parametric_dist_ == objective_fn::Gaussian) {
     context_ = std::make_unique<GaussianContext<DataType>>(a_, 

@@ -14,7 +14,7 @@ using namespace LossMeasures;
 
 using namespace boost::program_options;
 
-std::string path(std::string inputString) {
+std::string path_(std::string inputString) {
     std::string fileName;
     for (auto it = inputString.rbegin(); it != inputString.rend() &&
 	   fileName.size() != 24; ++it)
@@ -174,7 +174,7 @@ auto main(int argc, char **argv) -> int {
   bool					serializeLabels		= false;
   std::size_t				serializationWindow	= 1000;
 
-  std::string				fileName		= path(typeid(Context).name());
+  std::string				fileName		= path_(typeid(Context).name());
 
   options_description desc("Options");
   desc.add_options()

@@ -141,7 +141,12 @@ template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::init_() {
 
-  
+  if (serialize_ || serializePrediction_ ||
+      serializeColMask_ || serializeDataset_ ||
+      serializeLabels_) {
+    fldr_ = boost::filesystem::path{};
+  }
+
   // Serialize dataset, labels first
   if (serializeDataset_) {
     std::string path;
