@@ -134,13 +134,25 @@ CompositeRegressor<RegressorType>::updateRegressors(std::unique_ptr<RegressorBas
 
 template<typename RegressorType>
 void
-CompositeRegressor<RegressorType>::init_() {
+CompositeRegressor<RegressorType>::init_(Context&& context) {
+
+  contextInit_(std::move(context));
 
   if (serialize_ || serializePrediction_ ||
       serializeColMask_ || serializeDataset_ ||
       serializeLabels_) {
-    fldr_ = IB_utils::FilterDigestLocation();
-    boost::filesystem::create_directory(fldr_);
+
+    if (folderName_.size()) {
+      fldr_ = boost::filesystem::path{folderName_};
+    } else {
+      fldr_ = IB_utils::FilterDigestLocation();
+      boost::filesystem::create_directory(fldr_);
+    }
+
+    // Will keep overwriting context
+    std::string contextFilename = "_Context_0.cxt";
+    writeBinary<Context>(contextFilename, context, fldr_);
+    
   }
 
   // Serialize dataset, labels first

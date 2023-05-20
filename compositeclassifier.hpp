@@ -45,17 +45,18 @@ public:
   // context	: ModelContext::Context
   CompositeClassifier(const mat& dataset, 
 		      const Row<std::size_t>& labels,
-		      Context context) :
+		      Context context,
+		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<double>>::from(labels)},
     hasOOSData_{false},
     hasInitialPrediction_{false},
-    reuseColMask_{false}
+    reuseColMask_{false},
+    folderName_{folderName}
   { 
-    contextInit_(std::move(context));
-    init_(); 
+    init_(std::move(context));
   }
 
   // 2
@@ -63,18 +64,19 @@ public:
   // labels	: arma::Row<double>
   // context	: ModelContext::Context
   CompositeClassifier(const mat& dataset,
-			  const Row<double>& labels,
-			  Context context) :
+		      const Row<double>& labels,
+		      Context context,
+		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     hasOOSData_{false},
     hasInitialPrediction_{false},
-    reuseColMask_{false}
+    reuseColMask_{false},
+    folderName_{folderName}
   { 
-    contextInit_(std::move(context));
-    init_(); 
+    init_(std::move(context));
   }
 
   // 3
@@ -84,10 +86,11 @@ public:
   // labels_oos		: Row<std::size_t> <- CONVERTED TO Row<double>
   // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
-			  const Row<std::size_t>& labels,
-			  const mat& dataset_oos,
-			  const Row<std::size_t>& labels_oos,
-			  Context context) :
+		      const Row<std::size_t>& labels,
+		      const mat& dataset_oos,
+		      const Row<std::size_t>& labels_oos,
+		      Context context,
+		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
@@ -96,10 +99,10 @@ public:
     labels_oos_{conv_to<Row<double>>::from(labels_oos)},
     hasOOSData_{true},
     hasInitialPrediction_{false},
-    reuseColMask_{false}
+    reuseColMask_{false},
+    folderName_{folderName}
   {
-    contextInit_(std::move(context));
-    init_();
+    init_(std::move(context));
   }
 
   // 4
@@ -109,10 +112,11 @@ public:
   // labels_oos		: Row<double>
   // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
-			  const Row<double>& labels,
-			  const mat& dataset_oos,
-			  const Row<double>& labels_oos,
-			  Context context) :
+		      const Row<double>& labels,
+		      const mat& dataset_oos,
+		      const Row<double>& labels_oos,
+		      Context context,
+		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
@@ -121,10 +125,10 @@ public:
     labels_oos_{conv_to<Row<double>>::from(labels_oos)},
     hasOOSData_{true},
     hasInitialPrediction_{false},
-    reuseColMask_{false}
+    reuseColMask_{false},
+    folderName_{folderName}
   {
-    contextInit_(std::move(context));
-    init_();
+    init_(std::move(context));
   }
 
   // 5
@@ -135,10 +139,11 @@ public:
   // colMask		: uvec
   // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
-			  const Row<std::size_t>& labels,
-			  const Row<double>& latestPrediction,
-			  const uvec& colMask,
-			  Context context) :
+		      const Row<std::size_t>& labels,
+		      const Row<double>& latestPrediction,
+		      const uvec& colMask,
+		      Context context,
+		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
@@ -147,10 +152,10 @@ public:
     hasInitialPrediction_{true},
     reuseColMask_{true},
     latestPrediction_{latestPrediction},
-    colMask_{colMask}
+    colMask_{colMask},
+    folderName_{folderName}
   {
-    contextInit_(std::move(context));
-    init_();
+    init_(std::move(context));
   }
 
   // 6
@@ -159,9 +164,10 @@ public:
   // latestPrediction	: arma::Mat<double>
   // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
-			  const Row<std::size_t>& labels,
-			  const Row<double>& latestPrediction,
-			  Context context) :
+		      const Row<std::size_t>& labels,
+		      const Row<double>& latestPrediction,
+		      Context context,
+		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
@@ -169,10 +175,10 @@ public:
     hasOOSData_{false},
     hasInitialPrediction_{true},
     reuseColMask_{false},
-    latestPrediction_{latestPrediction}
+    latestPrediction_{latestPrediction},
+    folderName_{folderName}
   {
-    contextInit_(std::move(context));
-    init_();
+    init_(std::move(context));
   }
    
   // 7
@@ -182,10 +188,11 @@ public:
   // colMask		: uvec
   // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
-			  const Row<double>& labels,
-			  const Row<double>& latestPrediction,
-			  const uvec& colMask,
-			  Context context) :
+		      const Row<double>& labels,
+		      const Row<double>& latestPrediction,
+		      const uvec& colMask,
+		      Context context,
+		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
@@ -194,10 +201,10 @@ public:
     hasInitialPrediction_{true},
     reuseColMask_{true},
     latestPrediction_{latestPrediction},
-    colMask_{colMask}
+    colMask_{colMask},
+    folderName_{folderName}
   {
-    contextInit_(std::move(context));
-    init_();
+    init_(std::move(context));
   }
 
   // 8
@@ -206,9 +213,10 @@ public:
   // latestPrediction	: arma::Mat<double>
   // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
-			  const Row<double>& labels,
-			  const Row<double>& latestPrediction,
-			  Context context) :
+		      const Row<double>& labels,
+		      const Row<double>& latestPrediction,
+		      Context context,
+		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
@@ -216,10 +224,10 @@ public:
     hasOOSData_{false},
     hasInitialPrediction_{true},
     reuseColMask_{false},
-    latestPrediction_{latestPrediction}
+    latestPrediction_{latestPrediction},
+    folderName_{folderName}
   {
-    contextInit_(std::move(context));
-    init_();
+    init_(std::move(context));
   }
 
   // 9
@@ -231,12 +239,13 @@ public:
   // colMask		: uvec
   // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
-			  const Row<std::size_t>& labels,
-			  const mat& dataset_oos,
-			  const Row<std::size_t>& labels_oos,
-			  const Row<double>& latestPrediction,
-			  const uvec& colMask,
-			  Context context) :
+		      const Row<std::size_t>& labels,
+		      const mat& dataset_oos,
+		      const Row<std::size_t>& labels_oos,
+		      const Row<double>& latestPrediction,
+		      const uvec& colMask,
+		      Context context,
+		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
@@ -247,10 +256,10 @@ public:
     hasInitialPrediction_{true},
     reuseColMask_{true},
     latestPrediction_{latestPrediction},
-    colMask_{colMask}
+    colMask_{colMask},
+    folderName_{folderName}
   {
-    contextInit_(std::move(context));
-    init_();
+    init_(std::move(context));
   }
 
   // 10
@@ -261,11 +270,12 @@ public:
   // latestPrediction	: arma::Mat<double>
   // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
-			  const Row<std::size_t>& labels,
-			  const mat& dataset_oos,
-			  const Row<std::size_t>& labels_oos,
-			  const Row<double>& latestPrediction,
-			  Context context) :
+		      const Row<std::size_t>& labels,
+		      const mat& dataset_oos,
+		      const Row<std::size_t>& labels_oos,
+		      const Row<double>& latestPrediction,
+		      Context context,
+		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
@@ -275,10 +285,10 @@ public:
     hasOOSData_{true},
     hasInitialPrediction_{true},
     reuseColMask_{false},
-    latestPrediction_{latestPrediction}
+    latestPrediction_{latestPrediction},
+    folderName_{folderName}
   {
-    contextInit_(std::move(context));
-    init_();
+    init_(std::move(context));
   }
 
   // 11
@@ -290,12 +300,13 @@ public:
   // colMask		: uvec
   // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
-			  const Row<double>& labels,
-			  const mat& dataset_oos,
-			  const Row<double>& labels_oos,
-			  const Row<double>& latestPrediction,
-			  const uvec& colMask,
-			  Context context) :
+		      const Row<double>& labels,
+		      const mat& dataset_oos,
+		      const Row<double>& labels_oos,
+		      const Row<double>& latestPrediction,
+		      const uvec& colMask,
+		      Context context,
+		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
@@ -306,10 +317,10 @@ public:
     hasInitialPrediction_{true},
     reuseColMask_{true},
     latestPrediction_{latestPrediction},
-    colMask_{colMask}
+    colMask_{colMask},
+    folderName_{folderName}
   {
-    contextInit_(std::move(context));
-    init_();
+    init_(std::move(context));
   }
 
   // 12
@@ -320,11 +331,12 @@ public:
   // latestPrediction	: arma::Mat<double>
   // context		: ClassifierContext::Context
   CompositeClassifier(const mat& dataset,
-			  const Row<double>& labels,
-			  const mat& dataset_oos,
-			  const Row<double>& labels_oos,
-			  const Row<double>& latestPrediction,
-			  Context context) :
+		      const Row<double>& labels,
+		      const mat& dataset_oos,
+		      const Row<double>& labels_oos,
+		      const Row<double>& latestPrediction,
+		      Context context,
+		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
@@ -334,10 +346,10 @@ public:
     hasOOSData_{true},
     hasInitialPrediction_{true},
     reuseColMask_{false},
-    latestPrediction_{latestPrediction}
+    latestPrediction_{latestPrediction},
+    folderName_{folderName}
   {
-    contextInit_(std::move(context));
-    init_();
+    init_(std::move(context));
   }
 
   virtual void fit();
@@ -407,7 +419,7 @@ public:
 private:
   void childContext(Context&, std::size_t, double, std::size_t);
   void contextInit_(Context&&);
-  void init_();
+  void init_(Context&&);
   Row<double> _constantLeaf() const;
   Row<double> _randomLeaf() const;
   uvec subsampleRows(size_t);
@@ -478,6 +490,7 @@ private:
   double col_subsample_ratio_;
 
   uvec colMask_;
+  std::string folderName_;
 
   int n_;
   int m_;

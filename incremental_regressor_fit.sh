@@ -1,5 +1,6 @@
 #!/bin/bash
 
+DELIM=';'
 REGRESSOR=DecisionTreeRegressorRegressor
 PATH=/home/charles/src/C++/sandbox/Inductive-Boost/build/
 EXEC_CC=${PATH}createContext
@@ -9,8 +10,8 @@ CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCrosserge.cxt
 
 STEPS=2
 BASESTEPS=10000
-LEARNINGRATE=.01
-RECURSIVE_FIT=false
+LEARNINGRATE=.001
+RECURSIVE_FIT=true
 PARTITION_SIZE=500
 MINLEAFSIZE=1
 MINGAINSPLIT=0.
@@ -18,7 +19,7 @@ MAXDEPTH=10
 LOSS_FN=0
 COLSUBSAMPLE_RATIO=.5
 DATANAME=1193_BNG_lowbwt
-SPLITRATIO=0.50
+SPLITRATIO=0.90
 
 ((ITERS=$BASESTEPS / $STEPS))
 
@@ -87,19 +88,28 @@ n=1
 
 echo ${n}" : STEPWISE PREDICT"
 
-INDEX_NAME_STEP=$($EXEC_INC \
+STEP_INFO=$($EXEC_INC \
 --contextFileName $CONTEXT_PATH_RUN1 \
 --dataName $DATANAME \
 --splitRatio $SPLITRATIO \
 --mergeIndexFiles false \
 --warmStart false)
 
+set -- "$STEP_INFO"
+IFS=$DELIM; declare -a res=($*)
+arg0="${res[0]}"
+arg1="${res[1]}"
+INDEX_NAME_STEP=$arg0
+FOLDER_STEP=$arg1
+
+echo ${n}" : "${FOLDER_STEP}
 echo ${n}" : "${INDEX_NAME_STEP}
 ((n=n+1))
 
 # Predict OOS
 $EXEC_PRED_OOS \
---indexFileName $INDEX_NAME_STEP
+--indexFileName $INDEX_NAME_STEP \
+--folderName $FOLDER_STEP
 
 # Subsequent runs
 for (( ; ; ));
@@ -118,15 +128,15 @@ do
   --quietRun true \
   --mergeIndexFiles true \
   --warmStart true \
-  --indexName $INDEX_NAME_STEP)
+  --indexName $INDEX_NAME_STEP \
+  --folderName $FOLDER_STEP)
 
   echo ${n}" : "${INDEX_NAME_STEP}
 
   # Predict OOS
   $EXEC_PRED_OOS \
-  --indexFileName $INDEX_NAME_STEP
+  --indexFileName $INDEX_NAME_STEP \
+  --folderName $FOLDER_STEP
 
   ((n=n+1))
 done
-
-

@@ -1,5 +1,6 @@
 #!/bin/bash
 
+DELIM=';'
 CLASSIFIER=DecisionTreeClassifier
 PATH=/home/charles/src/C++/sandbox/Inductive-Boost/build/
 EXEC_CC=${PATH}createContext
@@ -8,7 +9,7 @@ CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCreifissa.cxt
 CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCreifissa.cxt
 
 STEPS=100
-BASESTEPS=1000
+BASESTEPS=10000
 LEARNINGRATE=.0001
 RECURSIVE_FIT=true
 PARTITION_SIZE=100
@@ -94,18 +95,28 @@ EXEC_PRED_OOS=${PATH}stepwise_classify
 # First run
 n=1
 
-INDEX_NAME_STEP=$($EXEC_INC \
+STEP_INFO=$($EXEC_INC \
 --contextFileName $CONTEXT_PATH_RUN1 \
 --dataName $DATANAME \
 --mergeIndexFiles false \
 --warmStart false)
 
+set -- "$STEP_INFO"
+IFS=$DELIM; declare -a res=($*)
+arg0="${res[0]}"
+arg1="${res[1]}"
+INDEX_NAME_STEP=$arg0
+FOLDER_STEP=$arg1
+
+echo ${n}" : "${FOLDER_STEP}
 echo ${n}" : "${INDEX_NAME_STEP}
+
 ((n=n+1))
 
 # Classify OOS
 $EXEC_PRED_OOS \
---indexFileName $INDEX_NAME_STEP
+--indexFileName $INDEX_NAME_STEP \
+--folderName $FOLDER_STEP
 
 # Subsequent runs
 for (( ; ; ));
@@ -121,15 +132,15 @@ do
   --quietRun true \
   --mergeIndexFiles true \
   --warmStart true \
-  --indexName $INDEX_NAME_STEP)
+  --indexName $INDEX_NAME_STEP \
+  --folderName $FOLDER_STEP)
 
   echo ${n}" : "${INDEX_NAME_STEP}
 
   # Classify OOS
   $EXEC_PRED_OOS \
-  --indexFileName $INDEX_NAME_STEP
+  --indexFileName $INDEX_NAME_STEP \
+  --folderName $FOLDER_STEP
 
   ((n=n+1))
 done
-
-

@@ -7,13 +7,15 @@ auto main(int argc, char **argv) -> int {
   std::string datasetFileName;
   std::string regressorFileName;
   std::string outFileName;
+  std::string folderName;
 
   options_description desc("Options");
   desc.add_options()
     ("help,h", "Help screen")
     ("datasetFileName",		value<std::string>(&datasetFileName),		"datasetFileName")
     ("regressorFileName",	value<std::string>(&regressorFileName),		"regressorFileName")
-    ("outFileName",		value<std::string>(&outFileName),		"outFileName");
+    ("outFileName",		value<std::string>(&outFileName),		"outFileName")
+    ("folderName",		value<std::string>(&folderName),		"folderName");
 
   variables_map vm;
   
@@ -36,7 +38,8 @@ auto main(int argc, char **argv) -> int {
   Row<double> prediction;
   Replay<double, DecisionTreeRegressorRegressor>::PredictStep(regressorFileName,
 							      datasetFileName,
-							      outFileName);
+							      outFileName,
+							      folderName);
 
   return 0;
 }

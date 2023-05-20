@@ -96,16 +96,18 @@ namespace IB_utils {
     ifs.close();
   }
 
-  void mergeIndices(std::string pathOld, std::string pathNew, boost::filesystem::path fldr) {
+  void mergeIndices(std::string pathOld, std::string pathNew, boost::filesystem::path fldr, bool removeOld) {
+
+    std::string pathOut = pathNew;
 
     if (fldr.string().size()) {
-      boost::filesystem::path fldr2{fldr};
+      boost::filesystem::path fldrOld{fldr}, fldrNew{fldr};
 
-      fldr /= pathOld;
-      pathOld = fldr.string();
+      fldrOld /= pathOld;
+      pathOld = fldrOld.string();
 
-      fldr2 /= pathNew;
-      pathNew = fldr2.string();      
+      fldrNew /= pathNew;
+      pathNew = fldrNew.string();      
     }
 
     // Prepend information in old file to new file, save in updated 
@@ -130,7 +132,10 @@ namespace IB_utils {
     }
     ifsNew.close();
 
-    writeIndex(fileNames, pathNew, fldr);
+    if (removeOld)
+      boost::filesystem::remove(pathOld);
+
+    writeIndex(fileNames, pathOut, fldr);
     
   }
 

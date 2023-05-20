@@ -5,11 +5,13 @@ using namespace boost::program_options;
 auto main(int argc, char **argv) -> int {
 
   std::string indexFileName;
+  std::string folderName;
 
   options_description desc("Options");
   desc.add_options()
     ("help,h", "Help screen")
-    ("indexFileName",		value<std::string>(&indexFileName),	"indexFileName");
+    ("indexFileName",		value<std::string>(&indexFileName),	"indexFileName")
+    ("folderName",		value<std::string>(&folderName),	"folderName");
 
   variables_map vm;
 
@@ -30,7 +32,12 @@ auto main(int argc, char **argv) -> int {
   }
 
   Row<double> prediction_oos, labels_oos;
-  const auto testError = Replay<double, DecisionTreeRegressorRegressor>::PredictStepwise(indexFileName, prediction_oos, labels_oos, true, true);
+  const auto testError = Replay<double, DecisionTreeRegressorRegressor>::PredictStepwise(indexFileName, 
+											 prediction_oos, 
+											 labels_oos, 
+											 false, 
+											 true,
+											 folderName);
 
   std::cout << "TEST ERROR    : " << testError.value_or(-1.) << std::endl;
 

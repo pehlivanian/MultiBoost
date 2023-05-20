@@ -11,11 +11,14 @@ using namespace IB_utils;
 
 using namespace boost::program_options;
 
+const std::string DELIM = ";";
+
 auto main(int argc, char **argv) -> int {
 
   std::string dataName;
   std::string contextFileName;
   std::string indexName;
+  std::string folderName = "";
   bool quietRun = true;
   bool warmStart = false;
   bool mergeIndexFiles = false;
@@ -31,7 +34,8 @@ auto main(int argc, char **argv) -> int {
     ("quietRun",	value<bool>(&quietRun),			"quietRun")
     ("warmStart",	value<bool>(&warmStart),		"warmStart")
     ("mergeIndexFiles",	value<bool>(&mergeIndexFiles),		"mergeIndexFiles")
-    ("indexName",	value<std::string>(&indexName),		"indexName");
+    ("indexName",	value<std::string>(&indexName),		"indexName")
+    ("folderName",	value<std::string>(&folderName),	"folderName");
 
   variables_map vm;
     
@@ -51,7 +55,8 @@ auto main(int argc, char **argv) -> int {
     std::cerr << desc << std::endl;
   }
   
-  // Get context
+  // Get context; no subdirectory for initial read
+  // classifier will persist to digest subdirectory
   readBinary<Context>(contextFileName, context);
   context.quietRun = quietRun;
 
@@ -87,13 +92,14 @@ auto main(int argc, char **argv) -> int {
   CPtr c;
 
   if (warmStart) {
-    readPrediction(indexName, prediction);
+    readPrediction(indexName, prediction, folderName);
     c = std::make_unique<classifier>(trainDataset,
 				     trainLabels,
 				     testDataset,
 				     testLabels,
 				     prediction,
-				     context);
+				     context,
+				     folderName);
   } else {
     c = std::make_unique<classifier>(trainDataset, 
 				     trainLabels,
@@ -107,12 +113,18 @@ auto main(int argc, char **argv) -> int {
 
   // Get indexName
   std::string indexNameNew = c->getIndexName();
+  boost::filesystem::path fldr = c->getFldr();
 
   // Combine information in index
   if (mergeIndexFiles)
-    mergeIndices(indexName, indexNameNew);
+    mergeIndices(indexName, indexNameNew, fldr, true);
 
-  std::cout << indexNameNew << std::endl;
+  if (warmStart) {
+    std::cout << indexNameNew << std::endl;
+  } else {
+    std::cout << indexNameNew << DELIM
+	      << fldr.string() << std::endl;
+  }
 
   return 0;
 }

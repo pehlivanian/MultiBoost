@@ -48,14 +48,14 @@ public:
   static void Classify(std::string, Row<DataType>&, boost::filesystem::path=boost::filesystem::path{});
   static void Predict(std::string, Row<DataType>&, boost::filesystem::path=boost::filesystem::path{});
 
-  static void ClassifyStepwise(std::string, Row<DataType>&, Row<DataType>&, bool=false, bool=false);
-  static std::optional<double>  PredictStepwise(std::string, Row<DataType>&, Row<DataType>&, bool, bool=false);
+  static void ClassifyStepwise(std::string, Row<DataType>&, Row<DataType>&, bool=false, bool=false, boost::filesystem::path=boost::filesystem::path{});
+  static std::optional<double>  PredictStepwise(std::string, Row<DataType>&, Row<DataType>&, bool, bool=false, boost::filesystem::path=boost::filesystem::path{});
 
-  static void ClassifyStep(std::string, std::string, Row<double>&, bool=false);
-  static void PredictStep(std::string, std::string, Row<double>&);
+  static void ClassifyStep(std::string, std::string, Row<double>&, bool=false, boost::filesystem::path=boost::filesystem::path{});
+  static void PredictStep(std::string, std::string, Row<double>&, boost::filesystem::path=boost::filesystem::path{});
 
-  static void ClassifyStep(std::string, std::string, std::string, bool=false);
-  static void PredictStep(std::string, std::string, std::string);  
+  static void ClassifyStep(std::string, std::string, std::string, bool=false, boost::filesystem::path=boost::filesystem::path{});
+  static void PredictStep(std::string, std::string, std::string, boost::filesystem::path=boost::filesystem::path{});  
 
 private:
   static void desymmetrize(Row<DataType>&, double, double);

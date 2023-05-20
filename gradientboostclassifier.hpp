@@ -74,8 +74,9 @@ public:
   // context	: ClassifierContext::Context
   GradientBoostClassifier(const mat& dataset, 
 			  const Row<std::size_t>& labels,
-			  Context context) :
-    CompositeClassifier<ClassifierType>(dataset, labels, context) {}
+			  Context context,
+			  const std::string& folderName=std::string{}) :
+    CompositeClassifier<ClassifierType>(dataset, labels, context, folderName) {}
 
   // 2
   // mat	: arma::Mat<double>
@@ -83,8 +84,9 @@ public:
   // context	: ClassifierContext::Context
   GradientBoostClassifier(const mat& dataset,
 			  const Row<double>& labels,
-			  Context context) :
-    CompositeClassifier<ClassifierType>(dataset, labels, context) {}
+			  Context context,
+			  const std::string& folderName=std::string{}) :
+    CompositeClassifier<ClassifierType>(dataset, labels, context, folderName) {}
   
   // 3
   // mat		: arma::Mat<double>
@@ -96,8 +98,9 @@ public:
 			  const Row<std::size_t>& labels,
 			  const mat& dataset_oos,
 			  const Row<std::size_t>& labels_oos,
-			  Context context) :
-    CompositeClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, context) {}
+			  Context context,
+			  const std::string& folderName=std::string{}) :
+    CompositeClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, context, folderName) {}
 
   // 4
   // mat		: arma::Mat<double>
@@ -109,8 +112,9 @@ public:
 			  const Row<double>& labels,
 			  const mat& dataset_oos,
 			  const Row<double>& labels_oos,
-			  Context context) :
-    CompositeClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, context) {}
+			  Context context,
+			  const std::string& folderName=std::string{}) :
+    CompositeClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, context, folderName) {}
 
   // 5
   // mat		: arma::Mat<double>
@@ -123,8 +127,9 @@ public:
 			  const Row<std::size_t>& labels,
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
-			  Context context) :
-    CompositeClassifier<ClassifierType>(dataset, labels, latestPrediction, colMask, context) {}
+			  Context context,
+			  const std::string& folderName=std::string{}) :
+    CompositeClassifier<ClassifierType>(dataset, labels, latestPrediction, colMask, context, folderName) {}
 
   // 6
   // mat		: arma::Mat<double>
@@ -134,8 +139,9 @@ public:
   GradientBoostClassifier(const mat& dataset,
 			  const Row<std::size_t>& labels,
 			  const Row<double>& latestPrediction,
-			  Context context) :
-    CompositeClassifier<ClassifierType>(dataset, labels, latestPrediction, context) {}
+			  Context context,
+			  const std::string& folderName=std::string{}) :
+    CompositeClassifier<ClassifierType>(dataset, labels, latestPrediction, context, folderName) {}
 
   // 7
   // mat		: arma::Mat<double>
@@ -147,8 +153,9 @@ public:
 			  const Row<double>& labels,
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
-			  Context context) :
-    CompositeClassifier<ClassifierType>(dataset, labels, latestPrediction, colMask, context) {}
+			  Context context,
+			  const std::string& folderName=std::string{}) :
+    CompositeClassifier<ClassifierType>(dataset, labels, latestPrediction, colMask, context, folderName) {}
 
   // 8
   // mat		: arma::Mat<double>
@@ -158,8 +165,9 @@ public:
   GradientBoostClassifier(const mat& dataset,
 			  const Row<double>& labels,
 			  const Row<double>& latestPrediction,
-			  Context context) :
-    CompositeClassifier<ClassifierType>(dataset, labels, latestPrediction, context) {}
+			  Context context,
+			  const std::string& folderName=std::string{}) :
+    CompositeClassifier<ClassifierType>(dataset, labels, latestPrediction, context, folderName) {}
 
   // 9
   // mat		: arma::Mat<double>
@@ -175,8 +183,9 @@ public:
 			  const Row<std::size_t>& labels_oos,
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
-			  Context context) :
-    CompositeClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, latestPrediction, colMask, context) {}
+			  Context context,
+			  const std::string& folderName=std::string{}) :
+    CompositeClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, latestPrediction, colMask, context, folderName) {}
 
   // 10
   // mat		: arma::Mat<double>
@@ -190,8 +199,9 @@ public:
 			  const mat& dataset_oos,
 			  const Row<std::size_t>& labels_oos,
 			  const Row<double>& latestPrediction,
-			  Context context) :
-    CompositeClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, latestPrediction, context) {}
+			  Context context,
+			  const std::string& folderName=std::string{}) :
+    CompositeClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, latestPrediction, context, folderName) {}
 
   // 11
   // mat		: arma::Mat<double>
@@ -207,8 +217,9 @@ public:
 			  const Row<double>& labels_oos,
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
-			  Context context) :
-    CompositeClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, latestPrediction, colMask, context) {}
+			  Context context,
+			  const std::string& folderName=std::string{}) :
+    CompositeClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, latestPrediction, colMask, context, folderName) {}
 
   // 12
   // mat		: arma::Mat<double>
@@ -222,8 +233,9 @@ public:
 			  const mat& dataset_oos,
 			  const Row<double>& labels_oos,
 			  const Row<double>& latestPrediction,
-			  Context context) :
-    CompositeClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, latestPrediction, context) {}
+			  Context context,
+			  const std::string& folderName=std::string{}) :
+    CompositeClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, latestPrediction, context, folderName) {}
 
 };
 

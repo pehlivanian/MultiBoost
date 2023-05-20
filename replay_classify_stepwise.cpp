@@ -7,13 +7,15 @@ auto main(int argc, char **argv) -> int {
   std::string datasetFileName;
   std::string classifierFileName;
   std::string outFileName;
+  std::string folderName;
 
   options_description desc("Options");
   desc.add_options()
     ("help,h", "Help screen")
     ("datasetFileName",		value<std::string>(&datasetFileName),		"datasetFileName")
     ("classifierFileName",	value<std::string>(&classifierFileName),	"classifierFileName")
-    ("outFileName",		value<std::string>(&outFileName),		"outFileName");
+    ("outFileName",		value<std::string>(&outFileName),		"outFileName")
+    ("folderName",		value<std::string>(&folderName),		"folderName");
 
   variables_map vm;
   
@@ -37,7 +39,8 @@ auto main(int argc, char **argv) -> int {
   Replay<double, DecisionTreeClassifier>::ClassifyStep(classifierFileName,
 						       datasetFileName,
 						       outFileName,
-						       false);
+						       false,
+						       folderName);
 
   return 0;
 }

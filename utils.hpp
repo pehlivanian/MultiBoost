@@ -618,7 +618,7 @@ namespace IB_utils {
   std::string writeIndex(const std::vector<std::string>&, boost::filesystem::path fldr=boost::filesystem::path{});
   std::string writeIndex(const std::vector<std::string>&, std::string, boost::filesystem::path fldr=boost::filesystem::path{});
   void readIndex(std::string, std::vector<std::string>&, boost::filesystem::path fldr=boost::filesystem::path{});
-  void mergeIndices(std::string, std::string, boost::filesystem::path fldr=boost::filesystem::path{});
+  void mergeIndices(std::string, std::string, boost::filesystem::path fldr=boost::filesystem::path{}, bool=false);
 
   template<typename T>
   void 
