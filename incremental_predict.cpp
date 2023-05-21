@@ -81,10 +81,10 @@ auto main(int argc, char **argv) -> int {
 	      trainLabels, 
 	      testLabels, 
 	      splitRatio);
-  std::cerr << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
-  	    << trainDataset.n_rows << ")" << std::endl;
-  std::cerr << "TEST DATASET:  (" << testDataset.n_cols << " x " 
-	    << testDataset.n_rows << ")" << std::endl;
+  // std::cerr << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
+  // 	    << trainDataset.n_rows << ")" << std::endl;
+  // std::cerr << "TEST DATASET:  (" << testDataset.n_cols << " x " 
+  //	    << testDataset.n_rows << ")" << std::endl;
   
   // Create regressor
   // Get prediction if warmStart

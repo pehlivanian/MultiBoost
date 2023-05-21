@@ -19,7 +19,7 @@ MAXDEPTH=10
 LOSS_FN=0
 COLSUBSAMPLE_RATIO=.5
 DATANAME=1193_BNG_lowbwt
-SPLITRATIO=0.90
+SPLITRATIO=0.50
 
 ((ITERS=$BASESTEPS / $STEPS))
 
@@ -77,6 +77,9 @@ $EXEC_CC \
 --serializationWindow 10 \
 --fileName $CONTEXT_PATH_RUNS
 
+# Details
+DETAILS=${INDEX_NAME_STEP}"(Dataset, Rcsv, lrate, parSize) = ("${DATANAME}", "${RECURSIVE_FIT}", "${LEARNINGRATE}", "${PARTITION_SIZE}")"
+
 # Incremental IS regressor fit
 EXEC_INC=${PATH}incremental_predict
 
@@ -86,7 +89,7 @@ EXEC_PRED_OOS=${PATH}stepwise_predict
 # First run
 n=1
 
-echo ${n}" : STEPWISE PREDICT"
+echo ${n}" : STEPWISE PREDICT :: "${DETAILS}
 
 STEP_INFO=$($EXEC_INC \
 --contextFileName $CONTEXT_PATH_RUN1 \
@@ -118,7 +121,6 @@ do
     break
   fi
 
-  echo ${n}" : STEPWISE PREDICT"
 
   # Fit step
   INDEX_NAME_STEP=$($EXEC_INC \
@@ -131,7 +133,7 @@ do
   --indexName $INDEX_NAME_STEP \
   --folderName $FOLDER_STEP)
 
-  echo ${n}" : "${INDEX_NAME_STEP}
+  echo ${n}" : STEPWISE PREDICT :: "${INDEX_NAME_STEP}" "${DETAILS}
 
   # Predict OOS
   $EXEC_PRED_OOS \

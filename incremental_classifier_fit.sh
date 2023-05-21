@@ -10,14 +10,14 @@ CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCreifissa.cxt
 
 STEPS=100
 BASESTEPS=10000
-LEARNINGRATE=.0001
+LEARNINGRATE=.001
 RECURSIVE_FIT=true
-PARTITION_SIZE=100
+PARTITION_SIZE=10
 MINLEAFSIZE=1
 MAXDEPTH=10
 LOSS_FN=5
 COLSUBSAMPLE_RATIO=.85
-DATANAME=titanic_train
+DATANAME=/tabular_benchmark/eye_movements
 
 # STEPS=10
 # BASESTEPS=1000
@@ -86,6 +86,9 @@ $EXEC_CC \
 --serializationWindow 1000 \
 --fileName $CONTEXT_PATH_RUNS
 
+# Details
+DETAILS=${INDEX_NAME_STEP}"(Dataset, Rcsv, lrate, parSize) = ("${DATANAME}", "${RECURSIVE_FIT}", "${LEARNINGRATE}", "${PARTITION_SIZE}")"
+
 # Incremental IS classifier fit
 EXEC_INC=${PATH}incremental_classify
 
@@ -94,6 +97,8 @@ EXEC_PRED_OOS=${PATH}stepwise_classify
 
 # First run
 n=1
+
+echo ${n}" STEPWISE CLASSIFY :: "${DETAILS}
 
 STEP_INFO=$($EXEC_INC \
 --contextFileName $CONTEXT_PATH_RUN1 \
@@ -135,7 +140,7 @@ do
   --indexName $INDEX_NAME_STEP \
   --folderName $FOLDER_STEP)
 
-  echo ${n}" : "${INDEX_NAME_STEP}
+  echo ${n}" : STEPWISE CLASSIFY :: "${INDEX_NAME_STEP}" "${DETAILS}
 
   # Classify OOS
   $EXEC_PRED_OOS \
