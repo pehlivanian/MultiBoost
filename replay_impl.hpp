@@ -211,7 +211,7 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
 
 
 template<typename DataType, typename RegressorType>
-std::optional<double>
+typename Replay<DataType, RegressorType>::optRV
 Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
 						 Row<DataType>& prediction,
 						 Row<DataType>& labels_oos,
@@ -335,17 +335,29 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
   }
 
   if (include_loss) {
+
+    for (int i=0; i<5; ++i) {
+      std::cout << "(y, y_hat): (" 
+		<< prediction[i] << ", "
+		<< labels_oos[i] << ")" << std::endl;
+    }
+
+    auto mn = mean(labels_oos);
+    auto num = sum(pow((labels_oos - prediction), 2));
+    auto den = sum(pow((labels_oos - mn), 2));
+    double r_squared = 1. - (num/den);
+
     using R = GradientBoostRegressor<RegressorType>;
     std::unique_ptr<R> regressor = std::make_unique<R>();
 
     read(*regressor, regressorFileName, folderName);
     auto lossFn = lossMap<DataType>[regressor->getLoss()];
-
+    
     double r = std::sqrt(lossFn->loss(prediction, labels_oos));
-    return r;
-
+    return std::make_tuple(r, r_squared);
+    
   } else {
-    return std::nullopt;
+    return std::make_tuple(std::nullopt, std::nullopt);
   }
   
 }

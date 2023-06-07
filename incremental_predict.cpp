@@ -61,7 +61,7 @@ auto main(int argc, char **argv) -> int {
   context.quietRun = quietRun;
 
   // Get data
-  std::string absPath = "/home/charles/Data/Regression/";
+  std::string absPath = "/home/charles/Data/";
   std::string XPath = absPath + dataName + "_X.csv";
   std::string yPath = absPath + dataName + "_y.csv";
 

@@ -36,6 +36,9 @@ using namespace LossMeasures;
 
 template<typename DataType, typename ModelType>
 class Replay {
+
+  using optRV = std::tuple<std::optional<double>, std::optional<double>>;
+
 public:
   Replay()  = default;
   ~Replay() = default;
@@ -49,7 +52,7 @@ public:
   static void Predict(std::string, Row<DataType>&, boost::filesystem::path=boost::filesystem::path{});
 
   static void ClassifyStepwise(std::string, Row<DataType>&, Row<DataType>&, bool=false, bool=false, boost::filesystem::path=boost::filesystem::path{});
-  static std::optional<double>  PredictStepwise(std::string, Row<DataType>&, Row<DataType>&, bool, bool=false, boost::filesystem::path=boost::filesystem::path{});
+  static optRV PredictStepwise(std::string, Row<DataType>&, Row<DataType>&, bool, bool=false, boost::filesystem::path=boost::filesystem::path{});
 
   static void ClassifyStep(std::string, std::string, Row<double>&, bool=false, boost::filesystem::path=boost::filesystem::path{});
   static void PredictStep(std::string, std::string, Row<double>&, boost::filesystem::path=boost::filesystem::path{});
