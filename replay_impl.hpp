@@ -219,10 +219,14 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
 						 bool include_loss,
 						 boost::filesystem::path folderName) {
   
-  std::vector<std::string> fileNames, predictionFileNames;
+  std::vector<std::string> fileNames, predictionFileNames, predictionFileNamesIS;
+  Row<DataType> prediction_is;
   readIndex(indexName, fileNames, folderName);
 
+
+
   int n_rows, n_cols;
+  int n_rows_is, n_cols_is;
   mat dataset, dataset_oos;
   Row<DataType> labels, predictionStep;
   int regressorNum = 0;
@@ -237,6 +241,8 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
     auto fileName_short = strJoin(tokens, '_', 1);
     if (tokens[0] == "DIS") { // Dataset In Sample
       read(dataset, datasetFileName = fileName_short, folderName);
+      n_rows_is = dataset.n_rows;
+      n_cols_is = dataset.n_cols;
     }
     else if (tokens[0] == "DOOS") { // Dataset Out Of Sample
       read(dataset_oos, datasetOOSFileName = fileName_short, folderName);
@@ -299,6 +305,7 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
       if (tokens[0] == "REG") {
 	regressorFileName = strJoin(tokens, '_', 1);
 	std::string outFile = outFilePref + std::to_string(regressorNum) + ".prd";
+	std::string outFile_is = outFilePref + std::to_string(regressorNum) + ".is.prd";
 	// Call PredictStep at this point, but 
 	// wrapped in another process we can launch as a 
 	// true subprocess
@@ -321,6 +328,24 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
 	c.wait();
 
 	predictionFileNames.push_back(outFile);
+
+	ipstream pipe_stream_is;
+	cmd = "./build/replay_predict_stepwise";
+	
+	cmd += " --datasetFileName "	+ datasetFileName;
+	cmd += " --regressorFileName "  + regressorFileName;
+	cmd += " --outFileName "	+ outFile_is;
+	cmd += " --folderName "		+ folderName.string();
+
+	child c_is(cmd, std_out > pipe_stream_is);
+
+	while (pipe_stream_is && std::getline(pipe_stream_is, line) && !line.empty())
+	  std::cerr << line << std::endl;
+
+	c.wait();
+
+	predictionFileNamesIS.push_back(outFile_is);
+	
 	regressorNum++;
       }
     }
@@ -332,14 +357,29 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
       prediction+= predictionStep;
     }    
 
+    prediction_is = zeros<Row<DataType>>(n_cols_is);
+
+    for (auto &fileName : predictionFileNamesIS) {
+      Row<double> predictionStep_is;
+      read(predictionStep_is, fileName, folderName);
+      prediction_is += predictionStep_is;
+    }
+
   }
 
   if (include_loss) {
 
-    for (int i=0; i<5; ++i) {
+    for (int i=0; i<10; ++i) {
       std::cout << "(y, y_hat): (" 
 		<< prediction[i] << ", "
 		<< labels_oos[i] << ")" << std::endl;
+    }
+    std::cout << std::endl;
+
+    for (int i=0; i<10; ++i) {
+      std::cout << "(labels, labels_hat): (" 
+		<< prediction_is[i] << ", "
+		<< labels[i] << ")" << std::endl;
     }
 
     auto mn = mean(labels_oos);

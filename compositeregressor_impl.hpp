@@ -11,8 +11,9 @@ using namespace Objectives;
 using namespace IB_utils;
 
 namespace FileScope {
-  const bool POST_EXTRAPOLATE = false;
-  const bool DIAGNOSTICS = false;
+  const bool POST_EXTRAPOLATE = true;
+  const bool DIAGNOSTICS_0_ = true;
+  const bool DIAGNOSTICS_1_ = false;
 } // namespace FileScope
 
 template<typename RegressorType>
@@ -339,6 +340,27 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
 				      subLearningRate, 
 				      colMask_);
 
+    if (FileScope::DIAGNOSTICS_1_) {
+
+      std::cerr << "FITTING COMPOSITE REGRESSOR FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
+		<< partitionSize_ << ", "
+		<< stepNum << ", "
+		<< steps_ << ")"
+		<< std::endl;
+
+      rowvec yhat_debug;
+      Predict(yhat_debug, colMask_);
+
+      for (std::size_t i=0; i<best_leaves.size(); ++i) {
+	std::cerr << labels_slice[i] << " : "
+		  << yhat_debug[i] << " : "
+		  << best_leaves[i] << " : "
+		  << coeffs.first[i] << " : " 
+		  << coeffs.second[i] << std::endl;
+      }
+      std::cerr << "DIAGNOSTICS FINSIHED" << std::endl;
+    }
+
     allLeaves(colMask_) = best_leaves;
 
     Context context{};      
@@ -356,7 +378,27 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
 							  colMask_, 
 							  context));
 
+    if (FileScope::DIAGNOSTICS_1_) {
+
+      std::cerr << "PREFIT: (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
+		<< partitionSize_ << ", "
+		<< stepNum << ", "
+		<< steps_ << ")"
+		<< std::endl;
+
+    }
+
     regressor->fit();
+
+    if (FileScope::DIAGNOSTICS_1_) {
+
+      std::cerr << "POSTFIT: (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
+		<< partitionSize_ << ", "
+		<< stepNum << ", "
+		<< steps_ << ")"
+		<< std::endl;
+
+    }
 
     regressor->Predict(dataset_, prediction);
 
@@ -370,8 +412,8 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
   // If we are in recursive mode and partitionSize <= 2, fall through
   // to this case for the leaf regressor
 
-  if (FileScope::DIAGNOSTICS)
-    std::cout << "FITTING REGRESSOR FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
+  if (FileScope::DIAGNOSTICS_0_)
+    std::cerr << "FITTING LEAF REGRESSOR FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
 	      << partitionSize_ << ", "
 	      << stepNum << ", "
 	      << steps_ << ")"
@@ -393,7 +435,7 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
 				    partitionSize, 
 				    learningRate,
 				    colMask_);
-  
+    
   if (FileScope::POST_EXTRAPOLATE) {
     // Fit regressor on {dataset_slice, best_leaves}, both subsets of the original data
     // There will be no post-padding of zeros as that is not defined for OOS prediction, we
@@ -421,7 +463,29 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
     // 				std::forward(rootRegressorArgs)));
   }
 
-  regressor->Predict(dataset_, prediction);
+  regressor->Project(dataset_, prediction);
+
+  if (FileScope::DIAGNOSTICS_1_) {
+    
+    std::cerr << "FITTING LEAF REGRESSOR FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
+	      << partitionSize_ << ", "
+	      << stepNum << ", "
+	      << steps_ << ")"
+	      << std::endl;
+    
+    rowvec yhat_debug;
+    Predict(yhat_debug, colMask_);
+    
+    for (std::size_t i=0; i<best_leaves.size(); ++i) {
+      std::cerr << labels_slice[i] << " : "
+		<< yhat_debug[i] << " : "
+		<< best_leaves[i] << " : "
+		<< prediction[i] << " : "
+		<< coeffs.first[i] << " : " 
+		<< coeffs.second[i] << std::endl;
+    }
+    std::cerr << "DIAGNOSTICS FINSIHED" << std::endl;
+  }
 
   updateRegressors(std::move(regressor), prediction);
 
@@ -808,7 +872,7 @@ CompositeRegressor<RegressorType>::computeSubStepSize(std::size_t stepNum) {
   (void)stepNum;
 
   // XXX
-  double mult = 1.;
+  double mult = 2.;
   return std::max(1, static_cast<int>(mult * std::log(steps_)));    
 }
 

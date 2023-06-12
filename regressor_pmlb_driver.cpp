@@ -17,9 +17,15 @@ auto main() -> int {
   Row<double> labels, trainLabels, testLabels;
   Row<double> trainPrediction, testPrediction;
 
+  /*
   if (!data::Load("/home/charles/Data/Regression/1193_BNG_lowbwt_X.csv", dataset))
     throw std::runtime_error("Could not load file");
   if (!data::Load("/home/charles/Data/Regression/1193_BNG_lowbwt_y.csv", labels))
+    throw std::runtime_error("Could not load file");
+  */
+  if (!data::Load("/home/charles/Data/tabular_benchmark/Regression/Mixed/Mercedes_Benz_Greener_Manufacturing_X.csv", dataset))
+    throw std::runtime_error("Could not load file");
+  if (!data::Load("/home/charles/Data/tabular_benchmark/Regression/Mixed/Mercedes_Benz_Greener_Manufacturing_y.csv", labels))
     throw std::runtime_error("Could not load file");
 
   data::Split(dataset, 
@@ -27,7 +33,7 @@ auto main() -> int {
 	      trainDataset, 
 	      testDataset, 
 	      trainLabels, 
-	      testLabels, 0.50);
+	      testLabels, 0.2);
   std::cout << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
 	    << trainDataset.n_rows << ")" << std::endl;
   std::cout << "TEST DATASET:  (" << testDataset.n_cols << " x " 
@@ -43,28 +49,28 @@ auto main() -> int {
   // context.loss = lossFunction::Synthetic;
   // context.loss = lossFunction::SyntheticVar1;
   // context.loss = lossFunction::SyntheticVar2;
-  context.partitionSize = 500;
+  context.partitionSize = 100;
   context.partitionRatio = 1.;
-  context.learningRate = .01;
-  context.steps = 500;
-  context.baseSteps = 10000;
+  context.learningRate = .5;
+  context.steps = 1000;
+  context.baseSteps = 1000;
   context.symmetrizeLabels = false;
-  context.serializationWindow = 1000;
+  context.serializationWindow = 10;
   context.removeRedundantLabels = false;
   context.rowSubsampleRatio = 1.;
-  context.colSubsampleRatio = .5; // .75
+  context.colSubsampleRatio = 1.; // .75
   context.recursiveFit = false;
   context.quietRun = false;
   context.serialize = false;
   context.serializePrediction = false;
   context.serializeDataset = false;
   context.serializeLabels = false;
-  context.serializationWindow = 10;
+  context.serializationWindow = 1;
   context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
   context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;    // DECREASING
   context.stepSizeMethod = StepSize::StepSizeMethod::LOG;	
   context.minLeafSize = 1;
-  context.maxDepth = 10;
+  context.maxDepth = 20;
   context.minimumGainSplit = 0.;
 
   using regressor = GradientBoostRegressor<DecisionTreeRegressorRegressor>;
