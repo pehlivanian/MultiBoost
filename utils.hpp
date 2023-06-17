@@ -75,11 +75,14 @@ namespace ModelContext{
       partitionSizeMethod{PartitionSize::PartitionSizeMethod::FIXED},
       learningRateMethod{LearningRate::LearningRateMethod::FIXED},
       stepSizeMethod{StepSize::StepSizeMethod::LOG},
+      childPartitionSize{std::vector<std::size_t>()},
+      childNumSteps{std::vector<std::size_t>()},
+      childLearningRate{std::vector<double>()},
       minLeafSize{minLeafSize},
       minimumGainSplit{minimumGainSplit},
       maxDepth{maxDepth},
       numTrees{numTrees},
-      serialize{false},
+      serializeModel{false},
       serializePrediction{false},
       serializeColMask{false},
       serializeDataset{false},
@@ -107,17 +110,52 @@ namespace ModelContext{
       partitionSizeMethod = rhs.partitionSizeMethod;
       learningRateMethod = rhs.learningRateMethod;
       stepSizeMethod = rhs.stepSizeMethod;
+      childPartitionSize = rhs.childPartitionSize;
+      childNumSteps = rhs.childNumSteps;
+      childLearningRate = rhs.childLearningRate;
       minLeafSize = rhs.minLeafSize;
       minimumGainSplit = rhs.minimumGainSplit;
       maxDepth = rhs.maxDepth;
       numTrees = rhs.numTrees;
-      serialize = rhs.serialize;
+      serializeModel = rhs.serializeModel;
       serializePrediction = rhs.serializePrediction;
       serializeColMask = rhs.serializeColMask;
       serializeDataset = rhs.serializeDataset;
       serializeLabels = rhs.serializeLabels;
       serializationWindow = rhs.serializationWindow;
 
+    }
+
+    template<class Archive>
+    void serialize(Archive &ar) {
+      ar(loss);
+      ar(partitionSize);
+      ar(partitionRatio);
+      ar(learningRate);
+      ar(steps);
+      ar(baseSteps);
+      ar(symmetrizeLabels);
+      ar(removeRedundantLabels);
+      ar(quietRun);
+      ar(rowSubsampleRatio);
+      ar(colSubsampleRatio);
+      ar(recursiveFit);
+      ar(partitionSizeMethod);
+      ar(learningRateMethod);
+      ar(stepSizeMethod);
+      ar(childPartitionSize);
+      ar(childNumSteps);
+      ar(childLearningRate);
+      ar(minLeafSize);
+      ar(minimumGainSplit);
+      ar(maxDepth);
+      ar(numTrees);
+      ar(serializeModel);
+      ar(serializePrediction);
+      ar(serializeColMask);
+      ar(serializeDataset);
+      ar(serializeLabels);
+      ar(serializationWindow);
     }
       
     lossFunction loss;
@@ -135,17 +173,21 @@ namespace ModelContext{
     PartitionSize::PartitionSizeMethod partitionSizeMethod;
     LearningRate::LearningRateMethod learningRateMethod;
     StepSize::StepSizeMethod stepSizeMethod;
+    std::vector<std::size_t> childPartitionSize;
+    std::vector<std::size_t> childNumSteps;
+    std::vector<double> childLearningRate;
     std::size_t minLeafSize;
     double minimumGainSplit;
     std::size_t maxDepth;
     std::size_t numTrees;
-    bool serialize;
+    bool serializeModel;
     bool serializePrediction;
     bool serializeColMask;
     bool serializeDataset;
     bool serializeLabels;
     std::size_t serializationWindow;
   };
+
 } // namespace ModelContext
 
 class PartitionUtils {
@@ -295,7 +337,8 @@ namespace IB_utils {
       DATASET_OOS = 4,
       LABELS_IS = 5,
       LABELS_OOS = 6,
-      REGRESSOR = 7
+      REGRESSOR = 7,
+      CONTEXT = 8
       };
 
   class DatasetArchive {
@@ -434,7 +477,8 @@ namespace IB_utils {
 	{4, "__DOOS_"},
 	{5, "__LIS_"},
 	{6, "__LOOS_"},
-	{7, "__REG_"}
+	{7, "__REG_"},
+	{8, "__CXT_"}
       };
     
     std::string pref = SerializedTypeMap[static_cast<std::underlying_type_t<SerializedType>>(typ)];

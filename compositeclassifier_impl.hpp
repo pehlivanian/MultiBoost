@@ -11,10 +11,11 @@ using namespace ModelContext;
 using namespace Objectives;
 using namespace IB_utils;
 
-namespace {
+namespace ClassifierFileScope{
   const bool POST_EXTRAPOLATE = false;
-  const bool DIAGNOSTICS = false;
-}
+  const bool DIAGNOSTICS_0_ = true;
+  const bool DIAGNOSTICS_1_ = false;
+} // namespace ClassifierFileScope
 
 template<typename ClassifierType>
 void
@@ -32,6 +33,22 @@ CompositeClassifier<ClassifierType>::childContext(Context& context,
   context.rowSubsampleRatio	= row_subsample_ratio_;
   context.colSubsampleRatio	= col_subsample_ratio_;
   context.recursiveFit		= true;
+
+  context.partitionSize		= subPartitionSize;
+  context.steps			= stepSize;
+  context.learningRate		= subLearningRate;
+
+  auto it = std::find(childPartitionSize_.cbegin(), childPartitionSize_.cend(), subPartitionSize);
+  auto ind = std::distance(childPartitionSize_.cbegin(), it);
+
+  context.childPartitionSize	= std::vector<std::size_t>(childPartitionSize_.cbegin()+ind,
+							   childPartitionSize_.cend());
+  context.childNumSteps		= std::vector<std::size_t>(childNumSteps_.cbegin()+ind,
+							   childNumSteps_.cend());
+  context.childLearningRate	= std::vector<double>(childLearningRate_.cbegin()+ind,
+						      childLearningRate_.cend());
+  
+
   context.stepSizeMethod	= stepSizeMethod_;
   context.partitionSizeMethod	= partitionSizeMethod_;
   context.learningRateMethod	= learningRateMethod_;   
@@ -56,10 +73,12 @@ void
 CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
 
   loss_				= context.loss;
-  partitionSize_		= context.partitionSize;
+
+  partitionSize_		= context.childPartitionSize[0];
+  steps_			= context.childNumSteps[0];
+  learningRate_			= context.childLearningRate[0];
+  
   partitionRatio_		= context.partitionRatio;
-  learningRate_			= context.learningRate;
-  steps_			= context.steps;
   baseSteps_			= context.baseSteps;
   symmetrized_			= context.symmetrizeLabels;
   removeRedundantLabels_	= context.removeRedundantLabels;
@@ -70,17 +89,32 @@ CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
   partitionSizeMethod_		= context.partitionSizeMethod;
   learningRateMethod_		= context.learningRateMethod;
   stepSizeMethod_		= context.stepSizeMethod;
+
+  childPartitionSize_		= context.childPartitionSize;
+  childNumSteps_		= context.childNumSteps;
+  childLearningRate_		= context.childLearningRate;
+
   minLeafSize_			= context.minLeafSize;
   minimumGainSplit_		= context.minimumGainSplit;
   maxDepth_			= context.maxDepth;
   numTrees_			= context.numTrees;
-  serialize_			= context.serialize;
+  serializeModel_		= context.serializeModel;
   serializePrediction_		= context.serializePrediction;
   serializeColMask_		= context.serializeColMask;
   serializeDataset_		= context.serializeDataset;
   serializeLabels_		= context.serializeLabels;
   serializationWindow_		= context.serializationWindow;
 
+}
+
+template<typename ClassifierType>
+void
+CompositeClassifier<ClassifierType>::childInfoInit_() {
+  for (std::size_t i=0; i<-1+childPartitionSize_.size(); ++i) {
+    childInfo_[childPartitionSize_[i]] = std::make_tuple(childPartitionSize_[i+1],
+							 childNumSteps_[i+1],
+							 childLearningRate_[i+1]);
+  }
 }
 
 template<typename ClassifierType>
@@ -142,8 +176,9 @@ void
 CompositeClassifier<ClassifierType>::init_(Context&& context) {
 
   contextInit_(std::move(context));
+  childInfoInit_();
 
-  if (serialize_ || serializePrediction_ ||
+  if (serializeModel_ || serializePrediction_ ||
       serializeColMask_ || serializeDataset_ ||
       serializeLabels_) {
 
@@ -275,7 +310,7 @@ template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
 
-  if (serialize_ && indexName_.size()) {
+  if (serializeModel_ && indexName_.size()) {
     throw predictionAfterClearedClassifiersException();
     return;
   }
@@ -288,7 +323,7 @@ template<typename ClassifierType>
 void 
 CompositeClassifier<ClassifierType>::Predict(mat&& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
 
-  if (serialize_ && indexName_.size()) {
+  if (serializeModel_ && indexName_.size()) {
     throw predictionAfterClearedClassifiersException();
     return;
   }
@@ -485,15 +520,18 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   //////////////////////////
   // BEGIN RECURSIVE STEP //
   //////////////////////////
-  if (recursiveFit_ && partitionSize_ > 2) {
+  if (recursiveFit_ && (childPartitionSize_.size() > 1)) {
     // Compute new partition size
-    std::size_t subPartitionSize = computeSubPartitionSize(stepNum);
+    // std::size_t subPartitionSize = computeSubPartitionSize(stepNum);
 
     // Compute new learning rate
-    double subLearningRate = computeSubLearningRate(stepNum);
+    // double subLearningRate = computeSubLearningRate(stepNum);
 
     // Compute new steps
-    std::size_t subStepSize = computeSubStepSize(stepNum);
+    // std::size_t subStepSize = computeSubStepSize(stepNum);
+
+    auto [subPartitionSize, subStepSize, subLearningRate] = 
+      computeChildPartitionInfo(stepNum);
 
     // Generate coefficients g, h
     std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
@@ -505,6 +543,28 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 				      subLearningRate, 
 				      colMask_);
 
+    if (ClassifierFileScope::DIAGNOSTICS_1_ || ClassifierFileScope::DIAGNOSTICS_0_) {
+      std::cerr << "FITTING COMPOSITE CLASSIFIER FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
+		<< partitionSize_ << ", "
+		<< stepNum << ", "
+		<< steps_ << ")"
+		<< std::endl;      
+    }
+
+    if (ClassifierFileScope::DIAGNOSTICS_1_) {
+      
+      rowvec yhat_debug;
+      Predict(yhat_debug, colMask_);
+
+      for (std::size_t i=0; i<best_leaves.size(); ++i) {
+	std::cerr << labels_slice[i] << " : "
+		  << yhat_debug[i] << " : "
+		  << best_leaves[i] << " : "
+		  << coeffs.first[i] << " : " 
+		  << coeffs.second[i] << std::endl;
+      }
+    }
+    
     allLeaves(colMask_) = best_leaves;
 
     Context context{};      
@@ -521,7 +581,28 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 							     colMask_, 
 							     context));
 
+    if (ClassifierFileScope::DIAGNOSTICS_1_) {
+
+      std::cerr << "PREFIT: (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
+		<< partitionSize_ << ", "
+		<< stepNum << ", "
+		<< steps_ << ")"
+		<< std::endl;
+
+    }
+
     classifier->fit();
+
+    if (ClassifierFileScope::DIAGNOSTICS_1_) {
+
+      std::cerr << "POSTFIT: (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
+		<< partitionSize_ << ", "
+		<< stepNum << ", "
+		<< steps_ << ")"
+		<< std::endl;
+
+    }
+
 
     classifier->Predict(dataset_, prediction);
 
@@ -535,8 +616,8 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   // If we are in recursive mode and partitionSize <= 2, fall through
   // to this case for the leaf classifier
 
-  if (DIAGNOSTICS)
-    std::cout << "FITTING CLASSIFIER FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
+  if (ClassifierFileScope::DIAGNOSTICS_1_)
+    std::cerr << "FITTING CLASSIFIER FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
 	      << partitionSize_ << ", "
 	      << stepNum << ", "
 	      << steps_ << ")"
@@ -545,21 +626,15 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   // Generate coefficients g, h
   std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
 
-  // Compute partition size
-  std::size_t partitionSize = computePartitionSize(stepNum, colMask_);
-  
-  // Compute learning rate
-  double learningRate = computeLearningRate(stepNum);
-
-  // Compute optimal leaf choice on unrestricted dataset
+   // Compute optimal leaf choice on unrestricted dataset
   best_leaves = computeOptimalSplit(coeffs.first, 
 				    coeffs.second, 
 				    stepNum, 
-				    partitionSize, 
-				    learningRate,
+				    partitionSize_, 
+				    learningRate_,
 				    colMask_);
   
-  if (POST_EXTRAPOLATE) {
+  if (ClassifierFileScope::POST_EXTRAPOLATE) {
     // Fit classifier on {dataset_slice, best_leaves}, both subsets of the original data
     // There will be no post-padding of zeros as that is not defined for OOS prediction, we
     // just use the classifier below to predict on the larger dataset for this step's
@@ -567,26 +642,41 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     uvec rowMask = linspace<uvec>(0, -1+n_, n_);
     auto dataset_slice = dataset_.submat(rowMask, colMask_);
     
-    const typename ClassifierType::Args& rootClassifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize+1));
+    const typename ClassifierType::Args& rootClassifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize_+1));
     createClassifier(classifier, dataset_slice, best_leaves, rootClassifierArgs);
 
-    // classifier.reset(new ClassifierType(dataset_slice,
-    //				best_leaves,
-    //				std::forward(rootClassifierArgs)));		     
   } else {
     // Fit classifier on {dataset, padded best_leaves}
     // Zero pad labels first
     allLeaves(colMask_) = best_leaves;
 
-    const typename ClassifierType::Args& rootClassifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize+1));
+    const typename ClassifierType::Args& rootClassifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize_+1));
     createClassifier(classifier, dataset_, allLeaves, rootClassifierArgs);
     
-    // classifier.reset(new ClassifierType(dataset_,
-    // 				allLeaves,
-    // 				std::forward(rootClassifierArgs)));
   }
 
   classifier->Classify(dataset_, prediction);
+
+  if (ClassifierFileScope::DIAGNOSTICS_1_) {
+    
+    std::cerr << "FITTING LEAF CLASSIFIER FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
+	      << partitionSize_ << ", "
+	      << stepNum << ", "
+	      << steps_ << ")"
+	      << std::endl;
+    
+    rowvec yhat_debug;
+    Predict(yhat_debug, colMask_);
+    
+    for (std::size_t i=0; i<best_leaves.size(); ++i) {
+      std::cerr << labels_slice[i] << " : "
+		<< yhat_debug[i] << " : "
+		<< best_leaves[i] << " : "
+		<< prediction[i] << " : "
+		<< coeffs.first[i] << " : " 
+		<< coeffs.second[i] << std::endl;
+    }
+  }
 
   updateClassifiers(std::move(classifier), prediction);
 
@@ -756,6 +846,38 @@ CompositeClassifier<ClassifierType>::_predict_in_loop_archive(std::vector<std::s
 }
 
 template<typename ClassifierType>
+std::tuple<std::size_t, std::size_t, double>
+CompositeClassifier<ClassifierType>::computeChildPartitionInfo(std::size_t stepNum) {
+
+  (void)stepNum;
+
+  return std::make_tuple(childPartitionSize_[1],
+                        childNumSteps_[1],
+                        childLearningRate_[1]);
+
+  /*
+  (void)stepNum;
+
+  return childInfo_[partitionSize_];
+  */
+
+  /*
+  (void)stepNum;
+
+  std::size_t ind = std::distance(childPartitionSize_.cbegin(), curr_);
+
+  std::cout << "CHILD PARTITION:" << std::endl;
+  std::copy(curr_, childPartitionSize_.cend(), std::ostream_iterator<std::size_t>(std::cout, " "));
+  std::cout << std::endl;
+
+  return std::make_tuple(childPartitionSize_[ind], 
+                        childNumSteps_[ind], 
+                        childLearningRate_[ind]);
+  */
+}
+
+
+template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::Predict(std::string index, const mat& dataset, Row<DataType>& prediction, bool postSymmetrize) {
 
@@ -835,7 +957,7 @@ CompositeClassifier<ClassifierType>::printStats(int stepNum) {
   Row<DataType> yhat;
   double r;
 
-  if (serialize_) {
+  if (serializeModel_) {
     // Prediction from current archive
     Predict(indexName_, yhat, false);
     r = lossFn_->loss(yhat, labels_);
@@ -875,7 +997,7 @@ CompositeClassifier<ClassifierType>::printStats(int stepNum) {
   
   if (hasOOSData_) {
     Row<DataType> yhat_oos;
-    if (serialize_) {
+    if (serializeModel_) {
       Predict(indexName_, dataset_oos_, yhat_oos, true);
     } else {
       Predict(dataset_oos_, yhat_oos);
@@ -898,7 +1020,7 @@ CompositeClassifier<ClassifierType>::fit() {
     fit_step(stepNum);
     
     if ((stepNum > 5) && ((stepNum%serializationWindow_) == 1)) {
-      if (serialize_) {
+      if (serializeModel_) {
 	commit();
       }
       if (!quietRun_) {
@@ -909,7 +1031,7 @@ CompositeClassifier<ClassifierType>::fit() {
   }
 
   // Serialize residual
-  if (serialize_)
+  if (serializeModel_)
     commit();
 
   // print final stats

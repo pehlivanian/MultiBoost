@@ -48,7 +48,7 @@ auto main() -> int {
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .25; // .75
   context.recursiveFit = true;
-  context.serialize = false;
+  context.serializeModel = false;
   context.serializationWindow = 500;
   context.partitionSizeMethod = PartitionSizeMethod::FIXED; // INCREASING
   context.learningRateMethod = LearningRateMethod::FIXED;   // DECREASING

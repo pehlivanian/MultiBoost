@@ -4,6 +4,7 @@
 #include <iostream>
 #include <numeric>
 #include <string>
+#include <vector>
 #include <cstring>
 #include <memory>
 

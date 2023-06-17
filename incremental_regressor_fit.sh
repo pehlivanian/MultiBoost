@@ -8,11 +8,9 @@ EXEC_CC=${PATH}createContext
 CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCrosserge.cxt
 CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCrosserge.cxt
 
-STEPS=1
+STEPS=1000
 BASESTEPS=1000
-LEARNINGRATE=.01
 RECURSIVE_FIT=true
-PARTITION_SIZE=1000
 MINLEAFSIZE=1
 MINGAINSPLIT=0.
 MAXDEPTH=20
@@ -26,10 +24,10 @@ SPLITRATIO=0.2
 # create context for first run
 $EXEC_CC \
 --loss $LOSS_FN \
---partitionSize $PARTITION_SIZE \
 --partitionRatio .25 \
---learningRate $LEARNINGRATE \
---steps $STEPS \
+--childPartitionSize 1000 250 100 20 10 5 1 \
+--childNumSteps 100 2 1 1 1 1 1 \
+--childLearningRate .01 .01 .01 .01 .01 .01 .01 \
 --baseSteps $BASESTEPS \
 --symmetrizeLabels false \
 --removeRedundantLabels false \
@@ -37,7 +35,7 @@ $EXEC_CC \
 --rowSubsampleRatio 1. \
 --colSubsampleRatio $COLSUBSAMPLE_RATIO \
 --recursiveFit $RECURSIVE_FIT \
---serialize true \
+--serializeModel true \
 --serializePrediction true \
 --serializeDataset true \
 --serializeLabels true \
@@ -53,10 +51,10 @@ $EXEC_CC \
 # create context for subsequent runs
 $EXEC_CC \
 --loss $LOSS_FN \
---partitionSize $PARTITION_SIZE \
 --partitionRatio .25 \
---learningRate $LEARNINGRATE \
---steps $STEPS \
+--childPartitionSize 1000 500 250 100 20 10 5 1 \
+--childNumSteps 100 2 1 1 1 1 1 1 \
+--childLearningRate .01 .01 .01 .01 .01 .01 .01 .01 \
 --baseSteps $BASESTEPS \
 --symmetrizeLabels false \
 --removeRedundantLabels false \
@@ -64,7 +62,7 @@ $EXEC_CC \
 --rowSubsampleRatio 1. \
 --colSubsampleRatio $COLSUBSAMPLE_RATIO \
 --recursiveFit $RECURSIVE_FIT \
---serialize true \
+--serializeModel true \
 --serializePrediction true \
 --serializeDataset false \
 --serializeLabels false \

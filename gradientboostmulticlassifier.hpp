@@ -34,17 +34,17 @@ namespace MultiClassifierContext {
     MultiContext(bool allVOne,
 		 std::size_t steps,
 		 std::size_t partitionSize,
-		 bool serialize) :
+		 bool serializeModel) :
       allVOne{allVOne},
       steps{steps},
-      serialize{serialize}
+      serializeModel{serializeModel}
     {}
     MultiContext() :
       allVOne{true}
     {}
     bool allVOne;
     std::size_t steps;
-    bool serialize;
+    bool serializeModel;
       
   };
 
@@ -54,7 +54,7 @@ namespace MultiClassifierContext {
       context{context},
       allVOne{overlay.allVOne},
       steps{overlay.steps},
-      serialize{overlay.serialize}
+      serializeModel{overlay.serializeModel}
     {}
     CombinedContext() : 
       Context<ClassifierType>{},
@@ -63,7 +63,7 @@ namespace MultiClassifierContext {
       
     Context<ClassifierType> context;
     bool allVOne;
-    bool serialize;
+    bool serializeModel;
     std::size_t steps;
       
   };
@@ -240,7 +240,7 @@ public:
     hasOOSData_{false},
     steps_{context.steps},
     allVOne_{context.allVOne},
-    serialize_{context.serialize},
+    serializeModel_{context.serializeModel},
     context_{context} 
   {
     contextInit_(std::move(context));
@@ -255,7 +255,7 @@ public:
     hasOOSData_{false},
     steps_{context.steps},
     allVOne_{context.allVOne},
-    serialize_{context.serialize},
+    serializeModel_{context.serializeModel},
     context_{context} 
   { 
     contextInit_(std::move(context));
@@ -274,7 +274,7 @@ public:
     hasOOSData_{true},
     steps_{context.steps},
     allVOne_{context.allVOne},
-    serialize_{context.serialize},
+    serializeModel_{context.serializeModel},
     context_{context} 
   {
     contextInit_(std::move(context));
@@ -293,7 +293,7 @@ public:
     hasOOSData_{true},
     steps_{context.steps},
     allVOne_{context.allVOne},
-    serialize_{context.serialize},
+    serializeModel_{context.serializeModel},
     context_{context} 
   {
     contextInit_(std::move(context));
@@ -351,7 +351,7 @@ private:
 
   bool hasOOSData_;
   bool allVOne_;
-  bool serialize_;
+  bool serializeModel_;
   bool symmetrized_;
 
   std::size_t steps_;

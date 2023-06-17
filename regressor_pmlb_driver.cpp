@@ -33,7 +33,7 @@ auto main() -> int {
 	      trainDataset, 
 	      testDataset, 
 	      trainLabels, 
-	      testLabels, 0.2);
+	      testLabels, 0.9);
   std::cout << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
 	    << trainDataset.n_rows << ")" << std::endl;
   std::cout << "TEST DATASET:  (" << testDataset.n_cols << " x " 
@@ -49,19 +49,16 @@ auto main() -> int {
   // context.loss = lossFunction::Synthetic;
   // context.loss = lossFunction::SyntheticVar1;
   // context.loss = lossFunction::SyntheticVar2;
-  context.partitionSize = 100;
   context.partitionRatio = 1.;
-  context.learningRate = .5;
-  context.steps = 1000;
   context.baseSteps = 1000;
   context.symmetrizeLabels = false;
   context.serializationWindow = 10;
   context.removeRedundantLabels = false;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = 1.; // .75
-  context.recursiveFit = false;
+  context.recursiveFit = true;
   context.quietRun = false;
-  context.serialize = false;
+  context.serializeModel = false;
   context.serializePrediction = false;
   context.serializeDataset = false;
   context.serializeLabels = false;
@@ -69,6 +66,9 @@ auto main() -> int {
   context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
   context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;    // DECREASING
   context.stepSizeMethod = StepSize::StepSizeMethod::LOG;	
+  context.childPartitionSize = std::vector<std::size_t>{100, 50, 25, 10, 5, 1};
+  context.childNumSteps = std::vector<std::size_t>{100, 5, 5, 5, 2, 2};
+  context.childLearningRate = std::vector<double>{.5, .5, .5, .5, .5, .5};
   context.minLeafSize = 1;
   context.maxDepth = 20;
   context.minimumGainSplit = 0.;

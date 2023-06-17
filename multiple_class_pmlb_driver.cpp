@@ -60,7 +60,7 @@ auto main(int argc, char **argv) -> int {
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .25; // .75
   context.recursiveFit = true;
-  context.serialize = false;
+  context.serializeModel = false;
   context.serializationWindow = 100;
   context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
   context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;   // DECREASING

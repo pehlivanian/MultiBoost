@@ -4,6 +4,7 @@
 #include <tuple>
 #include <memory>
 #include <vector>
+#include <unordered_map>
 
 #include <boost/filesystem.hpp>
 
@@ -432,6 +433,7 @@ private:
   void fit_step(std::size_t);
   double computeLearningRate(std::size_t);
   std::size_t computePartitionSize(std::size_t, const uvec&);
+  void childInfoInit_();
   
   void Classify_(const mat& dataset, Row<DataType>& prediction) override { 
     Predict(dataset, prediction); 
@@ -451,6 +453,7 @@ private:
   double computeSubLearningRate(std::size_t);
   std::size_t computeSubPartitionSize(std::size_t);
   std::size_t computeSubStepSize(std::size_t);
+  std::tuple<std::size_t, std::size_t, double> computeChildPartitionInfo(std::size_t);
 
   void updateClassifiers(std::unique_ptr<ClassifierBase<DataType, Classifier>>&&, Row<DataType>&);
 
@@ -519,11 +522,20 @@ private:
   bool quietRun_;
 
   bool recursiveFit_;
-  bool serialize_;
+  bool serializeModel_;
   bool serializePrediction_;
   bool serializeColMask_;
   bool serializeDataset_;
   bool serializeLabels_;
+
+  std::vector<std::size_t> childPartitionSize_;
+  std::vector<std::size_t> childNumSteps_;
+  std::vector<double> childLearningRate_;
+
+  using ChildInfoType = std::tuple<std::size_t,
+				   std::size_t,
+				   double>;
+  std::unordered_map<std::size_t, ChildInfoType> childInfo_;
 
   std::size_t serializationWindow_;
   std::string indexName_;

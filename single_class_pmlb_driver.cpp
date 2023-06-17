@@ -54,7 +54,7 @@ auto main() -> int {
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .25; // .75
   context.recursiveFit = true;
-  context.serialize = false;
+  context.serializeModel = false;
   context.serializePrediction = false;
   context.serializeDataset = false;
   context.serializeLabels = false;

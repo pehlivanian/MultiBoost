@@ -3,6 +3,7 @@
 #include <string>
 #include <iterator>
 
+#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
 #include "utils.hpp"
@@ -140,7 +141,7 @@ auto main(int argc, char **argv) -> int {
      context.rowSubsampleRatio = 1.;
      context.colSubsampleRatio = .25; // .75
      context.recursiveFit = true;
-     context.serialize = false;
+     context.serializeModel = false;
      context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED; // INCREASING
      context.learningRateMethod = LearningRate::RateMethod::FIXED;   // DECREASING
      context.minLeafSize = 1;
@@ -163,11 +164,14 @@ auto main(int argc, char **argv) -> int {
   PartitionSize::PartitionSizeMethod	partitionSizeMethod	= PartitionSize::PartitionSizeMethod::FIXED;
   LearningRate::LearningRateMethod	learningRateMethod	= LearningRate::LearningRateMethod::FIXED;
   StepSize::StepSizeMethod		stepSizeMethod		= StepSize::StepSizeMethod::LOG;
+  std::vector<std::size_t>		childPartitionSize	= std::vector<std::size_t>{};
+  std::vector<std::size_t>		childNumSteps		= std::vector<std::size_t>{};
+  std::vector<double>			childLearningRate	= std::vector<double>{};
   std::size_t				minLeafSize		= 1;
   double				minimumGainSplit	= 0.;
   std::size_t				maxDepth		= 10;
   std::size_t				numTrees		= 10;
-  bool					serialize		= false;
+  bool					serializeModel		= false;
   bool					serializePrediction	= false;
   bool					serializeColMask	= false;
   bool					serializeDataset	= false;
@@ -194,11 +198,14 @@ auto main(int argc, char **argv) -> int {
     ("partitionSizeMethod",	value<PartitionSize::PartitionSizeMethod>(&partitionSizeMethod),"partitionSizeMethod")
     ("learningRateMethod",	value<LearningRate::LearningRateMethod>(&learningRateMethod),	"learningRateMethod")
     ("stepSizeMethod",		value<StepSize::StepSizeMethod>(&stepSizeMethod),		"stepSizeMethod")
+    ("childPartitionSize",	value<std::vector<std::size_t>>(&childPartitionSize)->multitoken(),		"childPartitionSize")
+    ("childNumSteps",		value<std::vector<std::size_t>>(&childNumSteps)->multitoken(),		"childNumSteps")
+    ("childLearningRate",	value<std::vector<double>>(&childLearningRate)->multitoken(),	"childLearningRate")
     ("minLeafSize",		value<std::size_t>(&minLeafSize),				"minLeafSize")
     ("minimumGainSplit",	value<double>(&minimumGainSplit),				"minimumGainSplit")
     ("maxDepth",		value<std::size_t>(&maxDepth),					"maxDepth")
     ("numTrees",		value<std::size_t>(&numTrees),					"numTrees")
-    ("serialize",		value<bool>(&serialize),					"serialize")
+    ("serializeModel",		value<bool>(&serializeModel),					"serializeModel")
     ("serializePrediction",	value<bool>(&serializePrediction),				"serializePrediction")
     ("serializeColMask",	value<bool>(&serializeColMask),					"serializeColMask")
     ("serializeDataset",	value<bool>(&serializeDataset),					"serializeDataset")
@@ -242,20 +249,33 @@ auto main(int argc, char **argv) -> int {
   context.partitionSizeMethod = partitionSizeMethod;
   context.learningRateMethod = learningRateMethod;
   context.stepSizeMethod = stepSizeMethod;
+  context.childPartitionSize = childPartitionSize;
+  context.childNumSteps = childNumSteps;
+  context.childLearningRate = childLearningRate;
   context.minLeafSize = minLeafSize;
   context.minimumGainSplit = minimumGainSplit;
   context.maxDepth = maxDepth;
   context.numTrees = numTrees;
-  context.serialize = serialize;
+  context.serializeModel = serializeModel;
   context.serializePrediction = serializePrediction;
   context.serializeDataset = serializeDataset;
   context.serializeLabels = serializeLabels;
   context.serializeColMask = serializeColMask;
   context.serializationWindow = serializationWindow;
 
-  writeBinary<Context>(fileName, context);
+  // Serialize
+  using CerealT = Context;
+  using CerealIArch = cereal::BinaryInputArchive;
+  using CerealOArch = cereal::BinaryOutputArchive;
+
+  boost::filesystem::path fldr{"./"};
+  dumps<CerealT, CerealIArch, CerealOArch>(context, fileName, fldr);
+
+  // To deserialize
+  // Context context_archive;
+  // loads<CerealT, CerealIArch, CerealOArch>(context_archive, fileName, fldr);
 
   std::cout << "Context archive: " << fileName << std::endl;
-
+    
   return 0;
 }

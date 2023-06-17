@@ -35,10 +35,10 @@ DATANAME=/tabular_benchmark/eye_movements
 # create context for first run
 $EXEC_CC \
 --loss $LOSS_FN \
---partitionSize $PARTITION_SIZE \
+--childPartitionSize 10 5 4 2 1 \
+--childNumSteps 100 20 10 5 1 \
+--childLearningRate .001 .001 .001 .001 .001 \
 --partitionRatio .25 \
---learningRate $LEARNINGRATE \
---steps $STEPS \
 --baseSteps $BASESTEPS \
 --symmetrizeLabels true \
 --removeRedundantLabels false \
@@ -46,7 +46,7 @@ $EXEC_CC \
 --rowSubsampleRatio 1. \
 --colSubsampleRatio $COLSUBSAMPLE_RATIO \
 --recursiveFit $RECURSIVE_FIT \
---serialize true \
+--serializeModel true \
 --serializePrediction true \
 --serializeDataset true \
 --serializeLabels true \
@@ -62,10 +62,10 @@ $EXEC_CC \
 # create context for subsequent runs
 $EXEC_CC \
 --loss $LOSS_FN \
---partitionSize $PARTITION_SIZE \
+--childPartitionSize 10 5 4 2 1 \
+--childNumSteps 100 20 10 5 1 \
+--childLearningRate .001 .001 .001 .001 .001 \
 --partitionRatio .25 \
---learningRate $LEARNINGRATE \
---steps $STEPS \
 --baseSteps $BASESTEPS \
 --symmetrizeLabels true \
 --removeRedundantLabels false \
@@ -73,7 +73,7 @@ $EXEC_CC \
 --rowSubsampleRatio 1. \
 --colSubsampleRatio $COLSUBSAMPLE_RATIO \
 --recursiveFit $RECURSIVE_FIT \
---serialize true \
+--serializeModel true \
 --serializePrediction true \
 --serializeDataset false \
 --serializeLabels false \
@@ -86,6 +86,7 @@ $EXEC_CC \
 --serializationWindow 1000 \
 --fileName $CONTEXT_PATH_RUNS
 
+if [ 0 -eq 1 ];then
 # Details
 DETAILS=${INDEX_NAME_STEP}"(Dataset, Rcsv, lrate, parSize) = ("${DATANAME}", "${RECURSIVE_FIT}", "${LEARNINGRATE}", "${PARTITION_SIZE}")"
 
@@ -149,3 +150,4 @@ do
 
   ((n=n+1))
 done
+fi

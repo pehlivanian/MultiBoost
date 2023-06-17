@@ -10,36 +10,48 @@ using namespace ModelContext;
 using namespace Objectives;
 using namespace IB_utils;
 
-namespace FileScope {
+namespace RegressorFileScope {
   const bool POST_EXTRAPOLATE = true;
   const bool DIAGNOSTICS_0_ = true;
   const bool DIAGNOSTICS_1_ = false;
-} // namespace FileScope
+} // namespace RegressorFileScope
 
 template<typename RegressorType>
 void
 CompositeRegressor<RegressorType>::childContext(Context& context, 
-						std::size_t subPartitionSize,
+					std::size_t subPartitionSize,
 						double subLearningRate,
 						std::size_t stepSize) {
 
   context.loss			= loss_;
   context.partitionRatio	= std::min(1., 2*partitionRatio_);
-  context.learningRate		= subLearningRate;
   context.baseSteps		= baseSteps_;
   context.symmetrizeLabels	= false;
   context.removeRedundantLabels	= false;
   context.rowSubsampleRatio	= row_subsample_ratio_;
   context.colSubsampleRatio	= col_subsample_ratio_;
   context.recursiveFit		= true;
+
+  context.partitionSize		= subPartitionSize;
+  context.steps			= stepSize;
+  context.learningRate		= subLearningRate;
+
   context.stepSizeMethod	= stepSizeMethod_;
   context.partitionSizeMethod	= partitionSizeMethod_;
   context.learningRateMethod	= learningRateMethod_;    
-  context.steps			= stepSize;
+  
+  auto it = std::find(childPartitionSize_.cbegin(), childPartitionSize_.cend(), subPartitionSize);
+  auto ind = std::distance(childPartitionSize_.cbegin(), it);
+
+  context.childPartitionSize	= std::vector<std::size_t>(childPartitionSize_.cbegin()+ind,
+							   childPartitionSize_.cend());
+  context.childNumSteps		= std::vector<std::size_t>(childNumSteps_.cbegin()+ind,
+							   childNumSteps_.cend());
+  context.childLearningRate	= std::vector<double>(childLearningRate_.cbegin()+ind,
+						      childLearningRate_.cend());
 
   // Part of model args
   context.numTrees		= numTrees_;
-  context.partitionSize		= subPartitionSize;
   context.minLeafSize		= minLeafSize_;
   context.maxDepth		= maxDepth_;
   context.minimumGainSplit	= minimumGainSplit_;
@@ -53,13 +65,25 @@ CompositeRegressor<RegressorType>::allRegressorArgs() {
 
 template<typename RegressorType>
 void
+CompositeRegressor<RegressorType>::childInfoInit_() {
+  for (std::size_t i=0; i<-1+childPartitionSize_.size(); ++i) {
+    childInfo_[childPartitionSize_[i]] = std::make_tuple(childPartitionSize_[i+1],
+							 childNumSteps_[i+1],
+							 childLearningRate_[i+1]);
+  }
+}
+
+template<typename RegressorType>
+void
 CompositeRegressor<RegressorType>::contextInit_(Context&& context) {
 
   loss_				= context.loss;
-  partitionSize_		= context.partitionSize;
   partitionRatio_		= context.partitionRatio;
-  learningRate_			= context.learningRate;
-  steps_			= context.steps;
+
+  partitionSize_		= context.childPartitionSize[0];
+  steps_			= context.childNumSteps[0];
+  learningRate_			= context.childLearningRate[0];
+
   baseSteps_			= context.baseSteps;
   quietRun_			= context.quietRun;
   row_subsample_ratio_		= context.rowSubsampleRatio;
@@ -68,11 +92,14 @@ CompositeRegressor<RegressorType>::contextInit_(Context&& context) {
   partitionSizeMethod_		= context.partitionSizeMethod;
   learningRateMethod_		= context.learningRateMethod;
   stepSizeMethod_		= context.stepSizeMethod;
+  childPartitionSize_		= context.childPartitionSize;
+  childNumSteps_		= context.childNumSteps;
+  childLearningRate_		= context.childLearningRate;
   minLeafSize_			= context.minLeafSize;
   minimumGainSplit_		= context.minimumGainSplit;
   maxDepth_			= context.maxDepth;
   numTrees_			= context.numTrees;
-  serialize_			= context.serialize;
+  serializeModel_		= context.serializeModel;
   serializePrediction_		= context.serializePrediction;
   serializeColMask_		= context.serializeColMask;
   serializeDataset_		= context.serializeDataset;
@@ -138,8 +165,9 @@ void
 CompositeRegressor<RegressorType>::init_(Context&& context) {
 
   contextInit_(std::move(context));
-
-  if (serialize_ || serializePrediction_ ||
+  childInfoInit_();
+  
+  if (serializeModel_ || serializePrediction_ ||
       serializeColMask_ || serializeDataset_ ||
       serializeLabels_) {
 
@@ -254,7 +282,7 @@ template<typename RegressorType>
 void
 CompositeRegressor<RegressorType>::Predict(const mat& dataset, Row<DataType>& prediction) {
 
-  if (serialize_ && indexName_.size()) {
+  if (serializeModel_ && indexName_.size()) {
     throw predictionAfterClearedClassifiersException();
     return;
   }
@@ -266,7 +294,7 @@ template<typename RegressorType>
 void
 CompositeRegressor<RegressorType>::Predict(mat&& dataset, Row<DataType>& prediction) {
   
-  if (serialize_ && indexName_.size()) {
+  if (serializeModel_ && indexName_.size()) {
     throw predictionAfterClearedClassifiersException();
     return;
   }
@@ -320,15 +348,19 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
   //////////////////////////
   // BEGIN RECURSIVE STEP //
   //////////////////////////
-  if (recursiveFit_ && partitionSize_ > 2) {
+  if (recursiveFit_ && (childPartitionSize_.size() > 1)) {
+    // if (recursiveFit_ && partitionSize_ > 2) {
     // Compute new partition size
-    std::size_t subPartitionSize = computeSubPartitionSize(stepNum);
-
-    // Compute new learning rate
-    double subLearningRate = computeSubLearningRate(stepNum);
+    // std::size_t subPartitionSize = computeSubPartitionSize(stepNum);
 
     // Compute new steps
-    std::size_t subStepSize = computeSubStepSize(stepNum);
+    // std::size_t subStepSize = computeSubStepSize(stepNum);
+
+    // Compute new learning rate
+    // double subLearningRate = computeSubLearningRate(stepNum);
+
+    auto [subPartitionSize, subStepSize, subLearningRate] = 
+      computeChildPartitionInfo(stepNum);
 
     // Generate coefficients g, h
     std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
@@ -340,7 +372,7 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
 				      subLearningRate, 
 				      colMask_);
 
-    if (FileScope::DIAGNOSTICS_1_) {
+    if (RegressorFileScope::DIAGNOSTICS_1_ || RegressorFileScope::DIAGNOSTICS_0_) {
 
       std::cerr << "FITTING COMPOSITE REGRESSOR FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
 		<< partitionSize_ << ", "
@@ -348,6 +380,10 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
 		<< steps_ << ")"
 		<< std::endl;
 
+    }
+
+    if (RegressorFileScope::DIAGNOSTICS_1_) {
+      
       rowvec yhat_debug;
       Predict(yhat_debug, colMask_);
 
@@ -358,7 +394,6 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
 		  << coeffs.first[i] << " : " 
 		  << coeffs.second[i] << std::endl;
       }
-      std::cerr << "DIAGNOSTICS FINSIHED" << std::endl;
     }
 
     allLeaves(colMask_) = best_leaves;
@@ -378,7 +413,7 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
 							  colMask_, 
 							  context));
 
-    if (FileScope::DIAGNOSTICS_1_) {
+    if (RegressorFileScope::DIAGNOSTICS_1_) {
 
       std::cerr << "PREFIT: (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
 		<< partitionSize_ << ", "
@@ -390,7 +425,7 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
 
     regressor->fit();
 
-    if (FileScope::DIAGNOSTICS_1_) {
+    if (RegressorFileScope::DIAGNOSTICS_1_) {
 
       std::cerr << "POSTFIT: (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
 		<< partitionSize_ << ", "
@@ -412,31 +447,26 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
   // If we are in recursive mode and partitionSize <= 2, fall through
   // to this case for the leaf regressor
 
-  if (FileScope::DIAGNOSTICS_0_)
+  if (RegressorFileScope::DIAGNOSTICS_0_) {
     std::cerr << "FITTING LEAF REGRESSOR FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
 	      << partitionSize_ << ", "
 	      << stepNum << ", "
 	      << steps_ << ")"
 	      << std::endl;
+  }
   
   // Generate coefficients g, h
   std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
-
-  // Compute partition size
-  std::size_t partitionSize = computePartitionSize(stepNum, colMask_);
-  
-  // Compute learning rate
-  double learningRate = computeLearningRate(stepNum);
 
   // Compute optimal leaf choice on unrestricted dataset
   best_leaves = computeOptimalSplit(coeffs.first, 
 				    coeffs.second, 
 				    stepNum, 
-				    partitionSize, 
-				    learningRate,
+				    partitionSize_, 
+				    learningRate_,
 				    colMask_);
     
-  if (FileScope::POST_EXTRAPOLATE) {
+  if (RegressorFileScope::POST_EXTRAPOLATE) {
     // Fit regressor on {dataset_slice, best_leaves}, both subsets of the original data
     // There will be no post-padding of zeros as that is not defined for OOS prediction, we
     // just use the regressor below to predict on the larger dataset for this step's
@@ -447,9 +477,6 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
     const typename RegressorType::Args& rootRegressorArgs = RegressorType::_args(allRegressorArgs());
     createRegressor(regressor, dataset_slice, best_leaves, rootRegressorArgs);
 
-    // regressor.reset(new RegressorType(dataset_slice,
-    //				best_leaves,
-    //				std::forward(rootRegressorArgs)));		     
   } else {
     // Fit regressor on {dataset, padded best_leaves}
     // Zero pad labels first
@@ -458,14 +485,11 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
     const typename RegressorType::Args& rootRegressorArgs = RegressorType::_args(allRegressorArgs());
     createRegressor(regressor, dataset_, allLeaves, rootRegressorArgs);
     
-    // regressor.reset(new RegressorType(dataset_,
-    // 				allLeaves,
-    // 				std::forward(rootRegressorArgs)));
   }
 
   regressor->Project(dataset_, prediction);
 
-  if (FileScope::DIAGNOSTICS_1_) {
+  if (RegressorFileScope::DIAGNOSTICS_1_) {
     
     std::cerr << "FITTING LEAF REGRESSOR FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
 	      << partitionSize_ << ", "
@@ -484,7 +508,6 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
 		<< coeffs.first[i] << " : " 
 		<< coeffs.second[i] << std::endl;
     }
-    std::cerr << "DIAGNOSTICS FINSIHED" << std::endl;
   }
 
   updateRegressors(std::move(regressor), prediction);
@@ -743,7 +766,7 @@ CompositeRegressor<RegressorType>::printStats(int stepNum) {
   Row<DataType> yhat;
   double r;
 
-  if (serialize_) {
+  if (serializeModel_) {
     // Prediction from current archive
     Predict(indexName_, yhat);
     r = lossFn_->loss(yhat, labels_);
@@ -775,7 +798,7 @@ CompositeRegressor<RegressorType>::printStats(int stepNum) {
   
   if (hasOOSData_) {
     Row<DataType> yhat_oos;
-    if (serialize_) {
+    if (serializeModel_) {
       Predict(indexName_, dataset_oos_, yhat_oos);
     } else {
       Predict(dataset_oos_, yhat_oos);
@@ -799,7 +822,7 @@ CompositeRegressor<RegressorType>::fit() {
   for (int stepNum=1; stepNum<=steps_; ++stepNum) {
     fit_step(stepNum);
           
-    if (serialize_) {
+    if (serializeModel_) {
       commit();
     }
     if (!quietRun_) {
@@ -809,7 +832,7 @@ CompositeRegressor<RegressorType>::fit() {
   }
   
   // Serialize residual
-  if (serialize_) {
+  if (serializeModel_) {
     commit();
   }
   
@@ -845,6 +868,37 @@ CompositeRegressor<RegressorType>::computeLearningRate(std::size_t stepNum) {
   //   std::cout << "stepNum: " << stepNum << " LEARNING RATE: " << learningRate << std::endl;
 
   return learningRate;
+}
+
+template<typename RegressorType>
+std::tuple<std::size_t, std::size_t, double>
+CompositeRegressor<RegressorType>::computeChildPartitionInfo(std::size_t stepNum) {
+
+  (void)stepNum;
+
+  return std::make_tuple(childPartitionSize_[1],
+			 childNumSteps_[1],
+			 childLearningRate_[1]);
+
+  /*
+  (void)stepNum;
+
+  return childInfo_[partitionSize_];
+  */
+
+  /*
+  (void)stepNum;
+
+  std::size_t ind = std::distance(childPartitionSize_.cbegin(), ++curr_);
+
+  std::cout << "CHILD PARTITION:" << std::endl;
+  std::copy(curr_, childPartitionSize_.cend(), std::ostream_iterator<std::size_t>(std::cout, " "));
+  std::cout << std::endl;
+
+  return std::make_tuple(childPartitionSize_[ind], 
+			 childNumSteps_[ind], 
+			 childLearningRate_[ind]);
+  */
 }
 
 template<typename RegressorType>
