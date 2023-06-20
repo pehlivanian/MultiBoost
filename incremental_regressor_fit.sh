@@ -8,8 +8,21 @@ EXEC_CC=${PATH}createContext
 CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCrosserge.cxt
 CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCrosserge.cxt
 
-STEPS=1000
-BASESTEPS=1000
+declare -a name CHILDPARTITIONSIZE
+declare -a name CHILDNUMSTEPS
+declare -a name CHILDLEARNINGRATE
+declare -a name childMaxDepth
+declare -a name childMinLeafSize
+declare -a name minimumGainSplit
+
+CHILDPARTITIONSIZE=(2000 1000 250 100 20 10 5 1)
+CHILDNUMSTEPS=(1 1 1 2 3 2 1 1 1)
+CHILDLEARNINGRATE=(.01 .01 .01 .01 .01 .01 .01 .01)
+CHILDMAXDEPTH=(20 20 20 20 20 20 20 20)
+CHILDMINLEAFSIZE=(1 1 1 1 1 1 1 1)
+CHILDMINIMUMGAINSPLIT=(0. 0. 0. 0. 0. 0. 0. 0.)
+STEPS=1
+BASESTEPS=50
 RECURSIVE_FIT=true
 MINLEAFSIZE=1
 MINGAINSPLIT=0.
@@ -25,9 +38,9 @@ SPLITRATIO=0.2
 $EXEC_CC \
 --loss $LOSS_FN \
 --partitionRatio .25 \
---childPartitionSize 1000 250 100 20 10 5 1 \
---childNumSteps 100 2 1 1 1 1 1 \
---childLearningRate .01 .01 .01 .01 .01 .01 .01 \
+--childPartitionSize ${CHILDPARTITIONSIZE[@]} \
+--childNumSteps ${CHILDNUMSTEPS[@]} \
+--childLearningRate ${CHILDLEARNINGRATE[@]} \
 --baseSteps $BASESTEPS \
 --symmetrizeLabels false \
 --removeRedundantLabels false \
@@ -42,9 +55,9 @@ $EXEC_CC \
 --partitionSizeMethod 0 \
 --learningRateMethod 0 \
 --stepSizeMethod 0 \
---minLeafSize $MINLEAFSIZE \
---maxDepth $MAXDEPTH \
---minimumGainSplit $MINGAINSPLIT \
+--childMinLeafSize ${CHILDMINLEAFSIZE[@]} \
+--childMaxDepth ${CHILDMAXDEPTH[@]} \
+--childMinimumGainSplit ${CHILDMINIMUMGAINSPLIT[@]} \
 --serializationWindow 10 \
 --fileName $CONTEXT_PATH_RUN1
 
@@ -52,9 +65,9 @@ $EXEC_CC \
 $EXEC_CC \
 --loss $LOSS_FN \
 --partitionRatio .25 \
---childPartitionSize 1000 500 250 100 20 10 5 1 \
---childNumSteps 100 2 1 1 1 1 1 1 \
---childLearningRate .01 .01 .01 .01 .01 .01 .01 .01 \
+--childPartitionSize ${CHILDPARTITIONSIZE[@]} \
+--childNumSteps ${CHILDNUMSTEPS[@]} \
+--childLearningRate ${CHILDLEARNINGRATE[@]} \
 --baseSteps $BASESTEPS \
 --symmetrizeLabels false \
 --removeRedundantLabels false \
@@ -69,9 +82,9 @@ $EXEC_CC \
 --partitionSizeMethod 0 \
 --learningRateMethod 0 \
 --stepSizeMethod 0 \
---minLeafSize $MINLEAFSIZE \
---maxDepth $MAXDEPTH \
---minimumGainSplit $MINGAINSPLIT \
+--childMinLeafSize ${CHILDMINLEAFSIZE[@]} \
+--childMaxDepth ${CHILDMAXDEPTH[@]} \
+--childMinimumGainSplit ${CHILDMINIMUMGAINSPLIT[@]} \
 --serializationWindow 10 \
 --fileName $CONTEXT_PATH_RUNS
 
@@ -88,6 +101,13 @@ EXEC_PRED_OOS=${PATH}stepwise_predict
 n=1
 
 echo ${n}" : STEPWISE PREDICT :: "${DETAILS}
+
+# echo $EXEC_INC \
+# --contextFileName $CONTEXT_PATH_RUN1 \
+# --dataName $DATANAME \
+# --splitRatio $SPLITRATIO \
+# --mergeIndexFiles false \
+# --warmStart false
 
 STEP_INFO=$($EXEC_INC \
 --contextFileName $CONTEXT_PATH_RUN1 \
@@ -107,7 +127,6 @@ echo ${n}" : "${FOLDER_STEP}
 echo ${n}" : "${INDEX_NAME_STEP}
 ((n=n+1))
 
-
 # Predict OOS
 $EXEC_PRED_OOS \
 --indexFileName $INDEX_NAME_STEP \
@@ -116,10 +135,19 @@ $EXEC_PRED_OOS \
 # Subsequent runs
 for (( ; ; ));
 do
-  if [ $n -eq $ITERS ]; then
+  if [ $n -ge $ITERS ]; then
     break
   fi
 
+  # echo $EXEC_INC \
+  # --contextFileName $CONTEXT_PATH_RUNS \
+  # --dataName $DATANAME \
+  # --splitRatio $SPLITRATIO \
+  # --quietRun true \
+  # --mergeIndexFiles true \
+  # --warmStart true \
+  # --indexName $INDEX_NAME_STEP \
+  # --folderName $FOLDER_STEP
 
   # Fit step
   INDEX_NAME_STEP=$($EXEC_INC \

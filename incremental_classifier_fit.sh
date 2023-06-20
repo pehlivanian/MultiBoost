@@ -86,7 +86,6 @@ $EXEC_CC \
 --serializationWindow 1000 \
 --fileName $CONTEXT_PATH_RUNS
 
-if [ 0 -eq 1 ];then
 # Details
 DETAILS=${INDEX_NAME_STEP}"(Dataset, Rcsv, lrate, parSize) = ("${DATANAME}", "${RECURSIVE_FIT}", "${LEARNINGRATE}", "${PARTITION_SIZE}")"
 
@@ -150,4 +149,3 @@ do
 
   ((n=n+1))
 done
-fi
