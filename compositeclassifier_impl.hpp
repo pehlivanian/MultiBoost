@@ -13,32 +13,36 @@ using namespace IB_utils;
 
 namespace ClassifierFileScope{
   const bool POST_EXTRAPOLATE = false;
-  const bool DIAGNOSTICS_0_ = true;
+  const bool DIAGNOSTICS_0_ = false;
   const bool DIAGNOSTICS_1_ = false;
 } // namespace ClassifierFileScope
 
 template<typename ClassifierType>
 void
-CompositeClassifier<ClassifierType>::childContext(Context& context, 
-						  std::size_t subPartitionSize,
-						  double subLearningRate,
-						  std::size_t stepSize) {
+CompositeClassifier<ClassifierType>::childContext(Context& context) {
+
+  auto [partitionSize, stepSize, learningRate] = computeChildPartitionInfo();
+  auto [maxDepth, minLeafSize, minimumGainSplit] = computeChildModelInfo();
 
   context.loss			= loss_;
   context.partitionRatio	= std::min(1., 2*partitionRatio_);
-  context.learningRate		= subLearningRate;
   context.baseSteps		= baseSteps_;
   context.symmetrizeLabels	= false;
   context.removeRedundantLabels	= true;
   context.rowSubsampleRatio	= row_subsample_ratio_;
   context.colSubsampleRatio	= col_subsample_ratio_;
   context.recursiveFit		= true;
+  context.numTrees		= numTrees_;
 
-  context.partitionSize		= subPartitionSize;
+  context.partitionSize		= partitionSize+1;
   context.steps			= stepSize;
-  context.learningRate		= subLearningRate;
+  context.learningRate		= learningRate;
 
-  auto it = std::find(childPartitionSize_.cbegin(), childPartitionSize_.cend(), subPartitionSize);
+  context.maxDepth		= maxDepth;
+  context.minLeafSize		= minLeafSize;
+  context.minimumGainSplit	= minimumGainSplit;
+
+  auto it = std::find(childPartitionSize_.cbegin(), childPartitionSize_.cend(), partitionSize);
   auto ind = std::distance(childPartitionSize_.cbegin(), it);
 
   context.childPartitionSize	= std::vector<std::size_t>(childPartitionSize_.cbegin()+ind,
@@ -49,17 +53,17 @@ CompositeClassifier<ClassifierType>::childContext(Context& context,
 						      childLearningRate_.cend());
   
 
+  context.childMinLeafSize	= std::vector<std::size_t>(childMinLeafSize_.cbegin()+ind,
+							   childMinLeafSize_.cend());
+  context.childMaxDepth		= std::vector<std::size_t>(childMaxDepth_.cbegin()+ind,
+							   childMaxDepth_.cend());
+  context.childMinimumGainSplit	= std::vector<double>(childMinimumGainSplit_.cbegin()+ind,
+						      childMinimumGainSplit_.cend());
+
   context.stepSizeMethod	= stepSizeMethod_;
   context.partitionSizeMethod	= partitionSizeMethod_;
   context.learningRateMethod	= learningRateMethod_;   
-  context.steps			= stepSize;
 
-  // Part of model args
-  context.numTrees		= numTrees_;
-  context.partitionSize		= subPartitionSize + 1;
-  context.minLeafSize		= minLeafSize_;
-  context.maxDepth		= maxDepth_;
-  context.minimumGainSplit	= minimumGainSplit_;
 }
 
 template<typename ClassifierType>
@@ -94,6 +98,10 @@ CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
   childNumSteps_		= context.childNumSteps;
   childLearningRate_		= context.childLearningRate;
 
+  childMinLeafSize_		= context.childMinLeafSize;
+  childMaxDepth_		= context.childMaxDepth;
+  childMinimumGainSplit_	= context.childMinimumGainSplit;
+
   minLeafSize_			= context.minLeafSize;
   minimumGainSplit_		= context.minimumGainSplit;
   maxDepth_			= context.maxDepth;
@@ -105,16 +113,6 @@ CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
   serializeLabels_		= context.serializeLabels;
   serializationWindow_		= context.serializationWindow;
 
-}
-
-template<typename ClassifierType>
-void
-CompositeClassifier<ClassifierType>::childInfoInit_() {
-  for (std::size_t i=0; i<-1+childPartitionSize_.size(); ++i) {
-    childInfo_[childPartitionSize_[i]] = std::make_tuple(childPartitionSize_[i+1],
-							 childNumSteps_[i+1],
-							 childLearningRate_[i+1]);
-  }
 }
 
 template<typename ClassifierType>
@@ -139,7 +137,6 @@ CompositeClassifier<ClassifierType>::_randomLeaf() const {
 
 }
 
-// XXX
 template<typename ClassifierType>
 template<typename... Ts>
 void
@@ -176,7 +173,6 @@ void
 CompositeClassifier<ClassifierType>::init_(Context&& context) {
 
   contextInit_(std::move(context));
-  childInfoInit_();
 
   if (serializeModel_ || serializePrediction_ ||
       serializeColMask_ || serializeDataset_ ||
@@ -521,17 +517,8 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   // BEGIN RECURSIVE STEP //
   //////////////////////////
   if (recursiveFit_ && (childPartitionSize_.size() > 1)) {
-    // Compute new partition size
-    // std::size_t subPartitionSize = computeSubPartitionSize(stepNum);
-
-    // Compute new learning rate
-    // double subLearningRate = computeSubLearningRate(stepNum);
-
-    // Compute new steps
-    // std::size_t subStepSize = computeSubStepSize(stepNum);
-
     auto [subPartitionSize, subStepSize, subLearningRate] = 
-      computeChildPartitionInfo(stepNum);
+      computeChildPartitionInfo();
 
     // Generate coefficients g, h
     std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
@@ -568,7 +555,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     allLeaves(colMask_) = best_leaves;
 
     Context context{};      
-    childContext(context, subPartitionSize, subLearningRate, subStepSize);
+    childContext(context);
 
     // allLeaves may not strictly fit the definition of labels here - 
     // aside from the fact that it is of double type, it may have more 
@@ -847,35 +834,21 @@ CompositeClassifier<ClassifierType>::_predict_in_loop_archive(std::vector<std::s
 
 template<typename ClassifierType>
 std::tuple<std::size_t, std::size_t, double>
-CompositeClassifier<ClassifierType>::computeChildPartitionInfo(std::size_t stepNum) {
-
-  (void)stepNum;
+CompositeClassifier<ClassifierType>::computeChildPartitionInfo() {
 
   return std::make_tuple(childPartitionSize_[1],
                         childNumSteps_[1],
                         childLearningRate_[1]);
 
-  /*
-  (void)stepNum;
-
-  return childInfo_[partitionSize_];
-  */
-
-  /*
-  (void)stepNum;
-
-  std::size_t ind = std::distance(childPartitionSize_.cbegin(), curr_);
-
-  std::cout << "CHILD PARTITION:" << std::endl;
-  std::copy(curr_, childPartitionSize_.cend(), std::ostream_iterator<std::size_t>(std::cout, " "));
-  std::cout << std::endl;
-
-  return std::make_tuple(childPartitionSize_[ind], 
-                        childNumSteps_[ind], 
-                        childLearningRate_[ind]);
-  */
 }
 
+template<typename ClassifierType>
+std::tuple<std::size_t, std::size_t, double>
+CompositeClassifier<ClassifierType>::computeChildModelInfo() {
+  return std::make_tuple(childMaxDepth_[1],
+			 childMinLeafSize_[1],
+			 childMinimumGainSplit_[1]);
+}
 
 template<typename ClassifierType>
 void

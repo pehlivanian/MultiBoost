@@ -167,6 +167,9 @@ auto main(int argc, char **argv) -> int {
   std::vector<std::size_t>		childPartitionSize	= std::vector<std::size_t>{};
   std::vector<std::size_t>		childNumSteps		= std::vector<std::size_t>{};
   std::vector<double>			childLearningRate	= std::vector<double>{};
+  std::vector<std::size_t>		childMinLeafSize	= std::vector<std::size_t>{};
+  std::vector<std::size_t>		childMaxDepth		= std::vector<std::size_t>{};
+  std::vector<double>			childMinimumGainSplit	= std::vector<double>{};
   std::size_t				minLeafSize		= 1;
   double				minimumGainSplit	= 0.;
   std::size_t				maxDepth		= 10;
@@ -201,6 +204,9 @@ auto main(int argc, char **argv) -> int {
     ("childPartitionSize",	value<std::vector<std::size_t>>(&childPartitionSize)->multitoken(),		"childPartitionSize")
     ("childNumSteps",		value<std::vector<std::size_t>>(&childNumSteps)->multitoken(),		"childNumSteps")
     ("childLearningRate",	value<std::vector<double>>(&childLearningRate)->multitoken(),	"childLearningRate")
+    ("childMinLeafSize",	value<std::vector<std::size_t>>(&childMinLeafSize)->multitoken(),	"childMinLeafSize")
+    ("childMaxDepth",		value<std::vector<std::size_t>>(&childMaxDepth)->multitoken(),	"childMaxDepth")
+    ("childMinimumGainSplit",	value<std::vector<double>>(&childMinimumGainSplit)->multitoken(),	"childMinimumGainSplit")
     ("minLeafSize",		value<std::size_t>(&minLeafSize),				"minLeafSize")
     ("minimumGainSplit",	value<double>(&minimumGainSplit),				"minimumGainSplit")
     ("maxDepth",		value<std::size_t>(&maxDepth),					"maxDepth")
@@ -252,6 +258,9 @@ auto main(int argc, char **argv) -> int {
   context.childPartitionSize = childPartitionSize;
   context.childNumSteps = childNumSteps;
   context.childLearningRate = childLearningRate;
+  context.childMinLeafSize = childMinLeafSize;
+  context.childMaxDepth = childMaxDepth;
+  context.childMinimumGainSplit = childMinimumGainSplit;
   context.minLeafSize = minLeafSize;
   context.minimumGainSplit = minimumGainSplit;
   context.maxDepth = maxDepth;

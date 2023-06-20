@@ -418,7 +418,7 @@ public:
   }
 
 private:
-  void childContext(Context&, std::size_t, double, std::size_t);
+  void childContext(Context&);
   void contextInit_(Context&&);
   void init_(Context&&);
   Row<double> _constantLeaf() const;
@@ -433,7 +433,6 @@ private:
   void fit_step(std::size_t);
   double computeLearningRate(std::size_t);
   std::size_t computePartitionSize(std::size_t, const uvec&);
-  void childInfoInit_();
   
   void Classify_(const mat& dataset, Row<DataType>& prediction) override { 
     Predict(dataset, prediction); 
@@ -453,7 +452,8 @@ private:
   double computeSubLearningRate(std::size_t);
   std::size_t computeSubPartitionSize(std::size_t);
   std::size_t computeSubStepSize(std::size_t);
-  std::tuple<std::size_t, std::size_t, double> computeChildPartitionInfo(std::size_t);
+  std::tuple<std::size_t, std::size_t, double> computeChildPartitionInfo();
+  std::tuple<std::size_t, std::size_t, double> computeChildModelInfo();
 
   void updateClassifiers(std::unique_ptr<ClassifierBase<DataType, Classifier>>&&, Row<DataType>&);
 
@@ -532,10 +532,9 @@ private:
   std::vector<std::size_t> childNumSteps_;
   std::vector<double> childLearningRate_;
 
-  using ChildInfoType = std::tuple<std::size_t,
-				   std::size_t,
-				   double>;
-  std::unordered_map<std::size_t, ChildInfoType> childInfo_;
+  std::vector<std::size_t> childMinLeafSize_;
+  std::vector<std::size_t> childMaxDepth_;
+  std::vector<double> childMinimumGainSplit_;
 
   std::size_t serializationWindow_;
   std::string indexName_;

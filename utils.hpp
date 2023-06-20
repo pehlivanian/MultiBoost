@@ -63,24 +63,20 @@ namespace ModelContext{
 
   struct Context {
 
-    Context(std::size_t minLeafSize=1,
-	    double minimumGainSplit=.0,
-	    std::size_t maxDepth=100,
-	    std::size_t numTrees=10,
-	    bool recursiveFit=false) : 
+    Context() :
       baseSteps{-1},
       removeRedundantLabels{false},
       quietRun{false},
-      recursiveFit{recursiveFit},
+      recursiveFit{false},
       partitionSizeMethod{PartitionSize::PartitionSizeMethod::FIXED},
       learningRateMethod{LearningRate::LearningRateMethod::FIXED},
       stepSizeMethod{StepSize::StepSizeMethod::LOG},
       childPartitionSize{std::vector<std::size_t>()},
       childNumSteps{std::vector<std::size_t>()},
       childLearningRate{std::vector<double>()},
-      minLeafSize{minLeafSize},
-      minimumGainSplit{minimumGainSplit},
-      maxDepth{maxDepth},
+      childMinLeafSize{std::vector<std::size_t>()},
+      childMaxDepth{std::vector<std::size_t>()},
+      childMinimumGainSplit{std::vector<double>()},
       numTrees{numTrees},
       serializeModel{false},
       serializePrediction{false},
@@ -113,9 +109,12 @@ namespace ModelContext{
       childPartitionSize = rhs.childPartitionSize;
       childNumSteps = rhs.childNumSteps;
       childLearningRate = rhs.childLearningRate;
+      childMinLeafSize = rhs.childMinLeafSize;
+      childMaxDepth = rhs.childMaxDepth;
+      childMinimumGainSplit = rhs.childMinimumGainSplit;
       minLeafSize = rhs.minLeafSize;
-      minimumGainSplit = rhs.minimumGainSplit;
       maxDepth = rhs.maxDepth;
+      minimumGainSplit = rhs.minimumGainSplit;
       numTrees = rhs.numTrees;
       serializeModel = rhs.serializeModel;
       serializePrediction = rhs.serializePrediction;
@@ -146,9 +145,9 @@ namespace ModelContext{
       ar(childPartitionSize);
       ar(childNumSteps);
       ar(childLearningRate);
-      ar(minLeafSize);
-      ar(minimumGainSplit);
-      ar(maxDepth);
+      ar(childMinLeafSize);
+      ar(childMinimumGainSplit);
+      ar(childMaxDepth);
       ar(numTrees);
       ar(serializeModel);
       ar(serializePrediction);
@@ -162,6 +161,10 @@ namespace ModelContext{
     std::size_t partitionSize;
     double partitionRatio;
     double learningRate;
+    std::size_t numTrees;
+    std::size_t minLeafSize;
+    std::size_t maxDepth;
+    double minimumGainSplit;
     int steps;
     int baseSteps;
     bool symmetrizeLabels;
@@ -176,10 +179,9 @@ namespace ModelContext{
     std::vector<std::size_t> childPartitionSize;
     std::vector<std::size_t> childNumSteps;
     std::vector<double> childLearningRate;
-    std::size_t minLeafSize;
-    double minimumGainSplit;
-    std::size_t maxDepth;
-    std::size_t numTrees;
+    std::vector<std::size_t> childMinLeafSize;
+    std::vector<std::size_t> childMaxDepth;
+    std::vector<double> childMinimumGainSplit;
     bool serializeModel;
     bool serializePrediction;
     bool serializeColMask;

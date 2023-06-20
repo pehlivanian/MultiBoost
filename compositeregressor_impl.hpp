@@ -12,16 +12,16 @@ using namespace IB_utils;
 
 namespace RegressorFileScope {
   const bool POST_EXTRAPOLATE = true;
-  const bool DIAGNOSTICS_0_ = true;
+  const bool DIAGNOSTICS_0_ = false;
   const bool DIAGNOSTICS_1_ = false;
 } // namespace RegressorFileScope
 
 template<typename RegressorType>
 void
-CompositeRegressor<RegressorType>::childContext(Context& context, 
-					std::size_t subPartitionSize,
-						double subLearningRate,
-						std::size_t stepSize) {
+CompositeRegressor<RegressorType>::childContext(Context& context) {
+
+  auto [partitionSize, stepSize, learningRate] = computeChildPartitionInfo();
+  auto [maxDepth, minLeafSize, minimumGainSplit] = computeChildModelInfo();
 
   context.loss			= loss_;
   context.partitionRatio	= std::min(1., 2*partitionRatio_);
@@ -31,16 +31,17 @@ CompositeRegressor<RegressorType>::childContext(Context& context,
   context.rowSubsampleRatio	= row_subsample_ratio_;
   context.colSubsampleRatio	= col_subsample_ratio_;
   context.recursiveFit		= true;
+  context.numTrees		= numTrees_;
 
-  context.partitionSize		= subPartitionSize;
+  context.partitionSize		= partitionSize;
   context.steps			= stepSize;
-  context.learningRate		= subLearningRate;
+  context.learningRate		= learningRate;
 
   context.stepSizeMethod	= stepSizeMethod_;
   context.partitionSizeMethod	= partitionSizeMethod_;
   context.learningRateMethod	= learningRateMethod_;    
   
-  auto it = std::find(childPartitionSize_.cbegin(), childPartitionSize_.cend(), subPartitionSize);
+  auto it = std::find(childPartitionSize_.cbegin(), childPartitionSize_.cend(), partitionSize);
   auto ind = std::distance(childPartitionSize_.cbegin(), it);
 
   context.childPartitionSize	= std::vector<std::size_t>(childPartitionSize_.cbegin()+ind,
@@ -50,27 +51,24 @@ CompositeRegressor<RegressorType>::childContext(Context& context,
   context.childLearningRate	= std::vector<double>(childLearningRate_.cbegin()+ind,
 						      childLearningRate_.cend());
 
-  // Part of model args
-  context.numTrees		= numTrees_;
-  context.minLeafSize		= minLeafSize_;
+  // Model args
+  context.childMinLeafSize	= std::vector<std::size_t>(childMinLeafSize_.cbegin()+ind,
+							   childMinLeafSize_.cend());
+  context.childMaxDepth		= std::vector<std::size_t>(childMaxDepth_.cbegin()+ind,
+							   childMaxDepth_.cend());
+  context.childMinimumGainSplit	= std::vector<double>(childMinimumGainSplit_.cbegin()+ind,
+						      childMinimumGainSplit_.cend());
+
   context.maxDepth		= maxDepth_;
+  context.minLeafSize		= minLeafSize_;
   context.minimumGainSplit	= minimumGainSplit_;
+
 }
 
 template<typename RegressorType>
 AllRegressorArgs
 CompositeRegressor<RegressorType>::allRegressorArgs() {
   return std::make_tuple(minLeafSize_, minimumGainSplit_, maxDepth_);
-}
-
-template<typename RegressorType>
-void
-CompositeRegressor<RegressorType>::childInfoInit_() {
-  for (std::size_t i=0; i<-1+childPartitionSize_.size(); ++i) {
-    childInfo_[childPartitionSize_[i]] = std::make_tuple(childPartitionSize_[i+1],
-							 childNumSteps_[i+1],
-							 childLearningRate_[i+1]);
-  }
 }
 
 template<typename RegressorType>
@@ -84,6 +82,17 @@ CompositeRegressor<RegressorType>::contextInit_(Context&& context) {
   steps_			= context.childNumSteps[0];
   learningRate_			= context.childLearningRate[0];
 
+  minLeafSize_			= context.childMinLeafSize[0];
+  maxDepth_			= context.childMaxDepth[0];
+  minimumGainSplit_		= context.childMinimumGainSplit[0];
+
+  childPartitionSize_		= context.childPartitionSize;
+  childNumSteps_		= context.childNumSteps;
+  childLearningRate_		= context.childLearningRate;
+  childMinLeafSize_		= context.childMinLeafSize;
+  childMaxDepth_		= context.childMaxDepth;
+  childMinimumGainSplit_	= context.childMinimumGainSplit;
+
   baseSteps_			= context.baseSteps;
   quietRun_			= context.quietRun;
   row_subsample_ratio_		= context.rowSubsampleRatio;
@@ -92,13 +101,6 @@ CompositeRegressor<RegressorType>::contextInit_(Context&& context) {
   partitionSizeMethod_		= context.partitionSizeMethod;
   learningRateMethod_		= context.learningRateMethod;
   stepSizeMethod_		= context.stepSizeMethod;
-  childPartitionSize_		= context.childPartitionSize;
-  childNumSteps_		= context.childNumSteps;
-  childLearningRate_		= context.childLearningRate;
-  minLeafSize_			= context.minLeafSize;
-  minimumGainSplit_		= context.minimumGainSplit;
-  maxDepth_			= context.maxDepth;
-  numTrees_			= context.numTrees;
   serializeModel_		= context.serializeModel;
   serializePrediction_		= context.serializePrediction;
   serializeColMask_		= context.serializeColMask;
@@ -165,7 +167,6 @@ void
 CompositeRegressor<RegressorType>::init_(Context&& context) {
 
   contextInit_(std::move(context));
-  childInfoInit_();
   
   if (serializeModel_ || serializePrediction_ ||
       serializeColMask_ || serializeDataset_ ||
@@ -349,18 +350,8 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
   // BEGIN RECURSIVE STEP //
   //////////////////////////
   if (recursiveFit_ && (childPartitionSize_.size() > 1)) {
-    // if (recursiveFit_ && partitionSize_ > 2) {
-    // Compute new partition size
-    // std::size_t subPartitionSize = computeSubPartitionSize(stepNum);
-
-    // Compute new steps
-    // std::size_t subStepSize = computeSubStepSize(stepNum);
-
-    // Compute new learning rate
-    // double subLearningRate = computeSubLearningRate(stepNum);
-
     auto [subPartitionSize, subStepSize, subLearningRate] = 
-      computeChildPartitionInfo(stepNum);
+      computeChildPartitionInfo();
 
     // Generate coefficients g, h
     std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
@@ -399,7 +390,7 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
     allLeaves(colMask_) = best_leaves;
 
     Context context{};      
-    childContext(context, subPartitionSize, subLearningRate, subStepSize);
+    childContext(context);
 
     // allLeaves may not strictly fit the definition of labels here - 
     // aside from the fact that it is of double type, it may have more 
@@ -872,33 +863,21 @@ CompositeRegressor<RegressorType>::computeLearningRate(std::size_t stepNum) {
 
 template<typename RegressorType>
 std::tuple<std::size_t, std::size_t, double>
-CompositeRegressor<RegressorType>::computeChildPartitionInfo(std::size_t stepNum) {
-
-  (void)stepNum;
+CompositeRegressor<RegressorType>::computeChildPartitionInfo() {
 
   return std::make_tuple(childPartitionSize_[1],
 			 childNumSteps_[1],
 			 childLearningRate_[1]);
 
-  /*
-  (void)stepNum;
+}
 
-  return childInfo_[partitionSize_];
-  */
-
-  /*
-  (void)stepNum;
-
-  std::size_t ind = std::distance(childPartitionSize_.cbegin(), ++curr_);
-
-  std::cout << "CHILD PARTITION:" << std::endl;
-  std::copy(curr_, childPartitionSize_.cend(), std::ostream_iterator<std::size_t>(std::cout, " "));
-  std::cout << std::endl;
-
-  return std::make_tuple(childPartitionSize_[ind], 
-			 childNumSteps_[ind], 
-			 childLearningRate_[ind]);
-  */
+template<typename RegressorType>
+std::tuple<std::size_t, std::size_t, double>
+CompositeRegressor<RegressorType>::computeChildModelInfo() {
+  
+  return std::make_tuple(childMaxDepth_[1],
+			 childMinLeafSize_[1],
+			 childMinimumGainSplit_[1]);
 }
 
 template<typename RegressorType>

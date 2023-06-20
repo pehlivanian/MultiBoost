@@ -8,6 +8,10 @@ using namespace mlpack::util;
 using namespace ModelContext;
 using namespace IB_utils;
 
+using CerealT = Context;
+using CerealIArch = cereal::BinaryInputArchive;
+using CerealOArch = cereal::BinaryOutputArchive;
+
 const std::string DELIM = ";";
 
 using namespace boost::program_options;
@@ -57,7 +61,8 @@ auto main(int argc, char **argv) -> int {
   }
   
   // Get context
-  readBinary<Context>(contextFileName, context);
+  loads<CerealT, CerealIArch, CerealOArch>(context, contextFileName);
+
   context.quietRun = quietRun;
 
   // Get data

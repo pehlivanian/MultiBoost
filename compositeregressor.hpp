@@ -255,7 +255,7 @@ public:
   }
 
 private:
-  void childContext(Context&, std::size_t, double, std::size_t);
+  void childContext(Context&);
   void contextInit_(Context&&);
   void init_(Context&&);
   Row<double> _constantLeaf() const;
@@ -265,7 +265,6 @@ private:
   void fit_step(std::size_t);
   double computeLearningRate(std::size_t);
   std::size_t computePartitionSize(std::size_t, const uvec&);
-  void childInfoInit_();
   
   void Predict_(const mat& dataset, Row<DataType>& prediction) override { 
     Predict(dataset, prediction);
@@ -285,7 +284,8 @@ private:
   double computeSubLearningRate(std::size_t);
   std::size_t computeSubPartitionSize(std::size_t);
   std::size_t computeSubStepSize(std::size_t);
-  std::tuple<std::size_t, std::size_t, double> computeChildPartitionInfo(std::size_t);
+  std::tuple<std::size_t, std::size_t, double> computeChildPartitionInfo();
+  std::tuple<std::size_t, std::size_t, double> computeChildModelInfo();
 
   void updateRegressors(std::unique_ptr<RegressorBase<DataType, Regressor>>&&, Row<DataType>&);
 
@@ -358,11 +358,11 @@ private:
   std::vector<std::size_t> childPartitionSize_;
   std::vector<std::size_t> childNumSteps_;
   std::vector<double> childLearningRate_;
-
-  using childInfoType = std::tuple<std::size_t,
-				   std::size_t,
-				   double>;
-  std::unordered_map<std::size_t, childInfoType> childInfo_;
+  
+  std::vector<std::size_t> childNumTrees_;
+  std::vector<std::size_t> childMaxDepth_;
+  std::vector<std::size_t> childMinLeafSize_;
+  std::vector<double> childMinimumGainSplit_;
 
   std::size_t serializationWindow_;
   std::string indexName_;

@@ -9,6 +9,10 @@ using namespace mlpack::util;
 using namespace ModelContext;
 using namespace IB_utils;
 
+using CerealT = Context;
+using CerealIArch = cereal::BinaryInputArchive;
+using CerealOArch = cereal::BinaryOutputArchive;
+
 using namespace boost::program_options;
 
 const std::string DELIM = ";";
@@ -57,7 +61,8 @@ auto main(int argc, char **argv) -> int {
   
   // Get context; no subdirectory for initial read
   // classifier will persist to digest subdirectory
-  readBinary<Context>(contextFileName, context);
+  loads<CerealT, CerealIArch, CerealOArch>(context, contextFileName);
+
   context.quietRun = quietRun;
 
   // Get data

@@ -37,7 +37,6 @@ INSTANTIATE_TEST_SUITE_P(DPSolverTests,
 					   objective_fn::RationalScore
 					   )
 			 );
-
 void sort_by_priority(std::vector<float>& a, std::vector<float>& b) {
   std::vector<int> ind(a.size());
   std::iota(ind.begin(), ind.end(), 0);
@@ -642,6 +641,9 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
   context.childPartitionSize = std::vector<std::size_t>{11, 5};
   context.childNumSteps = std::vector<std::size_t>{21, 2};
   context.childLearningRate = std::vector<double>{.001, .001};
+  context.childMinLeafSize = std::vector<std::size_t>{1, 1};
+  context.childMaxDepth = std::vector<std::size_t>{5, 5};
+  context.childMinimumGainSplit = std::vector<double>{0., 0.};
   context.partitionRatio = .25;
   context.quietRun = true;
   context.symmetrizeLabels = true;
@@ -651,9 +653,6 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
   context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
   context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
   context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
-  context.minLeafSize = minLeafSize;
-  context.maxDepth = maxDepth;
-  context.minimumGainSplit = minimumGainSplit;
 
   context.serializationWindow = 100;
 
@@ -734,6 +733,9 @@ TEST(GradientBoostClassifierTest, TestInSamplePredictionMatchesLatestPrediction)
   context.childPartitionSize = std::vector<std::size_t>{11, 5};
   context.childNumSteps = std::vector<std::size_t>{5, 2};
   context.childLearningRate = std::vector<double>{.001, .001};
+  context.childMinLeafSize = std::vector<std::size_t>{1, 1};
+  context.childMaxDepth = std::vector<std::size_t>{5, 5};
+  context.childMinimumGainSplit = std::vector<double>{0., 0.};
   context.partitionRatio = .25;
   context.quietRun = true;
   context.symmetrizeLabels = true;
@@ -743,9 +745,6 @@ TEST(GradientBoostClassifierTest, TestInSamplePredictionMatchesLatestPrediction)
   context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
   context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
   context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
-  context.minLeafSize = minLeafSize;
-  context.maxDepth = maxDepth;
-  context.minimumGainSplit = minimumGainSplit;
 
   using T = GradientBoostClassifier<DecisionTreeClassifier>;
 
@@ -798,6 +797,9 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveRoundTrips) {
   context.childPartitionSize = std::vector<std::size_t>{11, 5};
   context.childNumSteps = std::vector<std::size_t>{5, 2};
   context.childLearningRate = std::vector<double>{.001, .001};
+  context.childMinLeafSize = std::vector<std::size_t>{1, 1};
+  context.childMaxDepth = std::vector<std::size_t>{5, 5};
+  context.childMinimumGainSplit = std::vector<double>{0., 0.};
   context.partitionRatio = .25;
   context.quietRun = true;
   context.symmetrizeLabels = true;
@@ -807,9 +809,6 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveRoundTrips) {
   context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
   context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
   context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
-  context.minLeafSize = minLeafSize;
-  context.maxDepth = maxDepth;
-  context.minimumGainSplit = minimumGainSplit;
 
   using T = GradientBoostClassifier<DecisionTreeClassifier>;
 
@@ -937,6 +936,9 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips)
   context.childPartitionSize = std::vector<std::size_t>{10};
   context.childNumSteps = std::vector<std::size_t>{8};
   context.childLearningRate = std::vector<double>{.001};
+  context.childMinLeafSize = std::vector<std::size_t>{1, 1};
+  context.childMaxDepth = std::vector<std::size_t>{5, 5};
+  context.childMinimumGainSplit = std::vector<double>{0., 0.};
   context.partitionRatio = .25;
   context.quietRun = true;
   context.symmetrizeLabels = true;
@@ -946,9 +948,6 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips)
   context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
   context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
   context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
-  context.minLeafSize = minLeafSize;
-  context.maxDepth = maxDepth;
-  context.minimumGainSplit = minimumGainSplit;
 
   using T = GradientBoostClassifier<DecisionTreeClassifier>;
 
@@ -1142,6 +1141,9 @@ TEST(GradientBoostClassifierTest, TestWritePrediction) {
   context.childPartitionSize = std::vector<std::size_t>{11, 6};
   context.childNumSteps = std::vector<std::size_t>{4, 4};
   context.childLearningRate = std::vector<double>{.001, .001};
+  context.childMinLeafSize = std::vector<std::size_t>{1, 1};
+  context.childMaxDepth = std::vector<std::size_t>{5, 5};
+  context.childMinimumGainSplit = std::vector<double>{0., 0.};
   context.partitionRatio = .25;
   context.quietRun = true;
   context.symmetrizeLabels = true;
@@ -1153,9 +1155,6 @@ TEST(GradientBoostClassifierTest, TestWritePrediction) {
   context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
   context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
   context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
-  context.minLeafSize = minLeafSize;
-  context.maxDepth = maxDepth;
-  context.minimumGainSplit = minimumGainSplit;
 
   context.serializationWindow = 100;
 
@@ -1224,6 +1223,9 @@ TEST(GradientBoostRegressorTest, TestPredictionRoundTrip) {
   context.childPartitionSize = std::vector<std::size_t>{11};
   context.childNumSteps = std::vector<std::size_t>{21};
   context.childLearningRate = {1., 1., 1.};
+  context.childMinLeafSize = std::vector<std::size_t>{1, 1};
+  context.childMaxDepth = std::vector<std::size_t>{5, 5};
+  context.childMinimumGainSplit = std::vector<double>{0., 0.};
   context.partitionRatio = .25;
   context.baseSteps = 35;
   context.quietRun = true;
@@ -1235,9 +1237,6 @@ TEST(GradientBoostRegressorTest, TestPredictionRoundTrip) {
   context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
   context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
   context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
-  context.minLeafSize = minLeafSize;
-  context.maxDepth = maxDepth;
-  context.minimumGainSplit = minimumGainSplit;
 
   context.serializationWindow = 11;
 
@@ -1317,6 +1316,9 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
   context.childPartitionSize = std::vector<std::size_t>{11};
   context.childNumSteps = std::vector<std::size_t>{114};
   context.childLearningRate = std::vector<double>{.001};
+  context.childMinLeafSize = std::vector<std::size_t>{1, 1};
+  context.childMaxDepth = std::vector<std::size_t>{5, 5};
+  context.childMinimumGainSplit = std::vector<double>{0., 0.};
   context.partitionRatio = .25;
   context.quietRun = true;
   context.baseSteps = 214;
@@ -1329,9 +1331,6 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
   context.serializeColMask = false;
   context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
   context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
-  context.minLeafSize = minLeafSize;
-  context.maxDepth = maxDepth;
-  context.minimumGainSplit = minimumGainSplit;
 
   context.serializationWindow = 100;
 
@@ -1481,6 +1480,9 @@ TEST(GradientBoostRegressorTest, TestInSamplePredictionMatchesLatestPrediction) 
   context.childPartitionSize = std::vector<std::size_t>{11, 5, 2};
   context.childNumSteps = std::vector<std::size_t>{14, 1, 2};
   context.childLearningRate = std::vector<double>{1., 1., 1.};
+  context.childMinLeafSize = std::vector<std::size_t>{1, 1, 1};
+  context.childMaxDepth = std::vector<std::size_t>{5, 5, 5};
+  context.childMinimumGainSplit = std::vector<double>{0., 0., 0.};
   context.partitionRatio = .25;
   context.quietRun = true;
   context.symmetrizeLabels = true;
@@ -1490,9 +1492,6 @@ TEST(GradientBoostRegressorTest, TestInSamplePredictionMatchesLatestPrediction) 
   context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
   context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
   context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
-  context.minLeafSize = minLeafSize;
-  context.maxDepth = maxDepth;
-  context.minimumGainSplit = minimumGainSplit;
 
   using T = GradientBoostRegressor<DecisionTreeRegressorRegressor>;
 
@@ -1545,6 +1544,9 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
   context.childPartitionSize = std::vector<std::size_t>{11, 5, 2};
   context.childNumSteps = std::vector<std::size_t>{14, 1, 2};
   context.childLearningRate = std::vector<double>{1., 1., 1.};
+  context.childMinLeafSize = std::vector<std::size_t>{1, 1, 1};
+  context.childMaxDepth = std::vector<std::size_t>{5, 5, 5};
+  context.childMinimumGainSplit = std::vector<double>{0., 0., 0.};
   context.partitionRatio = .25;
   context.quietRun = true;
   context.rowSubsampleRatio = 1.;
@@ -1553,9 +1555,6 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
   context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
   context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
   context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
-  context.minLeafSize = minLeafSize;
-  context.maxDepth = maxDepth;
-  context.minimumGainSplit = minimumGainSplit;
   
   context.serializationWindow = 2;
 
@@ -1643,6 +1642,9 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorNonRecursiveRoundTrips) {
   context.childPartitionSize = std::vector<std::size_t>{10, 2};
   context.childNumSteps = std::vector<std::size_t>{14, 2};
   context.childLearningRate = std::vector<double>{1., 1.};
+  context.childMinLeafSize = std::vector<std::size_t>{1, 1};
+  context.childMaxDepth = std::vector<std::size_t>{5, 5};
+  context.childMinimumGainSplit = std::vector<double>{0., 0.};
   context.partitionRatio = .25;
   context.quietRun = true;
   context.symmetrizeLabels = false;
@@ -1653,9 +1655,6 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorNonRecursiveRoundTrips) {
   context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED;
   context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;
   context.stepSizeMethod = StepSize::StepSizeMethod::LOG;
-  context.minLeafSize = minLeafSize;
-  context.maxDepth = maxDepth;
-  context.minimumGainSplit = minimumGainSplit;
 
   using T = GradientBoostRegressor<DecisionTreeRegressorRegressor>;
 
@@ -1845,6 +1844,9 @@ TEST(GradientBoostRegressorTest, TestPerfectInSampleFit) {
     context.childPartitionSize = std::vector<std::size_t>{10, 4};
     context.childNumSteps = std::vector<std::size_t>{5, 6};
     context.childLearningRate = std::vector<double>{1., 1.};
+    context.childMinLeafSize = std::vector<std::size_t>{1, 1};
+    context.childMaxDepth = std::vector<std::size_t>{5, 5};
+    context.childMinimumGainSplit = std::vector<double>{0., 0.};    
     context.partitionRatio = .25;
     context.baseSteps = 1000;
     context.symmetrizeLabels = true;
@@ -1861,9 +1863,6 @@ TEST(GradientBoostRegressorTest, TestPerfectInSampleFit) {
     context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
     context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;    // DECREASING
     context.stepSizeMethod = StepSize::StepSizeMethod::LOG;	
-    context.minLeafSize = 1;
-    context.maxDepth = 10;
-    context.minimumGainSplit = 0.;
     
     auto regressor = GradientBoostRegressor<DecisionTreeRegressorRegressor>(dataset,
 									    labels,
@@ -1931,6 +1930,9 @@ TEST(GradientBoostRegressorTest, TestOutofSampleFit) {
     context.childPartitionSize = std::vector<std::size_t>{10, 4};
     context.childNumSteps = std::vector<std::size_t>{5, 6};
     context.childLearningRate = std::vector<double>{1., 1.};
+    context.childMinLeafSize = std::vector<std::size_t>{1, 1};
+    context.childMaxDepth = std::vector<std::size_t>{5, 5};
+    context.childMinimumGainSplit = std::vector<double>{0., 0.};
     context.partitionRatio = .25;
     context.baseSteps = 1000;
     context.symmetrizeLabels = true;
@@ -1947,9 +1949,6 @@ TEST(GradientBoostRegressorTest, TestOutofSampleFit) {
     context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
     context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;    // DECREASING
     context.stepSizeMethod = StepSize::StepSizeMethod::LOG;	
-    context.minLeafSize = 1;
-    context.maxDepth = 10;
-    context.minimumGainSplit = 0.;
     
     auto regressor = GradientBoostRegressor<DecisionTreeRegressorRegressor>(dataset,
 									    labels,
