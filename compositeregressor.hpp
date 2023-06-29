@@ -249,7 +249,7 @@ public:
   template<class Archive>
   void serialize(Archive &ar) {
     ar(cereal::base_class<RegressorBase<DataType, Regressor>>(this), CEREAL_NVP(regressors_));
-    // We choose not to seriazlize latestPrediction_, we will generate from (regressor, dataset) 
+    // We choose not to serialize latestPrediction_, we will generate from (regressor, dataset) 
     // if necessary.
     // ar(cereal::base_class<RegressorBase<DataType, Regressor>>(this), latestPrediction_);
   }

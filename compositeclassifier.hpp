@@ -414,6 +414,8 @@ public:
     ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), symmetrized_);
     ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), a_);
     ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), b_);
+    // Don't serialize latestPrediction_, we will generate from (classifier, dataste)
+    // if necessary
     // ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), latestPrediction_);
   }
 

@@ -52,7 +52,7 @@ CompositeClassifier<ClassifierType>::childContext(Context& context) {
   context.childLearningRate	= std::vector<double>(childLearningRate_.cbegin()+ind,
 						      childLearningRate_.cend());
   
-
+  // Model args
   context.childMinLeafSize	= std::vector<std::size_t>(childMinLeafSize_.cbegin()+ind,
 							   childMinLeafSize_.cend());
   context.childMaxDepth		= std::vector<std::size_t>(childMaxDepth_.cbegin()+ind,

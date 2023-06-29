@@ -219,7 +219,6 @@ CompositeRegressor<RegressorType>::init_(Context&& context) {
   row_d constantLabels = _constantLeaf();
   // row_d constantLabels = _randomLeaf();
  
-  // numClasses is always the first parameter for the regressor
   // form parameter pack based on RegressorType
   std::unique_ptr<RegressorType> regressor;
   const typename RegressorType::Args& regressorArgs = RegressorType::_args(allRegressorArgs());
