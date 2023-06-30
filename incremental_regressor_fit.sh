@@ -8,14 +8,6 @@ EXEC_CC=${PATH}createContext
 CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCrosserge.cxt
 CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCrosserge.cxt
 
-declare -a name CHILDPARTITIONSIZE
-declare -a name CHILDNUMSTEPS
-declare -a name CHILDLEARNINGRATE
-declare -a name CHILDMAXDEPTH
-declare -a name CHILDMINLEAFSIZE
-declare -a name CHILDMINIMUMGAINSPLIT
-
-
 # CHILDPARTITIONSIZE=(1000 500 250 100 20 10 5 1)
 # CHILDNUMSTEPS=(1 1 1 3 5 3 1 1 1)
 # CHILDLEARNINGRATE=(.001 .001 .002 .002 .003 .003 .004 .004)
@@ -23,22 +15,33 @@ declare -a name CHILDMINIMUMGAINSPLIT
 # CHILDMINLEAFSIZE=(1 1 1 1 1 50 100 100)
 # CHILDMINIMUMGAINSPLIT=(0. 0. 0. 0. 0. 0. 0. 0.)
 
-CHILDPARTITIONSIZE=(2000 1000 500 250 100 50 25 10 5 1)
+# CHILDPARTITIONSIZE=(2000 1000 500 250 100 50 25 10 5 1)
+CHILDPARTITIONSIZE=(2 1 5 2 1 5 2 1 5 1)
 CHILDNUMSTEPS=(1 1 2 2 3 4 3 2 2 1)
-# CHILDLEARNINGRATE=(.00025 .00025 .0005 .0005 .00075 .00075 .001 .001 .0015 .0015)
-CHILDLEARNINGRATE=(.01 .01 .01 .01 .01 .01 .01 .01 .01 .01)
+CHILDLEARNINGRATE=(.0225 .0225 .025 .025 .0375 .0375 .04 .04 .05 .05)
+# CHILDLEARNINGRATE=(.01 .01 .01 .01 .01 .01 .01 .01 .01 .01)
 CHILDMAXDEPTH=(20 20 20 20 20 20 10 10 5 5)
 CHILDMINLEAFSIZE=(1 1 1 1 1 1 25 50 100 100)
 CHILDMINIMUMGAINSPLIT=(0. 0. 0. 0. 0. 0. 0. 0. 0. 0.)
 STEPS=1
-BASESTEPS=50
-RECURSIVE_FIT=false
+BASESTEPS=500
+RECURSIVE_FIT=true
 MINLEAFSIZE=1
 MINGAINSPLIT=0.
 MAXDEPTH=20
 LOSS_FN=0
 COLSUBSAMPLE_RATIO=1.
-DATANAME=tabular_benchmark/Regression/Mixed/Mercedes_Benz_Greener_Manufacturing
+# DATANAME=tabular_benchmark/Regression/Mixed/Mercedes_Benz_Greener_Manufacturing
+# DATANAME=tabular_benchmark/Regression/superconduct
+# DATANAME=tabular_benchmark/Regression/wine_quality
+# DATANAME=tabular_benchmark/Regression/sulfur
+# DATANAME=tabular_benchmark/Regression/houses
+# DATANAME=tabular_benchmark/Regression/house_sale
+# DATANAME=tabular_benchmark/Regression/MiamiHousing2016
+# DATANAME=tabular_benchmark/Regression/Bike_Sharing_Demand
+DATANAME=tabular_benchmark/Regression/elevators
+# DATANAME=tabular_benchmark/Regression/house_16H
+# DATANAME=tabular_benchmark/Regression/yprop_4_1
 SPLITRATIO=0.2
 
 ((ITERS=$BASESTEPS / $STEPS))

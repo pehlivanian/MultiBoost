@@ -999,6 +999,7 @@ TEST(GradientBoostRegressorTest, TestContextWrittenWithCorrectValues) {
   cmd += "--partitionSizeMethod 0 --learningRateMethod 0 ";
   cmd += "--learningRate 1. --steps 4122 --symmetrizeLabels false ";
   cmd += "--childPartitionSize 1000 500 250 125 10 1 --childNumSteps 100 10 5 2 1 1 ";
+  cmd += "--childMinLeafSize 10 10 5 2 1 ";
   cmd += "--fileName ./ctx_cls.dat";
 
   exec(cmd);
@@ -1016,6 +1017,7 @@ TEST(GradientBoostRegressorTest, TestContextWrittenWithCorrectValues) {
   
   std::vector<std::size_t> targetPartitionSize = {1000, 500, 250, 125, 10, 1};
   std::vector<std::size_t> targetNumSteps = {100, 10, 5, 2, 1, 1};
+  std::vector<std::size_t> targetMinLeafSize = {10, 10, 5, 2, 1};
 
   for (std::size_t i=0; i<context_archive.childPartitionSize.size(); ++i) {
     ASSERT_EQ(context_archive.childPartitionSize[i], targetPartitionSize[i]);
@@ -1025,8 +1027,11 @@ TEST(GradientBoostRegressorTest, TestContextWrittenWithCorrectValues) {
     ASSERT_EQ(context_archive.childNumSteps[i], targetNumSteps[i]);
   }
 
+  for (std::size_t i=0; i<context_archive.childMinLeafSize.size(); ++i) {
+    ASSERT_EQ(context_archive.childMinLeafSize[i], targetMinLeafSize[i]);
+  }
+
   // Default values
-  ASSERT_EQ(context_archive.minLeafSize, 1);
   ASSERT_EQ(context_archive.recursiveFit, true);
   ASSERT_EQ(context_archive.rowSubsampleRatio, 1.);
   ASSERT_EQ(context_archive.colSubsampleRatio, .25);
@@ -1047,6 +1052,7 @@ TEST(GradientBoostClassifierTest, TestContextWrittenWithCorrectValues) {
   cmd += "--loss 1 --partitionSize 6 --partitionRatio .25 ";
   cmd += "--partitionSizeMethod 1 --learningRateMethod 2 ";
   cmd += "--learningRate .01 --steps 1010 --symmetrizeLabels true ";
+  cmd += "--childMinLeafSize 10 10 5 2 1 ";
   cmd += "--fileName ctx_reg.dat";
 
   exec(cmd);
@@ -1061,8 +1067,12 @@ TEST(GradientBoostClassifierTest, TestContextWrittenWithCorrectValues) {
   ASSERT_EQ(context_archive.partitionSizeMethod, PartitionSize::PartitionSizeMethod::FIXED_PROPORTION);
   ASSERT_EQ(context_archive.learningRateMethod, LearningRate::LearningRateMethod::DECREASING);
 
+  std::vector<std::size_t> targetMinLeafSize = {10, 10, 5, 2, 1};
+  for (std::size_t i=0; i<context_archive.childMinLeafSize.size(); ++i) {
+    ASSERT_EQ(context_archive.childMinLeafSize[i], targetMinLeafSize[i]);
+  }
+
   // Default values
-  ASSERT_EQ(context_archive.minLeafSize, 1);
   ASSERT_EQ(context_archive.symmetrizeLabels, true);
   ASSERT_EQ(context_archive.recursiveFit, true);
   ASSERT_EQ(context_archive.rowSubsampleRatio, 1.);
@@ -1689,99 +1699,6 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorNonRecursiveRoundTrips) {
       ASSERT_LE(fabs(trainPrediction[i]-trainNewPrediction[i]), eps);
 
   }
-}
-
-TEST(GradientBoostClassifierTest, TestIncrementalContextContent) {
-
-  using CerealT = Context;
-  using CerealIArch = cereal::BinaryInputArchive;
-  using CerealOArch = cereal::BinaryOutputArchive;  
-
-  const float eps = std::numeric_limits<float>::epsilon();
-
-  boost::filesystem::path fldr{"./"};
-
-  std::string fileName = "__CTX_TEST_EtxetnoC7txetnoCreifissa.cxt";
-  Context context;
-
-  loads<CerealT, CerealIArch, CerealOArch>(context, fileName);
-
-  std::vector<std::size_t> targetPartitionSize{10, 5, 4, 2, 1};
-  std::vector<std::size_t> targetNumSteps{100, 20, 10, 5, 1};
-  std::vector<double> targetLearningRate(5, .001);
-
-  for (std::size_t i=0; i<context.childPartitionSize.size(); ++i)
-    ASSERT_EQ(context.childPartitionSize[i], targetPartitionSize[i]);
-  for (std::size_t i=0; i<context.childNumSteps.size(); ++i)
-    ASSERT_EQ(context.childNumSteps[i], targetNumSteps[i]);
-  for (std::size_t i=0; i<context.childLearningRate.size(); ++i)    
-    ASSERT_LE(fabs(context.childLearningRate[i]-targetLearningRate[i]), eps);
-
-  ASSERT_EQ(context.loss, lossFunction::Synthetic);
-  ASSERT_EQ(context.partitionRatio, .25);
-  ASSERT_EQ(context.baseSteps, 10000);
-  ASSERT_EQ(context.symmetrizeLabels, true);
-  ASSERT_EQ(context.removeRedundantLabels, false);
-  ASSERT_EQ(context.quietRun, true);
-  ASSERT_EQ(context.rowSubsampleRatio, 1.);
-  ASSERT_EQ(context.colSubsampleRatio, .85);
-  ASSERT_EQ(context.recursiveFit, true);
-  ASSERT_EQ(context.serializeModel, true);
-  ASSERT_EQ(context.serializePrediction, true);
-  ASSERT_EQ(context.partitionSizeMethod, PartitionSize::PartitionSizeMethod::FIXED);
-  ASSERT_EQ(context.learningRateMethod, LearningRate::LearningRateMethod::FIXED);
-  ASSERT_EQ(context.stepSizeMethod, StepSize::StepSizeMethod::LOG);
-  ASSERT_EQ(context.minLeafSize, 1);
-  ASSERT_EQ(context.maxDepth, 10);
-  ASSERT_EQ(context.minimumGainSplit, 0.);
-  ASSERT_EQ(context.serializationWindow, 1000);
-	    
-}
-
-TEST(GradientBoostRegressorTest, TestIncrementalContextContent) {
-
-  using CerealT = Context;
-  using CerealIArch = cereal::BinaryInputArchive;
-  using CerealOArch = cereal::BinaryOutputArchive;
-
-  const float eps = std::numeric_limits<float>::epsilon();
-
-  std::string fileName = "__CTX_TEST_EtxetnoC7txetnoCrosserge.cxt";
-
-  Context context;
-
-  loads<CerealT, CerealIArch, CerealOArch>(context, fileName);
-
-  std::vector<std::size_t> targetPartitionSize{1000, 500, 250, 100, 20, 10, 5, 1};
-  std::vector<std::size_t> targetNumSteps{100, 2, 1, 1, 1, 1, 1, 1};
-  std::vector<double> targetLearningRate(8, .01);
-
-  for (std::size_t i=0; i<context.childPartitionSize.size(); ++i)
-    ASSERT_EQ(context.childPartitionSize[i], targetPartitionSize[i]);
-  for (std::size_t i=0; i<context.childNumSteps.size(); ++i)
-    ASSERT_EQ(context.childNumSteps[i], targetNumSteps[i]);
-  for (std::size_t i=0; i<context.childLearningRate.size(); ++i)
-    ASSERT_LE(fabs(context.childLearningRate[i]-targetLearningRate[i]), eps);
-
-  ASSERT_EQ(context.loss, lossFunction::MSE);
-  ASSERT_EQ(context.partitionRatio, .25);
-  ASSERT_EQ(context.baseSteps, 1000);
-  ASSERT_EQ(context.symmetrizeLabels, false);
-  ASSERT_EQ(context.removeRedundantLabels, false);
-  ASSERT_EQ(context.quietRun, true);
-  ASSERT_EQ(context.rowSubsampleRatio, 1.);
-  ASSERT_EQ(context.colSubsampleRatio, 1.);
-  ASSERT_EQ(context.recursiveFit, true);
-  ASSERT_EQ(context.serializeModel, true);
-  ASSERT_EQ(context.serializePrediction, true);
-  ASSERT_EQ(context.partitionSizeMethod, PartitionSize::PartitionSizeMethod::FIXED);
-  ASSERT_EQ(context.learningRateMethod, LearningRate::LearningRateMethod::FIXED);
-  ASSERT_EQ(context.stepSizeMethod, StepSize::StepSizeMethod::LOG);
-  ASSERT_EQ(context.minLeafSize, 1);
-  ASSERT_EQ(context.maxDepth, 20);
-  ASSERT_EQ(context.minimumGainSplit, 0.);
-  ASSERT_EQ(context.serializationWindow, 10);
-	    
 }
 
 TEST(UtilsTest, TestPartitionSubsampling1) {

@@ -69,9 +69,9 @@ auto main() -> int {
   context.childPartitionSize = std::vector<std::size_t>{100, 50, 25, 10, 5, 1};
   context.childNumSteps = std::vector<std::size_t>{100, 5, 5, 5, 2, 2};
   context.childLearningRate = std::vector<double>{.5, .5, .5, .5, .5, .5};
-  context.minLeafSize = 1;
-  context.maxDepth = 20;
-  context.minimumGainSplit = 0.;
+  context.childMinLeafSize = std::vector<std::size_t>{1, 1, 1, 1, 1, 1};
+  context.childMaxDepth = std::vector<std::size_t>{10, 10, 10, 10, 10, 10};
+  context.childMinimumGainSplit = std::vector<double>{0., 0., 0., 0., 0., 0.};
 
   using regressor = GradientBoostRegressor<DecisionTreeRegressorRegressor>;
   auto c = std::make_unique<regressor>(trainDataset, 

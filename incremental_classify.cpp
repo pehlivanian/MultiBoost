@@ -26,6 +26,7 @@ auto main(int argc, char **argv) -> int {
   bool quietRun = true;
   bool warmStart = false;
   bool mergeIndexFiles = false;
+  double splitRatio = .2;
   Row<double> prediction;
 
   Context context;
@@ -35,6 +36,7 @@ auto main(int argc, char **argv) -> int {
     ("help,h", "Help screen")
     ("contextFileName",	value<std::string>(&contextFileName),	"contextFileName")
     ("dataName",	value<std::string>(&dataName),		"dataName")
+    ("splitRatio",	value<double>(&splitRatio),		"splitRatio")
     ("quietRun",	value<bool>(&quietRun),			"quietRun")
     ("warmStart",	value<bool>(&warmStart),		"warmStart")
     ("mergeIndexFiles",	value<bool>(&mergeIndexFiles),		"mergeIndexFiles")
@@ -84,7 +86,8 @@ auto main(int argc, char **argv) -> int {
 	      trainDataset, 
 	      testDataset, 
 	      trainLabels, 
-	      testLabels, 0.2);
+	      testLabels, 
+	      splitRatio);
   // std::cout << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
   // 	    << trainDataset.n_rows << ")" << std::endl;
   // std::cout << "TEST DATASET:  (" << testDataset.n_cols << " x " 

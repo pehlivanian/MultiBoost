@@ -8,16 +8,22 @@ EXEC_CC=${PATH}createContext
 CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCreifissa.cxt
 CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCreifissa.cxt
 
-STEPS=100
-BASESTEPS=10000
-LEARNINGRATE=.001
+CHILDPARTITIONSIZE=(500 100 90 80 70 60 50 20 10 5 1)
+CHILDNUMSTEPS=(1 1 1 2 3 5 3 2 1 1 1)
+CHILDLEARNINGRATE=(.00005 .00005 .00005 .0001 .0002 .0001 .0001 .00005 .00005 .00005 .00005)
+CHILDMAXDEPTH=(10 10 10 10 10 10 10 10 10 10 10)
+CHILDMINLEAFSIZE=(1 1 1 1 10 10 10 20 30 40 50)
+CHILDMINIMUMGAINSPLIT=(0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.)
+STEPS=1
+BASESTEPS=100
 RECURSIVE_FIT=true
-PARTITION_SIZE=10
-MINLEAFSIZE=1
-MAXDEPTH=10
 LOSS_FN=5
 COLSUBSAMPLE_RATIO=.85
-DATANAME=/tabular_benchmark/eye_movements
+# DATANAME=/tabular_benchmark/eye_movements
+# DATANAME=breast_w
+DATANAME=analcatdata_cyyoung9302
+SPLITRATIO=0.2
+
 
 # STEPS=10
 # BASESTEPS=1000
@@ -35,9 +41,9 @@ DATANAME=/tabular_benchmark/eye_movements
 # create context for first run
 $EXEC_CC \
 --loss $LOSS_FN \
---childPartitionSize 10 5 4 2 1 \
---childNumSteps 100 20 10 5 1 \
---childLearningRate .001 .001 .001 .001 .001 \
+--childPartitionSize ${CHILDPARTITIONSIZE[@]} \
+--childNumSteps ${CHILDNUMSTEPS[@]} \
+--childLearningRate ${CHILDLEARNINGRATE[@]} \
 --partitionRatio .25 \
 --baseSteps $BASESTEPS \
 --symmetrizeLabels true \
@@ -53,18 +59,18 @@ $EXEC_CC \
 --partitionSizeMethod 0 \
 --learningRateMethod 0 \
 --stepSizeMethod 0 \
---minLeafSize $MINLEAFSIZE \
---maxDepth $MAXDEPTH \
---minimumGainSplit 0. \
---serializationWindow 1000 \
+--childMinLeafSize ${CHILDMINLEAFSIZE[@]} \
+--childMaxDepth ${CHILDMAXDEPTH[@]} \
+--childMinimumGainSplit ${CHILDMINIMUMGAINSPLIT[@]} \
+--serializationWindow 10 \
 --fileName $CONTEXT_PATH_RUN1
 
 # create context for subsequent runs
 $EXEC_CC \
 --loss $LOSS_FN \
---childPartitionSize 10 5 4 2 1 \
---childNumSteps 100 20 10 5 1 \
---childLearningRate .001 .001 .001 .001 .001 \
+--childPartitionSize ${CHILDPARTITIONSIZE[@]} \
+--childNumSteps ${CHILDNUMSTEPS[@]} \
+--childLearningRate ${CHILDLEARNINGRATE[@]} \
 --partitionRatio .25 \
 --baseSteps $BASESTEPS \
 --symmetrizeLabels true \
@@ -80,10 +86,10 @@ $EXEC_CC \
 --partitionSizeMethod 0 \
 --learningRateMethod 0 \
 --stepSizeMethod 0 \
---minLeafSize $MINLEAFSIZE \
---maxDepth $MAXDEPTH \
---minimumGainSplit 0. \
---serializationWindow 1000 \
+--childMinLeafSize ${CHILDMINLEAFSIZE[@]} \
+--childMaxDepth ${CHILDMAXDEPTH[@]} \
+--childMinimumGainSplit ${CHILDMINIMUMGAINSPLIT[@]} \
+--serializationWindow 10 \
 --fileName $CONTEXT_PATH_RUNS
 
 # Details
@@ -100,9 +106,17 @@ n=1
 
 echo ${n}" STEPWISE CLASSIFY :: "${DETAILS}
 
+# echo $EXEC_INC \
+# --contextFileName $CONTEXT_PATH_RUN1 \
+# --dataName $DATANAME \
+# --splitRatio $SPLITRATIO \
+# --mergeIndexFiles false \
+# --warmStart false
+
 STEP_INFO=$($EXEC_INC \
 --contextFileName $CONTEXT_PATH_RUN1 \
 --dataName $DATANAME \
+--splitRatio $SPLITRATIO \
 --mergeIndexFiles false \
 --warmStart false)
 
@@ -118,6 +132,10 @@ echo ${n}" : "${INDEX_NAME_STEP}
 
 ((n=n+1))
 
+# echo $EXEC_PRED_OOS \
+# --indexFileName $INDEX_NAME_STEP \
+# --folderName $FOLDER_STEP
+
 # Classify OOS
 $EXEC_PRED_OOS \
 --indexFileName $INDEX_NAME_STEP \
@@ -130,10 +148,21 @@ do
     break
   fi
 
+  # echo $EXEC_INC \
+  # --contextFileName $CONTEXT_PATH_RUNS \
+  # --dataName $DATANAME \
+  # --splitRatio $SPLITRATIO \
+  # --quietRun true \
+  # --mergeIndexFiles true \
+  # --warmStart true \
+  # --indexName $INDEX_NAME_STEP \
+  # --folderName $FOLDER_STEP
+
   # Fit step
   INDEX_NAME_STEP=$($EXEC_INC \
   --contextFileName $CONTEXT_PATH_RUNS \
   --dataName $DATANAME \
+  --splitRatio $SPLITRATIO \
   --quietRun true \
   --mergeIndexFiles true \
   --warmStart true \
@@ -141,6 +170,10 @@ do
   --folderName $FOLDER_STEP)
 
   echo ${n}" : STEPWISE CLASSIFY :: "${INDEX_NAME_STEP}" "${DETAILS}
+
+  echo $EXEC_PRED_OOS \
+  --indexFileName $INDEX_NAME_STEP \
+  --folderName $FOLDER_STEP
 
   # Classify OOS
   $EXEC_PRED_OOS \
