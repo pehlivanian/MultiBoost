@@ -232,9 +232,35 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
     }
 
   }
-  
+
+  if (true) {
+    for (int i=0; i<10; ++i) {
+      std::cout << "OOS: (raw y,y_hat): ("
+		<< prediction[i] << ", "
+		<< labels_oos[i] << ")" << std::endl;
+    }
+    
+    for (int i=0; i<10; ++i) {
+      std::cout << "IS: (raw labels, labels_hat): ("
+		<< prediction_is[i] << ", "
+		<< labels[i] << ")" << std::endl;
+    }
+  }
+
+  if (deSymmetrize) {
+    using C = GradientBoostClassifier<ClassifierType>;
+    std::unique_ptr<C> c_archive = std::make_unique<C>();
+    read(*c_archive, classifierFileName, folderName);
+
+    auto ab = c_archive->getAB();
+
+    desymmetrize(prediction, ab.first, ab.second);
+    desymmetrize(prediction_is, ab.first, ab.second);
+  }
+   
+  if (false) {
   for (int i=0; i<10; ++i) {
-    std::cout << "OOS: (y,y_hat): ("
+    std::cout << "OOS: (sym y,y_hat): ("
 	      << prediction[i] << ", "
 	      << labels_oos[i] << ")" << std::endl;
   }
@@ -245,11 +271,6 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
 	      << prediction_is[i] << ", "
 	      << labels[i] << ")" << std::endl;
   }
-  
-
-  if (deSymmetrize) {
-    // Assume a_ = 2, b_ = -1
-    desymmetrize(prediction, 2., -1.);
   }
   
 }

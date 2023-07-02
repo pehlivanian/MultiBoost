@@ -81,8 +81,11 @@ CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
   partitionSize_		= context.childPartitionSize[0];
   steps_			= context.childNumSteps[0];
   learningRate_			= context.childLearningRate[0];
+
+  minLeafSize_			= context.childMinLeafSize[0];
+  minimumGainSplit_		= context.childMinimumGainSplit[0];
+  maxDepth_			= context.childMaxDepth[0];
   
-  partitionRatio_		= context.partitionRatio;
   baseSteps_			= context.baseSteps;
   symmetrized_			= context.symmetrizeLabels;
   removeRedundantLabels_	= context.removeRedundantLabels;
@@ -102,9 +105,6 @@ CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
   childMaxDepth_		= context.childMaxDepth;
   childMinimumGainSplit_	= context.childMinimumGainSplit;
 
-  minLeafSize_			= context.minLeafSize;
-  minimumGainSplit_		= context.minimumGainSplit;
-  maxDepth_			= context.maxDepth;
   numTrees_			= context.numTrees;
   serializeModel_		= context.serializeModel;
   serializePrediction_		= context.serializePrediction;
@@ -603,7 +603,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   // If we are in recursive mode and partitionSize <= 2, fall through
   // to this case for the leaf classifier
 
-  if (ClassifierFileScope::DIAGNOSTICS_1_)
+  if (ClassifierFileScope::DIAGNOSTICS_0_)
     std::cerr << "FITTING CLASSIFIER FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
 	      << partitionSize_ << ", "
 	      << stepNum << ", "

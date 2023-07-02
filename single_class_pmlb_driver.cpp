@@ -17,9 +17,9 @@ auto main() -> int {
   Row<std::size_t> labels, trainLabels, testLabels;
   Row<std::size_t> trainPrediction, testPrediction;
 
-  if (!data::Load("/home/charles/Data/magic_X.csv", dataset))
+  if (!data::Load("/home/charles/Data/diabetes_X.csv", dataset))
     throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/magic_y.csv", labels))
+  if (!data::Load("/home/charles/Data/diabetes_y.csv", labels))
     throw std::runtime_error("Could not load file");
 
   data::Split(dataset, 
@@ -27,7 +27,7 @@ auto main() -> int {
 	      trainDataset, 
 	      testDataset, 
 	      trainLabels, 
-	      testLabels, 0.8);
+	      testLabels, 0.2);
   std::cout << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
 	    << trainDataset.n_rows << ")" << std::endl;
   std::cout << "TEST DATASET:  (" << testDataset.n_cols << " x " 
@@ -43,10 +43,13 @@ auto main() -> int {
   context.loss = lossFunction::Synthetic;
   // context.loss = lossFunction::SyntheticVar1;
   // context.loss = lossFunction::SyntheticVar2;
-  context.partitionSize = 10;
+  context.childPartitionSize = std::vector<std::size_t>{100, 50, 20, 10, 1};
+  context.childNumSteps = std::vector<std::size_t>{100, 2, 4, 2, 1};
+  context.childLearningRate = std::vector<double>{.001, .001, .001, .001, .001, .001};
+  context.childMinLeafSize = std::vector<std::size_t>{1, 1, 1, 1, 1};
+  context.childMaxDepth = std::vector<std::size_t>{10, 10, 10, 10, 10};
+  context.childMinimumGainSplit = std::vector<double>{0., 0., 0., 0., 0.};
   context.partitionRatio = .25;
-  context.learningRate = .0001;
-  context.steps = 1000;
   context.baseSteps = 1000;
   context.symmetrizeLabels = true;
   context.serializationWindow = 1000;
@@ -58,13 +61,10 @@ auto main() -> int {
   context.serializePrediction = false;
   context.serializeDataset = false;
   context.serializeLabels = false;
-  context.serializationWindow = 1000;
+  context.serializationWindow = 1;
   context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
   context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;    // DECREASING
   context.stepSizeMethod = StepSize::StepSizeMethod::LOG;	
-  context.minLeafSize = 1;
-  context.maxDepth = 10;
-  context.minimumGainSplit = 0.;
 
   using classifier = GradientBoostClassifier<DecisionTreeClassifier>;
   auto c = std::make_unique<classifier>(trainDataset, 
