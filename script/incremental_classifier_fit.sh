@@ -143,9 +143,9 @@ echo ${n}" INDEX: "${INDEX_NAME_STEP}
 
 ((n=n+1))
 
-# echo $EXEC_PRED_OOS \
-# --indexFileName $INDEX_NAME_STEP \
-# --folderName $FOLDER_STEP
+echo $EXEC_PRED_OOS \
+--indexFileName $INDEX_NAME_STEP \
+--folderName $FOLDER_STEP
 
 # Classify OOS
 $EXEC_PRED_OOS \

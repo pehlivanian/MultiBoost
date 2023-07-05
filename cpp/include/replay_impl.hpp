@@ -178,7 +178,7 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
 	
 	ipstream pipe_stream;
 	// child c("gcc --version", std_out > pipe_stream);
-	std::string cmd = "./build/replay_classify_stepwise";
+	std::string cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/replay_classify_stepwise";
 
 	cmd += " --datasetFileName "	+ datasetOOSFileName;
 	cmd += " --classifierFileName " + classifierFileName;
@@ -196,7 +196,7 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
 	predictionFileNames.push_back(outFile);
 
 	ipstream pipe_stream_is;
-	cmd = "./build/replay_classify_stepwise";
+	cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/replay_classify_stepwise";
 
 	cmd += " --datasetFileName "	+ datasetFileName;
 	cmd += " --classifierFileName " + classifierFileName;
@@ -378,7 +378,7 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
 	
 	ipstream pipe_stream;
 	// child c("gcc --version", std_out > pipe_stream);
-	std::string cmd = "./build/replay_predict_stepwise";
+	std::string cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/replay_predict_stepwise";
 
 	cmd += " --datasetFileName "	+ datasetOOSFileName;
 	cmd += " --regressorFileName "  + regressorFileName;
@@ -396,7 +396,7 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
 	predictionFileNames.push_back(outFile);
 
 	ipstream pipe_stream_is;
-	cmd = "./build/replay_predict_stepwise";
+	cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/replay_predict_stepwise";
 	
 	cmd += " --datasetFileName "	+ datasetFileName;
 	cmd += " --regressorFileName "  + regressorFileName;
