@@ -23,7 +23,6 @@ __pycache__
 *.gnd
 *.prd
 *.cxt
-*.txt
 core
 *~
 .ipnyb_checkpoints/
