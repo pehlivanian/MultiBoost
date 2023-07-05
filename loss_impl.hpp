@@ -339,6 +339,8 @@ SyntheticLossVar1<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowv
   rowvec f(y.n_cols, arma::fill::zeros);
   *grad = -sign(y) % max(1 - sign(y) % yhat, f);
   // *grad = -sign(y) % max(sign(y) % (y - yhat), f);
+  // *grad = -y % pow(y - yhat, 2);
+
 
 #ifdef AUTODIFF
   ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
@@ -386,7 +388,16 @@ template<typename DataType>
 DataType
 SyntheticLossVar2<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
 
-  *grad = -sign(y) % ( y - yhat);
+  // Tent function
+  // *grad = -sign(y) % ( y - yhat);
+
+  // Cubic cutoff
+  // rowvec f(y.n_cols, arma::fill::ones);
+  // *grad = -sign(y) % max(-sign(y) * pow(yhat - y, 3), sign(y) % f);
+
+  // Quadratic cutoff
+  rowvec f(y.n_cols, arma::fill::zeros);
+  *grad = -sign(y) % max(-sign(y) % sign(yhat - y) % pow(yhat - y, 2), f);
 
 #ifdef AUTODIFF
   ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
@@ -423,7 +434,7 @@ SyntheticLossVar2<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXre
 #endif
 
 //////////////////////////////
-// END SyntheticLossVariation1
+// END SyntheticLossVariation2
 //////////////////////////////
 
 
