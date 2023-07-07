@@ -54,9 +54,10 @@ namespace Objectives {
     {	
       if (false) {
 	cache_ = (int**)malloc(sizeof(int*)*(n_+1));
-	for (int i=0; i<n_+1; ++i)
+	for (int i=0; i<n_+1; ++i) {
 	  cache_[i] = (int*)malloc(sizeof(int)*(n_+1));
-	memset(cache_, -1, sizeof(cache_));
+	  memset(cache_[i], -1, (n_+1)*sizeof(int));
+	}
       }
     }
 

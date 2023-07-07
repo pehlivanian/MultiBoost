@@ -630,11 +630,6 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
 	      trainLabels,
 	      testLabels, 0.2);
 
-  std::size_t minLeafSize = 1;
-  double minimumGainSplit = 0.;
-  std::size_t maxDepth = 5;
-  std::size_t partitionSize = 11;
-
   Context context{};
   
   context.loss = lossFunction::BinomialDeviance;
@@ -722,11 +717,6 @@ TEST(GradientBoostClassifierTest, TestInSamplePredictionMatchesLatestPrediction)
 	      trainLabels,
 	      testLabels, 0.2);
 
-  std::size_t minLeafSize = 1;
-  double minimumGainSplit = 0.;
-  std::size_t maxDepth = 5;
-  std::size_t partitionSize = 11;
-
   Context context{};
   
   context.loss = lossFunction::BinomialDeviance;
@@ -785,11 +775,6 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveRoundTrips) {
 	      testDataset, 
 	      trainLabels, 
 	      testLabels, 0.2);
-
-  std::size_t minLeafSize = 1;
-  double minimumGainSplit = 0.;
-  std::size_t maxDepth = 10;
-  std::size_t partitionSize = 10;
 
   Context context{};
   
@@ -924,11 +909,6 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips)
 	      testDataset, 
 	      trainLabels, 
 	      testLabels, 0.2);
-
-  std::size_t minLeafSize = 1;
-  double minimumGainSplit = 0.;
-  std::size_t maxDepth = 10;
-  std::size_t partitionSize = 10;
 
   Context context{};
   
@@ -1140,11 +1120,6 @@ TEST(GradientBoostClassifierTest, TestWritePrediction) {
 	      trainLabels,
 	      testLabels, 0.2);
 
-  std::size_t minLeafSize = 1;
-  double minimumGainSplit = 0.;
-  std::size_t maxDepth = 5;
-  std::size_t partitionSize = 11;
-
   Context context{};
   
   context.loss = lossFunction::BinomialDeviance;
@@ -1221,11 +1196,6 @@ TEST(GradientBoostRegressorTest, TestPredictionRoundTrip) {
 	      testDataset,
 	      trainLabels,
 	      testLabels, 0.85);
-
-  std::size_t minLeafSize = 1;
-  double minimumGainSplit = 0.;
-  std::size_t maxDepth = 5;
-  std::size_t partitionSize = 11;
 
   Context context{};
   
@@ -1314,12 +1284,6 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
 	      trainLabels,
 	      testLabels, 0.2);
 
-  std::size_t minLeafSize = 1;
-  double minimumGainSplit = 0.;
-  std::size_t maxDepth = 5;
-  std::size_t partitionSize = 11;
-  
-  
   Context context{};
   
   context.loss = lossFunction::BinomialDeviance;
@@ -1479,11 +1443,6 @@ TEST(GradientBoostRegressorTest, TestInSamplePredictionMatchesLatestPrediction) 
 	      trainLabels,
 	      testLabels, 0.9);
 
-  std::size_t minLeafSize = 1;
-  double minimumGainSplit = 0.;
-  std::size_t maxDepth = 5;
-  std::size_t partitionSize = 11;
-
   Context context{};
   
   context.loss = lossFunction::MSE;
@@ -1542,11 +1501,6 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
 	      testDataset,
 	      trainLabels,
 	      testLabels, 0.95);
-
-  std::size_t minLeafSize = 1;
-  double minimumGainSplit = 0.;
-  std::size_t maxDepth = 5;
-  std::size_t partitionSize = 11;
 
   Context context{};
   
@@ -1640,11 +1594,6 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorNonRecursiveRoundTrips) {
 	      testDataset, 
 	      trainLabels, 
 	      testLabels, 0.85);
-
-  std::size_t minLeafSize = 1;
-  double minimumGainSplit = 0.;
-  std::size_t maxDepth = 10;
-  std::size_t partitionSize = 10;
 
   Context context{};
   

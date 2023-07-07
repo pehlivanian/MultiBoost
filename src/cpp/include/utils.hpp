@@ -77,7 +77,6 @@ namespace ModelContext{
       childMinLeafSize{std::vector<std::size_t>()},
       childMaxDepth{std::vector<std::size_t>()},
       childMinimumGainSplit{std::vector<double>()},
-      numTrees{numTrees},
       serializeModel{false},
       serializePrediction{false},
       serializeColMask{false},
@@ -161,10 +160,10 @@ namespace ModelContext{
     std::size_t partitionSize;
     double partitionRatio;
     double learningRate;
-    std::size_t numTrees;
     std::size_t minLeafSize;
     std::size_t maxDepth;
     double minimumGainSplit;
+    std::size_t numTrees;
     int steps;
     int baseSteps;
     bool symmetrizeLabels;

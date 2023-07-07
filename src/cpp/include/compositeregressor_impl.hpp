@@ -59,9 +59,9 @@ CompositeRegressor<RegressorType>::childContext(Context& context) {
   context.childMinimumGainSplit	= std::vector<double>(childMinimumGainSplit_.cbegin()+ind,
 						      childMinimumGainSplit_.cend());
 
-  context.maxDepth		= maxDepth_;
-  context.minLeafSize		= minLeafSize_;
-  context.minimumGainSplit	= minimumGainSplit_;
+  context.maxDepth		= maxDepth;
+  context.minLeafSize		= minLeafSize;
+  context.minimumGainSplit	= minimumGainSplit;
 
 }
 
