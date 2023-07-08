@@ -2,7 +2,8 @@ import openml
 import numpy as np
 import pandas as pd
 
-ROOT_DATA = "/home/charles/Data/"
+# ROOT_DATA = "/home/charles/Data/"
+ROOT_DATA = "/home/charles/TestData/"
 
 ################################
 # OPENML tabular data datasets #
@@ -23,12 +24,16 @@ for task_id in benchmark_suite.tasks:
     )
     if SUITE_ID in (334,):
         np.savetxt('{}open_ml/tabular/classification/mixed/{}_X.csv'.format(ROOT_DATA, dataset.name), X, delimiter=',')
+        np.savetxt('{}open_ml/tabular/classification/mixed/{}_y.csv'.format(ROOT_DATA, dataset.name), y, delimiter=',')
     elif SUITE_ID in (335,):
         np.savetxt('{}open_ml/tabular/regression/mixed/{}_X.csv'.format(ROOT_DATA, dataset.name), X, delimiter=',')
+        np.savetxt('{}open_ml/tabular/regression/mixed/{}_y.csv'.format(ROOT_DATA, dataset.name), y, delimiter=',')        
     elif SUITE_ID in (336,):
-        np.savetxt('{}open_ml/tabular/regression/{}_y.csv'.format(ROOT_DATA, dataset.name), y, delimiter=',')
+        np.savetxt('{}open_ml/tabular/regression/{}_X.csv'.format(ROOT_DATA, dataset.name), X, delimiter=',')
+        np.savetxt('{}open_ml/tabular/regression/{}_y.csv'.format(ROOT_DATA, dataset.name), y, delimiter=',')        
     elif SUITE_ID in (337,):
         np.savetxt('{}open_ml/tabular/classification/{}_X.csv'.format(ROOT_DATA, dataset.name), X, delimiter=',')
+        np.savetxt('{}open_ml/tabular/classification/{}_y.csv'.format(ROOT_DATA, dataset.name), y, delimiter=',')        
         
     print('FINISHED')
 
@@ -36,6 +41,7 @@ for task_id in benchmark_suite.tasks:
 #################
 # pmlb datasets #
 #################
+
 DATA_TYPE = "classification"
 # DATA_TYPE = "regression"
 
@@ -56,7 +62,9 @@ for dataset_name in dataset_names:
         if len(np.unique(y)) > 100:
             if DATA_TYPE in ("classification",):
                 np.savetxt('{}pmlb/classification/{}_X.csv'.format(ROOT_DATA, dataset_name), X, delimiter=',')
+                np.savetxt('{}pmlb/classification/{}_y.csv'.format(ROOT_DATA, dataset_name), y, delimiter=',')                
             elif DATA_TYPE in ("regression",):
+                np.savetxt('{}pmlb/regression/{}_X.csv'.format(ROOT_DATA, dataset_name), X, delimiter=',')                
                 np.savetxt('{}pmlb/regression/{}_y.csv'.format(ROOT_DATA, dataset_name), y, delimiter=',')
         print(dataset_name)
 
