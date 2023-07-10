@@ -14,12 +14,12 @@ CHILDMAXDEPTH=(10 10 10 10 10 10 10 10)
 CHILDMINLEAFSIZE=(1 1 1 1 1 1 1 1)
 CHILDMINIMUMGAINSPLIT=(0. 0. 0. 0. 0. 0. 0. 0.)
 STEPS=1
-BASESTEPS=25
-RECURSIVE_FIT=false
+BASESTEPS=50
+RECURSIVE_FIT=true
 LOSS_FN=5
 COLSUBSAMPLE_RATIO=.85
 # DATANAME=/tabular_benchmark/eye_movements
-# DATANAME=breast_w
+DATANAME=breast_w
 # DATANAME=analcatdata_cyyoung9302
 # DATANAME=colic
 # DATANAME=credit_a
@@ -29,7 +29,7 @@ COLSUBSAMPLE_RATIO=.85
 # DATANAME=backache
 # DATANAME=biomed
 # DATANAME=breast_cancer_wisconsin
-DATANAME=breast
+# DATANAME=breast
 # DATANAME=analcatdata_boxing1
 
 SPLITRATIO=0.2
@@ -103,7 +103,7 @@ $EXEC_CC \
 --fileName $CONTEXT_PATH_RUNS
 
 # Details
-DETAILS=${INDEX_NAME_STEP}"(Dataset, Rcsv, lrate, parSize) = ("${DATANAME}", "${RECURSIVE_FIT}", "${LEARNINGRATE}", "${PARTITION_SIZE}")"
+# DETAILS=${INDEX_NAME_STEP}"(Dataset, Rcsv, lrate, parSize) = ("${DATANAME}", "${RECURSIVE_FIT}", "${LEARNINGRATE}", "${PARTITION_SIZE}")"
 
 # Incremental IS classifier fit
 EXEC_INC=${PATH}incremental_classify
@@ -114,14 +114,7 @@ EXEC_PRED_OOS=${PATH}stepwise_classify
 # First run
 n=1
 
-echo ${n}" STEPWISE CLASSIFY :: "${DETAILS}
-
-# echo $EXEC_INC \
-# --contextFileName $CONTEXT_PATH_RUN1 \
-# --dataName $DATANAME \
-# --splitRatio $SPLITRATIO \
-# --mergeIndexFiles false \
-# --warmStart false
+# echo ${n}" STEPWISE CLASSIFY :: "${DETAILS}
 
 STEP_INFO=$($EXEC_INC \
 --contextFileName $CONTEXT_PATH_RUN1 \
@@ -137,14 +130,11 @@ arg1="${res[1]}"
 INDEX_NAME_STEP=$arg0
 FOLDER_STEP=$arg1
 
+echo "ITER: 0 ["${DATANAME}"]"
 echo ${n}" FOLDER: "${FOLDER_STEP}
 echo ${n}" INDEX: "${INDEX_NAME_STEP}
 
 ((n=n+1))
-
-echo $EXEC_PRED_OOS \
---indexFileName $INDEX_NAME_STEP \
---folderName $FOLDER_STEP
 
 # Classify OOS
 $EXEC_PRED_OOS \
@@ -158,16 +148,6 @@ do
     break
   fi
 
-  # echo $EXEC_INC \
-  # --contextFileName $CONTEXT_PATH_RUNS \
-  # --dataName $DATANAME \
-  # --splitRatio $SPLITRATIO \
-  # --quietRun true \
-  # --mergeIndexFiles true \
-  # --warmStart true \
-  # --indexName $INDEX_NAME_STEP \
-  # --folderName $FOLDER_STEP
-
   # Fit step
   INDEX_NAME_STEP=$($EXEC_INC \
   --contextFileName $CONTEXT_PATH_RUNS \
@@ -179,11 +159,8 @@ do
   --indexName $INDEX_NAME_STEP \
   --folderName $FOLDER_STEP)
 
-  echo ${n}" : STEPWISE CLASSIFY :: "${INDEX_NAME_STEP}" "${DETAILS}
-
-  # echo $EXEC_PRED_OOS \
-  # --indexFileName $INDEX_NAME_STEP \
-  # --folderName $FOLDER_STEP
+  # echo ${n}" : STEPWISE CLASSIFY :: "${INDEX_NAME_STEP}" "${DETAILS}
+  echo "ITER: ${n} ["${DATANAME}"]"
 
   # Classify OOS
   $EXEC_PRED_OOS \

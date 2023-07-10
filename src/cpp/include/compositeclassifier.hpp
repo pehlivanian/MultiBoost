@@ -394,6 +394,9 @@ public:
   std::string getIndexName() const { return indexName_; }
   boost::filesystem::path getFldr() const { return fldr_; }
 
+  void symmetrizeLabels(Row<DataType>&);
+  void symmetrizeLabels();
+
   std::pair<double, double> getAB() const {return std::make_pair(a_, b_); }
   
   virtual void printStats(int);
@@ -427,8 +430,6 @@ private:
   Row<double> _randomLeaf() const;
   uvec subsampleRows(size_t);
   uvec subsampleCols(size_t);
-  void symmetrizeLabels(Row<DataType>&);
-  void symmetrizeLabels();
   Row<DataType> uniqueCloseAndReplace(Row<DataType>&);
   void symmetrize(Row<DataType>&);
   void deSymmetrize(Row<DataType>&);

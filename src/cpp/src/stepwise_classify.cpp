@@ -32,17 +32,35 @@ auto main(int argc, char **argv) -> int {
   }
 
   Row<double> prediction_oos, labels_oos;
-  Replay<double, DecisionTreeClassifier>::ClassifyStepwise(indexFileName, 
-							   prediction_oos, 
-							   labels_oos, 
-							   true, 
-							   false,
-							   folderName);
+  const auto [error_OOS,
+	      precision_OOS,
+	      recall_OOS,
+	      F1_OOS,
+	      imbalance_OOS,
+	      error_IS,
+	      precision_IS,
+	      recall_IS,
+	      F1_IS,
+	      imbalance_IS] = Replay<double, DecisionTreeClassifier>::ClassifyStepwise(indexFileName, 
+										   prediction_oos, 
+										   labels_oos, 
+										   true, 
+										   false,
+										   true,
+										   folderName);
 
-  const double testError = err(prediction_oos, labels_oos);
-
-  std::cout << "TEST ERROR    : " << testError << "%." << std::endl;
-
+  std::cout << "OOS : (error, precision, recall, F1, imbalance) : ("
+	    << error_OOS.value_or(-1.) << ", "
+	    << precision_OOS.value_or(-1.) << ", "
+	    << recall_OOS.value_or(-1.) << ", "
+	    << F1_OOS.value_or(-1.) << ", "
+	    << imbalance_OOS.value_or(-1.) << ")" << std::endl;
+  std::cout << "IS :  (error, precision, recall, F1, imbalance) : ("
+	    << error_IS.value_or(-1.) << ", "
+	    << precision_IS.value_or(-1.) << ", "
+	    << recall_IS.value_or(-1.) << ", "
+	    << F1_IS.value_or(-1.) << ", "
+	    << imbalance_IS.value_or(-1.) << ")" << std::endl;
 
 
   return 0;

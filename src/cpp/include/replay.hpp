@@ -37,7 +37,21 @@ using namespace LossMeasures;
 template<typename DataType, typename ModelType>
 class Replay {
 
-  using optRV = std::tuple<std::optional<double>, std::optional<double>>;
+  using optRV = std::tuple<std::optional<double>, 
+			   std::optional<double>,
+			   std::optional<double>,
+			   std::optional<double>>;
+  using optCV = std::tuple<std::optional<double>,
+			   std::optional<double>,
+			   std::optional<double>,
+			   std::optional<double>,
+			   std::optional<double>,
+			   std::optional<double>,
+			   std::optional<double>,
+			   std::optional<double>,
+			   std::optional<double>,
+			   std::optional<double>>;
+			   
 
 public:
   Replay()  = default;
@@ -51,8 +65,8 @@ public:
   static void Classify(std::string, Row<DataType>&, boost::filesystem::path=boost::filesystem::path{});
   static void Predict(std::string, Row<DataType>&, boost::filesystem::path=boost::filesystem::path{});
 
-  static void ClassifyStepwise(std::string, Row<DataType>&, Row<DataType>&, bool=false, bool=false, boost::filesystem::path=boost::filesystem::path{});
-  static optRV PredictStepwise(std::string, Row<DataType>&, Row<DataType>&, bool, bool=false, boost::filesystem::path=boost::filesystem::path{});
+  static optCV ClassifyStepwise(std::string, Row<DataType>&, Row<DataType>&, bool=false, bool=false, bool=false, boost::filesystem::path=boost::filesystem::path{});
+  static optRV PredictStepwise(std::string, Row<DataType>&, Row<DataType>&, bool=false, bool=false, boost::filesystem::path=boost::filesystem::path{});
 
   static void ClassifyStep(std::string, std::string, Row<double>&, bool=false, boost::filesystem::path=boost::filesystem::path{});
   static void PredictStep(std::string, std::string, Row<double>&, boost::filesystem::path=boost::filesystem::path{});

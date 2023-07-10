@@ -33,6 +33,40 @@ namespace IB_utils {
     return static_cast<double>(ind.n_elem) * 100. / static_cast<double>(y.n_elem);
   }
 
+  std::tuple<double, double, double> precision(const Row<int>& y, const Row<int>& yhat) {
+    // assume y has values in {+-1}
+    double TP=0.,TN=0.,FP=0.,FN=0.;
+    for (std::size_t i=0; i<y.n_cols; ++i) {
+      if (y[i] == 1) {
+	if (yhat[i] == 1)
+	  TP += 1.;
+	else
+	  FN += 1.;
+      } else {
+	if (yhat[i] == -1)
+	  TN += 1.;
+	else
+	  FP += 1.;
+      }
+    }
+    // precision, recall, F1
+    return std::make_tuple(TP/(TP+FP), TP/(TP+FN), 2*TP/(2*TP+FP+FN));
+  }
+
+  double imbalance(const Row<int>& y) {
+    // assume y has values in {+-1}
+    double n = static_cast<double>(y.n_cols);
+    uvec ind0 = find(y == -1);
+    uvec ind1 = find(y == 1);
+    double num0 = static_cast<double>(ind0.n_cols);
+    double num1 = static_cast<double>(ind1.n_cols);
+    return 2.0 * (std::pow(num0/n - .5, 2) + std::pow(num1/n - .5, 2));
+  }
+
+  double imbalance(const Row<double>& y) {
+    return imbalance(conv_to<Row<int>>::from(y));
+  }
+
   bool comp(std::pair<std::size_t, std::size_t>& a, std::pair<std::size_t, std::size_t>& b) {
     return a.second > b.second;
   }

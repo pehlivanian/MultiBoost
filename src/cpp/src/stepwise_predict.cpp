@@ -32,16 +32,22 @@ auto main(int argc, char **argv) -> int {
   }
 
   Row<double> prediction_oos, labels_oos;
-  const auto [testError, rSquared] = Replay<double, DecisionTreeRegressorRegressor>::PredictStepwise(indexFileName, 
+  const auto [error_OOS, 
+	      rSquared_OOS,
+	      error_IS,
+	      rSquared_IS] = Replay<double, DecisionTreeRegressorRegressor>::PredictStepwise(indexFileName, 
 												     prediction_oos, 
 												     labels_oos, 
 												     false, 
 												     true,
 												     folderName);
-
-  std::cout << "TEST ERROR    : " << testError.value_or(-1.) << std::endl;
-  std::cout << "R SQUARED     : " << rSquared.value_or(-1.) << std::endl;
-
-
+  std::cout << "OOS: (error, r_squared) : ("
+	    << error_OOS.value_or(-1.) << ", "
+	    << rSquared_OOS.value_or(-1.) << ")" << std::endl;
+  std::cout << "IS:  (error, r_squared) : ("
+	    << error_IS.value_or(-1.) << ", "
+	    << rSquared_IS.value_or(-1.) << ")" << std::endl;
+    
+    
   return 0;
 }

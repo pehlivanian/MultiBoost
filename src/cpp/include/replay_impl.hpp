@@ -78,12 +78,13 @@ Replay<DataType, RegressorType>::PredictStep(std::string regressorFileName,
 }
 
 template<typename DataType, typename ClassifierType>
-void
+typename Replay<DataType, ClassifierType>::optCV
 Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
 						   Row<DataType>& prediction,
 						   Row<DataType>& labels_oos,
 						   bool deSymmetrize, 
 						   bool distribute,
+						   bool include_loss,
 						   boost::filesystem::path folderName) {
   
   std::vector<std::string> fileNames, predictionFileNames, predictionFileNamesIS;
@@ -233,20 +234,20 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
 
   }
 
-  if (true) {
+  /*
     for (int i=0; i<10; ++i) {
-      std::cout << "OOS: (raw y,y_hat): ("
-		<< prediction[i] << ", "
-		<< labels_oos[i] << ")" << std::endl;
+    std::cout << "OOS: (raw y,y_hat): ("
+    << prediction[i] << ", "
+    << labels_oos[i] << ")" << std::endl;
     }
     
     for (int i=0; i<10; ++i) {
-      std::cout << "IS: (raw labels, labels_hat): ("
-		<< prediction_is[i] << ", "
-		<< labels[i] << ")" << std::endl;
+    std::cout << "IS: (raw labels, labels_hat): ("
+    << prediction_is[i] << ", "
+    << labels[i] << ")" << std::endl;
     }
-  }
-
+  */
+  
   if (deSymmetrize) {
     using C = GradientBoostClassifier<ClassifierType>;
     std::unique_ptr<C> c_archive = std::make_unique<C>();
@@ -258,21 +259,81 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
     desymmetrize(prediction_is, ab.first, ab.second);
   }
    
-  if (false) {
-  for (int i=0; i<10; ++i) {
+  /*
+    for (int i=0; i<10; ++i) {
     std::cout << "OOS: (sym y,y_hat): ("
-	      << prediction[i] << ", "
-	      << labels_oos[i] << ")" << std::endl;
-  }
-  std::cout << std::endl;
-
-  for (int i=0; i<10; ++i) {
+    << prediction[i] << ", "
+    << labels_oos[i] << ")" << std::endl;
+    }
+    std::cout << std::endl;
+    
+    for (int i=0; i<10; ++i) {
     std::cout << "IS: (labels, labels_hat): ("
-	      << prediction_is[i] << ", "
-	      << labels[i] << ")" << std::endl;
-  }
-  }
+    << prediction_is[i] << ", "
+    << labels[i] << ")" << std::endl;
+    }
+  */
+
+  if (include_loss) {
+
+    // Pile on the metrics
+
+    //
+    // 1. error
+    // 
+    double error_OOS = err(prediction, labels_oos);
+    double error_IS = err(prediction_is, labels);
+
+    // Now symmetrize labels, labels_oos for remaining metrics
+    
+    using C = GradientBoostClassifier<ClassifierType>;
+    std::unique_ptr<C> c_archive = std::make_unique<C>();
+    read(*c_archive, classifierFileName, folderName);
+
+    
+    c_archive->symmetrizeLabels(labels);
+    c_archive->symmetrizeLabels(labels_oos);
+    c_archive->symmetrizeLabels(prediction_is);
+    c_archive->symmetrizeLabels(prediction);
+    
+    Row<int> labels_is_i = conv_to<Row<int>>::from(labels);
+    Row<int> labels_oos_i = conv_to<Row<int>>::from(labels_oos);
+    Row<int> prediction_is_i = conv_to<Row<int>>::from(prediction_is);
+    Row<int> prediction_oos_i = conv_to<Row<int>>::from(prediction);
+
+    auto [precision_IS, recall_IS, F1_IS] = precision(labels_is_i, prediction_is_i);
+    auto [precision_OOS, recall_OOS, F1_OOS] = precision(labels_oos_i, prediction_oos_i);    
+    
+    // 
+    // 2. imbalance
+    //
+    double imbalance_OOS = imbalance(labels_oos_i);
+    double imbalance_IS = imbalance(labels_is_i);
+
+    return std::make_tuple(error_OOS, 
+			   precision_OOS, 
+			   recall_OOS, 
+			   F1_OOS, 
+			   imbalance_OOS,
+			   error_IS, 
+			   precision_IS, 
+			   recall_IS, 
+			   F1_IS, 
+			   imbalance_IS);
   
+  } else {
+    return std::make_tuple(std::nullopt,
+			   std::nullopt,
+			   std::nullopt,
+			   std::nullopt,
+			   std::nullopt,
+			   std::nullopt,
+			   std::nullopt,
+			   std::nullopt,
+			   std::nullopt,
+			   std::nullopt);
+  }
+
 }
 
 
@@ -435,35 +496,63 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
 
   if (include_loss) {
 
-    for (int i=0; i<10; ++i) {
+    /*
+      for (int i=0; i<10; ++i) {
       std::cout << "OOS: (y, y_hat): (" 
-		<< prediction[i] << ", "
-		<< labels_oos[i] << ")" << std::endl;
-    }
-    std::cout << std::endl;
-
-    for (int i=0; i<10; ++i) {
+      << prediction[i] << ", "
+      << labels_oos[i] << ")" << std::endl;
+      }
+      std::cout << std::endl;
+      
+      for (int i=0; i<10; ++i) {
       std::cout << "IS: (labels, labels_hat): (" 
-		<< prediction_is[i] << ", "
-		<< labels[i] << ")" << std::endl;
-    }
+      << prediction_is[i] << ", "
+      << labels[i] << ")" << std::endl;
+      }
+    */
 
+    // Pile on the metrics here
+    //
+    // 1. OOS r squared
+    // 
     auto mn = mean(labels_oos);
     auto num = sum(pow((labels_oos - prediction), 2));
     auto den = sum(pow((labels_oos - mn), 2));
-    double r_squared = 1. - (num/den);
+    double r_squared_OOS = 1. - (num/den);
 
+
+    //
+    // 2 IS r squared
+    //
+    mn = mean(labels);
+    num = sum(pow((labels - prediction_is), 2));
+    den = sum(pow((labels - mn), 2));
+    double r_squared_IS = 1. - (num/den);
+
+    //
+    // 2. OOS loss
+    // 
     using R = GradientBoostRegressor<RegressorType>;
     std::unique_ptr<R> regressor = std::make_unique<R>();
 
     read(*regressor, regressorFileName, folderName);
     auto lossFn = lossMap<DataType>[regressor->getLoss()];
     
-    double r = std::sqrt(lossFn->loss(prediction, labels_oos));
-    return std::make_tuple(r, r_squared);
+    double r_OOS = std::sqrt(lossFn->loss(prediction, labels_oos));
+
+    // 
+    // 3 IS loss
+    // 
+    double r_IS = std::sqrt(lossFn->loss(prediction_is, labels));
+    
+    return std::make_tuple(r_OOS, r_squared_OOS, r_IS, r_squared_IS);
+    
     
   } else {
-    return std::make_tuple(std::nullopt, std::nullopt);
+    return std::make_tuple(std::nullopt, 
+			   std::nullopt, 
+			   std::nullopt, 
+			   std::nullopt);
   }
   
 }

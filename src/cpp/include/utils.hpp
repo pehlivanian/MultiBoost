@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include <map>
+#include <cmath>
 #include <vector>
 #include <limits>
 #include <chrono>
@@ -552,8 +553,13 @@ namespace IB_utils {
   std::string writeDatasetIS(const mat&, boost::filesystem::path fldr=boost::filesystem::path{});
   std::string writeDatasetOOS(const mat&, boost::filesystem::path fldr=boost::filesystem::path{});
 
-  double err(const Row<std::size_t>& yhat, const Row<std::size_t>& y);
-  double err(const Row<double>& yhat, const Row<double>& y, double=-1.);
+  double err(const Row<std::size_t>&, const Row<std::size_t>&);
+  double err(const Row<double>&, const Row<double>&, double=-1.);
+
+  std::tuple<double, double, double> precision(const Row<int>&, const Row<int>&);
+
+  double imbalance(const Row<int>&);
+  double imbalance(const Row<double>&);
 
   template<typename CharT>
   using tstring = std::basic_string<CharT, std::char_traits<CharT>, std::allocator<CharT>>;

@@ -1,9 +1,9 @@
+import os
 import openml
 import numpy as np
 import pandas as pd
 
-# ROOT_DATA = "/home/charles/Data/"
-ROOT_DATA = "/home/charles/TestData/"
+ROOT_DATA = "/home/charles/Data/"
 
 ################################
 # OPENML tabular data datasets #
@@ -23,49 +23,59 @@ for task_id in benchmark_suite.tasks:
         dataset_format="array", target=dataset.default_target_attribute
     )
     if SUITE_ID in (334,):
-        np.savetxt('{}open_ml/tabular/classification/mixed/{}_X.csv'.format(ROOT_DATA, dataset.name), X, delimiter=',')
-        np.savetxt('{}open_ml/tabular/classification/mixed/{}_y.csv'.format(ROOT_DATA, dataset.name), y, delimiter=',')
+        subPath = "open_ml/classification_mixed"
+        absPath = os.path.join(ROOT_DATA, subPath)
     elif SUITE_ID in (335,):
-        np.savetxt('{}open_ml/tabular/regression/mixed/{}_X.csv'.format(ROOT_DATA, dataset.name), X, delimiter=',')
-        np.savetxt('{}open_ml/tabular/regression/mixed/{}_y.csv'.format(ROOT_DATA, dataset.name), y, delimiter=',')        
+        subPath = "open_ml/regression_mixed"
+        absPath = os.path.join(ROOT_DATA, subPath)        
     elif SUITE_ID in (336,):
-        np.savetxt('{}open_ml/tabular/regression/{}_X.csv'.format(ROOT_DATA, dataset.name), X, delimiter=',')
-        np.savetxt('{}open_ml/tabular/regression/{}_y.csv'.format(ROOT_DATA, dataset.name), y, delimiter=',')        
+        subPath = "open_ml/regression"
+        absPath = os.path.join(ROOT_DATA, subPath)        
     elif SUITE_ID in (337,):
-        np.savetxt('{}open_ml/tabular/classification/{}_X.csv'.format(ROOT_DATA, dataset.name), X, delimiter=',')
-        np.savetxt('{}open_ml/tabular/classification/{}_y.csv'.format(ROOT_DATA, dataset.name), y, delimiter=',')        
-        
-    print('FINISHED')
-
+        subPath = "open_ml/classification"
+        absPath = os.path.join(ROOT_DATA, subPath)
+    if not os.path.exists(absPath):
+        os.makedirs(absPath)
+    np.savetxt(os.path.join(absPath, '{}_X.csv'.format(dataset.name)), X, delimiter=',')
+    np.savetxt(os.path.join(absPath, '{}_y.csv'.format(dataset.name)), y, delimiter=',')
+    print('COMPLETE: ==> {}'.format(absPath))
 
 #################
 # pmlb datasets #
 #################
 
-DATA_TYPE = "classification"
-# DATA_TYPE = "regression"
+DATA_TYPES = ("classification", "regression")
 
 import pmlb
 from pmlb import classification_dataset_names, regression_dataset_names
-class_datasets = set()
-if DATA_TYPE in ("classification",):
-    dataset_names = classification_dataset_names
-else:
-    dataset_names = regression_dataset_names
-for dataset_name in dataset_names:
-    if dataset_name not in ('1191_BNG_pbc','1196_BNG_pharynx', '1595_poker'): # too large?
-        print('LOADING {}'.format(dataset_name))
-        X,y = pmlb.fetch_data(dataset_name, return_X_y=True)
-        print('{} x {}'.format(X.shape[0], X.shape[1]))
-        if X.shape[0] < 100:
-            continue
-        if len(np.unique(y)) > 100:
-            if DATA_TYPE in ("classification",):
-                np.savetxt('{}pmlb/classification/{}_X.csv'.format(ROOT_DATA, dataset_name), X, delimiter=',')
-                np.savetxt('{}pmlb/classification/{}_y.csv'.format(ROOT_DATA, dataset_name), y, delimiter=',')                
-            elif DATA_TYPE in ("regression",):
-                np.savetxt('{}pmlb/regression/{}_X.csv'.format(ROOT_DATA, dataset_name), X, delimiter=',')                
-                np.savetxt('{}pmlb/regression/{}_y.csv'.format(ROOT_DATA, dataset_name), y, delimiter=',')
-        print(dataset_name)
+
+
+for DATA_TYPE in DATA_TYPES:
+    class_datasets = set()
+    if DATA_TYPE in ("classification",):
+        dataset_names = classification_dataset_names
+    else:
+        dataset_names = regression_dataset_names
+    for dataset_name in dataset_names:
+        if dataset_name not in ('1191_BNG_pbc','1196_BNG_pharynx', '1595_poker'): # too large?
+            print('PROCESSING: {}'.format(dataset_name), end='... ')
+            X,y = pmlb.fetch_data(dataset_name, return_X_y=True)
+            if X.shape[0] < 100:
+                continue
+            if DATA_TYPE == 'classification' or len(np.unique(y)) > 100:
+                if DATA_TYPE in ("classification",):
+                    subPath = "pmlb/classification"
+                    absPath = os.path.join(ROOT_DATA, subPath)
+                elif DATA_TYPE in ("regression",):
+                    subPath = "pmlb.regression"
+                    absPath = os.path.join(ROOT_DATA, subPath)
+
+        if not os.path.exists(absPath):
+            os.makedirs(absPath)
+                
+        np.savetxt(os.path.join(absPath, '{}_X.csv'.format(dataset_name)), X, delimiter=',')                
+        np.savetxt(os.path.join(absPath, '{}_y.csv'.format(dataset_name)), y, delimiter=',')
+        print('COMPLETE: ==> {}'.format(absPath))
+                
 
         
