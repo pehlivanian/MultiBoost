@@ -6,12 +6,14 @@ auto main(int argc, char **argv) -> int {
 
   std::string indexFileName;
   std::string folderName;
+  std::string prefixStr = "";
 
   options_description desc("Options");
   desc.add_options()
     ("help,h", "Help screen")
     ("indexFileName",		value<std::string>(&indexFileName),	"indexFileName")
-    ("folderName",		value<std::string>(&folderName),	"folderName");
+    ("folderName",		value<std::string>(&folderName),	"folderName")
+    ("prefixStr",		value<std::string>(&prefixStr),		"prefixStr");
 
   variables_map vm;
 
@@ -41,10 +43,10 @@ auto main(int argc, char **argv) -> int {
 												     false, 
 												     true,
 												     folderName);
-  std::cout << "OOS: (error, r_squared) : ("
+  std::cout << prefixStr << " OOS: (error, r_squared) : ("
 	    << error_OOS.value_or(-1.) << ", "
 	    << rSquared_OOS.value_or(-1.) << ")" << std::endl;
-  std::cout << "IS:  (error, r_squared) : ("
+  std::cout << prefixStr << " IS:  (error, r_squared) : ("
 	    << error_IS.value_or(-1.) << ", "
 	    << rSquared_IS.value_or(-1.) << ")" << std::endl;
     

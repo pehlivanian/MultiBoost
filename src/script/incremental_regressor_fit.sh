@@ -45,6 +45,7 @@ DATANAME=tabular_benchmark/Regression/elevators
 SPLITRATIO=0.2
 
 ((ITERS=$BASESTEPS / $STEPS))
+PREFIX="["${DATANAME}"]"
 
 # create context for first run
 $EXEC_CC \
@@ -112,14 +113,7 @@ EXEC_PRED_OOS=${PATH}stepwise_predict
 # First run
 n=1
 
-echo ${n}" : STEPWISE PREDICT :: "${DETAILS}
-
-# echo $EXEC_INC \
-# --contextFileName $CONTEXT_PATH_RUN1 \
-# --dataName $DATANAME \
-# --splitRatio $SPLITRATIO \
-# --mergeIndexFiles false \
-# --warmStart false
+# echo ${n}" : STEPWISE PREDICT :: "${DETAILS}
 
 STEP_INFO=$($EXEC_INC \
 --contextFileName $CONTEXT_PATH_RUN1 \
@@ -135,14 +129,20 @@ arg1="${res[1]}"
 INDEX_NAME_STEP=$arg0
 FOLDER_STEP=$arg1
 
-echo ${n}" : "${FOLDER_STEP}
-echo ${n}" : "${INDEX_NAME_STEP}
+echo ${PREFIX}" ITER: 1"
+echo ${PREFIX}" FOLDER: "${FOLDER_STEP}
+echo ${PREFIX}" INDEX: "${INDEX_NAME_STEP}
+
+/bin/mv ${CONTEXT_PATH_RUN1} ${FOLDER_STEP}
+/bin/mv ${CONTEXT_PATH_RUNS} ${FOLDER_STEP}
+
 ((n=n+1))
 
 # Predict OOS
 $EXEC_PRED_OOS \
 --indexFileName $INDEX_NAME_STEP \
---folderName $FOLDER_STEP
+--folderName $FOLDER_STEP \
+--prefixStr $PREFIX
 
 # Subsequent runs
 for (( ; ; ));
@@ -150,16 +150,6 @@ do
   if [ $n -ge $ITERS ]; then
     break
   fi
-
-  # echo $EXEC_INC \
-  # --contextFileName $CONTEXT_PATH_RUNS \
-  # --dataName $DATANAME \
-  # --splitRatio $SPLITRATIO \
-  # --quietRun true \
-  # --mergeIndexFiles true \
-  # --warmStart true \
-  # --indexName $INDEX_NAME_STEP \
-  # --folderName $FOLDER_STEP
 
   # Fit step
   INDEX_NAME_STEP=$($EXEC_INC \
@@ -172,12 +162,14 @@ do
   --indexName $INDEX_NAME_STEP \
   --folderName $FOLDER_STEP)
 
-  echo ${n}" : STEPWISE PREDICT :: "${INDEX_NAME_STEP}" "${DETAILS}
+  # echo ${n}" : STEPWISE PREDICT :: "${INDEX_NAME_STEP}" "${DETAILS}
+  echo ${PREFIX}" ITER: ${n}"
 
   # Predict OOS
   $EXEC_PRED_OOS \
   --indexFileName $INDEX_NAME_STEP \
-  --folderName $FOLDER_STEP
+  --folderName $FOLDER_STEP \
+  --prefixStr $PREFIX
 
   ((n=n+1))
 done

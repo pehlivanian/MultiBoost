@@ -235,13 +235,13 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
   }
 
   /*
-    for (int i=0; i<10; ++i) {
+    for (int i=0; i<15; ++i) {
     std::cout << "OOS: (raw y,y_hat): ("
     << prediction[i] << ", "
     << labels_oos[i] << ")" << std::endl;
     }
     
-    for (int i=0; i<10; ++i) {
+    for (int i=0; i<15; ++i) {
     std::cout << "IS: (raw labels, labels_hat): ("
     << prediction_is[i] << ", "
     << labels[i] << ")" << std::endl;

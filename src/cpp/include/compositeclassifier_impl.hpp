@@ -185,9 +185,9 @@ CompositeClassifier<ClassifierType>::init_(Context&& context) {
       boost::filesystem::create_directory(fldr_);
     }
 
-    // Will keep overwriting context
-    std::string contextFilename = "_Context_0.cxt";
-    writeBinary<Context>(contextFilename, context, fldr_);
+    // Keep overwriting context
+    // std::string contextFilename = "_Context_0.cxt";
+    // writeBinary<Context>(contextFilename, context, fldr_);
     
   }
 

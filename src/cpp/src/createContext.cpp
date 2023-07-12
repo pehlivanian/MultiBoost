@@ -284,7 +284,7 @@ auto main(int argc, char **argv) -> int {
   // Context context_archive;
   // loads<CerealT, CerealIArch, CerealOArch>(context_archive, fileName, fldr);
 
-  std::cout << "Context archive: " << fileName << std::endl;
+  // std::cout << "Context archive: " << fileName << std::endl;
     
   return 0;
 }

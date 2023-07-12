@@ -14,22 +14,23 @@ CHILDMAXDEPTH=(10 10 10 10 10 10 10 10)
 CHILDMINLEAFSIZE=(1 1 1 1 1 1 1 1)
 CHILDMINIMUMGAINSPLIT=(0. 0. 0. 0. 0. 0. 0. 0.)
 STEPS=1
-BASESTEPS=50
+BASESTEPS=150
 RECURSIVE_FIT=true
-LOSS_FN=5
+LOSS_FN=7
 COLSUBSAMPLE_RATIO=.85
 # DATANAME=/tabular_benchmark/eye_movements
-DATANAME=breast_w
+# DATANAME=breast_w
 # DATANAME=analcatdata_cyyoung9302
 # DATANAME=colic
 # DATANAME=credit_a
 # DATANAME=credit_g
 # DATANAME=diabetes
-# DATANAME=australian
+DATANAME=australian
 # DATANAME=backache
 # DATANAME=biomed
 # DATANAME=breast_cancer_wisconsin
 # DATANAME=breast
+# DATANAME=breast_cancer
 # DATANAME=analcatdata_boxing1
 
 SPLITRATIO=0.2
@@ -47,6 +48,7 @@ SPLITRATIO=0.2
 # DATANAME=Hill_Valley_with_noise
 
 ((ITERS=$BASESTEPS / $STEPS))
+PREFIX="["${DATANAME}"]"
 
 # create context for first run
 $EXEC_CC \
@@ -130,16 +132,20 @@ arg1="${res[1]}"
 INDEX_NAME_STEP=$arg0
 FOLDER_STEP=$arg1
 
-echo "ITER: 0 ["${DATANAME}"]"
-echo ${n}" FOLDER: "${FOLDER_STEP}
-echo ${n}" INDEX: "${INDEX_NAME_STEP}
+echo ${PREFIX}" ITER: 1"
+echo ${PREFIX}" FOLDER: "${FOLDER_STEP}
+echo ${PREFIX}" INDEX: "${INDEX_NAME_STEP}
+
+/bin/mv ${CONTEXT_PATH_RUN1} ${FOLDER_STEP}
+/bin/mv ${CONTEXT_PATH_RUNS} ${FOLDER_STEP} 
 
 ((n=n+1))
 
 # Classify OOS
 $EXEC_PRED_OOS \
 --indexFileName $INDEX_NAME_STEP \
---folderName $FOLDER_STEP
+--folderName $FOLDER_STEP \
+--prefixStr $PREFIX
 
 # Subsequent runs
 for (( ; ; ));
@@ -150,7 +156,7 @@ do
 
   # Fit step
   INDEX_NAME_STEP=$($EXEC_INC \
-  --contextFileName $CONTEXT_PATH_RUNS \
+  --contextFileName ${FOLDER_STEP}/${CONTEXT_PATH_RUNS} \
   --dataName $DATANAME \
   --splitRatio $SPLITRATIO \
   --quietRun true \
@@ -160,12 +166,13 @@ do
   --folderName $FOLDER_STEP)
 
   # echo ${n}" : STEPWISE CLASSIFY :: "${INDEX_NAME_STEP}" "${DETAILS}
-  echo "ITER: ${n} ["${DATANAME}"]"
+  echo ${PREFIX}" ITER: ${n}"
 
   # Classify OOS
   $EXEC_PRED_OOS \
   --indexFileName $INDEX_NAME_STEP \
-  --folderName $FOLDER_STEP
+  --folderName $FOLDER_STEP \
+  --prefixStr $PREFIX
 
   ((n=n+1))
 done

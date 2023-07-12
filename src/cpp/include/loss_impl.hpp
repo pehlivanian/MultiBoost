@@ -280,8 +280,13 @@ SyntheticLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* 
   // NEW
   // *grad = -sign(y) % exp(yhat / pow(y, 2) % (y - yhat));
   // *grad = -sign(y);
+  
+  // clamped
+  // rowvec f(y.n_cols, arma::fill::ones);
+  // *grad = -y % min(pow(y - yhat, 2), f * 2.);
+
   *grad = -y % pow(y - yhat, 2);
-  // *grad = -sign(y) % exp(yhat / (pow(y, 2) % (y - yhat)));
+  
   
 
 #ifdef AUTODIFF
@@ -398,6 +403,10 @@ SyntheticLossVar2<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowv
   // Quadratic cutoff
   rowvec f(y.n_cols, arma::fill::zeros);
   *grad = -sign(y) % max(-sign(y) % sign(yhat - y) % pow(yhat - y, 2), f);
+
+  // Quartic cutoff
+  // rowvec f(y.n_cols, arma::fill::zeros);
+  // *grad = -sign(y) % max(-sign(y) % sign(yhat - y) % pow(yhat - y, 4), f);
 
 #ifdef AUTODIFF
   ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
