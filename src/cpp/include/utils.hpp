@@ -406,7 +406,7 @@ namespace IB_utils {
   };
 
   // For directory digest
-  inline boost::filesystem::path FilterDigestLocation() {
+  inline boost::filesystem::path FilterDigestLocation(boost::filesystem::path path=boost::filesystem::current_path()) {
     auto now = std::chrono::system_clock::now();
     auto UTC = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
     auto in_time_t = std::chrono::system_clock::to_time_t(now);
@@ -415,7 +415,6 @@ namespace IB_utils {
     datetime << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d_%X");
     std::string suff = "_digest__" + std::to_string(UTC) + "_" + datetime.str();
 
-    auto path = boost::filesystem::current_path();
     path /= suff;
 
     return path;

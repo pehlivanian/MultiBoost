@@ -14,6 +14,8 @@ namespace RegressorFileScope {
   const bool POST_EXTRAPOLATE = true;
   const bool DIAGNOSTICS_0_ = false;
   const bool DIAGNOSTICS_1_ = false;
+  const std::string DIGEST_PATH = 
+    "/home/charles/src/C++/sandbox/Inductive-Boost/digest/regress";
 } // namespace RegressorFileScope
 
 template<typename RegressorType>
@@ -175,7 +177,7 @@ CompositeRegressor<RegressorType>::init_(Context&& context) {
     if (folderName_.size()) {
       fldr_ = boost::filesystem::path{folderName_};
     } else {
-      fldr_ = IB_utils::FilterDigestLocation();
+      fldr_ = IB_utils::FilterDigestLocation(boost::filesystem::path{RegressorFileScope::DIGEST_PATH});
       boost::filesystem::create_directory(fldr_);
     }
 

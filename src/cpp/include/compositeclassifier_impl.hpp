@@ -15,6 +15,8 @@ namespace ClassifierFileScope{
   const bool POST_EXTRAPOLATE = false;
   const bool DIAGNOSTICS_0_ = false;
   const bool DIAGNOSTICS_1_ = false;
+  const std::string DIGEST_PATH = 
+    "/home/charles/src/C++/sandbox/Inductive-Boost/digest/classify";
 } // namespace ClassifierFileScope
 
 template<typename ClassifierType>
@@ -181,13 +183,9 @@ CompositeClassifier<ClassifierType>::init_(Context&& context) {
     if (folderName_.size()) {
       fldr_ = boost::filesystem::path{folderName_};
     } else {
-      fldr_ = IB_utils::FilterDigestLocation();
+      fldr_ = IB_utils::FilterDigestLocation(boost::filesystem::path{ClassifierFileScope::DIGEST_PATH});
       boost::filesystem::create_directory(fldr_);
     }
-
-    // Keep overwriting context
-    // std::string contextFilename = "_Context_0.cxt";
-    // writeBinary<Context>(contextFilename, context, fldr_);
     
   }
 
@@ -604,7 +602,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   // to this case for the leaf classifier
 
   if (ClassifierFileScope::DIAGNOSTICS_0_)
-    std::cerr << "FITTING CLASSIFIER FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
+    std::cerr << "FITTING LEAF CLASSIFIER FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
 	      << partitionSize_ << ", "
 	      << stepNum << ", "
 	      << steps_ << ")"

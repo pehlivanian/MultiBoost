@@ -85,8 +85,8 @@ MSELoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
 template<typename DataType>
 DataType
 BinomialDevianceLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
-  rowvec f = exp(-y % yhat);
-  *grad = (-y % f)/(1 + f);
+  rowvec f = exp(y % yhat);
+  *grad = -y/(1 + f);
   
 #ifdef AUTODIFF
   ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
