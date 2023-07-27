@@ -88,9 +88,9 @@ auto main(int argc, char **argv) -> int {
 	      trainLabels, 
 	      testLabels, 
 	      splitRatio);
-  // std::cout << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
+  // std::cerr << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
   // 	    << trainDataset.n_rows << ")" << std::endl;
-  // std::cout << "TEST DATASET:  (" << testDataset.n_cols << " x " 
+  // std::cerr << "TEST DATASET:  (" << testDataset.n_cols << " x " 
   //	    << testDataset.n_rows << ")" << std::endl;
   
   // Create classifier

@@ -17,6 +17,7 @@ as sql is crippled */
 USE MULTISCALEGB_CLASS;
 CREATE TABLE run_specification (
 run_key CHAR(100),
+cmd TEXT,
 folder CHAR(200),
 idx CHAR(100),
 dataset_name CHAR(100),

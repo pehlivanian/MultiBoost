@@ -529,6 +529,21 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
     den = sum(pow((labels - mn), 2));
     double r_squared_IS = 1. - (num/den);
 
+    // Rank-based statistics, see
+    // @article{article,
+    // author = {Rosset, Saharon and Perlich, Claudia and Zadrozny, Bianca},
+    // year = {2007},
+    // month = {08},
+    // pages = {331-353},
+    // title = {Ranking-based evaluation of regression models},
+    // volume = {12},
+    // journal = {Knowl. Inf. Syst.},
+    // doi = {10.1109/ICDM.2005.126}
+    // }
+    Row<DataType> labels_oos_sorted = sort(labels_oos);
+    Row<DataType> prediction_sorted = sort(prediction);
+    int aa_ = 55;
+
     //
     // 2. OOS loss
     // 

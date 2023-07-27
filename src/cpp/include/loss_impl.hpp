@@ -87,6 +87,8 @@ DataType
 BinomialDevianceLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
   rowvec f = exp(y % yhat);
   *grad = -y/(1 + f);
+  // rowvec f = exp(-y % yhat);
+  // *grad = (1 + f)/-y;
   
 #ifdef AUTODIFF
   ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
@@ -103,6 +105,9 @@ void
 BinomialDevianceLoss<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
   rowvec f = exp(y % yhat);
   *hess = (pow(y, 2) % f)/pow(1 + f, 2);
+  // rowvec f(y.n_cols, arma::fill::ones);
+  // *hess = f;
+  
 }
 
 template<typename DataType>

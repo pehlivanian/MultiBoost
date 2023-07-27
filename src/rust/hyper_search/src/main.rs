@@ -64,14 +64,18 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // let datasetname = "analcatdata_boxing1";
     // let datasetname = "breast";
-    // let datasetname = "analcatdata_lawsuit";
+    let datasetname = "analcatdata_lawsuit";
     // let datasetname = "analcatdata_asbestos";
     // let datasetname = "analcatdata_boxing2";
     // let datasetname = "analcatdata_creditscore";
     // let datasetname = "analcatdata_cyyoung8092";
     // let datasetname = "analcatdata_cyyoung9302";
     // let datasetname = "bupa";
-    let datasetname = "cleve";
+    // let datasetname = "cleve";
+    // let datasetname = "appendicitis";
+    // let datasetname = "german";
+    // let datasetname = "crx";'
+    // let datasetname = "breast_cancer";
     
     let dataset = dataset::ClassificationDataset::new(&datasetname);
 
@@ -83,8 +87,10 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	
         // let mut ratio: f64 = rng.gen::<f64>();    
         let mut ratio: f64 = rng.gen_range(0.5..1.0);
-        let numGrids = rng.gen_range(2..10) as usize;
-        let baseSteps: u32 = 25;
+        // XXX
+        let numGrids = rng.gen_range(2..7) as usize;
+        // XXX
+        let baseSteps: u32 = 50;
         let loss_fn: u32 = 1;
         let colsubsample_ratio: f32 = 0.85;
         let mut recursivefit: bool = true;
@@ -207,7 +213,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let data = mariadbext::run_key_data{dataset: datasetname.to_string(), 
                         folder: folder.to_string(), index: index.to_string()};
                     run_key = calculate_hash(&data);
-                    let query = mariadbext::format_run_specification_query(run_key, folder, index, datasetname,
+                    let query = mariadbext::format_run_specification_query(run_key, &cmd, folder, index, datasetname,
                         loss_fn, numRows, numCols, baseSteps, colsubsample_ratio, recursivefit, 0.2,
                         &specs);
                     let r = conn.query_drop(query).expect("Failed to insert into run_specification table");
@@ -229,7 +235,9 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
             }
+            println!("run_key: {}", run_key);
         }
+
         trial_num += 1;
 
     }

@@ -1,5 +1,6 @@
 #include "incremental_predict.hpp"
 
+using namespace arma;
 using namespace mlpack;
 using namespace mlpack::tree;
 using namespace mlpack::data;

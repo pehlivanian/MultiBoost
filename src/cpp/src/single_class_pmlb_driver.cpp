@@ -36,11 +36,11 @@ auto main() -> int {
   
   Context context{};
   // context.loss = lossFunction::Savage;
-  // context.loss = lossFunction::BinomialDeviance;
+  context.loss = lossFunction::BinomialDeviance;
   // context.loss = lossFunction::MSE;
   // context.loss = lossFunction::Exp;
   // context.loss = lossFunction::Arctan;
-  context.loss = lossFunction::Synthetic;
+  // context.loss = lossFunction::Synthetic;
   // context.loss = lossFunction::SyntheticVar1;
   // context.loss = lossFunction::SyntheticVar2;
   context.childPartitionSize = std::vector<std::size_t>{100, 50, 20, 10, 1};

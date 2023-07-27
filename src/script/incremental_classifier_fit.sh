@@ -162,7 +162,7 @@ n=1
 
 STEP_INFO=$($EXEC_INC \
 --contextFileName $CONTEXT_PATH_RUN1 \
---dataName $dataname \
+--dataName ${dataname} \
 --splitRatio $SPLITRATIO \
 --mergeIndexFiles false \
 --warmStart false)
@@ -183,6 +183,7 @@ echo ${PREFIX}" ITER: 1"
 
 ((n=n+1))
 
+
 # Classify OOS
 $EXEC_PRED_OOS \
 --indexFileName $INDEX_NAME_STEP \
@@ -199,7 +200,7 @@ do
   # Fit step
   INDEX_NAME_STEP=$($EXEC_INC \
   --contextFileName ${FOLDER_STEP}/${CONTEXT_PATH_RUNS} \
-  --dataName $dataname \
+  --dataName ${dataname} \
   --splitRatio $SPLITRATIO \
   --quietRun true \
   --mergeIndexFiles true \
