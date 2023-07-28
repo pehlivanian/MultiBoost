@@ -66,10 +66,10 @@ class Credentials(metaclass=Singleton):
         return creds['TS_DB']['user'], creds['TS_DB']['passwd']
 
 class DBExt(object):
-    def __init__(self):
+    def __init__(self, dbName=None):
         self.credentials = Credentials()
         user, passwd = self.credentials.DB_creds()
-        dbName = 'MULTISCALEGB_CLASS'
+        dbName = dbName or 'MULTISCALEGB_CLASS'
         self.conn = create_engine('mysql+mysqldb://{}:{}@localhost/{}'.format(user,passwd,dbName))        
 
     def list_databases(self):

@@ -556,6 +556,7 @@ namespace IB_utils {
   double err(const Row<double>&, const Row<double>&, double=-1.);
 
   std::tuple<double, double, double> precision(const Row<int>&, const Row<int>&);
+  std::tuple<double, double> Perlich_rank_scores(const Row<double>&, const Row<double>&);
 
   double imbalance(const Row<int>&);
   double imbalance(const Row<double>&);

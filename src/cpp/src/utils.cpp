@@ -33,6 +33,25 @@ namespace IB_utils {
     return static_cast<double>(ind.n_elem) * 100. / static_cast<double>(y.n_elem);
   }
 
+  std::tuple<double,double> Perlich_rank_scores(const Row<double>& yhat, const Row<double>& y) {
+    uvec yhat_index = sort_index(yhat);
+    double T=0., R=0., tau, rho;
+    int n = yhat.n_elem;
+    for(int i=0; i<n; ++i) {
+      for(int j=i+1; j<n; ++j) {
+	if (y[yhat_index[i]] > y[yhat_index[j]]) {
+	  T += 1.;
+	  R += static_cast<double>(j-i);
+	}
+      }
+    }
+
+    double n_ = static_cast<double>(n);
+    tau = 1. - (4.*T)/(n_*(n_-1));
+    rho = 1. - (12.*R)/(n_*(n_-1)*(n_+1));
+    return std::make_tuple(0.5 + tau/2., 0.5 + rho/2.);
+  }
+
   std::tuple<double, double, double> precision(const Row<int>& y, const Row<int>& yhat) {
     // assume y has values in {+-1}
     double TP=0.,TN=0.,FP=0.,FN=0.;

@@ -40,6 +40,10 @@ class Replay {
   using optRV = std::tuple<std::optional<double>, 
 			   std::optional<double>,
 			   std::optional<double>,
+			   std::optional<double>,
+			   std::optional<double>,
+			   std::optional<double>,
+			   std::optional<double>,
 			   std::optional<double>>;
   using optCV = std::tuple<std::optional<double>,
 			   std::optional<double>,

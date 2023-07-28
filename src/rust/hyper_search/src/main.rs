@@ -6,6 +6,8 @@ use run_script::ScriptOptions;
 use mysql::*;
 use mysql::prelude::*;
 use regex::Regex;
+use std::env;
+use std::assert;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::cmp;
@@ -14,6 +16,7 @@ use std::cmp;
 pub mod mongodbext;
 pub mod mariadbext;
 pub mod dataset;
+pub mod model;
 
 // Utilities
 fn round(x: f64, decimals: u32) -> f64 {
@@ -50,6 +53,16 @@ lazy_static!{
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
+    let args: Vec<String> = env::args().collect();
+    assert!(args.len() == 3);
+	
+    let model_name: String = args[1].clone();
+    let model_type: model::ModelType = match &model_name[..] {
+        "classifier" => model::ModelType::classifier,
+        "regressor" => model::ModelType::regressor,
+        _ => model::ModelType::other,
+    };
+
     let mut trial_num: i32 = 1;
     let mut rng = rand::thread_rng();
 
@@ -58,13 +71,19 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let creds = mongodbext::Credentials::get_credentials(mongodb_uri).await.unwrap();
 
     // Mariadb connection uri
-    let mariadb_uri: &str = &format!("mysql://{}:{}@localhost:3306/MULTISCALEGB_CLASS", creds.0, creds.1);
+    let database_name = model::ModelType::database_name(&model_type);
+    let mariadb_uri: &str = &format!("mysql://{}:{}@localhost:3306/{}", creds.0, creds.1, database_name);
     let pool = Pool::new(mariadb_uri)?;
     let mut conn = pool.get_conn()?;
 
+    let datasetname = &args[2];
+
+    // =========================
+    // == CLASSIFIER DATASETS == 
+    // =========================
     // let datasetname = "analcatdata_boxing1";
     // let datasetname = "breast";
-    let datasetname = "analcatdata_lawsuit";
+    // let datasetname = "analcatdata_lawsuit";
     // let datasetname = "analcatdata_asbestos";
     // let datasetname = "analcatdata_boxing2";
     // let datasetname = "analcatdata_creditscore";
@@ -76,6 +95,10 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let datasetname = "german";
     // let datasetname = "crx";'
     // let datasetname = "breast_cancer";
+
+    // =========================
+    // == REGRESSOR DATASETS == 
+    // =========================
     
     let dataset = dataset::ClassificationDataset::new(&datasetname);
 
@@ -90,9 +113,21 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // XXX
         let numGrids = rng.gen_range(2..7) as usize;
         // XXX
-        let baseSteps: u32 = 50;
-        let loss_fn: u32 = 1;
-        let colsubsample_ratio: f32 = 0.85;
+        let baseSteps: u32 = match model_type {
+            model::ModelType::classifier => 50,
+            model::ModelType::regressor => 25,
+            model::ModelType::other => 0,
+        };
+        let loss_fn: u32 = match {
+            model::ModelType::classifier => 1,
+            model::ModelType::regressor => 0,
+            model::ModelType::other => 0,
+        };
+        let colsubsample_ratio: f32 = match {
+            model::ModelType::classifier => 0.85,
+            model::ModelType::regressor => 1.0,
+            model::ModelType::other => 0.0,
+        };
         let mut recursivefit: bool = true;
 
         // Would like to use a Parzen estimator as in TPE, but
@@ -117,7 +152,12 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if ind == 0 {
                 numSteps = 1_f64;
             }
-            let learningRate:     f64 = rng.gen_range(0.00005..0.0015);
+            let learningRate: f64 =
+                match model_type {
+	            model::ModelType::classifier => rng.gen_range(0.00005..0.0015),
+                    model::ModelType::regressor =>  rng.gen_range(0.01..0.05),
+                    model::ModelType::other =>      0.
+                };
             let maxDepth:         f64 = rng.gen_range(maxDepth..maxDepth+1).into();
             let minLeafSize:      f64 = rng.gen_range(1..2).into();
             let minimumGainSplit: f64 = 0.0;
@@ -142,7 +182,9 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .map(|v| v.into_iter().map(|i| i.to_string()).collect()).collect();
 
         let basePath: String = String::from("/home/charles/src/C++/sandbox/Inductive-Boost");
-        let proc: String = String::from("/src/script/incremental_classifier_fit.sh");
+
+        let mut proc: String = String::from("/src/script/");
+	proc.push_str(model::ModelType::model_cmd(&model_type));
 
         for recursivefit in vec![true, false] {
 
@@ -184,11 +226,6 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut run_key: u64 = 0;
 
             let mut it: i32 = 0;
-            let (mut imb_is,  mut imb_oos)  = (0f32, 0f32);
-            let (mut f1_is,   mut f1_oos)   = (0f32, 0f32);
-            let (mut rec_is,  mut rec_oos)  = (0f32, 0f32);
-            let (mut prec_is, mut prec_oos) = (0f32, 0f32);
-            let (mut err_is,  mut err_oos)  = (0f32, 0f32);
 
             for line in lines {
                 if ITER.is_match(&line) {
@@ -222,7 +259,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     	            for (_,[vals]) in OOS.captures_iter(&line)
                         .map(|i| i.extract()) {
             	        let mut parsed: Vec<String> = vals.split(", ").map(|i| i.to_string()).collect();
-                        let query = mariadbext::format_outofsample_query(run_key, datasetname, it, parsed);
+                        let query = mariadbext::format_outofsample_query(&model_type, run_key, datasetname, it, parsed);
                         let r = conn.query_drop(query).expect("Failed to insert into outofsample table");
                     }
                 }            
@@ -230,7 +267,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     for(_,[vals]) in IS.captures_iter(&line)
                         .map(|i| i.extract()) {
                         let mut parsed: Vec<String> = vals.split(", ").map(|i| i.to_string()).collect();
-                        let query = mariadbext::format_insample_query(run_key, datasetname, it, parsed);
+                        let query = mariadbext::format_insample_query(&model_type, run_key, datasetname, it, parsed);
                         let r = conn.query_drop(query).expect("Failed to insert into insample table");
                     }
                 }

@@ -307,8 +307,8 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
     // 
     // 2. imbalance
     //
-    double imbalance_OOS = imbalance(labels_oos_i);
-    double imbalance_IS = imbalance(labels_is_i);
+    double imbalance_OOS = imbalance(labels_oos);
+    double imbalance_IS = imbalance(labels);
 
     return std::make_tuple(error_OOS, 
 			   precision_OOS, 
@@ -540,9 +540,8 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
     // journal = {Knowl. Inf. Syst.},
     // doi = {10.1109/ICDM.2005.126}
     // }
-    Row<DataType> labels_oos_sorted = sort(labels_oos);
-    Row<DataType> prediction_sorted = sort(prediction);
-    int aa_ = 55;
+    auto [tau_OOS, rho_OOS] = Perlich_rank_scores(prediction, labels_oos);
+    auto [tau_IS, rho_IS]   = Perlich_rank_scores(prediction_is, labels);
 
     //
     // 2. OOS loss
@@ -556,16 +555,21 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
     double r_OOS = std::sqrt(lossFn->loss(prediction, labels_oos));
 
     // 
-    // 3 IS loss
+    // 3. IS loss
     // 
     double r_IS = std::sqrt(lossFn->loss(prediction_is, labels));
     
-    return std::make_tuple(r_OOS, r_squared_OOS, r_IS, r_squared_IS);
+    return std::make_tuple(r_OOS, r_squared_OOS, tau_OOS, rho_OOS,
+			   r_IS, r_squared_IS, tau_IS, rho_IS);
     
     
   } else {
     return std::make_tuple(std::nullopt, 
 			   std::nullopt, 
+			   std::nullopt,
+			   std::nullopt,
+			   std::nullopt,
+			   std::nullopt,
 			   std::nullopt, 
 			   std::nullopt);
   }

@@ -36,19 +36,27 @@ auto main(int argc, char **argv) -> int {
   Row<double> prediction_oos, labels_oos;
   const auto [error_OOS, 
 	      rSquared_OOS,
+	      tau_OOS,
+	      rho_OOS,
 	      error_IS,
-	      rSquared_IS] = Replay<double, DecisionTreeRegressorRegressor>::PredictStepwise(indexFileName, 
-												     prediction_oos, 
-												     labels_oos, 
-												     false, 
-												     true,
-												     folderName);
-  std::cout << prefixStr << " OOS: (error, r_squared) : ("
+	      rSquared_IS,
+	      tau_IS,
+	      rho_IS] = Replay<double, DecisionTreeRegressorRegressor>::PredictStepwise(indexFileName, 
+											prediction_oos, 
+											labels_oos, 
+											false, 
+											true,
+											folderName);
+  std::cout << prefixStr << " OOS: (loss, r_squared, tau, rho) : ("
 	    << error_OOS.value_or(-1.) << ", "
-	    << rSquared_OOS.value_or(-1.) << ")" << std::endl;
-  std::cout << prefixStr << " IS:  (error, r_squared) : ("
+	    << rSquared_OOS.value_or(-1.) << ", "
+	    << tau_OOS.value_or(-1.) << ", "
+	    << rho_OOS.value_or(-1.) << ")" << std::endl;
+  std::cout << prefixStr << " IS:  (loss, r_squared, tau, rho) : ("
 	    << error_IS.value_or(-1.) << ", "
-	    << rSquared_IS.value_or(-1.) << ")" << std::endl;
+	    << rSquared_IS.value_or(-1.) << ", "
+	    << tau_IS.value_or(-1.) << ", "
+	    << rho_IS.value_or(-1.) << ")" << std::endl;
     
     
   return 0;

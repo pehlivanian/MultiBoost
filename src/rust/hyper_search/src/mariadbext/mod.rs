@@ -1,3 +1,5 @@
+use crate::model;
+
 #[derive(Debug, PartialEq)]
 #[allow(non_camel_case_types)]
 pub struct run_specification {
@@ -140,26 +142,70 @@ pub fn format_run_specification_query(run_key: u64, cmd: &str, folder: &str, ind
 
 }
 
-pub fn format_outofsample_query(run_key: u64, datasetname: &str, it: i32, mut parsed: Vec<String>) -> String {
-    let _imb = parsed.pop().unwrap().parse::<f32>().unwrap();
-    let f1 = parsed.pop().unwrap().parse::<f32>().unwrap();
-    let rec = parsed.pop().unwrap().parse::<f32>().unwrap();
-    let prec = parsed.pop().unwrap().parse::<f32>().unwrap();
-    let err = parsed.pop().unwrap().parse::<f32>().unwrap();
-    // At this point, iteration number is known
-    let query = format!("INSERT INTO outofsample (run_key, dataset_name, iteration, err, prcsn, recall, F1) VALUES ({}, \"{}\", {}, {}, {}, {}, {})",
-        run_key, datasetname, it, err, prec, rec, f1);
-    query
-}
-
-pub fn format_insample_query(run_key: u64, datasetname: &str, it: i32, mut parsed: Vec<String>) -> String {
-    let _imb = parsed.pop().unwrap().parse::<f32>().unwrap();
+fn insample_classifier_query(run_key: u64, datasetname: &str, it: i32, mut parsed: Vec<String>) -> String {
+    let _imb = parsed.pop();
     let f1 = parsed.pop().unwrap().parse::<f32>().unwrap();
     let rec = parsed.pop().unwrap().parse::<f32>().unwrap();
     let prec = parsed.pop().unwrap().parse::<f32>().unwrap();
     let err = parsed.pop().unwrap().parse::<f32>().unwrap();              
     // At this point, iteration number is known
-    let query = format!("INSERT INTO insample (run_key, dataset_name, iteration, err, prcsn, recall, F1) VALUES ({}, \"{}\", {}, {}, {}, {}, {})",
-        run_key, datasetname, it, err, prec, rec, f1);
-    query
+    format!("INSERT INTO insample (run_key, dataset_name, iteration, err, prcsn, recall, F1) VALUES ({}, \"{}\", {}, {}, {}, {}, {})",
+        run_key, datasetname, it, err, prec, rec, f1)
+}
+
+fn insample_regressor_query(run_key: u64, datasetname: &str, it: i32, mut parsed: Vec<String>) -> String {
+    let rho = parsed.pop().unwrap().parse::<f32>().unwrap();
+    let tau = parsed.pop().unwrap().parse::<f32>().unwrap();
+    let r2 = parsed.pop().unwrap().parse::<f32>().unwrap();
+    let loss = parsed.pop().unwrap().parse::<f32>().unwrap();
+    format!("INSERT INTO insample (run_key, dataset_name, iteration, loss, r2, tau, rho) VALUES ({}, \"{}\", {}, {}, {}, {}, {})",
+        run_key, datasetname, it, loss, r2, tau, rho)
+}
+
+fn outofsample_classifier_query(run_key: u64, datasetname: &str, it: i32, mut parsed: Vec<String>) -> String {
+    let _imb = parsed.pop();
+    let f1 = parsed.pop().unwrap().parse::<f32>().unwrap();
+    let rec = parsed.pop().unwrap().parse::<f32>().unwrap();
+    let prec = parsed.pop().unwrap().parse::<f32>().unwrap();
+    let err = parsed.pop().unwrap().parse::<f32>().unwrap();              
+    // At this point, iteration number is known
+    format!("INSERT INTO outofsample (run_key, dataset_name, iteration, err, prcsn, recall, F1) VALUES ({}, \"{}\", {}, {}, {}, {}, {})",
+        run_key, datasetname, it, err, prec, rec, f1)
+}
+
+fn outofsample_regressor_query(run_key: u64, datasetname: &str, it: i32, mut parsed: Vec<String>) -> String {
+    let rho = parsed.pop().unwrap().parse::<f32>().unwrap();
+    let tau = parsed.pop().unwrap().parse::<f32>().unwrap();
+    let r2 = parsed.pop().unwrap().parse::<f32>().unwrap();
+    let loss = parsed.pop().unwrap().parse::<f32>().unwrap();
+    format!("INSERT INTO outofsample (run_key, dataset_name, iteration, loss, r2, tau, rho) VALUES ({}, \"{}\", {}, {}, {}, {}, {})",
+        run_key, datasetname, it, loss, r2, tau, rho)
+}
+
+pub fn format_insample_query(m: &model::ModelType, run_key: u64, datasetname: &str, it: i32, mut parsed: Vec<String>) -> String {
+    match m {
+        model::ModelType::classifier => {
+            insample_classifier_query(run_key, datasetname, it, parsed)
+        }
+        model::ModelType::regressor => {
+            insample_regressor_query(run_key, datasetname, it, parsed)
+        }
+        model::ModelType::other => {
+            "Error".to_string()
+        }
+    }
+}
+
+pub fn format_outofsample_query(m: &model::ModelType, run_key: u64, datasetname: &str, it: i32, mut parsed: Vec<String>) -> String {
+    match m {
+        model::ModelType::classifier => {
+            outofsample_classifier_query(run_key, datasetname, it, parsed)
+        }
+        model::ModelType::regressor => {
+            outofsample_regressor_query(run_key, datasetname, it, parsed)
+        }
+        model::ModelType::other => {
+            "Error".to_string()
+        }
+    }
 }
