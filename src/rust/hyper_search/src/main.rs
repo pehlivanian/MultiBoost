@@ -111,19 +111,25 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // let mut ratio: f64 = rng.gen::<f64>();    
         let mut ratio: f64 = rng.gen_range(0.5..1.0);
         // XXX
-        let numGrids = rng.gen_range(2..7) as usize;
+        let mut numGrids = rng.gen_range(2..7) as usize;
+        numGrids = match model_type {
+            model::ModelType::classifier => numGrids,
+            model::ModelType::regressor => 8,
+            model::ModelType::other => numGrids,
+        };
+
         // XXX
         let baseSteps: u32 = match model_type {
             model::ModelType::classifier => 50,
             model::ModelType::regressor => 25,
             model::ModelType::other => 0,
         };
-        let loss_fn: u32 = match {
+        let loss_fn: u32 = match model_type {
             model::ModelType::classifier => 1,
             model::ModelType::regressor => 0,
             model::ModelType::other => 0,
         };
-        let colsubsample_ratio: f32 = match {
+        let colsubsample_ratio: f32 = match model_type {
             model::ModelType::classifier => 0.85,
             model::ModelType::regressor => 1.0,
             model::ModelType::other => 0.0,
@@ -144,6 +150,17 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         for ind in 0..numGrids {
 	    numPartitions *= ratio;
+            numPartitions = match model_type {
+                model::ModelType::classifier => numPartitions,
+                model::ModelType::regressor => {
+                    if numPartitions <= 2000_f64 {
+                        numPartitions
+                    } else {
+                        2000 as f64
+                    }
+                }
+                model::ModelType::other => 0 as f64,
+            };
             if numPartitions < 1. {
                 numPartitions = 1_f64;
             }
@@ -171,6 +188,39 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	    ratio = rng.gen_range(0.0..1.0);
         }
+
+        // Just override in regressor case
+        childNumPartitions = match model_type {
+            model::ModelType::classifier => childNumPartitions,
+            model::ModelType::regressor => vec![1000.0, 500.0, 250.0, 100.0, 20.0, 10.0, 5.0, 1.0],
+            model::ModelType::other => childNumPartitions,
+        };
+	childNumSteps = match model_type {
+            model::ModelType::classifier => childNumSteps,
+            model::ModelType::regressor => vec![1.0, 1.0, 2.0, 3.0, 3.0, 2.0, 1.0, 1.0],
+            model::ModelType::other => childNumSteps,
+        };
+        childLearningRate = match model_type {
+            model::ModelType::classifier => childLearningRate,
+            model::ModelType::regressor => vec![0.001, 0.001, 0.002, 0.002, 0.003, 0.003, 0.004, 0.004],
+            model::ModelType::other => childLearningRate,
+        };
+        childMaxDepth = match model_type {
+            model::ModelType::classifier => childMaxDepth,
+            model::ModelType::regressor => vec![20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0],
+            model::ModelType::other => childMaxDepth,
+        };
+        childMinLeafSize = match model_type {
+            model::ModelType::classifier => childMinLeafSize,
+            model::ModelType::regressor => vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            model::ModelType::other => childMinLeafSize,
+        };
+        childMinimumGainSplit = match model_type {
+            model::ModelType::classifier => childMinimumGainSplit,
+            model::ModelType::regressor => vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            model::ModelType::other => childMinimumGainSplit,
+        };
+
 
         let specs: Vec<Vec<String>> = vec![childNumPartitions,
 	   			       childNumSteps,

@@ -45,6 +45,8 @@ CompositeRegressor<RegressorType>::childContext(Context& context) {
   
   auto it = std::find(childPartitionSize_.cbegin(), childPartitionSize_.cend(), partitionSize);
   auto ind = std::distance(childPartitionSize_.cbegin(), it);
+  // Must ensure that ind > 0; may happen if partition size is the same through 2 steps
+  ind = ind > 0 ? ind : 1;
 
   context.childPartitionSize	= std::vector<std::size_t>(childPartitionSize_.cbegin()+ind,
 							   childPartitionSize_.cend());
