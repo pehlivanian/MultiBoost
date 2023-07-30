@@ -30,38 +30,13 @@ fn calculate_hash<T: Hash>(t: &T) -> u64 {
     s.finish()
 }
 
-lazy_static!{
-    static ref ITER: Regex = Regex::new(r"[\s]+ITER[\s]*:[\s]+([0-9]+)").unwrap();
-}
-
-lazy_static!{
-    static ref FOLDER: Regex = Regex::new(r"[\s]+FOLDER[\s]*:[\s]+(.+)").unwrap();
-}
-
-lazy_static!{
-    static ref INDEX: Regex = Regex::new(r"[\s]+INDEX[\s]*:[\s]+(.+)").unwrap();
-}
-
-lazy_static!{
-    static ref IS: Regex = Regex::new(r"[\s]IS[\s]*:[\s]*.*:[\s]+\((.*)\)").unwrap();
-}
-
-lazy_static!{
-    static ref OOS: Regex = Regex::new(r"[\s]OOS[\s]*:[\s]*.*:[\s]+\((.*)\)").unwrap();
-}
-
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let args: Vec<String> = env::args().collect();
-    assert!(args.len() == 3);
+    assert!(args.len() == 2);
 	
-    let model_name: String = args[1].clone();
-    let model_type: model::ModelType = match &model_name[..] {
-        "classifier" => model::ModelType::classifier,
-        "regressor" => model::ModelType::regressor,
-        _ => model::ModelType::other,
-    };
+    let model_type: model::ModelType = model::ModelType::classifier;
 
     let mut trial_num: i32 = 1;
     let mut rng = rand::thread_rng();
@@ -76,7 +51,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let pool = Pool::new(mariadb_uri)?;
     let mut conn = pool.get_conn()?;
 
-    let datasetname = &args[2];
+    let datasetname = &args[1];
 
     // =========================
     // == CLASSIFIER DATASETS == 
@@ -96,10 +71,6 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let datasetname = "crx";'
     // let datasetname = "breast_cancer";
 
-    // =========================
-    // == REGRESSOR DATASETS == 
-    // =========================
-    
     let dataset = dataset::ClassificationDataset::new(&datasetname);
 
     // Generate simulation results
@@ -111,29 +82,10 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // let mut ratio: f64 = rng.gen::<f64>();    
         let mut ratio: f64 = rng.gen_range(0.5..1.0);
         // XXX
-        let mut numGrids = rng.gen_range(2..7) as usize;
-        numGrids = match model_type {
-            model::ModelType::classifier => numGrids,
-            model::ModelType::regressor => 8,
-            model::ModelType::other => numGrids,
-        };
-
-        // XXX
-        let baseSteps: u32 = match model_type {
-            model::ModelType::classifier => 50,
-            model::ModelType::regressor => 25,
-            model::ModelType::other => 0,
-        };
-        let loss_fn: u32 = match model_type {
-            model::ModelType::classifier => 1,
-            model::ModelType::regressor => 0,
-            model::ModelType::other => 0,
-        };
-        let colsubsample_ratio: f32 = match model_type {
-            model::ModelType::classifier => 0.85,
-            model::ModelType::regressor => 1.0,
-            model::ModelType::other => 0.0,
-        };
+        let mut numGrids = rng.gen_range(2..6) as usize;
+	let baseSteps: u32 = 50;
+        let loss_fn: u32  = 1;
+        let colsubsample_ratio: f32 = 0.85;
         let mut recursivefit: bool = true;
 
         // Would like to use a Parzen estimator as in TPE, but
@@ -150,31 +102,15 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         for ind in 0..numGrids {
 	    numPartitions *= ratio;
-            numPartitions = match model_type {
-                model::ModelType::classifier => numPartitions,
-                model::ModelType::regressor => {
-                    if numPartitions <= 2000_f64 {
-                        numPartitions
-                    } else {
-                        2000 as f64
-                    }
-                }
-                model::ModelType::other => 0 as f64,
-            };
             if numPartitions < 1. {
                 numPartitions = 1_f64;
             }
+            if numPartitions > 0.75*(numRows as f64) {
+                numPartitions = 0.75*(numRows as f64);
+            }
             let maxDepth:         i32 = (numRows as f64).log2().floor() as i32 + 1;
             let mut numSteps:     f64 = rng.gen_range(1..5).into();
-            if ind == 0 {
-                numSteps = 1_f64;
-            }
-            let learningRate: f64 =
-                match model_type {
-	            model::ModelType::classifier => rng.gen_range(0.00005..0.0015),
-                    model::ModelType::regressor =>  rng.gen_range(0.01..0.05),
-                    model::ModelType::other =>      0.
-                };
+            let learningRate: f64 = rng.gen_range(0.00005..0.0015);
             let maxDepth:         f64 = rng.gen_range(maxDepth..maxDepth+1).into();
             let minLeafSize:      f64 = rng.gen_range(1..2).into();
             let minimumGainSplit: f64 = 0.0;
@@ -188,39 +124,6 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	    ratio = rng.gen_range(0.0..1.0);
         }
-
-        // Just override in regressor case
-        childNumPartitions = match model_type {
-            model::ModelType::classifier => childNumPartitions,
-            model::ModelType::regressor => vec![1000.0, 500.0, 250.0, 100.0, 20.0, 10.0, 5.0, 1.0],
-            model::ModelType::other => childNumPartitions,
-        };
-	childNumSteps = match model_type {
-            model::ModelType::classifier => childNumSteps,
-            model::ModelType::regressor => vec![1.0, 1.0, 2.0, 3.0, 3.0, 2.0, 1.0, 1.0],
-            model::ModelType::other => childNumSteps,
-        };
-        childLearningRate = match model_type {
-            model::ModelType::classifier => childLearningRate,
-            model::ModelType::regressor => vec![0.001, 0.001, 0.002, 0.002, 0.003, 0.003, 0.004, 0.004],
-            model::ModelType::other => childLearningRate,
-        };
-        childMaxDepth = match model_type {
-            model::ModelType::classifier => childMaxDepth,
-            model::ModelType::regressor => vec![20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0],
-            model::ModelType::other => childMaxDepth,
-        };
-        childMinLeafSize = match model_type {
-            model::ModelType::classifier => childMinLeafSize,
-            model::ModelType::regressor => vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-            model::ModelType::other => childMinLeafSize,
-        };
-        childMinimumGainSplit = match model_type {
-            model::ModelType::classifier => childMinimumGainSplit,
-            model::ModelType::regressor => vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            model::ModelType::other => childMinimumGainSplit,
-        };
-
 
         let specs: Vec<Vec<String>> = vec![childNumPartitions,
 	   			       childNumSteps,
@@ -278,20 +181,20 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut it: i32 = 0;
 
             for line in lines {
-                if ITER.is_match(&line) {
-                    for (_,[item]) in ITER.captures_iter(&line)
+                if model::ITER.is_match(&line) {
+                    for (_,[item]) in model::ITER.captures_iter(&line)
                         .map(|i| i.extract()) {
                         it = item.parse::<i32>()?;
                     }
                 }
-                else if FOLDER.is_match(&line) {
-                    for (_,[item]) in FOLDER.captures_iter(&line)
+                else if model::FOLDER.is_match(&line) {
+                    for (_,[item]) in model::FOLDER.captures_iter(&line)
                         .map(|i| i.extract()) {
 	                folder = item;
                     }
                 }
-                else if INDEX.is_match(&line) {
-                    for (_,[item]) in INDEX.captures_iter(&line)
+                else if model::INDEX.is_match(&line) {
+                    for (_,[item]) in model::INDEX.captures_iter(&line)
                         .map(|i| i.extract()) {
                         index = item;
                     }
@@ -305,16 +208,16 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         &specs);
                     let r = conn.query_drop(query).expect("Failed to insert into run_specification table");
                 }
-                else if OOS.is_match(&line) {
-    	            for (_,[vals]) in OOS.captures_iter(&line)
+                else if model::OOS.is_match(&line) {
+    	            for (_,[vals]) in model::OOS.captures_iter(&line)
                         .map(|i| i.extract()) {
             	        let mut parsed: Vec<String> = vals.split(", ").map(|i| i.to_string()).collect();
                         let query = mariadbext::format_outofsample_query(&model_type, run_key, datasetname, it, parsed);
                         let r = conn.query_drop(query).expect("Failed to insert into outofsample table");
                     }
                 }            
-                else if IS.is_match(&line) {
-                    for(_,[vals]) in IS.captures_iter(&line)
+                else if model::IS.is_match(&line) {
+                    for(_,[vals]) in model::IS.captures_iter(&line)
                         .map(|i| i.extract()) {
                         let mut parsed: Vec<String> = vals.split(", ").map(|i| i.to_string()).collect();
                         let query = mariadbext::format_insample_query(&model_type, run_key, datasetname, it, parsed);
@@ -330,5 +233,5 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Never reached
-    // Ok(())
+    Ok(())
 }
