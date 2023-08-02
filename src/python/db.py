@@ -5,6 +5,7 @@ import numpy as np
 import quandl
 import string
 from datetime import timedelta
+from collections import defaultdict
 import datetime
 import mariadb
 
@@ -30,6 +31,8 @@ logging.getLogger().setLevel(logging.WARN)
 
 # Suppress scientific notation in console display, etc.
 np.set_printoptions(suppress=True, edgeitems=30, linewidth=10000)
+pd.set_option('display.max_colwidth', None)
+pd.set_option('display.max_rows', None)
 
 Dtype_Mapping = {
     'object' : 'TEXT',
@@ -66,10 +69,11 @@ class Credentials(metaclass=Singleton):
         return creds['TS_DB']['user'], creds['TS_DB']['passwd']
 
 class DBExt(object):
-    def __init__(self, dbName=None):
+    def __init__(self, dbName=None, is_classifier=True):
+        self.is_classifier = is_classifier
         self.credentials = Credentials()
         user, passwd = self.credentials.DB_creds()
-        dbName = dbName or 'MULTISCALEGB_CLASS'
+        dbName = dbName or ('MULTISCALEGB_CLASS' if is_classifier else 'MULTISCALEGB_REG')
         self.conn = create_engine('mysql+mysqldb://{}:{}@localhost/{}'.format(user,passwd,dbName))        
 
     def list_databases(self):
@@ -80,19 +84,53 @@ class DBExt(object):
         return self.conn.table_names()        
         return self.conn_table_names()
 
-    def get_top_n_OOS(self, n=5, use_min_criteria=True):
-        if use_min_criteria:
-            agg_fn = {'err' : min}
+    @staticmethod
+    def last_min_occ(df, colName):
+        return df[colName][df[colName] == df[colName].min()].index.tolist().pop()
+
+    @staticmethod
+    def last_max_occ(df, colName):
+        return df[colName][df[colName] == df[colName].max()].index.tolist().pop()
+    
+    def get_top_n_OOS(self, n=5, criterion='min_IS'):
+        if self.is_classifier:
+            sort_keys = ['dataset_name', 'err']
+            sort_ascending=True
+            if use_min_criterion:
+                agg_fn = {'err' : min}
+            else:
+                agg_fn = {'err' : 'last'}
         else:
-            agg_fn = {'err' : 'last'}
+            sort_keys = ['dataset_name', 'r2']
+            sort_ascending=False
+            if use_min_criterion:
+                agg_fn = {'r2' : min}
+            else:
+                agg_fn = {'r2' : 'last'}
+            
         req = self.conn.execute('select * from outofsample')
         df = pd.DataFrame(columns=req.keys(), data=req.fetchall())
-        groups = df.groupby(by=['dataset_name', 'run_key'], as_index=False).aggregate(agg_fn)
-        groups = groups.sort_values(by=['dataset_name', 'err'])
-        groups = groups.groupby(by=['dataset_name'], as_index=False).head(n)
+        if criterion in ('last', 'min_OOS'):
+            groups = df.groupby(by=['dataset_name', 'run_key'], as_index=False).aggregate(agg_fn)
+            groups = groups.sort_values(by=sort_keys, ascending=sort_ascending)
+            grouped = groups.groupby(by=['dataset_name'], as_index=False).head(n)
+        elif criterion in ('min_IS'):
+            groups = df.groupby(by=['dataset_name', 'run_key'], as_index=False)
+            grouped = pd.DataFrame(columns=['dataset_name', 'run_key', 'IS_best_ind', 'err'])
+            req = self.conn.execute('select * from insample')
+            df_is = pd.DataFrame(columns=req.keys(), data=req.fetchall())
+            for (dataset_name, run_key),group in groups:
+                df2 = df_is[df_is['run_key'] == run_key]
+                df2.reset_index(inplace=True)
+                # ind = DBExt.last_min_occ(df2, 'err')
+                ind = DBExt.last_max_occ(df2, 'F1')
+                grouped.loc[grouped.shape[0]] = [dataset_name, run_key, ind, group.iloc[ind].err]
+            grouped = grouped.sort_values(by=sort_keys, ascending=sort_ascending)
+            grouped = grouped.groupby(by=['dataset_name'], as_index=False).head(n)
+        
         req = self.conn.execute('select run_key,recursive from run_specification')
         run_specs = pd.DataFrame(columns=req.keys(), data=req.fetchall())
-        joined = pd.merge(groups, run_specs, left_on=['run_key'], right_on=['run_key'], how='left')
+        joined = pd.merge(grouped, run_specs, left_on=['run_key'], right_on=['run_key'], how='left')
         return joined 
 
     def get_complete_OOS_run(self, run_key):
@@ -105,13 +143,15 @@ class DBExt(object):
         df = pd.DataFrame(columns=req.keys(), data=req.fetchall())
         return df    
 
-    def get_top_n_run_specifications(self, n=5):
-        df = self.get_top_n_OOS(n)
+    def get_top_n_run_specifications(self, n=5, criterion='min_IS'):
+        dd = defaultdict(dict)
+        df = self.get_top_n_OOS(n, criterion=criterion)
         run_specs = pd.DataFrame()
         for i,r in df.iterrows():
-            ddf,_ = self.get_run_specification(r.run_key)
+            ddf,params = self.get_run_specification(r.run_key)
             run_specs = pd.DataFrame.append(run_specs,ddf)
-        return run_specs
+            dd[r.dataset_name][r.run_key] = params
+        return df,run_specs,dd
 
     def get_run_specification(self, run_key):
         req = self.conn.execute('select * from run_specification where run_key={}'.format(run_key))

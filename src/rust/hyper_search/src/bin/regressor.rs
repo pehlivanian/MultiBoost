@@ -54,11 +54,11 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // == REGRESSOR DATASETS == 
     // =========================
     let datasetnames: Vec<String> = vec![
-        String::from("tabular_benchmark/Regression/pol"),
-        String::from("tabular_benchmark/Regression/cpu_act"),
-        String::from("tabular_benchmark/Regression/elevators"),
-        String::from("tabular_benchmark/Regression/wine_quality"),
-        String::from("tabular_benchmark/Regression/Ailerons"),
+        // String::from("tabular_benchmark/Regression/pol"),
+        // String::from("tabular_benchmark/Regression/cpu_act"),
+        // String::from("tabular_benchmark/Regression/elevators"),
+        // String::from("tabular_benchmark/Regression/wine_quality"),
+        // String::from("tabular_benchmark/Regression/Ailerons"),
         String::from("tabular_benchmark/Regression/houses"),
         String::from("tabular_benchmark/Regression/house_16H"),
         String::from("tabular_benchmark/Regression/diamonds"),

@@ -33,6 +33,44 @@ LossFunction<DataType>::loss(const rowvec& yhat, const rowvec& y, rowvec* grad, 
 #endif
 }
 
+///////////////////
+// BEGIN SquareLoss
+///////////////////
+template<typename DataType>
+DataType
+SquareLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
+  *grad = 2 * y % (y % yhat - 1);
+#ifdef AUTODIFF
+  ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
+  ArrayXreal yr = LossUtils::static_cast_eigen(y).eval();
+
+  return static_cast<DataType>(loss_reverse(yr, yhatr).val());
+#else
+  return static_cast<DataType>(loss_reverse_arma(y, yhat));
+#endif
+}
+
+template<typename DataType>
+void
+SquareLoss<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
+  (void)yhat;
+  *hess = 2 * pow(y, 2);
+}
+
+template<typename DataType>
+DataType
+SquareLoss<DataType>::loss_reverse_arma(const rowvec& yhat, const rowvec& y) {
+  return sum(pow(1 -  y % yhat, 2));
+}
+
+#ifdef AUTODIFF
+template<typename DataType>
+autodiff::real
+SquareLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
+  return pow(1 - y*yhat, 2).sum();
+}
+#endif
+
 ////////////////
 // BEGIN MSELoss
 ////////////////
@@ -338,9 +376,9 @@ SyntheticLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& 
 // END SyntheticLoss
 ////////////////
 
-//////////////////////////////
-// BEGIN SyntheticLossVariation1
-//////////////////////////////
+//////////////////////////
+// BEGIN SyntheticLossVar1
+//////////////////////////
 
 template<typename DataType>
 DataType
@@ -389,6 +427,73 @@ SyntheticLossVar1<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXre
 //////////////////////////////
 // END SyntheticLossVariation1
 //////////////////////////////
+
+/////////////////////////
+// BEGIN SyntheticRegLoss
+/////////////////////////
+
+template<typename DataType>
+DataType
+SyntheticRegLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
+
+  // rowvec f = exp( -0.5 / pow(y - yhat, 2));
+  // f.transform([](double val) { return (std::isnan(val) ? 0. : val); });
+  // *grad = f;
+  
+  // rowvec f = -exp( -0.5 / pow(y - yhat, 2)) % pow(y - yhat, 3);
+  // f.transform([](double val){ return (std::isnan(val) ? 0. : val); });
+  // *grad = f;
+
+  rowvec f = -2 * pow((y - yhat)/y, 3);
+  f.transform([](double val){ return (std::isnan(val) ? 0. : val); });
+  *grad = f;
+
+#ifdef AUTODIFF
+  ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
+  ArrayXreal yr = LossUtils::static_cast_eigen(y).eval();
+
+  return static_cast<DataType>(loss_reverse(yr, yhatr).val());
+#else
+  return static_cast<DataType>(loss_reverse_arma(y, yhat));
+#endif
+}
+
+template<typename DataType>
+void
+SyntheticRegLoss<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
+  (void)yhat;
+
+  // rowvec f = -exp( -0.5 / pow(y - yhat, 2));
+  // rowvec g = f / pow(y - yhat, 3);
+  // g.transform([](double val) { return (std::isnan(val) ? 1. : val); });
+  // *hess = g;
+
+  // rowvec f = exp( -0.5 / pow(y - yhat, 2));
+  // f.transform([](double val) { return (std::isnan(val) ? 1. : val); });
+  // *hess = f;
+
+  rowvec f(y.n_cols, arma::fill::ones);
+  *hess = 2 * f;
+
+}
+
+template<typename DataType>
+DataType
+SyntheticRegLoss<DataType>::loss_reverse_arma(const rowvec& yhat, const rowvec& y) {
+  return sum(pow((y - yhat), 2));
+}
+
+#ifdef AUTODIFF
+template<typename DataType>
+autodiff::real
+SyntheticRegLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
+  return pow((y - yhat), 2).sum();
+}
+#endif
+
+///////////////////////
+// END SyntheticRegLoss
+///////////////////////
 
 //////////////////////////////
 // BEGIN SyntheticLossVariation2

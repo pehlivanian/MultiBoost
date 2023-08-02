@@ -27,7 +27,9 @@ enum class lossFunction {    MSE = 0,
 			       Arctan = 4,
 			       Synthetic = 5,
 			       SyntheticVar1 = 6,
-			       SyntheticVar2 = 7
+			       SyntheticVar2 = 7,
+                               SquareLoss = 8,
+			       SyntheticRegLoss = 9
 			       };
 
 
@@ -163,6 +165,21 @@ namespace LossMeasures {
   };
 
   template<typename DataType>
+  class SyntheticRegLoss : public LossFunction<DataType> {
+  public:
+    SyntheticRegLoss() = default;
+    SyntheticRegLoss<DataType>* create() override { return new SyntheticRegLoss<DataType>(); }
+  private:
+#ifdef AUTODIFF
+    autodiff::real loss_Reverse(const ArrayXreal&, const ArrayXreal&) override;
+#endif
+    DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
+    DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
+    void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+  };
+
+
+  template<typename DataType>
   class SyntheticLossVar1 : public LossFunction<DataType> {
   public:
     SyntheticLossVar1() = default;
@@ -190,6 +207,20 @@ namespace LossMeasures {
     void hessian_(const rowvec&, const rowvec&, rowvec*) override;
   };
 
+  template<typename DataType>
+  class SquareLoss : public LossFunction<DataType> {
+  public:
+    SquareLoss() = default;
+    SquareLoss<DataType>* create() override { return new SquareLoss<DataType>(); }
+  private:
+#ifdef AUTODIFF
+    autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
+#endif
+    DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
+    DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
+    void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+  };
+
   struct lossMapHash {
     std::size_t operator()(lossFunction l) const { return static_cast<std::size_t>(l); }
   };
@@ -204,7 +235,9 @@ namespace LossMeasures {
       {lossFunction::Arctan,		new ArctanLoss<T>() },
       {lossFunction::Synthetic,		new SyntheticLoss<T>() },
       {lossFunction::SyntheticVar1,	new SyntheticLossVar1<T>() },
-      {lossFunction::SyntheticVar2,	new SyntheticLossVar2<T>() }
+      {lossFunction::SyntheticVar2,	new SyntheticLossVar2<T>() },
+      {lossFunction::SquareLoss,	new SquareLoss<T>() },
+      {lossFunction::SyntheticRegLoss,	new SyntheticRegLoss<T>() }
     };
 
 } // namespace LossMeasures

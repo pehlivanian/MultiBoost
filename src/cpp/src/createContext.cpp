@@ -55,6 +55,12 @@ namespace std {
     case (7):
       loss = lossFunction::SyntheticVar2;
       break;
+    case (8):
+      loss = lossFunction::SquareLoss;
+      break;
+    case (9):
+      loss = lossFunction::SyntheticRegLoss;
+      break;
     default:
       in.setstate(std::ios_base::failbit);
     }
