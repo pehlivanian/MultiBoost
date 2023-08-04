@@ -520,16 +520,6 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     auto [subPartitionSize, subStepSize, subLearningRate] = 
       computeChildPartitionInfo();
 
-    // Generate coefficients g, h
-    std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
-
-    best_leaves = computeOptimalSplit(coeffs.first, 
-				      coeffs.second, 
-				      stepNum, 
-				      subPartitionSize, 
-				      subLearningRate, 
-				      colMask_);
-
     if (ClassifierFileScope::DIAGNOSTICS_1_ || ClassifierFileScope::DIAGNOSTICS_0_) {
       std::cerr << "FITTING COMPOSITE CLASSIFIER FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
 		<< partitionSize_ << ", "
@@ -537,22 +527,6 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 		<< steps_ << ")"
 		<< std::endl;      
     }
-
-    if (ClassifierFileScope::DIAGNOSTICS_1_) {
-      
-      rowvec yhat_debug;
-      Predict(yhat_debug, colMask_);
-
-      for (std::size_t i=0; i<best_leaves.size(); ++i) {
-	std::cerr << labels_slice[i] << " : "
-		  << yhat_debug[i] << " : "
-		  << best_leaves[i] << " : "
-		  << coeffs.first[i] << " : " 
-		  << coeffs.second[i] << std::endl;
-      }
-    }
-    
-    allLeaves(colMask_) = best_leaves;
 
     Context context{};      
     childContext(context);

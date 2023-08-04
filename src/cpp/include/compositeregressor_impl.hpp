@@ -214,10 +214,6 @@ CompositeRegressor<RegressorType>::init_(Context&& context) {
   std::size_t a=1, b=std::max(1, static_cast<int>(m_ * col_subsample_ratio_));
   partitionDist_ = std::uniform_int_distribution<std::size_t>(a, b);							      
 
-  // partitions
-  Partition partition = PartitionUtils::_fullPartition(m_);
-  partitions_.push_back(partition);
-
   // regressors
   // don't overfit on first regressor
   row_d constantLabels = _constantLeaf();
@@ -356,16 +352,6 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
     auto [subPartitionSize, subStepSize, subLearningRate] = 
       computeChildPartitionInfo();
 
-    // Generate coefficients g, h
-    std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
-
-    best_leaves = computeOptimalSplit(coeffs.first, 
-				      coeffs.second, 
-				      stepNum, 
-				      subPartitionSize, 
-				      subLearningRate, 
-				      colMask_);
-
     if (RegressorFileScope::DIAGNOSTICS_1_ || RegressorFileScope::DIAGNOSTICS_0_) {
 
       std::cerr << "FITTING COMPOSITE REGRESSOR FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
@@ -375,22 +361,6 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
 		<< std::endl;
 
     }
-
-    if (RegressorFileScope::DIAGNOSTICS_1_) {
-      
-      rowvec yhat_debug;
-      Predict(yhat_debug, colMask_);
-
-      for (std::size_t i=0; i<best_leaves.size(); ++i) {
-	std::cerr << labels_slice[i] << " : "
-		  << yhat_debug[i] << " : "
-		  << best_leaves[i] << " : "
-		  << coeffs.first[i] << " : " 
-		  << coeffs.second[i] << std::endl;
-      }
-    }
-
-    allLeaves(colMask_) = best_leaves;
 
     Context context{};      
     childContext(context);
@@ -438,6 +408,7 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
   // END RECURSIVE STEP //
   ////////////////////////
   
+
   // If we are in recursive mode and partitionSize <= 2, fall through
   // to this case for the leaf regressor
 
@@ -559,8 +530,6 @@ CompositeRegressor<RegressorType>::computeOptimalSplit(rowvec& g,
     }
   }
 
-  partitions_.emplace_back(subsets);
-
   return leaf_values;
     
 }
@@ -573,13 +542,11 @@ CompositeRegressor<RegressorType>::purge_() {
   labels_ = ones<Row<double>>(0);
   dataset_oos_ = ones<mat>(0,0);
   labels_oos_ = ones<Row<double>>(0);
-  std::vector<Partition>().swap(partitions_);
 
   // dataset_.clear();
   // labels_.clear();
   // dataset_oos_.clear();
   // labels_oos_.clear();
-  // partitions_.clear();
 }
 
 template<typename RegressorType>

@@ -31,9 +31,6 @@ public:
   using Regressor = typename regressor_traits<RegressorType>::model;
   using RegressorList = std::vector<std::unique_ptr<RegressorBase<DataType, Regressor>>>;
   
-  using Partition = std::vector<std::vector<int>>;
-  using PartitionList = std::vector<Partition>;
-
   using Leaves = Row<double>;
   using Prediction = Row<double>;
   using PredictionList = std::vector<Prediction>;
@@ -338,7 +335,6 @@ private:
   AllRegressorArgs regressorArgs_;
 
   RegressorList regressors_;
-  PartitionList partitions_;
   PredictionList predictions_;
 
   std::mt19937 mersenne_engine_{std::random_device{}()};
