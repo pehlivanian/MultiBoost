@@ -11,6 +11,7 @@ use std::assert;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::cmp;
+use std::ops::MulAssign;
 
 
 pub mod mongodbext;
@@ -28,6 +29,21 @@ fn calculate_hash<T: Hash>(t: &T) -> u64 {
     let mut s = DefaultHasher::new();
     t.hash(&mut s);
     s.finish()
+}
+
+struct S<T> {
+    elements: Vec<T>,
+}
+
+impl<T> std::ops::MulAssign<&T> for S<T>
+where
+    for<'a> T: std::ops::MulAssign<&'a T>,
+{
+    fn mul_assign(&mut self, val: &T) {
+        for i in self.elements.iter_mut() {
+            *i *= val;
+        }
+    }
 }
 
 #[tokio::main]
@@ -55,10 +71,10 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // =========================
     let datasetnames: Vec<String> = vec![
         // String::from("tabular_benchmark/Regression/pol"),
-        // String::from("tabular_benchmark/Regression/cpu_act"),
-        // String::from("tabular_benchmark/Regression/elevators"),
-        // String::from("tabular_benchmark/Regression/wine_quality"),
-        // String::from("tabular_benchmark/Regression/Ailerons"),
+        String::from("tabular_benchmark/Regression/cpu_act"),
+        String::from("tabular_benchmark/Regression/elevators"),
+        String::from("tabular_benchmark/Regression/wine_quality"),
+        String::from("tabular_benchmark/Regression/Ailerons"),
         String::from("tabular_benchmark/Regression/houses"),
         String::from("tabular_benchmark/Regression/house_16H"),
         String::from("tabular_benchmark/Regression/diamonds"),
@@ -117,6 +133,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             // Canned parameters
             // XXX
+            // Memory footprint too large
             // let mut numGrids: usize = 8;
     	    // let childNumPartitions: Vec<f64>    = vec![1000.0, 500.0, 250.0, 100.0, 20.0, 10.0, 5.0, 1.0];
             // let childNumSteps: Vec<f64>         = vec![1.0, 1.0, 2.0, 3.0, 3.0, 2.0, 1.0, 1.0];
@@ -125,13 +142,21 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // let childMinLeafSize: Vec<f64>      = vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
             // let childMinimumGainSplit: Vec<f64> = vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 
-            let mut numGrids: usize = 6;
-            let mut childNumPartitions: Vec<f64>    = vec![1000.0, 250.0, 100.0, 10.0, 2.0, 1.0];
-            let mut childNumSteps: Vec<f64>         = vec![1.0, 1.0, 2.0, 3.0, 2.0, 1.0];
-            let mut childLearningRate: Vec<f64>     = vec![0.005, 0.01, 0.01, 0.01, 0.02, 0.02];
-            let mut childMaxDepth: Vec<f64>         = vec![20.0, 20.0, 20.0, 20.0, 20.0, 20.0];
-            let mut childMinLeafSize: Vec<f64>      = vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
-            let mut childMinimumGainSplit: Vec<f64> = vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+            let mut numGrids: usize = 4;
+            // XXX
+            // let mut childNumPartitions: Vec<f64>    = vec![1.0,   0.5,  0.15, 0.01];
+            let mut childNumPartitions: Vec<f64>    = vec![0.25, 0.10, 0.05, 0.005];
+            let mut childNumSteps: Vec<f64>         = vec![1.0,   1.0,  2.0,  1.0];
+            let mut childLearningRate: Vec<f64>     = vec![0.005, 0.01, 0.01, 0.02];
+            let mut childMaxDepth: Vec<f64>         = vec![20.0,  20.0, 20.0, 20.0];
+            let mut childMinLeafSize: Vec<f64>      = vec![1.0,   1.0,  1.0,  1.0];
+            let mut childMinimumGainSplit: Vec<f64> = vec![0.0,   0.0,  0.0,  0.0];
+
+            // childNumPartitions expressed in relative terms, make it absolute
+            for elem in &mut childNumPartitions {
+                *elem *= numRows as f64;
+                *elem = elem.round() as f64;
+            }
 
             // Stripe recursive v. nonrecursive cases
             if !recursivefit {

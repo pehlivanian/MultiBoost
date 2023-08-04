@@ -12,7 +12,7 @@ using namespace IB_utils;
 
 namespace RegressorFileScope {
   const bool POST_EXTRAPOLATE = true;
-  const bool DIAGNOSTICS_0_ = false;
+  const bool DIAGNOSTICS_0_ = true;
   const bool DIAGNOSTICS_1_ = false;
   const std::string DIGEST_PATH = 
     "/home/charles/src/C++/sandbox/Inductive-Boost/digest/regress";

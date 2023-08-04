@@ -172,7 +172,6 @@ $EXEC_CC \
 # First run
 n=1
 
-
 STEP_INFO=$($EXEC_INC \
 --contextFileName $CONTEXT_PATH_RUN1 \
 --dataName ${dataname} \

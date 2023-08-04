@@ -444,7 +444,11 @@ SyntheticRegLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowve
   // f.transform([](double val){ return (std::isnan(val) ? 0. : val); });
   // *grad = f;
 
-  rowvec f = -2 * pow((y - yhat)/y, 3);
+  // rowvec f = -2 * pow(y - yhat, 3);
+  // f.transform([](double val){ return (std::isnan(val) ? 0. : val); });
+  // *grad = f;
+
+  rowvec f = -2. * sign(y - yhat) % pow(abs(y - yhat), .3333);
   f.transform([](double val){ return (std::isnan(val) ? 0. : val); });
   *grad = f;
 
