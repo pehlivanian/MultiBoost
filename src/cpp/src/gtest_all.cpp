@@ -382,54 +382,8 @@ TEST(DPSolverTest, TestCachedScoresMatchExternalScores) {
   }
 }
 
-TEST(DPSolverTest, TestBaselines ) {
-
-  std::vector<float> a{0.0212651 , -0.20654906, -0.20654906, -0.20654906, -0.20654906,
-      0.0212651 , -0.20654906,  0.0212651 , -0.20654906,  0.0212651 ,
-      -0.20654906,  0.0212651 , -0.20654906, -0.06581402,  0.0212651 ,
-      0.03953075, -0.20654906,  0.16200014,  0.0212651 , -0.20654906,
-      0.20296943, -0.18828341, -0.20654906, -0.20654906, -0.06581402,
-      -0.20654906,  0.16200014,  0.03953075, -0.20654906, -0.20654906,
-      0.03953075,  0.20296943, -0.20654906,  0.0212651 ,  0.20296943,
-      -0.20654906,  0.0212651 ,  0.03953075, -0.20654906,  0.03953075};
-  std::vector<float> b{0.22771114, 0.21809504, 0.21809504, 0.21809504, 0.21809504,
-      0.22771114, 0.21809504, 0.22771114, 0.21809504, 0.22771114,
-      0.21809504, 0.22771114, 0.21809504, 0.22682739, 0.22771114,
-      0.22745816, 0.21809504, 0.2218354 , 0.22771114, 0.21809504,
-      0.218429  , 0.219738  , 0.21809504, 0.21809504, 0.22682739,
-      0.21809504, 0.2218354 , 0.22745816, 0.21809504, 0.21809504,
-      0.22745816, 0.218429  , 0.21809504, 0.22771114, 0.218429  ,
-      0.21809504, 0.22771114, 0.22745816, 0.21809504, 0.22745816};
-
-  std::vector<std::vector<int> > expected = {
-    {1, 2, 3, 4, 6, 8, 10, 12, 16, 19, 22, 23, 25, 28, 29, 32, 35, 38, 21},
-    {13, 24}, 
-    {0, 5, 7, 9, 11, 14, 18, 33, 36, 15, 27, 30, 37, 39},
-    {17, 26}, 
-    {20, 31, 34}
-  };
-
-  std::vector<float> a1{2.26851454, 2.86139335, 5.51314769, 6.84829739, 6.96469186, 7.1946897,
-      9.80764198, 4.2310646};
-  std::vector<float> b1{3.43178016, 3.92117518, 7.29049707, 7.37995406, 4.80931901, 4.38572245,
-      3.98044255, 0.59677897};
-
-  auto dp = DPSolver(40, 5, a, b, objective_fn::Gaussian, true, true);
-  auto opt = dp.get_optimal_subsets_extern();
-
-  for (size_t i=0; i<expected.size(); ++i) {
-    auto expected_subset = expected[i], opt_subset = opt[i];
-    std::sort(expected_subset.begin(), expected_subset.end());
-    std::sort(opt_subset.begin(), opt_subset.end());
-    ASSERT_EQ(expected_subset.size(), opt_subset.size());
-    for(size_t j=0; j<expected_subset.size(); ++j) {
-      ASSERT_EQ(expected_subset[j], opt_subset[j]);
-    }
-  }
-}
-
-TEST_P(DPSolverTestFixture, TestOrderedProperty) {
-  // Case (n,T) = (50,5)g
+TEST_P(DPSolverTestFixture, TestConsecutiveProperty) {
+  // Case (n,T) = (100,20)
   int n = 100, T = 20;
   
   std::default_random_engine gen;
@@ -610,6 +564,54 @@ TEST(DPSolverTest, TestParallelScoresMatchSerialScores) {
       ASSERT_EQ(partialSums_serial[ind1_][ind2_], partialSums_parallel[ind1_][ind2_]);
       ASSERT_EQ(partialSums_serial[ind1_][ind2_], partialSums_serial_from_context[ind1_][ind2_]);
       ASSERT_EQ(partialSums_parallel[ind1_][ind2_], partialSums_serial_from_context[ind1_][ind2_]);
+    }
+  }
+}
+
+TEST(DPSolverTest, TestBaselines ) {
+
+  std::vector<float> a{0.0212651 , -0.20654906, -0.20654906, -0.20654906, -0.20654906,
+      0.0212651 , -0.20654906,  0.0212651 , -0.20654906,  0.0212651 ,
+      -0.20654906,  0.0212651 , -0.20654906, -0.06581402,  0.0212651 ,
+      0.03953075, -0.20654906,  0.16200014,  0.0212651 , -0.20654906,
+      0.20296943, -0.18828341, -0.20654906, -0.20654906, -0.06581402,
+      -0.20654906,  0.16200014,  0.03953075, -0.20654906, -0.20654906,
+      0.03953075,  0.20296943, -0.20654906,  0.0212651 ,  0.20296943,
+      -0.20654906,  0.0212651 ,  0.03953075, -0.20654906,  0.03953075};
+  std::vector<float> b{0.22771114, 0.21809504, 0.21809504, 0.21809504, 0.21809504,
+      0.22771114, 0.21809504, 0.22771114, 0.21809504, 0.22771114,
+      0.21809504, 0.22771114, 0.21809504, 0.22682739, 0.22771114,
+      0.22745816, 0.21809504, 0.2218354 , 0.22771114, 0.21809504,
+      0.218429  , 0.219738  , 0.21809504, 0.21809504, 0.22682739,
+      0.21809504, 0.2218354 , 0.22745816, 0.21809504, 0.21809504,
+      0.22745816, 0.218429  , 0.21809504, 0.22771114, 0.218429  ,
+      0.21809504, 0.22771114, 0.22745816, 0.21809504, 0.22745816};
+
+  std::vector<std::vector<int> > expected = {
+    {1, 2, 3, 4, 6, 8, 10, 12, 16, 19, 21, 22, 23, 25, 28, 29, 32, 35, 38},
+    {13, 24}, 
+    {0, 5, 7, 9, 11, 14, 15, 18, 27, 30, 33, 36, 37, 39},
+    {17, 26}, 
+    {20, 31, 34}
+  };
+
+  std::vector<float> a1{2.26851454, 2.86139335, 5.51314769, 6.84829739, 6.96469186, 7.1946897,
+      9.80764198, 4.2310646};
+  std::vector<float> b1{3.43178016, 3.92117518, 7.29049707, 7.37995406, 4.80931901, 4.38572245,
+      3.98044255, 0.59677897};
+
+  auto dp1 = DPSolver(8, 3, a1, b1, objective_fn::Poisson, false, true);
+  auto opt1 = dp1.get_optimal_subsets_extern();
+  
+  auto dp = DPSolver(40, 5, a, b, objective_fn::Gaussian, true, true);
+  auto opt = dp.get_optimal_subsets_extern();
+
+  for (size_t i=0; i<expected.size(); ++i) {
+    auto expected_subset = expected[i], opt_subset = opt[i];
+    std::sort(opt_subset.begin(), opt_subset.end());
+    ASSERT_EQ(expected_subset.size(), opt_subset.size());
+    for(size_t j=0; j<expected_subset.size(); ++j) {
+      ASSERT_EQ(expected_subset[j], opt_subset[j]);
     }
   }
 }

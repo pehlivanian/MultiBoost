@@ -90,7 +90,7 @@ DPSolver<DataType>::create() {
     }
   }
   
-  // Fill in column-by-column from the left
+  // Fill in column-by-column from the left for T = 2,...,T_
   DataType score;
   DataType maxScore;
   int maxNextStart;

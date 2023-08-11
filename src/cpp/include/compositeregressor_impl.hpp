@@ -1,6 +1,8 @@
 #ifndef __COMPOSITEREGRESSOR_IMPL_HPP__
 #define __COMPOSITEREGRESSOR_IMPL_HPP__
 
+#define DEBUG() __debug dd{__FILE__, __FUNCTION__, __LINE__};
+
 using row_d = Row<double>;
 
 using namespace PartitionSize;
@@ -14,6 +16,7 @@ namespace RegressorFileScope {
   const bool POST_EXTRAPOLATE = true;
   const bool DIAGNOSTICS_0_ = true;
   const bool DIAGNOSTICS_1_ = false;
+  const bool TIMER = true;
   const std::string DIGEST_PATH = 
     "/home/charles/src/C++/sandbox/Inductive-Boost/digest/regress";
 } // namespace RegressorFileScope
@@ -440,7 +443,11 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
     auto dataset_slice = dataset_.submat(rowMask, colMask_);
     
     const typename RegressorType::Args& rootRegressorArgs = RegressorType::_args(allRegressorArgs());
-    createRegressor(regressor, dataset_slice, best_leaves, rootRegressorArgs);
+    {
+      auto timer_ = __timer{"createRegressor"};
+
+      createRegressor(regressor, dataset_slice, best_leaves, rootRegressorArgs);
+    }
 
   } else {
     // Fit regressor on {dataset, padded best_leaves}
@@ -448,11 +455,19 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
     allLeaves(colMask_) = best_leaves;
 
     const typename RegressorType::Args& rootRegressorArgs = RegressorType::_args(allRegressorArgs());
-    createRegressor(regressor, dataset_, allLeaves, rootRegressorArgs);
+    {
+      auto timer_ = __timer{"createRegressor"};
+
+      createRegressor(regressor, dataset_, allLeaves, rootRegressorArgs);
+    }
     
   }
 
-  regressor->Project(dataset_, prediction);
+  {
+    auto timer_ = __timer{"regressor Project"};
+
+    regressor->Project(dataset_, prediction);
+  }
 
   if (RegressorFileScope::DIAGNOSTICS_1_) {
     
@@ -463,7 +478,11 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
 	      << std::endl;
     
     rowvec yhat_debug;
-    Predict(yhat_debug, colMask_);
+    {
+      auto timer_ = __timer{"regressor Predict"};
+
+      Predict(yhat_debug, colMask_);
+    }
     
     for (std::size_t i=0; i<best_leaves.size(); ++i) {
       std::cerr << labels_slice[i] << " : "
@@ -508,25 +527,33 @@ CompositeRegressor<RegressorType>::computeOptimalSplit(rowvec& g,
 
   DPSolver<double> dp;
 
-  dp = DPSolver(n, T, gv, hv,
-		objective_fn::RationalScore,
-		risk_partitioning_objective,
-		use_rational_optimization,
-		gamma,
-		reg_power,
-		sweep_down,
-		find_optimal_t
-		);
-  
+  {
+    auto timer_ = __timer{"DPSolver instantiation"};
+
+    dp = DPSolver(n, T, gv, hv,
+		  objective_fn::RationalScore,
+		  risk_partitioning_objective,
+		  use_rational_optimization,
+		  gamma,
+		  reg_power,
+		  sweep_down,
+		  find_optimal_t
+		  );
+  }
+
   auto subsets = dp.get_optimal_subsets_extern();
-  
+
   rowvec leaf_values = arma::zeros<rowvec>(n);
-  
-  for (auto &subset : subsets) {
-    uvec ind = arma::conv_to<uvec>::from(subset);
-    double val = -1. * learningRate * sum(g(ind))/sum(h(ind));
-    for (auto i: ind) {
-      leaf_values(i) = val;
+
+  {
+    auto timer_ = __timer{"DPSolver set leaves"};
+
+    for (auto &subset : subsets) {
+      uvec ind = arma::conv_to<uvec>::from(subset);
+      double val = -1. * learningRate * sum(g(ind))/sum(h(ind));
+      for (auto i: ind) {
+	leaf_values(i) = val;
+      }
     }
   }
 

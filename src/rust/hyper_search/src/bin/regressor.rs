@@ -71,17 +71,17 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // =========================
     let datasetnames: Vec<String> = vec![
         // String::from("tabular_benchmark/Regression/pol"),
-        String::from("tabular_benchmark/Regression/cpu_act"),
-        String::from("tabular_benchmark/Regression/elevators"),
-        String::from("tabular_benchmark/Regression/wine_quality"),
-        String::from("tabular_benchmark/Regression/Ailerons"),
-        String::from("tabular_benchmark/Regression/houses"),
-        String::from("tabular_benchmark/Regression/house_16H"),
-        String::from("tabular_benchmark/Regression/diamonds"),
-        String::from("tabular_benchmark/Regression/Brazilian_houses"),
-        String::from("tabular_benchmark/Regression/Bike_Sharing_Demand"),
-        // String::from("tabular_benchmark/Regression/nyc-taxi-green-dec-2016"),
-        String::from("tabular_benchmark/Regression/house_sales"),
+       	// String::from("tabular_benchmark/Regression/cpu_act"),
+        // String::from("tabular_benchmark/Regression/elevators"),
+        // String::from("tabular_benchmark/Regression/wine_quality"),
+        // String::from("tabular_benchmark/Regression/Ailerons"),
+        // String::from("tabular_benchmark/Regression/houses"),
+        // String::from("tabular_benchmark/Regression/house_16H"),
+        // String::from("tabular_benchmark/Regression/diamonds"),
+        // String::from("tabular_benchmark/Regression/Brazilian_houses"),
+        // String::from("tabular_benchmark/Regression/Bike_Sharing_Demand"),
+        // // String::from("tabular_benchmark/Regression/nyc-taxi-green-dec-2016"),
+        // String::from("tabular_benchmark/Regression/house_sales"),
         String::from("tabular_benchmark/Regression/sulfur"),
         String::from("tabular_benchmark/Regression/medical_charges"),
         String::from("tabular_benchmark/Regression/MiamiHousing2016"),
@@ -145,7 +145,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut numGrids: usize = 4;
             // XXX
             // let mut childNumPartitions: Vec<f64>    = vec![1.0,   0.5,  0.15, 0.01];
-            let mut childNumPartitions: Vec<f64>    = vec![0.25, 0.10, 0.05, 0.005];
+            let mut childNumPartitions: Vec<f64>    = vec![1.0, 0.25, 0.05, 0.005];
             let mut childNumSteps: Vec<f64>         = vec![1.0,   1.0,  2.0,  1.0];
             let mut childLearningRate: Vec<f64>     = vec![0.005, 0.01, 0.01, 0.02];
             let mut childMaxDepth: Vec<f64>         = vec![20.0,  20.0, 20.0, 20.0];
@@ -160,7 +160,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             // Stripe recursive v. nonrecursive cases
             if !recursivefit {
-                baseSteps = 25;
+                // baseSteps = 25;
                 for elem in &mut childLearningRate {
                     *elem *= 10.0;
                 }

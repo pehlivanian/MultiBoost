@@ -13,7 +13,7 @@ pub struct run_specification {
     n_cols: u32,
     basesteps: u32,
     colsubsample_ratio: f32,
-    recursive: bool,
+    rcsive: bool,
     split_ratio: f32,
     num_partitions0: u32,
     num_partitions1: u32,
@@ -111,8 +111,8 @@ pub struct run_key_data {
 
 pub fn format_run_specification_query(run_key: u64, cmd: &str, folder: &str, index: &str, datasetname: &str,
     loss_fn: u32, n_rows: usize, n_cols: usize, basesteps: u32, colsubsample_ratio: f32, 
-    recursive: bool, split_ratio: f32, specs: &Vec<Vec<String>>) -> String {
-    let mut query = format!("INSERT INTO run_specification (run_key, cmd, folder, idx, dataset_name, loss_fn, n_rows, n_cols, basesteps, colsubsample_ratio, recursive, split_ratio, num_partitions0, num_partitions1, num_partitions2, num_partitions3, num_partitions4, num_partitions5, num_partitions6, num_partitions7, num_partitions8, num_partitions9, num_steps0, num_steps1, num_steps2, num_steps3, num_steps4, num_steps5, num_steps6, num_steps7, num_steps8, num_steps9, learning_rate0, learning_rate1, learning_rate2, learning_rate3, learning_rate4, learning_rate5, learning_rate6, learning_rate7, learning_rate8, learning_rate9, max_depth0, max_depth1, max_depth2, max_depth3, max_depth4, max_depth5, max_depth6, max_depth7, max_depth8, max_depth9, min_leafsize0, min_leafsize1, min_leafsize2, min_leafsize3, min_leafsize4, min_leafsize5, min_leafsize6, min_leafsize7, min_leafsize8, min_leafsize9, min_gainsplit0, min_gainsplit1, min_gainsplit2, min_gainsplit3, min_gainsplit4, min_gainsplit5, min_gainsplit6, min_gainsplit7, min_gainsplit8, min_gainsplit9) VALUES (\"{}\", \"{}\", \"{}\", \"{}\", \"{}\", {}, {}, {}, {}, {}, {}, {}",
+    rcsive: bool, split_ratio: f32, specs: &Vec<Vec<String>>) -> String {
+    let mut query = format!("INSERT INTO run_specification (run_key, cmd, folder, idx, dataset_name, loss_fn, n_rows, n_cols, basesteps, colsubsample_ratio, rcsive, split_ratio, num_partitions0, num_partitions1, num_partitions2, num_partitions3, num_partitions4, num_partitions5, num_partitions6, num_partitions7, num_partitions8, num_partitions9, num_steps0, num_steps1, num_steps2, num_steps3, num_steps4, num_steps5, num_steps6, num_steps7, num_steps8, num_steps9, learning_rate0, learning_rate1, learning_rate2, learning_rate3, learning_rate4, learning_rate5, learning_rate6, learning_rate7, learning_rate8, learning_rate9, max_depth0, max_depth1, max_depth2, max_depth3, max_depth4, max_depth5, max_depth6, max_depth7, max_depth8, max_depth9, min_leafsize0, min_leafsize1, min_leafsize2, min_leafsize3, min_leafsize4, min_leafsize5, min_leafsize6, min_leafsize7, min_leafsize8, min_leafsize9, min_gainsplit0, min_gainsplit1, min_gainsplit2, min_gainsplit3, min_gainsplit4, min_gainsplit5, min_gainsplit6, min_gainsplit7, min_gainsplit8, min_gainsplit9) VALUES (\"{}\", \"{}\", \"{}\", \"{}\", \"{}\", {}, {}, {}, {}, {}, {}, {}",
         run_key.to_string(),
         cmd,
         folder,
@@ -123,7 +123,7 @@ pub fn format_run_specification_query(run_key: u64, cmd: &str, folder: &str, ind
         n_cols.to_string(),
         basesteps.to_string(),
         colsubsample_ratio.to_string(),
-        recursive.to_string(),
+        rcsive.to_string(),
         split_ratio.to_string());
 
     for spec in specs {
