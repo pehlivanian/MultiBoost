@@ -192,4 +192,15 @@ namespace IB_utils {
     
   }
 
+  std::string fit_prefix(std::size_t depth) {
+    std::string pref = "";
+    if (depth) {
+      pref += "|";
+      for (std::size_t i=0; i<depth; ++i)
+	pref += "____";
+    }
+    pref += " ";
+    return pref;
+  }
+
 }

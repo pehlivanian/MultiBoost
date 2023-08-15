@@ -83,7 +83,8 @@ namespace ModelContext{
       serializeColMask{false},
       serializeDataset{false},
       serializeLabels{false},
-      serializationWindow{500}
+      serializationWindow{500},
+      depth{0}
     {}
 
     Context(const Context& rhs) {
@@ -122,6 +123,7 @@ namespace ModelContext{
       serializeDataset = rhs.serializeDataset;
       serializeLabels = rhs.serializeLabels;
       serializationWindow = rhs.serializationWindow;
+      depth = rhs.depth;
 
     }
 
@@ -155,6 +157,7 @@ namespace ModelContext{
       ar(serializeDataset);
       ar(serializeLabels);
       ar(serializationWindow);
+      ar(depth);
     }
       
     lossFunction loss;
@@ -188,6 +191,7 @@ namespace ModelContext{
     bool serializeDataset;
     bool serializeLabels;
     std::size_t serializationWindow;
+    std::size_t depth;
   };
 
 } // namespace ModelContext
@@ -749,6 +753,8 @@ namespace IB_utils {
   }
 
   bool comp(std::pair<std::size_t, std::size_t>&, std::pair<std::size_t, std::size_t>&);
+  std::string fit_prefix(std::size_t);
+
 
 } // namespace IB_utils
 

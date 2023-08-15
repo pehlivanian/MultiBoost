@@ -126,9 +126,9 @@ namespace Objectives {
 
     auto task_ab_block = [this](int ind1, int ind2) {
       for (int i=ind1; i<ind2; ++i) {
-	for (int j=i+1; j<=this->n_; ++j) {
-	  this->a_sums_[i][j] = this->a_sums_[i][j-1] + this->a_[j-1];
-	  this->b_sums_[i][j] = this->b_sums_[i][j-1] + this->b_[j-1];
+	for (int j=i+1; j<=n_; ++j) {
+	  a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
+	  b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
 	}
       }
     };
@@ -162,7 +162,7 @@ namespace Objectives {
       for (int j=i+1; j<=n_; ++j) {
 	a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
 	b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
-	partialSums_[i][j] = this->compute_score(i, j);
+	partialSums_[i][j] = compute_score(i, j);
       }
     }  
   }
@@ -195,16 +195,16 @@ namespace Objectives {
 	b_sums_[j][i+2] = r_[1];
 	b_sums_[j][i+3] = r_[0];
 
-	partialSums_[i][j]   = this->compute_score(j, i);
-	partialSums_[i+1][j] = this->compute_score(j, i+1);
-	partialSums_[i+2][j] = this->compute_score(j, i+2);
-	partialSums_[i+3][j] = this->compute_score(j, i+3);
+	partialSums_[i][j]   = compute_score(j, i);
+	partialSums_[i+1][j] = compute_score(j, i+1);
+	partialSums_[i+2][j] = compute_score(j, i+2);
+	partialSums_[i+3][j] = compute_score(j, i+3);
       }
     
       for(;i<j;++i) {
 	a_sums_[j][i] = a_sums_[j-1][i] + a_[j-1];
 	b_sums_[j][i] = b_sums_[j-1][i] + b_[j-1];      
-	partialSums_[i][j] = this->compute_score(j, i);
+	partialSums_[i][j] = compute_score(j, i);
       }
     }
   }
@@ -223,10 +223,10 @@ namespace Objectives {
 
     auto task_ab_block = [this](int ind1, int ind2) {
       for (int i=ind1; i<ind2; ++i) {
-	for (int j=i+1; j<=this->n_; ++j) {
-	  this->a_sums_[i][j] = this->a_sums_[i][j-1] + this->a_[j-1];
-	  this->b_sums_[i][j] = this->b_sums_[i][j-1] + this->b_[j-1];
-	  this->partialSums_[i][j] = this->compute_score(i, j);
+	for (int j=i+1; j<=n_; ++j) {
+	  a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
+	  b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
+	  partialSums_[i][j] = compute_score(i, j);
 	}
       }
     };
@@ -437,7 +437,7 @@ namespace Objectives {
   template<typename DataType>
   DataType 
   RationalScoreContext<DataType>::compute_score_riskpart_optimized(int i, int j) {
-    return compute_score_multclust_optimized(i, j);
+    return ParametricContext<DataType>::partialSums_[i][j];
   }
 
   template<typename DataType>
@@ -459,6 +459,41 @@ namespace Objectives {
   RationalScoreContext<DataType>::compute_ambient_score_riskpart(DataType a, DataType b) {
     return a*a/b;
   }
+
+  template<typename DataType>
+  void
+  RationalScoreContext<DataType>::compute_scores_parallel() {
+
+    int n_ = ParametricContext<DataType>::n_;
+    const int numThreads = std::min(n_-2, NUMTHREADS);
+
+    auto task_ab_block = [this, n_](int ind1, int ind2) {
+      for (int i=ind1; i<ind2; ++i) {
+	DataType a_sum=0., b_sum=0.;
+	for (int j=i+1; j<=n_; ++j) {
+	  a_sum += ParametricContext<DataType>::a_[j-1];	 
+	  b_sum += ParametricContext<DataType>::b_[j-1];
+	  ParametricContext<DataType>::partialSums_[i][j] = a_sum * a_sum / b_sum;
+	}
+      }
+    };
+
+    int blockSize = static_cast<DataType>(n_)/static_cast<DataType>(numThreads);
+    int startOfBlock = 0, endOfBlock = startOfBlock + blockSize;
+  
+    std::vector<std::thread> threads;
+
+    while (endOfBlock < n_) {
+      threads.emplace_back(task_ab_block, startOfBlock, endOfBlock);
+      startOfBlock = endOfBlock; endOfBlock+= blockSize;
+    }
+    threads.emplace_back(task_ab_block, startOfBlock, n_);
+  
+    for (auto it=threads.begin(); it!=threads.end(); ++it)
+      it->join();
+
+  }
+
 
 }
 #endif

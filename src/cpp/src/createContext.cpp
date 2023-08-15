@@ -186,6 +186,7 @@ auto main(int argc, char **argv) -> int {
   bool					serializeDataset	= false;
   bool					serializeLabels		= false;
   std::size_t				serializationWindow	= 1000;
+  std::size_t				depth			= 0;
 
   std::string				fileName		= path_(typeid(Context).name());
 
@@ -223,6 +224,7 @@ auto main(int argc, char **argv) -> int {
     ("serializeDataset",	value<bool>(&serializeDataset),					"serializeDataset")
     ("serializeLabels",		value<bool>(&serializeLabels),					"serializeLabels")
     ("serializationWindow",	value<std::size_t>(&serializationWindow),			"serializationWindow")
+    ("depth",			value<std::size_t>(&depth),					"depth")
     ("fileName",		value<std::string>(&fileName),					"fileName for Context");
 
 
@@ -277,6 +279,7 @@ auto main(int argc, char **argv) -> int {
   context.serializeLabels = serializeLabels;
   context.serializeColMask = serializeColMask;
   context.serializationWindow = serializationWindow;
+  context.depth = depth;
 
   // Serialize
   using CerealT = Context;

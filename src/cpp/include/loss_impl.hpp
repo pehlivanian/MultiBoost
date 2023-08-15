@@ -307,31 +307,8 @@ ArctanLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) 
 template<typename DataType>
 DataType
 SyntheticLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
-  // *grad = -1 * pow(y - yhat, 3);
-  // *grad = -1 * pow(atan(y - yhat), 3);
-  // *grad = -1 * pow(y - yhat, 5);  
-  // *grad = -1 * pow(atan(y - yhat), 3);
-
-  // rowvec  f(y.n_cols, arma::fill::zeros);
-  // *grad = -1 * sign(y) % max(sign(y) % (y - yhat), f);
-  // *grad = -1 * sign(y) % max(sign(y) % atan(y - yhat), f);
-  // *grad = -1 * sign(y) % abs(y - yhat);
-
-  // OLD
-  // *grad = -1 * sign(y) % pow(y - yhat, 4);
-
-  // NEW
-  // *grad = -sign(y) % exp(yhat / pow(y, 2) % (y - yhat));
-  // *grad = -sign(y);
-  
-  // clamped
-  // rowvec f(y.n_cols, arma::fill::ones);
-  // *grad = -y % min(pow(y - yhat, 2), f * 2.);
-
   *grad = -y % pow(y - yhat, 2);
   
-  
-
 #ifdef AUTODIFF
   ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
   ArrayXreal yr = LossUtils::static_cast_eigen(y).eval();

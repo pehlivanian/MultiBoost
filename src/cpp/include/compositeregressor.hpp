@@ -361,6 +361,7 @@ private:
   std::vector<double> childMinimumGainSplit_;
 
   std::size_t serializationWindow_;
+  std::size_t depth_;
   std::string indexName_;
 
   boost::filesystem::path fldr_{};

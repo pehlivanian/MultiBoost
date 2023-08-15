@@ -70,6 +70,8 @@ CompositeRegressor<RegressorType>::childContext(Context& context) {
   context.minLeafSize		= minLeafSize;
   context.minimumGainSplit	= minimumGainSplit;
 
+  context.depth			= depth_ + 1;
+
 }
 
 template<typename RegressorType>
@@ -114,6 +116,8 @@ CompositeRegressor<RegressorType>::contextInit_(Context&& context) {
   serializeDataset_		= context.serializeDataset;
   serializeLabels_		= context.serializeLabels;
   serializationWindow_		= context.serializationWindow;
+
+  depth_			= context.depth;
 
 }
 
@@ -357,6 +361,7 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
 
     if (RegressorFileScope::DIAGNOSTICS_1_ || RegressorFileScope::DIAGNOSTICS_0_) {
 
+      std::cerr << fit_prefix(depth_);
       std::cerr << "FITTING COMPOSITE REGRESSOR FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
 		<< partitionSize_ << ", "
 		<< stepNum << ", "
@@ -416,6 +421,8 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
   // to this case for the leaf regressor
 
   if (RegressorFileScope::DIAGNOSTICS_0_) {
+
+    std::cerr << fit_prefix(depth_);
     std::cerr << "FITTING LEAF REGRESSOR FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
 	      << partitionSize_ << ", "
 	      << stepNum << ", "
@@ -444,7 +451,7 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
     
     const typename RegressorType::Args& rootRegressorArgs = RegressorType::_args(allRegressorArgs());
     {
-      auto timer_ = __timer{"createRegressor"};
+      // auto timer_ = __timer{"createRegressor"};
 
       createRegressor(regressor, dataset_slice, best_leaves, rootRegressorArgs);
     }
@@ -456,7 +463,7 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
 
     const typename RegressorType::Args& rootRegressorArgs = RegressorType::_args(allRegressorArgs());
     {
-      auto timer_ = __timer{"createRegressor"};
+      // auto timer_ = __timer{"createRegressor"};
 
       createRegressor(regressor, dataset_, allLeaves, rootRegressorArgs);
     }
@@ -464,13 +471,14 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
   }
 
   {
-    auto timer_ = __timer{"regressor Project"};
+    // auto timer_ = __timer{"regressor Project"};
 
     regressor->Project(dataset_, prediction);
   }
 
   if (RegressorFileScope::DIAGNOSTICS_1_) {
     
+    std::cerr << fit_prefix(depth_);
     std::cerr << "FITTING LEAF REGRESSOR FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
 	      << partitionSize_ << ", "
 	      << stepNum << ", "
@@ -479,7 +487,7 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
     
     rowvec yhat_debug;
     {
-      auto timer_ = __timer{"regressor Predict"};
+      // auto timer_ = __timer{"regressor Predict"};
 
       Predict(yhat_debug, colMask_);
     }
@@ -528,7 +536,7 @@ CompositeRegressor<RegressorType>::computeOptimalSplit(rowvec& g,
   DPSolver<double> dp;
 
   {
-    auto timer_ = __timer{"DPSolver instantiation"};
+    // auto timer_ = __timer{"DPSolver instantiation"};
 
     dp = DPSolver(n, T, gv, hv,
 		  objective_fn::RationalScore,
@@ -546,7 +554,7 @@ CompositeRegressor<RegressorType>::computeOptimalSplit(rowvec& g,
   rowvec leaf_values = arma::zeros<rowvec>(n);
 
   {
-    auto timer_ = __timer{"DPSolver set leaves"};
+    // auto timer_ = __timer{"DPSolver set leaves"};
 
     for (auto &subset : subsets) {
       uvec ind = arma::conv_to<uvec>::from(subset);

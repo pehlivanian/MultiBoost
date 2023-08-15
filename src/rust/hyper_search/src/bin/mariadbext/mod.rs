@@ -1,3 +1,6 @@
+use mysql::*;
+use mysql::prelude::*;
+
 use crate::model;
 
 #[derive(Debug, PartialEq)]
@@ -107,6 +110,16 @@ pub struct run_key_data {
     pub dataset: String,
     pub folder: String,
     pub index: String
+}
+
+pub fn get_connection(uri: &str, creds: &(String, String)) -> Result<mysql::PooledConn, mysql::Error> {
+    let pool = Pool::new(uri).unwrap();
+    pool.get_conn()
+}
+
+pub fn insert_to_table(uri: &str, creds: &(String, String), query: &str) {
+    let mut conn = get_connection(uri, creds).unwrap();
+    let r = conn.query_drop(query).expect("Failed to insert to table");
 }
 
 pub fn format_run_specification_query(run_key: u64, cmd: &str, folder: &str, index: &str, datasetname: &str,

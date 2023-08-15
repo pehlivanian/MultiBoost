@@ -43,8 +43,10 @@ namespace Objectives {
       a_{a},
       b_{b},
       n_{n},
-      a_sums_{std::vector<std::vector<DataType> >(n+1, std::vector<DataType>(n+1, std::numeric_limits<DataType>::lowest()))},
-      b_sums_{std::vector<std::vector<DataType> >(n+1, std::vector<DataType>(n+1, std::numeric_limits<DataType>::lowest()))},
+      // a_sums_{std::vector<std::vector<DataType> >(n+1, std::vector<DataType>(n+1, std::numeric_limits<DataType>::lowest()))},
+      // b_sums_{std::vector<std::vector<DataType> >(n+1, std::vector<DataType>(n+1, std::numeric_limits<DataType>::lowest()))},
+      a_sums_{std::vector<std::vector<DataType> >(n+1, std::vector<DataType>(n+1, 0.))},
+      b_sums_{std::vector<std::vector<DataType> >(n+1, std::vector<DataType>(n+1, 0.))},      
       partialSums_{std::vector<std::vector<DataType>>(n, std::vector<DataType>(n+1, 0.))},
       risk_partitioning_objective_{risk_partitioning_objective},
       use_rational_optimization_{use_rational_optimization},
@@ -109,12 +111,12 @@ namespace Objectives {
     void compute_partial_sums();
     void compute_partial_sums_AVX256();
     void compute_partial_sums_parallel();
-    void compute_scores();
-    void compute_scores_AVX256();
-    void compute_scores_parallel();
+    virtual void compute_scores();
+    virtual void compute_scores_AVX256();
+    virtual void compute_scores_parallel();
 
-    DataType compute_score(int, int);
-    DataType compute_ambient_score(DataType, DataType);
+    DataType inline compute_score(int, int);
+    DataType inline compute_ambient_score(DataType, DataType);
 
     std::vector<DataType> a_;
     std::vector<DataType> b_;
@@ -214,6 +216,8 @@ namespace Objectives {
     DataType compute_score_multclust_optimized(int, int) override;
     DataType compute_ambient_score_multclust(DataType, DataType) override;
     DataType compute_ambient_score_riskpart(DataType, DataType) override;
+    void compute_scores_parallel() override;
+
 
   };
 

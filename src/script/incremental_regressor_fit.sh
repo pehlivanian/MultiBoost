@@ -140,6 +140,7 @@ $EXEC_CC \
 --childMaxDepth ${childmaxdepth[@]} \
 --childMinimumGainSplit ${childminimumgainsplit[@]} \
 --serializationWindow 10 \
+--depth 0 \
 --fileName $CONTEXT_PATH_RUN1
 
 # create context for subsequent runs
@@ -167,6 +168,7 @@ $EXEC_CC \
 --childMaxDepth ${childmaxdepth[@]} \
 --childMinimumGainSplit ${childminimumgainsplit[@]} \
 --serializationWindow 10 \
+--depth 0 \
 --fileName $CONTEXT_PATH_RUNS
 
 # First run
