@@ -112,14 +112,14 @@ pub struct run_key_data {
     pub index: String
 }
 
-pub fn get_connection(uri: &str, creds: &(String, String)) -> Result<mysql::PooledConn, mysql::Error> {
+pub fn get_connection(uri: &str, _creds: &(String, String)) -> Result<mysql::PooledConn, mysql::Error> {
     let pool = Pool::new(uri).unwrap();
     pool.get_conn()
 }
 
 pub fn insert_to_table(uri: &str, creds: &(String, String), query: &str) {
     let mut conn = get_connection(uri, creds).unwrap();
-    let r = conn.query_drop(query).expect("Failed to insert to table");
+    let _r = conn.query_drop(query).expect("Failed to insert to table");
 }
 
 pub fn format_run_specification_query(run_key: u64, cmd: &str, folder: &str, index: &str, datasetname: &str,
@@ -195,7 +195,7 @@ fn outofsample_regressor_query(run_key: u64, datasetname: &str, it: i32, mut par
         run_key, datasetname, it, loss, r2, tau, rho)
 }
 
-pub fn format_insample_query(m: &model::ModelType, run_key: u64, datasetname: &str, it: i32, mut parsed: Vec<String>) -> String {
+pub fn format_insample_query(m: &model::ModelType, run_key: u64, datasetname: &str, it: i32, parsed: Vec<String>) -> String {
     match m {
         model::ModelType::classifier => {
             insample_classifier_query(run_key, datasetname, it, parsed)
@@ -209,7 +209,7 @@ pub fn format_insample_query(m: &model::ModelType, run_key: u64, datasetname: &s
     }
 }
 
-pub fn format_outofsample_query(m: &model::ModelType, run_key: u64, datasetname: &str, it: i32, mut parsed: Vec<String>) -> String {
+pub fn format_outofsample_query(m: &model::ModelType, run_key: u64, datasetname: &str, it: i32, parsed: Vec<String>) -> String {
     match m {
         model::ModelType::classifier => {
             outofsample_classifier_query(run_key, datasetname, it, parsed)

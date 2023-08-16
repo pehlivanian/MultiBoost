@@ -5,12 +5,12 @@ use rand::Rng;
 use run_script::ScriptOptions;
 use mysql::*;
 use mysql::prelude::*;
-use regex::Regex;
+
 use std::env;
 use std::assert;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use std::cmp;
+
 
 
 pub mod mongodbext;
@@ -82,11 +82,11 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // let mut ratio: f64 = rng.gen::<f64>();    
         let mut ratio: f64 = rng.gen_range(0.5..1.0);
         // XXX
-        let mut numGrids = rng.gen_range(2..6) as usize;
+        let numGrids = rng.gen_range(2..6) as usize;
 	let baseSteps: u32 = 50;
         let loss_fn: u32  = 1;
         let colsubsample_ratio: f32 = 0.85;
-        let mut recursivefit: bool = true;
+        let _recursivefit: bool = true;
 
         // Would like to use a Parzen estimator as in TPE, but
         // the interface doesn't support vector inputs
@@ -109,7 +109,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 numPartitions = 0.75*(numRows as f64);
             }
             let maxDepth:         i32 = (numRows as f64).log2().floor() as i32 + 1;
-            let mut numSteps:     f64 = rng.gen_range(1..5).into();
+            let numSteps:     f64 = rng.gen_range(1..5).into();
             let learningRate: f64 = rng.gen_range(0.00005..0.0015);
             let maxDepth:         f64 = rng.gen_range(maxDepth..maxDepth+1).into();
             let minLeafSize:      f64 = rng.gen_range(1..2).into();
@@ -166,7 +166,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let args = vec![];
             let options = ScriptOptions::new();
 
-            let(code, output, _error) = run_script::run(
+            let(_code, output, _error) = run_script::run(
                 &cmd,
                 &args,
                 &options,
@@ -206,22 +206,22 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let query = mariadbext::format_run_specification_query(run_key, &cmd, folder, index, datasetname,
                         loss_fn, numRows, numCols, baseSteps, colsubsample_ratio, recursivefit, 0.2,
                         &specs);
-                    let r = conn.query_drop(query).expect("Failed to insert into run_specification table");
+                    let _r = conn.query_drop(query).expect("Failed to insert into run_specification table");
                 }
                 else if model::OOS.is_match(&line) {
     	            for (_,[vals]) in model::OOS.captures_iter(&line)
                         .map(|i| i.extract()) {
-            	        let mut parsed: Vec<String> = vals.split(", ").map(|i| i.to_string()).collect();
+            	        let parsed: Vec<String> = vals.split(", ").map(|i| i.to_string()).collect();
                         let query = mariadbext::format_outofsample_query(&model_type, run_key, datasetname, it, parsed);
-                        let r = conn.query_drop(query).expect("Failed to insert into outofsample table");
+                        let _r = conn.query_drop(query).expect("Failed to insert into outofsample table");
                     }
                 }            
                 else if model::IS.is_match(&line) {
                     for(_,[vals]) in model::IS.captures_iter(&line)
                         .map(|i| i.extract()) {
-                        let mut parsed: Vec<String> = vals.split(", ").map(|i| i.to_string()).collect();
+                        let parsed: Vec<String> = vals.split(", ").map(|i| i.to_string()).collect();
                         let query = mariadbext::format_insample_query(&model_type, run_key, datasetname, it, parsed);
-                        let r = conn.query_drop(query).expect("Failed to insert into insample table");
+                        let _r = conn.query_drop(query).expect("Failed to insert into insample table");
                     }
                 }
             }

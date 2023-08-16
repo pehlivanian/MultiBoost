@@ -236,7 +236,7 @@ TEST(DPSolverTest, TestUnsortedIndWorksAsARMAIndexer) {
 TEST(DPSolverTest, TestCachedScoresMatchAcrossMethods) {
   using namespace Objectives;
 
-  int n = 500;
+  std::size_t n = 500;
   int numTrials = 1000;
   std::vector<bool> trials(numTrials);
   
@@ -286,7 +286,7 @@ TEST(DPSolverTest, TestCachedScoresMatchAcrossMethods) {
 TEST(DPSolverTest, TestCachedScoresMatchExternalScores) {
   using namespace Objectives;
 
-  int n = 100;
+  std::size_t n = 100;
   int numTrials = 1000;
   std::vector<bool> trials(numTrials);
   
@@ -495,7 +495,7 @@ TEST_P(DPSolverTestFixture, TestOptimalityWithRandomPartitions) {
 TEST(DPSolverTest, TestParallelScoresMatchSerialScores) {
   using namespace Objectives;
 
-  int n = 100;
+  std::size_t n = 100;
   int numTrials = 1000;
   std::vector<bool> trials(numTrials);
   

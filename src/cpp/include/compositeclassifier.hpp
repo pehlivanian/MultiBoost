@@ -541,6 +541,7 @@ private:
 
   std::size_t serializationWindow_;
   std::string indexName_;
+  std::size_t depth_;
 
   boost::filesystem::path fldr_{};
 

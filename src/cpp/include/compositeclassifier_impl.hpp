@@ -68,6 +68,8 @@ CompositeClassifier<ClassifierType>::childContext(Context& context) {
   context.partitionSizeMethod	= partitionSizeMethod_;
   context.learningRateMethod	= learningRateMethod_;   
 
+  context.depth			= depth_ + 1;
+
 }
 
 template<typename ClassifierType>
@@ -116,6 +118,8 @@ CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
   serializeDataset_		= context.serializeDataset;
   serializeLabels_		= context.serializeLabels;
   serializationWindow_		= context.serializationWindow;
+
+  depth_			= context.depth;
 
 }
 
@@ -521,6 +525,8 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
       computeChildPartitionInfo();
 
     if (ClassifierFileScope::DIAGNOSTICS_1_ || ClassifierFileScope::DIAGNOSTICS_0_) {
+
+      std::cerr << fit_prefix(depth_);
       std::cerr << "FITTING COMPOSITE CLASSIFIER FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
 		<< partitionSize_ << ", "
 		<< stepNum << ", "
@@ -578,6 +584,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   // to this case for the leaf classifier
 
   if (ClassifierFileScope::DIAGNOSTICS_0_)
+    std::cerr << fit_prefix(depth_);
     std::cerr << "FITTING LEAF CLASSIFIER FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
 	      << partitionSize_ << ", "
 	      << stepNum << ", "
@@ -620,6 +627,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
   if (ClassifierFileScope::DIAGNOSTICS_1_) {
     
+    std::cerr << fit_prefix(depth_);
     std::cerr << "FITTING LEAF CLASSIFIER FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
 	      << partitionSize_ << ", "
 	      << stepNum << ", "

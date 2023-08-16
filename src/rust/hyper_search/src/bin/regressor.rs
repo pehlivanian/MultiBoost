@@ -5,13 +5,13 @@ use rand::Rng;
 use run_script::ScriptOptions;
 use mysql::*;
 use mysql::prelude::*;
-use regex::Regex;
+
 use std::env;
 use std::assert;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use std::cmp;
-use std::ops::MulAssign;
+
+
 
 pub mod mongodbext;
 pub mod mariadbext;
@@ -100,13 +100,11 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let numCols = dataset_shape.1;
 	
         // let mut ratio: f64 = rng.gen::<f64>();    
-        let mut ratio: f64 = rng.gen_range(0.5..1.0);
-        // XXX
-        let mut numGrids: usize = 1;
-	let baseSteps: u32 = 50;
+        let mut ratio: f64 = rng.gen_range(0.1..1.0);
+        let numGrids: usize = 2;
+	let baseSteps: u32 = 25;
         let loss_fn: u32  = 0;
-        let colsubsample_ratio: f32 = 0.85;
-        let mut recursivefit: bool = true;
+        let colsubsample_ratio: f32 = 1.0;
 
         // Would like to use a Parzen estimator as in TPE, but
         // the interface doesn't support vector inputs
@@ -114,23 +112,27 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut childNumPartitions:    Vec<f64> = vec![0.0; numGrids];
         let mut childNumSteps:         Vec<f64> = vec![0.0; numGrids];
         let mut childLearningRate:     Vec<f64> = vec![0.0; numGrids];
-        let mut childMaxDepth:         Vec<f64> = vec![0.0; numGrids];
+        let childMaxDepth:             Vec<f64> = vec![0.0; numGrids];
         let mut childMinLeafSize:      Vec<f64> = vec![0.0; numGrids];
         let mut childMinimumGainSplit: Vec<f64> = vec![0.0; numGrids];
         let mut numPartitions: f64 = numRows as f64;
-       
+
         for ind in 0..numGrids {
             numPartitions *= ratio;
             if numPartitions < 1. {
                 numPartitions = 1_f64;
             }
-	    let maxDepth:         i32 = (numRows as f64).log2().floor() as i32 + 1;
-            let mut numSteps:     f64 = 1.;
-            let learningRate:     f64 = rng.gen_range(0.00005..0.2);
-            let maxDepth:         f64 = rng.gen_range(maxDepth..maxDepth+1).into();
-            let minLeafSize:      f64 = rng.gen_range(1..2).into();
-            let minimumGainSplit: f64 = 0.0;
+	    let mut maxDepth:         i32 = (numRows as f64).log2().floor() as i32 + 1;
+            let mut numSteps:         f64 = 1.;
+            let mut learningRate:     f64 = rng.gen_range(0.1..0.25);
+            let mut minLeafSize:      f64 = rng.gen_range(1..2).into();
+            let mut minimumGainSplit: f64 = 0.0;
 
+            if (ind == 0) {
+                numPartitions = 938.;
+                learningRate = 0.16677;
+            }
+       
             childNumPartitions[ind]       = round(numPartitions, 0);
             childNumSteps[ind]            = numSteps;
             childLearningRate[ind]        = learningRate;
@@ -154,7 +156,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut proc: String = String::from("/src/script/");
         proc.push_str(model::ModelType::model_cmd(&model_type));
 
-        for recursivefit in vec![true, false] {
+        for recursivefit in vec![true] {
 
             let mut cmd: String = "".to_string();
             cmd.push_str(&basePath);
@@ -181,15 +183,71 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let args = vec![];
             let options = ScriptOptions::new();
 
-            let(code, output, _error) = run_script::run(
+            let(_code, output, _error) = run_script::run(
                 &cmd,
                 &args,
                 &options,
             ).unwrap();
-            
-        }        
-       
+         
 
+            let lines = output.lines();
+
+            let mut folder = "";
+            let mut index = "";
+            let mut run_key: u64 = 0;
+
+            let mut it: i32 = 0;
+
+            for line in lines {
+                if model::ITER.is_match(&line) {
+                    for (_,[item]) in model::ITER.captures_iter(&line)
+                        .map(|i| i.extract()) {
+                        it = item.parse::<i32>()?;
+                    }
+                }
+                else if model::FOLDER.is_match(&line) {
+                    for (_,[item]) in model::FOLDER.captures_iter(&line)
+                        .map(|i| i.extract()) {
+	                folder = item;
+                    }
+                }
+                else if model::INDEX.is_match(&line) {
+                    for (_,[item]) in model::INDEX.captures_iter(&line)
+                        .map(|i| i.extract()) {
+                        index = item;
+                    }
+                    // At this point, both folder and index information 
+                    // are available.
+                    let data = mariadbext::run_key_data{dataset: datasetname.to_string(), 
+                        folder: folder.to_string(), index: index.to_string()};
+                    run_key = calculate_hash(&data);
+                    let query = mariadbext::format_run_specification_query(run_key, &cmd, folder, index, datasetname,
+                        loss_fn, numRows, numCols, baseSteps, colsubsample_ratio, recursivefit, 0.2,
+                        &specs);
+                    mariadbext::insert_to_table(mariadb_uri, &creds, &query);
+                }
+                else if model::OOS.is_match(&line) {
+    	            for (_,[vals]) in model::OOS.captures_iter(&line)
+                        .map(|i| i.extract()) {
+            	        let parsed: Vec<String> = vals.split(", ").map(|i| i.to_string()).collect();
+                        let query = mariadbext::format_outofsample_query(&model_type, run_key, datasetname, it, parsed);
+                        mariadbext::insert_to_table(mariadb_uri, &creds, &query);
+                    }
+                }            
+                else if model::IS.is_match(&line) {
+                    for(_,[vals]) in model::IS.captures_iter(&line)
+                        .map(|i| i.extract()) {
+                        let parsed: Vec<String> = vals.split(", ").map(|i| i.to_string()).collect();
+                        let query = mariadbext::format_insample_query(&model_type, run_key, datasetname, it, parsed);
+                        mariadbext::insert_to_table(mariadb_uri, &creds, &query);
+                    }
+                }
+            }
+            println!("run_key: {}", run_key);
+   
+        }
+        trial_num += 1;
+       
     }
 
     // Never reached

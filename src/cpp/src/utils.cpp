@@ -198,8 +198,8 @@ namespace IB_utils {
       pref += "|";
       for (std::size_t i=0; i<depth; ++i)
 	pref += "____";
+      pref += " ";
     }
-    pref += " ";
     return pref;
   }
 

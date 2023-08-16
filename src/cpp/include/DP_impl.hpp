@@ -31,6 +31,9 @@ template<typename DataType>
 void 
 DPSolver<DataType>::createContext() {
   
+  // Cap n_ by size of a
+  n_ = (n_ <= static_cast<int>(a_.size()))? n_ : static_cast<int>(a_.size());
+
   // Cap T_ by n_
   T_ = (T_ <= n_)? T_ : n_;
 

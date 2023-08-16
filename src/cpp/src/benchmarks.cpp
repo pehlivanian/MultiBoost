@@ -180,6 +180,12 @@ void BM_colMask_stl_generation2(benchmark::State& state) {
 }
 
 // DP solver benchmarks
+// Note: We've optimized things for the RationalScoreContext case, and we
+// eliminate the use of the intermediate a_sums_, b_sums_ (the target of the 
+// compute_partital_sums_* methods). So don't test those. The entire score
+// calculation for the RationalScoreContext is contained in the 
+// compute_scores_parallel method, so just test that.
+
 BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_serial);
 BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_AVX256);
 BENCHMARK_REGISTER_F(ContextFixture, BM_float_compute_partial_sums_parallel);

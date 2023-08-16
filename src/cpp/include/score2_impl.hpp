@@ -8,7 +8,7 @@
 #endif
 
 namespace {
-  const int NUMTHREADS = 8;
+  const std::size_t NUMTHREADS = 8;
 }
 
 namespace Objectives {
@@ -64,6 +64,10 @@ namespace Objectives {
   void 
   ParametricContext<DataType>::compute_partial_sums() {
 
+    using vvec = std::vector<std::vector<DataType>>;
+    a_sums_ = vvec{n_+1, std::vector<DataType>(n_+1,0.)};
+    b_sums_ = vvec{n_+1, std::vector<DataType>(n_+1,0.)};
+
     for (int i=0; i<n_; ++i) {
       a_sums_[i][i] = 0.;
       b_sums_[i][i] = 0.;
@@ -81,6 +85,10 @@ namespace Objectives {
   void
   ParametricContext<DataType>::compute_partial_sums_AVX256() {
 
+    using vvec = std::vector<std::vector<DataType>>;
+    a_sums_ = vvec{n_+1, std::vector<DataType>(n_+1,0.)};
+    b_sums_ = vvec{n_+1, std::vector<DataType>(n_+1,0.)};
+    
     for (int j=0; j<n_; ++j) {
       a_sums_[j][j] = 0.;
       b_sums_[j][j] = 0.;
@@ -117,6 +125,10 @@ namespace Objectives {
   void
   ParametricContext<DataType>::compute_partial_sums_parallel() {
 
+    using vvec = std::vector<std::vector<DataType>>;
+    a_sums_ = vvec{n_+1, std::vector<DataType>(n_+1,0.)};
+    b_sums_ = vvec{n_+1, std::vector<DataType>(n_+1,0.)};
+
     const int numThreads = std::min(n_-2, NUMTHREADS);
 
     for (int i=0; i<n_; ++i) {
@@ -152,6 +164,10 @@ namespace Objectives {
   template<typename DataType>
   void 
   ParametricContext<DataType>::compute_scores() {
+
+    using vvec = std::vector<std::vector<DataType>>;
+    a_sums_ = vvec{n_+1, std::vector<DataType>(n_+1,0.)};
+    b_sums_ = vvec{n_+1, std::vector<DataType>(n_+1,0.)};
   
     for (int i=0; i<n_; ++i) {
       a_sums_[i][i] = 0.;
@@ -170,6 +186,10 @@ namespace Objectives {
   template<typename DataType>
   void
   ParametricContext<DataType>::compute_scores_AVX256() {
+
+    using vvec = std::vector<std::vector<DataType>>;
+    a_sums_ = vvec{n_+1, std::vector<DataType>(n_+1,0.)};
+    b_sums_ = vvec{n_+1, std::vector<DataType>(n_+1,0.)};
 
     for (int j=0; j<n_; ++j) {
       a_sums_[j][j] = 0.;
@@ -213,6 +233,10 @@ namespace Objectives {
   template<typename DataType>
   void
   ParametricContext<DataType>::compute_scores_parallel() {
+
+    using vvec = std::vector<std::vector<DataType>>;
+    a_sums_ = vvec{n_+1, std::vector<DataType>(n_+1,0.)};
+    b_sums_ = vvec{n_+1, std::vector<DataType>(n_+1,0.)};
 
     const int numThreads = std::min(n_-2, NUMTHREADS);
 
@@ -464,8 +488,8 @@ namespace Objectives {
   void
   RationalScoreContext<DataType>::compute_scores_parallel() {
 
-    int n_ = ParametricContext<DataType>::n_;
-    const int numThreads = std::min(n_-2, NUMTHREADS);
+    std::size_t n_ = ParametricContext<DataType>::n_;
+    const std::size_t numThreads = std::min(n_-2, NUMTHREADS);
 
     auto task_ab_block = [this, n_](int ind1, int ind2) {
       for (int i=ind1; i<ind2; ++i) {

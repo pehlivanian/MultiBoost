@@ -26,6 +26,8 @@ EtxetnoC*
 *.gnd
 *.prd
 *.cxt
+prof.data*
+prof.callgrind*
 core
 *~
 .ipnyb_checkpoints/

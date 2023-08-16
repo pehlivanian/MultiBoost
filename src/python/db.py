@@ -2,12 +2,10 @@ import abc
 import logging
 import pandas as pd
 import numpy as np
-import quandl
 import string
 from datetime import timedelta
 from collections import defaultdict
 import datetime
-import mariadb
 
 from sqlalchemy import create_engine, Table, Column, MetaData, inspect
 from contextlib import contextmanager
@@ -31,8 +29,8 @@ logging.getLogger().setLevel(logging.WARN)
 
 # Suppress scientific notation in console display, etc.
 np.set_printoptions(suppress=True, edgeitems=30, linewidth=10000)
-pd.set_option('display.max_colwidth', None)
-pd.set_option('display.max_rows', None)
+pd.set_option('display.max_colwidth', -1)
+pd.set_option('display.max_rows', -1)
 
 Dtype_Mapping = {
     'object' : 'TEXT',
@@ -173,5 +171,8 @@ class DBExt(object):
         params = np.array([num_partitions, num_steps, learning_rate, max_depth,
                            min_leafsize, min_gainsplit])
         return df,params
+
+    def plot_part_v_r2(self):
+        req = self.conn.execute('select run_key, max(r2) from outofsample group by run_key')
 
                

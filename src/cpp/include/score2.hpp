@@ -33,9 +33,10 @@ namespace Objectives {
   class ParametricContext {
 
   public:
+
     ParametricContext(std::vector<DataType> a, 
 		      std::vector<DataType> b, 
-		      int n, 
+		      std::size_t n, 
 		      bool risk_partitioning_objective,
 		      bool use_rational_optimization,
 		      std::string name
@@ -43,11 +44,7 @@ namespace Objectives {
       a_{a},
       b_{b},
       n_{n},
-      // a_sums_{std::vector<std::vector<DataType> >(n+1, std::vector<DataType>(n+1, std::numeric_limits<DataType>::lowest()))},
-      // b_sums_{std::vector<std::vector<DataType> >(n+1, std::vector<DataType>(n+1, std::numeric_limits<DataType>::lowest()))},
-      a_sums_{std::vector<std::vector<DataType> >(n+1, std::vector<DataType>(n+1, 0.))},
-      b_sums_{std::vector<std::vector<DataType> >(n+1, std::vector<DataType>(n+1, 0.))},      
-      partialSums_{std::vector<std::vector<DataType>>(n, std::vector<DataType>(n+1, 0.))},
+      partialSums_{std::vector<std::vector<DataType>>(n+1, std::vector<DataType>(n+1, 0.))},
       risk_partitioning_objective_{risk_partitioning_objective},
       use_rational_optimization_{use_rational_optimization},
       // cache_{CacheType(n_+1, std::vector<int>(n_+1))},
@@ -120,7 +117,7 @@ namespace Objectives {
 
     std::vector<DataType> a_;
     std::vector<DataType> b_;
-    int n_;
+    std::size_t n_;
     std::vector<std::vector<DataType> > a_sums_;
     std::vector<std::vector<DataType> > b_sums_;
     std::vector<std::vector<DataType>> partialSums_;
@@ -139,7 +136,7 @@ namespace Objectives {
   public:
     PoissonContext(std::vector<DataType> a, 
 		   std::vector<DataType> b, 
-		   int n, 
+		   std::size_t n, 
 		   bool risk_partitioning_objective,
 		   bool use_rational_optimization) : ParametricContext<DataType>{a,
 		      b,
@@ -166,7 +163,7 @@ namespace Objectives {
   public:
     GaussianContext(std::vector<DataType> a, 
 		    std::vector<DataType> b, 
-		    int n, 
+		    std::size_t n, 
 		    bool risk_partitioning_objective,
 		    bool use_rational_optimization) : ParametricContext<DataType>(a,
 										  b,
@@ -197,7 +194,7 @@ namespace Objectives {
   public:
     RationalScoreContext(std::vector<DataType> a,
 			 std::vector<DataType> b,
-			 int n,
+			 std::size_t n,
 			 bool risk_partitioning_objective,
 			 bool use_rational_optimization) : ParametricContext<DataType>(a,
 										       b,
