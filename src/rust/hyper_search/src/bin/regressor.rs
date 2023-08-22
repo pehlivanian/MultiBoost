@@ -11,8 +11,6 @@ use std::assert;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
-
-
 pub mod mongodbext;
 pub mod mariadbext;
 pub mod dataset;
@@ -99,10 +97,9 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let numRows = dataset_shape.0;
         let numCols = dataset_shape.1;
 	
-        // let mut ratio: f64 = rng.gen::<f64>();    
-        let mut ratio: f64 = rng.gen_range(0.1..1.0);
-        let numGrids: usize = 2;
-	let baseSteps: u32 = 25;
+        let mut ratio: f64 = rng.gen_range(0.0..1.0);
+        let numGrids: usize = 1;
+	let baseSteps: u32 = 100;
         let loss_fn: u32  = 0;
         let colsubsample_ratio: f32 = 1.0;
 
@@ -116,24 +113,72 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut childMinLeafSize:      Vec<f64> = vec![0.0; numGrids];
         let mut childMinimumGainSplit: Vec<f64> = vec![0.0; numGrids];
         let mut numPartitions: f64 = numRows as f64;
+        let mut numPartitionsBase: f64 = numPartitions;
 
         for ind in 0..numGrids {
+            numPartitionsBase = numPartitions;
             numPartitions *= ratio;
-            if numPartitions < 1. {
-                numPartitions = 1_f64;
-            }
+            // if numPartitions < 1. {
+            //     numPartitions = 1_f64;
+            // }
+
+            numPartitions = (numPartitions / 10.).round() as f64 * 10.;
+
 	    let mut maxDepth:         i32 = (numRows as f64).log2().floor() as i32 + 1;
-            let mut numSteps:         f64 = 1.;
-            let mut learningRate:     f64 = rng.gen_range(0.1..0.25);
+            let mut numSteps:         f64 = rng.gen_range(1..4).into();
+            let mut learningRate:     f64 = rng.gen_range(0.025..0.175);
             let mut minLeafSize:      f64 = rng.gen_range(1..2).into();
             let mut minimumGainSplit: f64 = 0.0;
 
             if (ind == 0) {
-                numPartitions = 938.;
-                learningRate = 0.16677;
+                // numPartitions = 28.;
+                // learningRate = 0.10;
+                // numSteps = 1.;
             }
        
-            childNumPartitions[ind]       = round(numPartitions, 0);
+            if (ind == 1) {
+                // numPartitions = 4.;
+                // learningRate = 0.10;            
+                // numSteps = 1.;
+            }
+
+            if (ind == 0) {
+                let mut r = mariadbext::check_for_existing_run_dim1(mariadb_uri, &creds, numPartitions as i32, &datasetname);
+                while (r[0] != 0) {
+                    println!("{} bad starting partition; already tested...", numPartitions as i32);
+                    ratio = rng.gen_range(0.0..1.0);
+                    numPartitions = numPartitionsBase * ratio;
+                    numPartitions = (numPartitions / 10.).round() as f64 * 10.;
+                    if numPartitions < 1. {
+                        numPartitions = 1_f64;
+                    }
+                    r = mariadbext::check_for_existing_run_dim1(mariadb_uri, &creds, numPartitions as i32, &datasetname);
+                }
+                println!("found starting partition {}", numPartitions as i32);
+                numSteps = 1.0;
+                learningRate = 0.05;
+                if (numPartitions == 1.0) {
+                    numPartitions = 2.0;
+                }
+            }
+
+            if numPartitions < 1. {
+            	numPartitions = 1_f64;
+            }
+
+            // if (ind == 0) {
+            //     numPartitions = 31.0;
+            //     numSteps = 1.;
+	    // 	learningRate = 0.15;
+            // }
+
+            if (ind == 1) {
+                // numPartitions = 4.0;
+                // numSteps = 1.;
+                learningRate = 0.10;
+            }
+       
+            childNumPartitions[ind]       = numPartitions as i32 as f64;
             childNumSteps[ind]            = numSteps;
             childLearningRate[ind]        = learningRate;
             childMinLeafSize[ind]         = minLeafSize;

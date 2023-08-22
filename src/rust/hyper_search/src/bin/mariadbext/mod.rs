@@ -3,107 +3,6 @@ use mysql::prelude::*;
 
 use crate::model;
 
-#[derive(Debug, PartialEq)]
-#[allow(non_camel_case_types)]
-pub struct run_specification {
-    run_key: String,
-    cmd: String,
-    folder: String,
-    idx: String,
-    dataset_name: String,
-    loss_fn: u32,
-    n_rows: u32,
-    n_cols: u32,
-    basesteps: u32,
-    colsubsample_ratio: f32,
-    rcsive: bool,
-    split_ratio: f32,
-    num_partitions0: u32,
-    num_partitions1: u32,
-    num_partitions2: u32,
-    num_partitions3: u32,
-    num_partitions4: u32,
-    num_partitions5: u32,
-    num_partitions6: u32,
-    num_partitiosn7: u32,
-    num_partitions8: u32,
-    num_partitions9: u32,
-    num_steps0: u32,
-    num_steps1: u32,
-    num_steps2: u32,
-    num_steps3: u32,
-    num_steps4: u32,
-    num_steps5: u32,
-    num_steps6: u32,
-    num_steps7: u32,
-    num_steps8: u32,
-    num_steps9: u32,
-    learning_rate0: f32,
-    learning_rate1: f32,
-    learning_rate2: f32,
-    learning_rate3: f32,
-    learning_rate4: f32,
-    learning_rate5: f32,
-    learning_rate6: f32,
-    learning_rate7: f32,
-    learning_rate8: f32,
-    learning_rate9: f32,
-    max_depth0: u32,
-    max_depth1: u32,
-    max_depth2: u32,
-    max_depth3: u32,
-    max_depth4: u32,
-    max_depth5: u32,
-    max_depth6: u32,
-    max_depth7: u32,
-    max_depth8: u32,
-    max_depth9: u32,
-    min_leafsize0: u32,
-    min_leafsize1: u32,
-    min_leafsize2: u32,
-    min_leafsize3: u32,
-    min_leafsize4: u32,
-    min_leafsize5: u32,
-    min_leafsize6: u32,
-    min_leafsize7: u32,
-    min_leafsize8: u32,
-    min_leafsize9: u32,
-    min_gainsplit0: f32,
-    min_gainsplit1: f32,
-    min_gainsplit2: f32,
-    min_gainsplit3: f32,
-    min_gainsplit4: f32,
-    min_gainsplit5: f32,
-    min_gainsplit6: f32,
-    min_gainsplit7: f32,
-    min_gainsplit8: f32,
-    min_gainsplit9: f32,
-}
-
-#[derive(Debug, PartialEq)]
-#[allow(non_camel_case_types)]
-pub struct insample {
-    run_key: String,
-    dataset_name: String,
-    iter: i32,
-    err: f32,
-    prcsn: f32,
-    recall: f32,
-    F1: f32,
-}
-
-#[derive(Debug, PartialEq)]
-#[allow(non_camel_case_types)]
-pub struct outofsample {
-    run_key: String,
-    dataset_name: String,
-    iter: i32,
-    err: f32,
-    prcsn: f32,
-    recall: f32,
-    F1: f32
-}
-
 #[derive(Hash)]
 #[allow(non_camel_case_types)]
 pub struct run_key_data {
@@ -120,6 +19,33 @@ pub fn get_connection(uri: &str, _creds: &(String, String)) -> Result<mysql::Poo
 pub fn insert_to_table(uri: &str, creds: &(String, String), query: &str) {
     let mut conn = get_connection(uri, creds).unwrap();
     let _r = conn.query_drop(query).expect("Failed to insert to table");
+}
+
+pub fn check_for_existing_run_dim1(uri: &str, creds: &(String, String), num_partitions: i32, datasetname: &str) -> Vec<i32> {
+    let mut conn = get_connection(uri, creds).unwrap();
+    let query = format!("select count(*) from run_specification where num_partitions0 = {} and num_partitions1 = 0 and dataset_name=\"{}\"",
+        num_partitions.to_string(),
+        datasetname);
+    let r = conn.query(query).expect("Failed to select from table");
+    r
+}
+
+pub fn check_for_existing_run_dim2(uri: &str, creds: &(String, String), num_partitions: i32, datasetname: &str) -> Vec<i32> {
+    let mut conn = get_connection(uri, creds).unwrap();
+    let query = format!("select count(*) from run_specification where num_partitions0 = 28 and num_partitions1 = {} and dataset_name=\"{}\"",
+        num_partitions.to_string(),
+        datasetname);
+    let r = conn.query(query).expect("Failed to select from table");
+    r
+}
+
+pub fn check_for_existing_run_dim3(uri: &str, creds: &(String, String), num_partitions: i32, datasetname: &str) -> Vec<i32> {
+    let mut conn = get_connection(uri, creds).unwrap();
+    let query = format!("select count(*) from run_specification where num_partitions0 = 40 and num_partitions1 = 4 and num_partitions2 = {} and dataset_name=\"{}\"",
+        num_partitions.to_string(),
+        datasetname);
+    let r = conn.query(query).expect("Failed to select from table");
+    r
 }
 
 pub fn format_run_specification_query(run_key: u64, cmd: &str, folder: &str, index: &str, datasetname: &str,

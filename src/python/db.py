@@ -7,8 +7,11 @@ from datetime import timedelta
 from collections import defaultdict
 import datetime
 
-from sqlalchemy import create_engine, Table, Column, MetaData, inspect
+from sqlalchemy import create_engine, Table, Column, MetaData, inspect, text
+from sqlalchemy.orm import Session
 from contextlib import contextmanager
+
+import matplotlib.pyplot as plot
 
 from pymongo import MongoClient
 from sqlalchemy import create_engine, Table, Column, MetaData
@@ -29,8 +32,8 @@ logging.getLogger().setLevel(logging.WARN)
 
 # Suppress scientific notation in console display, etc.
 np.set_printoptions(suppress=True, edgeitems=30, linewidth=10000)
-pd.set_option('display.max_colwidth', -1)
-pd.set_option('display.max_rows', -1)
+pd.set_option('display.max_colwidth', None)
+pd.set_option('display.max_rows', None)
 
 Dtype_Mapping = {
     'object' : 'TEXT',
@@ -72,7 +75,8 @@ class DBExt(object):
         self.credentials = Credentials()
         user, passwd = self.credentials.DB_creds()
         dbName = dbName or ('MULTISCALEGB_CLASS' if is_classifier else 'MULTISCALEGB_REG')
-        self.conn = create_engine('mysql+mysqldb://{}:{}@localhost/{}'.format(user,passwd,dbName))        
+        self.engine = create_engine('mysql+mysqldb://{}:{}@localhost/{}'.format(user,passwd,dbName))
+        self.conn = Session(self.engine)
 
     def list_databases(self):
         insp = inspect(self.conn)
@@ -106,7 +110,7 @@ class DBExt(object):
             else:
                 agg_fn = {'r2' : 'last'}
             
-        req = self.conn.execute('select * from outofsample')
+        req = self.conn.execute(text('select * from outofsample'))
         df = pd.DataFrame(columns=req.keys(), data=req.fetchall())
         if criterion in ('last', 'min_OOS'):
             groups = df.groupby(by=['dataset_name', 'run_key'], as_index=False).aggregate(agg_fn)
@@ -114,8 +118,11 @@ class DBExt(object):
             grouped = groups.groupby(by=['dataset_name'], as_index=False).head(n)
         elif criterion in ('min_IS'):
             groups = df.groupby(by=['dataset_name', 'run_key'], as_index=False)
-            grouped = pd.DataFrame(columns=['dataset_name', 'run_key', 'IS_best_ind', 'err'])
-            req = self.conn.execute('select * from insample')
+            if self.is_classifier:
+                grouped = pd.DataFrame(columns=['dataset_name', 'run_key', 'IS_best_ind', 'err'])
+            else:
+                grouped = pd.DataFrame(columns=['dataset_name', 'run_key', 'IS_best_ind', 'loss'])
+            req = self.conn.execute(text('select * from insample'))
             df_is = pd.DataFrame(columns=req.keys(), data=req.fetchall())
             for (dataset_name, run_key),group in groups:
                 df2 = df_is[df_is['run_key'] == run_key]
@@ -126,18 +133,18 @@ class DBExt(object):
             grouped = grouped.sort_values(by=sort_keys, ascending=sort_ascending)
             grouped = grouped.groupby(by=['dataset_name'], as_index=False).head(n)
         
-        req = self.conn.execute('select run_key,recursive from run_specification')
+        req = self.conn.execute(text('select run_key,rcsive from run_specification'))
         run_specs = pd.DataFrame(columns=req.keys(), data=req.fetchall())
         joined = pd.merge(grouped, run_specs, left_on=['run_key'], right_on=['run_key'], how='left')
         return joined 
 
     def get_complete_OOS_run(self, run_key):
-        req = self.conn.execute('select * from outofsample where run_key={}'.format(run_key))
+        req = self.conn.execute(text('select * from outofsample where run_key={}'.format(run_key)))
         df = pd.DataFrame(columns=req.keys(), data=req.fetchall())
         return df
 
     def get_complete_IS_run(self, run_key):
-        req = self.conn.execute('select * from insample where run_key={}'.format(run_key))
+        req = self.conn.execute(text('select * from insample where run_key={}'.format(run_key)))
         df = pd.DataFrame(columns=req.keys(), data=req.fetchall())
         return df    
 
@@ -152,7 +159,7 @@ class DBExt(object):
         return df,run_specs,dd
 
     def get_run_specification(self, run_key):
-        req = self.conn.execute('select * from run_specification where run_key={}'.format(run_key))
+        req = self.conn.execute(text('select * from run_specification where run_key={}'.format(run_key)))
         df = pd.DataFrame(columns=req.keys(), data=req.fetchall())
 
         num_partitions = np.zeros(10)
@@ -172,7 +179,108 @@ class DBExt(object):
                            min_leafsize, min_gainsplit])
         return df,params
 
-    def plot_part_v_r2(self):
-        req = self.conn.execute('select run_key, max(r2) from outofsample group by run_key')
+    def plot_part_v_r2(self, dataset_name="Regression/195_auto_price"):
+        req = self.conn.execute(text('select dataset_name, run_key, max(r2) as r2 \
+            from outofsample group by run_key'))
+        df_oos = pd.DataFrame(columns=req.keys(), data=req.fetchall())
+        req = self.conn.execute(text('select dataset_name, run_key, num_partitions0, \
+            num_steps0, learning_rate0 from run_specification where num_partitions1 = 0'))
+        df_rs = pd.DataFrame(columns=req.keys(), data=req.fetchall())
+        joined = pd.merge(df_oos, df_rs, left_on=['dataset_name', 'run_key'], right_on=['dataset_name', 'run_key'],
+                          how='inner')
+        joined = joined[joined['dataset_name'] == dataset_name]
+        if dataset_name not in ("Regression/1199_BNG_echoMonths_train",):
+            joined = joined[joined['r2'] > .5]
+        else:
+            joined = joined[joined['r2'] > 0.]
+        xaxis = joined['num_partitions0'].values
+        yaxis = joined['r2'].values
+        return xaxis,yaxis
 
-               
+    def plot_part_v_r2_2dim(self, dataset_name="Regression/195_auto_price", random_only=False):
+        req = self.conn.execute(text('select dataset_name, run_key, max(r2) as r2 \
+            from outofsample group by run_key'))
+        df_oos = pd.DataFrame(columns=req.keys(), data=req.fetchall())
+        req = self.conn.execute(text('select dataset_name, run_key, num_partitions0, num_partitions1, num_partitions2, \
+            learning_rate0, learning_rate1, learning_rate2 from run_specification where rcsive=1'))
+        df_rs = pd.DataFrame(columns=req.keys(), data=req.fetchall())
+        joined = pd.merge(df_oos, df_rs, left_on=['dataset_name', 'run_key'], right_on=['dataset_name', 'run_key'],
+                          how='inner')
+        joined = joined[joined['dataset_name'] == dataset_name]
+        joined = joined[(joined['num_partitions0'] > 0) & (joined['num_partitions1'] > 0)]
+        joined = joined[(joined['learning_rate0'] == 0.10) & (joined['learning_rate1'] == 0.10)]
+        joined = joined[joined['r2'] > .5]
+        joined = joined[(joined['num_partitions0'] == 28) & (joined['num_partitions1'] > 0)]
+        # joined = joined[(joined['num_partitions0'] == 100) & (joined['num_partitions1'] > 0)]
+        # joined = joined[(joined['num_partitions0'] == 30) & (joined['num_partitions1'] > 0)]
+        if random_only:
+            joined = joined[(joined['num_partitions0'] != 30) | (joined['num_partitions0'] != 90)]
+        xaxis = joined['num_partitions1'].values
+        yaxis = joined['r2'].values
+        return xaxis,yaxis
+
+    def plot_part_v_r2_3dim(self, dataset_name="Regression/195_auto_price", random_only=False):
+        req = self.conn.execute(text('select dataset_name, run_key, max(r2) as r2 \
+            from outofsample group by run_key'))
+        df_oos = pd.DataFrame(columns=req.keys(), data=req.fetchall())
+        req = self.conn.execute(text('select dataset_name, run_key, num_partitions0, num_partitions1, num_partitions2, \
+            learning_rate0, learning_rate1, learning_rate2 from run_specification where rcsive=1'))
+        df_rs = pd.DataFrame(columns=req.keys(), data=req.fetchall())
+        joined = pd.merge(df_oos, df_rs, left_on=['dataset_name', 'run_key'], right_on=['dataset_name', 'run_key'],
+                          how='inner')
+        joined = joined[joined['dataset_name'] == dataset_name]
+        # joined = joined[(joined['num_partitions0'] > 0) & (joined['num_partitions1'] > 0) & (joined['num_partitions2'] > 0)]
+        if random_only:
+            joined = joined[(joined['num_partitions0'] != 30) | (joined['num_partitions0'] != 40)]
+        else:
+            joined = joined[(joined['num_partitions0'] == 40) & (joined['num_partitions1'] == 4)]
+        joined = joined[joined['r2'] > .5]
+        xaxis = joined['num_partitions2'].values
+        yaxis = joined['r2'].values
+        return xaxis,yaxis
+
+    def plot_part_v_r2_random(self, dataset_name="Regression/195_auto_price"):
+        req = self.conn.execute(text('select dataset_name, run_key, max(r2) as r2 \
+            from outofsample group by run_key'))
+        df_oos = pd.DataFrame(columns=req.keys(), data=req.fetchall())
+        req = self.conn.execute(text('select dataset_name, run_key, num_partitions0, num_partitions1, num_partitions2, \
+            learning_rate0, learning_rate1, learning_rate2 from run_specification where rcsive=1'))
+        df_rs = pd.DataFrame(columns=req.keys(), data=req.fetchall())
+        joined = pd.merge(df_oos, df_rs, left_on=['dataset_name', 'run_key'], right_on=['dataset_name', 'run_key'],
+                          how='inner')
+        joined = joined[joined['dataset_name'] == dataset_name]
+        joined = joined[(joined['num_partitions0'] > 0) & (joined['num_partitions1'] > 0) & (joined['num_partitions2'] > 0)]
+        joined = joined[(joined['num_partitions0'] != 30) & (joined['num_partitions0'] != 90)]
+        joined = joined[joined['r2'] > .5]
+        xaxis = joined['num_partitions0'].values
+        yaxis = joined['r2'].values
+        return xaxis,yaxis        
+
+if __name__ == "__main__":
+    dbext = DBExt(is_classifier=False);
+    # xaxis,yaxis = dbext.plot_part_v_r2("Regression/195_auto_price")
+    # xaxis,yaxis = dbext.plot_part_v_r2("Regression/207_autoPrice")
+    # xaxis,yaxis = dbext.plot_part_v_r2("Regression/584_fri_c4_500_25")
+    # xaxis,yaxis = dbext.plot_part_v_r2("Regression/606_fri_c2_1000_10_train")
+    # xaxis,yaxis = dbext.plot_part_v_r2("Regression/197_cpu_act_train")
+    # xaxis,yaxis = dbext.plot_part_v_r2("Regression/1199_BNG_echoMonths_train")
+    xaxis,yaxis = dbext.plot_part_v_r2("Regression/564_fried_train")            
+    # xaxis,yaxis = dbext.plot_part_v_r2("Regression/529_pollen_train")    
+    # xaxis,yaxis = dbext.plot_part_v_r2_2dim("Regression/195_auto_price")
+    # xaxis,yaxis = dbext.plot_part_v_r2_2dim("Regression/584_fri_c4_500_25")    
+    # xaxis,yaxis = dbext.plot_part_v_r2_3dim("Regression/195_auto_price", random_only=False)
+    # xaxis,yaxis = dbext.plot_part_v_r2_random("Regression/195_auto_price")
+    # xaxis,yaxis = dbext.plot_part_v_r2_random("Regression/207_autoPrice")
+
+    sortind = [x[0] for x in sorted(enumerate(xaxis), key=lambda x: x[1])]
+    xaxis = xaxis[[sortind]]
+    yaxis = yaxis[[sortind]]
+    plot.scatter(xaxis,yaxis)
+    # plot.plot(xaxis, yaxis)
+    plot.show()
+
+    xaxis = xaxis[0,:150]
+    yaxis = yaxis[0,:150]
+    plot.plot(xaxis,yaxis)
+    plot.show()
+    

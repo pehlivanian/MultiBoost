@@ -24,14 +24,26 @@ impl ClassificationDataset {
        (self.dataset.records.nrows(), self.dataset.records.ncols())
    }
 
-    fn suffix_path(dt: DataType) -> &'static str {
+   pub fn get_dataset(dataset_name: &str) -> Dataset<f32, i32, ndarray::Dim<[usize; 1]>> {	
+       let path: Vec<_> = vec![DataType::X, DataType::y]
+           .iter()
+           .map(|x| ClassificationDataset::get_path(dataset_name, x))
+           .collect();
+
+       let X = ClassificationDataset::get_Xdata(&path[0]);
+       let y = ClassificationDataset::get_ydata(&path[1]);
+
+       Dataset::new(X, y)
+   }
+
+    fn suffix_path(dt: &DataType) -> &'static str {
         match dt {
             DataType::X => "_X.csv",
             DataType::y => "_y.csv",
         }
     }
 
-    fn get_path(dataset_name: &str, dtype: DataType) -> String {
+    fn get_path(dataset_name: &str, dtype: &DataType) -> String {
         let mut full_path: String = String::from("/home/charles/Data/");
         let suffix = ClassificationDataset::suffix_path(dtype);
         full_path.push_str(dataset_name);
@@ -80,13 +92,4 @@ impl ClassificationDataset {
         Array::from(r)
     }
 
-    fn get_dataset(dataset_name: &str) -> Dataset<f32, i32, ndarray::Dim<[usize; 1]>> {
-        let Xpath = ClassificationDataset::get_path(dataset_name, DataType::X);
-        let ypath = ClassificationDataset::get_path(dataset_name, DataType::y);
-
-        let X = ClassificationDataset::get_Xdata(&Xpath);
-        let y = ClassificationDataset::get_ydata(&ypath);
-
-        Dataset::new(X, y)
-    }
 }
