@@ -8,6 +8,16 @@
 #include <cstring>
 #include <exception>
 #include <mlpack/core.hpp>
+
+// I orginally coded this to use automatic differentiation to compute
+// gradients, hessian of the loss function, but it is much faster to 
+// precompute and use closed-forms. In general this should always be
+// done in a gradient boosting setting - the gradient descent is on
+// a simple loss function with no cross-terms, not some deep multi-layer
+// network for which a closed-form is hopeless.
+// To enable auto differentiation and slow everything down define AUTODIFF
+// accordingly.
+
 #ifdef AUTODIFF
 #include <autodiff/forward/real.hpp>
 #include <autodiff/forward/real/eigen.hpp>

@@ -467,6 +467,7 @@ namespace Objectives {
   template<typename DataType>
   DataType 
   RationalScoreContext<DataType>::compute_score_multclust_optimized(int i, int j) {
+    throw std::runtime_error("Should never reach this; a_sums_, b_sums_ are no long intermediate values");
     DataType score = ParametricContext<DataType>::a_sums_[i][j] * ParametricContext<DataType>::a_sums_[i][j] / 
       ParametricContext<DataType>::b_sums_[i][j];
     return score;

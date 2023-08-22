@@ -80,7 +80,8 @@ DPSolver<DataType>::create() {
   createContext();
   
   // Allocate matrix
-  maxScore_        = std::vector<std::vector<DataType> >(T_+1, std::vector<DataType>(n_, std::numeric_limits<DataType>::lowest()));
+  DataType low = std::numeric_limits<DataType>::lowest();
+  maxScore_        = std::vector<std::vector<DataType> >(T_+1, std::vector<DataType>(n_, low));
   nextStart_       = std::vector<std::vector<int> >(T_+1, std::vector<int>(n_, -1));
   subsets_         = std::vector<std::vector<int> >(T_, std::vector<int>());
   score_by_subset_ = std::vector<DataType>(T_, 0.);

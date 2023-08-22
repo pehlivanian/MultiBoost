@@ -362,9 +362,9 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
     if (RegressorFileScope::DIAGNOSTICS_1_ || RegressorFileScope::DIAGNOSTICS_0_) {
 
       std::cerr << fit_prefix(depth_);
-      std::cerr << "FITTING COMPOSITE REGRESSOR FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
+      std::cerr << "FITTING COMPOSITE REGRESSOR FOR (PARTITIONSIZE, STEPNUM): ("
 		<< partitionSize_ << ", "
-		<< stepNum << ", "
+		<< stepNum << " of "
 		<< steps_ << ")"
 		<< std::endl;
 
@@ -423,9 +423,9 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
   if (RegressorFileScope::DIAGNOSTICS_0_) {
 
     std::cerr << fit_prefix(depth_);
-    std::cerr << "FITTING LEAF REGRESSOR FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
+    std::cerr << "FITTING LEAF REGRESSOR FOR (PARTITIONSIZE, STEPNUM): ("
 	      << partitionSize_ << ", "
-	      << stepNum << ", "
+	      << stepNum << " of "
 	      << steps_ << ")"
 	      << std::endl;
   }
@@ -479,9 +479,9 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
   if (RegressorFileScope::DIAGNOSTICS_1_) {
     
     std::cerr << fit_prefix(depth_);
-    std::cerr << "FITTING LEAF REGRESSOR FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
+    std::cerr << "FITTING LEAF REGRESSOR FOR (PARTITIONSIZE, STEPNUM): ("
 	      << partitionSize_ << ", "
-	      << stepNum << ", "
+	      << stepNum << " of "
 	      << steps_ << ")"
 	      << std::endl;
     
@@ -519,7 +519,6 @@ CompositeRegressor<RegressorType>::computeOptimalSplit(rowvec& g,
   (void)stepNum;
 
   // We should implement several methods here
-  // XXX
   std::vector<double> gv = arma::conv_to<std::vector<double>>::from(g);
   std::vector<double> hv = arma::conv_to<std::vector<double>>::from(h);
 
@@ -536,9 +535,10 @@ CompositeRegressor<RegressorType>::computeOptimalSplit(rowvec& g,
   DPSolver<double> dp;
 
   {
+    // This is the expensive call; DPSolver scales as ~ n^2*T
     // auto timer_ = __timer{"DPSolver instantiation"};
 
-    dp = DPSolver(n, T, gv, hv,
+    dp = DPSolver(n, T, std::move(gv), std::move(hv),
 		  objective_fn::RationalScore,
 		  risk_partitioning_objective,
 		  use_rational_optimization,

@@ -45,12 +45,67 @@ public:
 
   DPSolver() = default;
 
-  DPSolver(std::vector<DataType> a,
-	   std::vector<DataType> b,
+  DPSolver(int n,
+	   int T,
+	   const std::vector<DataType>& a,
+	   const std::vector<DataType>& b,
+	   objective_fn parametric_dist=objective_fn::Gaussian,
+	   bool risk_partitioning_objective=false,
+	   bool use_rational_optimization=true,
+	   DataType gamma=0.,
+	   int reg_power=1.,
+	   bool sweep_down=false,
+	   bool find_optimal_t=false
+	   ) :
+    n_{n},
+    T_{T},
+    a_{a},
+    b_{b},
+    optimal_score_{0.},
+    parametric_dist_{parametric_dist},
+    risk_partitioning_objective_{risk_partitioning_objective},
+    use_rational_optimization_{use_rational_optimization},
+    gamma_{gamma},
+    reg_power_{reg_power},
+    sweep_down_{sweep_down},
+    find_optimal_t_{find_optimal_t},
+    optimal_num_clusters_OLS_{0}    
+  { _init(); }
+
+  DPSolver(int n,
+	   int T,
+	   std::vector<DataType>&& a,
+	   std::vector<DataType>&& b,
+	   objective_fn parametric_dist=objective_fn::Gaussian,
+	   bool risk_partitioning_objective=false,
+	   bool use_rational_optimization=true,
+	   DataType gamma=0.,
+	   int reg_power=1.,
+	   bool sweep_down=false,
+	   bool find_optimal_t=false
+	   ) :
+    n_{n},
+    T_{T},
+    a_{std::move(a)},
+    b_{std::move(b)},
+    optimal_score_{0.},
+    parametric_dist_{parametric_dist},
+    risk_partitioning_objective_{risk_partitioning_objective},
+    use_rational_optimization_{use_rational_optimization},
+    gamma_{gamma},
+    reg_power_{reg_power},
+    sweep_down_{sweep_down},
+    find_optimal_t_{find_optimal_t},
+    optimal_num_clusters_OLS_{0}    
+  { _init(); }
+	   
+
+  DPSolver(const std::vector<DataType>& a,
+	   const std::vector<DataType>& b,
 	   int T,
 	   objective_fn parametric_dist=objective_fn::Gaussian,
 	   bool risk_partitioning_objective=false,
-	   bool use_rational_optimization=false,
+	   bool use_rational_optimization=true,
 	   DataType gamma=0.,
 	   int reg_power=1.,
 	   bool sweep_down=false,
@@ -71,22 +126,22 @@ public:
     optimal_num_clusters_OLS_{0}    
   { _init(); }
 
-  DPSolver(int n,
+  DPSolver(std::vector<DataType>&& a,
+	   std::vector<DataType>&& b,
 	   int T,
-	   std::vector<DataType> a,
-	   std::vector<DataType> b,
 	   objective_fn parametric_dist=objective_fn::Gaussian,
 	   bool risk_partitioning_objective=false,
-	   bool use_rational_optimization=false,
-	   DataType gamma=0.,
+	   bool use_rational_optimization=true,
+	   DataType gamma=0,
 	   int reg_power=1.,
 	   bool sweep_down=false,
 	   bool find_optimal_t=false
 	   ) :
-    n_{n},
+
+    n_{static_cast<int>(a.size())},
+    a_{std::move(a)},
+    b_{std::move(b)},
     T_{T},
-    a_{a},
-    b_{b},
     optimal_score_{0.},
     parametric_dist_{parametric_dist},
     risk_partitioning_objective_{risk_partitioning_objective},
@@ -95,8 +150,7 @@ public:
     reg_power_{reg_power},
     sweep_down_{sweep_down},
     find_optimal_t_{find_optimal_t},
-    optimal_num_clusters_OLS_{0}
-  
+    optimal_num_clusters_OLS_{0}    
   { _init(); }
 
   std::vector<std::vector<int> > get_optimal_subsets_extern() const;

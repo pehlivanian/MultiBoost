@@ -386,7 +386,7 @@ uvec
 CompositeClassifier<ClassifierType>::subsampleRows(size_t numRows) {
 
   // XXX
-  // Necessary?
+  // Necessary? unittest fail without sort
   // uvec r = sort(randperm(n_, numRows));
   // uvec r = randperm(n_, numRows);
   uvec r = PartitionUtils::sortedSubsample2(n_, numRows);
@@ -398,7 +398,7 @@ uvec
 CompositeClassifier<ClassifierType>::subsampleCols(size_t numCols) {
 
   // XXX
-  // Necessary?
+  // Necessary? unittest fail without sort
   // uvec r = sort(randperm(m_, numCols));
   // uvec r = randperm(m_, numCols);
   uvec r = PartitionUtils::sortedSubsample2(n_, numCols);
@@ -527,9 +527,9 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     if (ClassifierFileScope::DIAGNOSTICS_1_ || ClassifierFileScope::DIAGNOSTICS_0_) {
 
       std::cerr << fit_prefix(depth_);
-      std::cerr << "FITTING COMPOSITE CLASSIFIER FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
+      std::cerr << "FITTING COMPOSITE CLASSIFIER FOR (PARTITIONSIZE, STEPNUM): ("
 		<< partitionSize_ << ", "
-		<< stepNum << ", "
+		<< stepNum << " of "
 		<< steps_ << ")"
 		<< std::endl;      
     }
@@ -585,9 +585,9 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
   if (ClassifierFileScope::DIAGNOSTICS_0_)
     std::cerr << fit_prefix(depth_);
-    std::cerr << "FITTING LEAF CLASSIFIER FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
+    std::cerr << "FITTING LEAF CLASSIFIER FOR (PARTITIONSIZE, STEPNUM): ("
 	      << partitionSize_ << ", "
-	      << stepNum << ", "
+	      << stepNum << " of "
 	      << steps_ << ")"
 	      << std::endl;
   
@@ -628,9 +628,9 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   if (ClassifierFileScope::DIAGNOSTICS_1_) {
     
     std::cerr << fit_prefix(depth_);
-    std::cerr << "FITTING LEAF CLASSIFIER FOR (PARTITIONSIZE, STEPNUM, NUMSTEPS): ("
+    std::cerr << "FITTING LEAF CLASSIFIER FOR (PARTITIONSIZE, STEPNUM): ("
 	      << partitionSize_ << ", "
-	      << stepNum << ", "
+	      << stepNum << " of "
 	      << steps_ << ")"
 	      << std::endl;
     
@@ -663,7 +663,6 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
   (void)stepNum;
 
   // We should implement several methods here
-  // XXX
   std::vector<double> gv = arma::conv_to<std::vector<double>>::from(g);
   std::vector<double> hv = arma::conv_to<std::vector<double>>::from(h);
 
@@ -677,7 +676,7 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
 
   // std::cout << "PARTITION SIZE: " << T << std::endl;
 
-  auto dp = DPSolver(n, T, gv, hv,
+  auto dp = DPSolver(n, T, std::move(gv), std::move(hv),
 		     objective_fn::RationalScore,
 		     risk_partitioning_objective,
 		     use_rational_optimization,

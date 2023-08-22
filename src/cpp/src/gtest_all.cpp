@@ -306,7 +306,7 @@ TEST(DPSolverTest, TestCachedScoresMatchExternalScores) {
 
     (void)_;
 
-    RationalScoreContext<float>* context_serial = new RationalScoreContext{a, b, n, false, true};
+    PoissonContext<float>* context_serial = new PoissonContext{a, b, n, false, true};
     
     context_serial->__compute_partial_sums__();
     auto a_sums_serial = context_serial->get_partial_sums_a();
@@ -321,7 +321,7 @@ TEST(DPSolverTest, TestCachedScoresMatchExternalScores) {
       }
     }
 
-    RationalScoreContext<float>* context_AVX = new RationalScoreContext{a, b, n, false, true};
+    PoissonContext<float>* context_AVX = new PoissonContext{a, b, n, false, true};
 
     context_AVX->__compute_partial_sums_AVX256__();
     auto a_sums_AVX = context_AVX->get_partial_sums_a();
@@ -336,7 +336,7 @@ TEST(DPSolverTest, TestCachedScoresMatchExternalScores) {
       }
     }
     
-    RationalScoreContext<float>* context_parallel = new RationalScoreContext{a, b, n, false, true};
+    PoissonContext<float>* context_parallel = new PoissonContext{a, b, n, false, true};
 
     context_parallel->__compute_partial_sums_parallel__();
     auto a_sums_parallel = context_parallel->get_partial_sums_a();
@@ -515,7 +515,7 @@ TEST(DPSolverTest, TestParallelScoresMatchSerialScores) {
 
     (void)_;
 
-    RationalScoreContext<float>* context = new RationalScoreContext{a, b, n, false, true};
+    GaussianContext<float>* context = new GaussianContext{a, b, n, false, true};
     
     context->__compute_partial_sums__();
     auto a_sums_serial = context->get_partial_sums_a();

@@ -34,8 +34,8 @@ namespace Objectives {
 
   public:
 
-    ParametricContext(std::vector<DataType> a, 
-		      std::vector<DataType> b, 
+    ParametricContext(const std::vector<DataType>& a, 
+		      const std::vector<DataType>& b, 
 		      std::size_t n, 
 		      bool risk_partitioning_objective,
 		      bool use_rational_optimization,
@@ -134,8 +134,8 @@ namespace Objectives {
   class PoissonContext : public ParametricContext<DataType> {
 
   public:
-    PoissonContext(std::vector<DataType> a, 
-		   std::vector<DataType> b, 
+    PoissonContext(const std::vector<DataType>& a, 
+		   const std::vector<DataType>& b, 
 		   std::size_t n, 
 		   bool risk_partitioning_objective,
 		   bool use_rational_optimization) : ParametricContext<DataType>{a,
@@ -161,8 +161,8 @@ namespace Objectives {
   template<typename DataType>
   class GaussianContext : public ParametricContext<DataType> {
   public:
-    GaussianContext(std::vector<DataType> a, 
-		    std::vector<DataType> b, 
+    GaussianContext(const std::vector<DataType>& a, 
+		    const std::vector<DataType>& b, 
 		    std::size_t n, 
 		    bool risk_partitioning_objective,
 		    bool use_rational_optimization) : ParametricContext<DataType>(a,
@@ -192,8 +192,8 @@ namespace Objectives {
     // for targeted applications - quadratic approximations to loss, for
     // XGBoost, e.g.
   public:
-    RationalScoreContext(std::vector<DataType> a,
-			 std::vector<DataType> b,
+    RationalScoreContext(const std::vector<DataType>& a,
+			 const std::vector<DataType>& b,
 			 std::size_t n,
 			 bool risk_partitioning_objective,
 			 bool use_rational_optimization) : ParametricContext<DataType>(a,
