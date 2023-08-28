@@ -10,6 +10,7 @@ use std::env;
 use std::assert;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
+use std::process;
 
 pub mod mongodbext;
 pub mod mariadbext;
@@ -97,9 +98,10 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let numRows = dataset_shape.0;
         let numCols = dataset_shape.1;
 	
-        let mut ratio: f64 = rng.gen_range(0.0..1.0);
-        let numGrids: usize = 1;
-	let baseSteps: u32 = 100;
+        let mut ratio1: f64 = rng.gen_range(0.0..0.5);
+        let mut ratio2: f64 = rng.gen_range(1.0..1.25);
+        let numGrids: usize = 2;
+	let baseSteps: u32 = 75;
         let loss_fn: u32  = 0;
         let colsubsample_ratio: f32 = 1.0;
 
@@ -114,49 +116,60 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut childMinimumGainSplit: Vec<f64> = vec![0.0; numGrids];
         let mut numPartitions: f64 = numRows as f64;
         let mut numPartitionsBase: f64 = numPartitions;
+        let mut numSteps: f64 = 1.;
 
         for ind in 0..numGrids {
             numPartitionsBase = numPartitions;
-            numPartitions *= ratio;
-            // if numPartitions < 1. {
-            //     numPartitions = 1_f64;
-            // }
+            numPartitions *= ratio1;
+
+            numSteps = (numSteps * ratio2).round() as f64;
 
             numPartitions = (numPartitions / 10.).round() as f64 * 10.;
 
 	    let mut maxDepth:         i32 = (numRows as f64).log2().floor() as i32 + 1;
-            let mut numSteps:         f64 = rng.gen_range(1..4).into();
-            let mut learningRate:     f64 = rng.gen_range(0.025..0.175);
+            // let mut numSteps:         f64 = rng.gen_range(1..4).into();
+            let mut learningRate:     f64 = rng.gen_range(0.001..0.2);
             let mut minLeafSize:      f64 = rng.gen_range(1..2).into();
             let mut minimumGainSplit: f64 = 0.0;
 
-            if (ind == 0) {
-                // numPartitions = 28.;
-                // learningRate = 0.10;
-                // numSteps = 1.;
+            if (ind == 1) {
+                numPartitions = 10.;
+                learningRate = 0.10;
+                numSteps = 1.;
             }
        
-            if (ind == 1) {
-                // numPartitions = 4.;
-                // learningRate = 0.10;            
-                // numSteps = 1.;
+            if (false) {
+                numPartitions = 10.;
+                learningRate = 0.10;
+                // learningRate = 0.05410;            
+                numSteps = 1.;
             }
 
-            if (ind == 0) {
-                let mut r = mariadbext::check_for_existing_run_dim1(mariadb_uri, &creds, numPartitions as i32, &datasetname);
+            if (ind == 2) {
+                // numPartitions = 10.;
+                // learningRate = 0.02648;
+            }
+
+            if (ind==0) {
+                let mut count: u32 = 0;
+                let mut r = mariadbext::check_for_existing_run_dim2(mariadb_uri, &creds, numPartitions as i32, &datasetname);
                 while (r[0] != 0) {
                     println!("{} bad starting partition; already tested...", numPartitions as i32);
-                    ratio = rng.gen_range(0.0..1.0);
-                    numPartitions = numPartitionsBase * ratio;
+                    ratio1 = rng.gen_range(0.0..1.0);
+                    numPartitions = numPartitionsBase * ratio1;
                     numPartitions = (numPartitions / 10.).round() as f64 * 10.;
                     if numPartitions < 1. {
                         numPartitions = 1_f64;
                     }
-                    r = mariadbext::check_for_existing_run_dim1(mariadb_uri, &creds, numPartitions as i32, &datasetname);
+                    r = mariadbext::check_for_existing_run_dim2(mariadb_uri, &creds, numPartitions as i32, &datasetname);
+                    count += 1;
+                    if (count > 10000) {
+                        process::exit(1);
+                    }
                 }
                 println!("found starting partition {}", numPartitions as i32);
                 numSteps = 1.0;
-                learningRate = 0.05;
+                learningRate = 0.10;
                 if (numPartitions == 1.0) {
                     numPartitions = 2.0;
                 }
@@ -175,7 +188,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if (ind == 1) {
                 // numPartitions = 4.0;
                 // numSteps = 1.;
-                learningRate = 0.10;
+                // learningRate = 0.10;
             }
        
             childNumPartitions[ind]       = numPartitions as i32 as f64;
@@ -184,7 +197,9 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             childMinLeafSize[ind]         = minLeafSize;
             childMinimumGainSplit[ind]    = minimumGainSplit;
 
-            ratio = rng.gen_range(0.0..1.0);
+            ratio1 = rng.gen_range(0.0..1.0);
+            ratio2 = rng.gen_range(1.0..1.25);
+
         }
 
         let specs: Vec<Vec<String>> = vec![childNumPartitions,

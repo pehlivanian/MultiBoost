@@ -32,7 +32,7 @@ pub fn check_for_existing_run_dim1(uri: &str, creds: &(String, String), num_part
 
 pub fn check_for_existing_run_dim2(uri: &str, creds: &(String, String), num_partitions: i32, datasetname: &str) -> Vec<i32> {
     let mut conn = get_connection(uri, creds).unwrap();
-    let query = format!("select count(*) from run_specification where num_partitions0 = 28 and num_partitions1 = {} and dataset_name=\"{}\"",
+    let query = format!("select count(*) from run_specification where num_partitions1 = 10 and num_partitions0 = {} and dataset_name=\"{}\"",
         num_partitions.to_string(),
         datasetname);
     let r = conn.query(query).expect("Failed to select from table");

@@ -262,9 +262,10 @@ if __name__ == "__main__":
     # xaxis,yaxis = dbext.plot_part_v_r2("Regression/207_autoPrice")
     # xaxis,yaxis = dbext.plot_part_v_r2("Regression/584_fri_c4_500_25")
     # xaxis,yaxis = dbext.plot_part_v_r2("Regression/606_fri_c2_1000_10_train")
+    # xaxis,yaxis = dbext.plot_part_v_r2("Regression/529_pollen_train")    
     # xaxis,yaxis = dbext.plot_part_v_r2("Regression/197_cpu_act_train")
-    # xaxis,yaxis = dbext.plot_part_v_r2("Regression/1199_BNG_echoMonths_train")
-    xaxis,yaxis = dbext.plot_part_v_r2("Regression/564_fried_train")            
+    xaxis,yaxis = dbext.plot_part_v_r2("Regression/1199_BNG_echoMonths_train")
+    # xaxis,yaxis = dbext.plot_part_v_r2("Regression/564_fried_train")            
     # xaxis,yaxis = dbext.plot_part_v_r2("Regression/529_pollen_train")    
     # xaxis,yaxis = dbext.plot_part_v_r2_2dim("Regression/195_auto_price")
     # xaxis,yaxis = dbext.plot_part_v_r2_2dim("Regression/584_fri_c4_500_25")    
@@ -275,6 +276,7 @@ if __name__ == "__main__":
     sortind = [x[0] for x in sorted(enumerate(xaxis), key=lambda x: x[1])]
     xaxis = xaxis[[sortind]]
     yaxis = yaxis[[sortind]]
+    import pdb; pdb.set_trace()
     plot.scatter(xaxis,yaxis)
     # plot.plot(xaxis, yaxis)
     plot.show()
