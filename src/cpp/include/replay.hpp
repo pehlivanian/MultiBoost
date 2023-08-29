@@ -63,20 +63,34 @@ public:
 
   // Classify methods are for classifiers
   // Predict  methods are for regressors
+
+  //
+  // For predicting OOS on given test dataset /
+  /////////////////////////////////////////////
   static void Classify(std::string, const mat&, Row<DataType>&, boost::filesystem::path=boost::filesystem::path{}, bool=false);
   static void Predict(std::string, const mat&, Row<DataType>&, boost::filesystem::path=boost::filesystem::path{});
+  /////////////////////////////////////////////
 
+  // 
+  // For predicting IS for given model /
+  //////////////////////////////////////
   static void Classify(std::string, Row<DataType>&, boost::filesystem::path=boost::filesystem::path{});
   static void Predict(std::string, Row<DataType>&, boost::filesystem::path=boost::filesystem::path{});
+  //////////////////////////////////////
 
+  // Helpers for incremental trainers /
+  /////////////////////////////////////
   static optCV ClassifyStepwise(std::string, Row<DataType>&, Row<DataType>&, bool=false, bool=false, bool=false, boost::filesystem::path=boost::filesystem::path{});
   static optRV PredictStepwise(std::string, Row<DataType>&, Row<DataType>&, bool=false, bool=false, boost::filesystem::path=boost::filesystem::path{});
 
+  // Helpers for incremental trainers
   static void ClassifyStep(std::string, std::string, Row<double>&, bool=false, boost::filesystem::path=boost::filesystem::path{});
   static void PredictStep(std::string, std::string, Row<double>&, boost::filesystem::path=boost::filesystem::path{});
 
+  // Helpers for incremental trainers
   static void ClassifyStep(std::string, std::string, std::string, bool=false, boost::filesystem::path=boost::filesystem::path{});
   static void PredictStep(std::string, std::string, std::string, boost::filesystem::path=boost::filesystem::path{});  
+  /////////////////////////////////////
 
 private:
   static void desymmetrize(Row<DataType>&, double, double);

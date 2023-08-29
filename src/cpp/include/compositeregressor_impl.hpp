@@ -523,12 +523,14 @@ CompositeRegressor<RegressorType>::computeOptimalSplit(rowvec& g,
   std::vector<double> hv = arma::conv_to<std::vector<double>>::from(h);
 
   int n = colMask.n_rows, T = partitionSize;
-  bool risk_partitioning_objective	= true;
-  bool use_rational_optimization	= true;
-  bool sweep_down			= false;
-  double gamma				= 0.;
-  double reg_power			= 1.;
-  bool find_optimal_t			= false;
+  // XXX
+  // constexpr bool risk_partitioning_objective	= true;
+  constexpr bool risk_partitioning_objective	= true;
+  constexpr bool use_rational_optimization	= true;
+  constexpr bool sweep_down			= false;
+  constexpr double gamma			= 0.;
+  constexpr double reg_power			= 1.;
+  constexpr bool find_optimal_t			= false;
 
   // std::cout << "PARTITION SIZE: " << T << std::endl;
 

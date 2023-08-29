@@ -49,7 +49,7 @@ auto main(int argc, char **argv) -> int {
     store(parse_command_line(argc, argv, desc), vm);
 
     if (vm.count("help")) {
-      std::cout << "Context creator helper" << std::endl
+      std::cout << "Incremental predict helper" << std::endl
 		<< desc << std::endl;
 
     }

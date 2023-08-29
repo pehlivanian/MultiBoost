@@ -23,6 +23,7 @@ declare -a num_args
 declare -a dataname
 declare -a loss_fn
 declare -a recursivefit
+declare -a runOnTestDataset
 
 dataname=""
 basesteps=""
@@ -66,6 +67,7 @@ while (( $# )); do
   loss_fn+=$1; shift
   colsubsample_ratio+=$1; shift
   recursivefit+=$1; shift
+  runOnTestDataset+=${1:0}; shift
 
 done
 
@@ -232,3 +234,17 @@ do
 
   ((n=n+1))
 done
+
+
+if [ ! -z "$runOnTestDataset" ]; then
+# We assume that ${dataname} ends with the pattern r'''_train$'''
+# and we test OOS fit on the dataset with "_test" suffix
+  testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
+  testdataname=${testdataname}"_test"
+  echo "Testing OOS fit on "${testdataname}
+  EXEC_TEST_OOS=${PATH}OOS_predict
+  $EXEC_TEST_OOS \
+  --dataName ${testdataname} \
+  --indexName $INDEX_NAME_STEP \
+  --folderName $FOLDER_STEP
+fi

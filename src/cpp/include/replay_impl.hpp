@@ -384,7 +384,7 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
     }
   }
 
-  distribute = false; // before enabling, make sure we have the memory
+  distribute = false; // before enabling, make sure we don't start paging
 
   // Next pass - generate prediction
   if (distribute) {

@@ -53,6 +53,9 @@ option(BUILD_INC_PREDICT "Build incrmental predictor" ON)
 # build stepwise classifier
 option(BUILD_STEPWISE_CLASSIFY "Build stepwise classifier" ON)
 
+#build OOS predictor
+option(BUILD_OOS_PREDICTOR "Build OOS predictor" ON)
+
 # build stepwise predictor
 option(BUILD_STEPWISE_PREDICT "Build stepwise predictor" ON)
 
@@ -320,6 +323,16 @@ if (BUILD_STEPWISE_PREDICT)
 	${BLAS_LIBRARIES} $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 endif()
 
+# OOS predictor for sequential, serialized runs
+if (BUILD_STEPWISE_PREDICT)
+  add_executable(OOS_predict OOS_predict.cpp)
+  target_link_libraries(OOS_predict LINK_PUBLIC ${Boost_LIBRARIES} loss utils 
+	gradientboostregressor replay
+	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
+	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> 
+	${BLAS_LIBRARIES} $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+endif()
+
 # Titanic dataset driver on pmlb data
 if (BUILD_TITANIC)
   add_executable(titanic_driver titanic_driver.cpp)
@@ -373,6 +386,7 @@ MESSAGE(STATUS "Build stepwise classifier:                   " ${BUILD_STEPWISE_
 MESSAGE(STATUS "Build stepwise predictor:                    " ${BUILD_STEPWISE_PREDICT})
 MESSAGE(STATUS "Build replay stepwise classifier:            " ${BUILD_REPLAY_CLASSIFY_STEPWISE})
 MESSAGE(STATUS "Build replay stepwise regressor:             " ${BUILD_REPLAY_PREDICT_STEPWISE})
+MESSAGE(STATUS "Build OOS predictor:                         " ${BUILD_OOS_PREDICTOR})
 MESSAGE(STATUS "Build titanic ex:                            " ${BUILD_TITANIC})
 MESSAGE(STATUS "Build multiclass inductive boost classifier: " ${BUILD_MULTICLASS})
 MESSAGE(STATUS "Math optimizations:                          " ${MATH_OPTS})
