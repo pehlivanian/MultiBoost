@@ -23,6 +23,7 @@ declare -a num_args
 declare -a dataname
 declare -a loss_fn
 declare -a recursivefit
+declare -a runOnTestDataset
 
 dataname=""
 basesteps=""
@@ -66,6 +67,7 @@ while (( $# )); do
   loss_fn+=$1; shift
   colsubsample_ratio+=$1; shift
   recursivefit+=$1; shift
+  runOnTestDataset+=${1:0}; shift
 
 done
 
@@ -74,29 +76,6 @@ SPLITRATIO=0.2
 
 CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCreifissa.cxt
 CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCreifissa.cxt
-
-# CHILDPARTITIONSIZE=(1000 500 250 100 50 10 5 1)
-# CHILDNUMSTEPS=(2 2 3 5 5 3 2 1)
-# CHILDPARTITIONSIZE=(12 10 8 6 4 3 2 1)
-# CHILDNUMSTEPS=(5 5 4 4 3 3 2 1)
-# CHILDLEARNINGRATE=(.0001 .0001 .0002 .0002 .0003 .0003 .0004 .0005)
-# CHILDMAXDEPTH=(10 10 10 10 10 10 10 10)
-# CHILDMINLEAFSIZE=(1 1 1 1 1 1 1 1)
-# CHILDMINIMUMGAINSPLIT=(0. 0. 0. 0. 0. 0. 0. 0.)
-
-# DATANAME=/tabular_benchmark/eye_movements
-# DATANAME=breast_w
-# DATANAME=analcatdata_cyyoung9302
-# DATANAME=colic
-# DATANAME=credit_a
-# DATANAME=credit_g
-# DATANAME=diabetes
-# DATANAME=australian
-# DATANAME=backache
-# DATANAME=biomed
-# DATANAME=breast_cancer_wisconsin
-# DATANAME=breast
-# DATANAME=breast_cancer
 
 ((ITERS=$basesteps / $STEPS))
 PREFIX="["${dataname}"]"
@@ -183,7 +162,6 @@ echo ${PREFIX}" ITER: 1"
 
 ((n=n+1))
 
-
 # Classify OOS
 $EXEC_PRED_OOS \
 --indexFileName $INDEX_NAME_STEP \
@@ -219,3 +197,29 @@ do
 
   ((n=n+1))
 done
+
+# Final OOS test prediction
+# It is assumed that the {*_train_X.csv, *_train_y.csv} datasets
+# have companion {*_test_X.csv, *_test_y.csv} datasets on which
+# we test the above fitted archived regressor.
+
+# Note: The proper procedure would be to fit a model on all of
+# the _train dataset, we fitted it on the proportion (1 - $SPLITRATIO)
+# above.
+
+if [ ! -z "$runOnTestDataset" ]; then
+  # We assume that ${dataname} ends with the pattern r'''_train$'''
+  # and we test OOS fit on the dataset with "_test" suffix
+
+  testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
+  testdataname=${testdataname}"_test"
+
+  EXEC_TEST_OOS=${PATH}OOS_classify
+  PREFIX="["${testdataname}"]"
+
+  $EXEC_TEST_OOS \
+  --dataName ${testdataname} \
+  --indexName $INDEX_NAME_STEP \
+  --folderName $FOLDER_STEP \
+  --prefixStr $PREFIX
+fi

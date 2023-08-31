@@ -31,9 +31,6 @@ public:
   using Classifier		= typename classifier_traits<ClassifierType>::model;
   using ClassifierList		= std::vector<std::unique_ptr<ClassifierBase<DataType, Classifier>>>;
 
-  using Partition		= std::vector<std::vector<int>>;
-  using PartitionList		= std::vector<Partition>;
-
   using Leaves			= Row<double>;
   using Prediction		= Row<double>;
   using PredictionList		= std::vector<Prediction>;
@@ -512,7 +509,6 @@ private:
   AllClassifierArgs classifierArgs_;
 
   ClassifierList classifiers_;
-  PartitionList partitions_;
   PredictionList predictions_;
 
   std::mt19937 mersenne_engine_{std::random_device{}()};

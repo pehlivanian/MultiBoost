@@ -231,10 +231,6 @@ CompositeRegressor<RegressorType>::init_(Context&& context) {
   const typename RegressorType::Args& regressorArgs = RegressorType::_args(allRegressorArgs());
   createRegressor(regressor, dataset_, constantLabels, regressorArgs);
 
-  // regressor.reset(new RegressorType(dataset_,
-  //  				      constantLabels,
-  //				      std::forward<typename RegressorType::Args>(regressorArgs)));
-
   // first prediction
   if (!hasInitialPrediction_){
     latestPrediction_ = zeros<Row<DataType>>(dataset_.n_cols);
@@ -250,7 +246,7 @@ CompositeRegressor<RegressorType>::init_(Context&& context) {
   lossFn_ = lossMap<DataType>[loss_];
 
   // ensure this is a leaf regressor for lowest-level call
-  if (partitionSize_ == 1) {
+  if (childPartitionSize_.size() <= 1) {   
     recursiveFit_ = false;
   }
 
@@ -349,7 +345,6 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
   Leaves allLeaves = zeros<row_d>(m_), best_leaves;
 
   Row<DataType> prediction, prediction_slice;
-  
   std::unique_ptr<RegressorType> regressor;
 
   //////////////////////////
@@ -377,7 +372,6 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
     // aside from the fact that it is of double type, it may have more 
     // than one class. So we don't want to symmetrize, but we want 
     // to remap the redundant values.
-
     std::unique_ptr<CompositeRegressor<RegressorType>> regressor;
     regressor.reset(new CompositeRegressor<RegressorType>(dataset_, 
 							  labels_, 
@@ -423,7 +417,7 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
   if (RegressorFileScope::DIAGNOSTICS_0_) {
 
     std::cerr << fit_prefix(depth_);
-    std::cerr << "FITTING LEAF REGRESSOR FOR (PARTITIONSIZE, STEPNUM): ("
+    std::cerr << "[*]FITTING LEAF REGRESSOR FOR (PARTITIONSIZE, STEPNUM): ("
 	      << partitionSize_ << ", "
 	      << stepNum << " of "
 	      << steps_ << ")"
@@ -523,8 +517,6 @@ CompositeRegressor<RegressorType>::computeOptimalSplit(rowvec& g,
   std::vector<double> hv = arma::conv_to<std::vector<double>>::from(h);
 
   int n = colMask.n_rows, T = partitionSize;
-  // XXX
-  // constexpr bool risk_partitioning_objective	= true;
   constexpr bool risk_partitioning_objective	= true;
   constexpr bool use_rational_optimization	= true;
   constexpr bool sweep_down			= false;

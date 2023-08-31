@@ -1,9 +1,15 @@
-#include "OOS_predict.hpp"
+#include "OOS_classify.hpp"
 
 using namespace boost::program_options;
 
-auto main(int argc, char **argv) -> int {
+void desymmetrize(Row<double>& prediction, double a, double b) {
   
+  prediction = (sign(prediction) - b)/ a;
+
+}
+
+auto main(int argc, char **argv) -> int {
+
   std::string dataName;
   std::string indexName;
   std::string folderName = "";
@@ -50,34 +56,50 @@ auto main(int argc, char **argv) -> int {
   prediction = zeros<Row<double>>(dataset.n_cols);
   predictionStep = zeros<Row<double>>(dataset.n_cols);
 
-  // Deserialize archived regressor
+  // Deserialize archived classifier
   boost::filesystem::path fldr{folderName};
   std::vector<std::string> fileNames;
 
-  using R = GradientBoostRegressor<DecisionTreeRegressorRegressor>;
-  std::unique_ptr<R> regressorArchive = std::make_unique<R>();
+  using C = GradientBoostClassifier<DecisionTreeClassifier>;
+  std::unique_ptr<C> classifierArchive = std::make_unique<C>();
 
-  // Predict OOS
+  std::pair<double, double> ab;
+
+  // Classifier OOS
   readIndex(indexName, fileNames, fldr);
-
+  
   for (auto & fileName : fileNames) {
     auto tokens = strSplit(fileName, '_');
-    if (tokens[0] == "REG") {
+    if (tokens[0] == "CLS") {
       fileName = strJoin(tokens, '_', 1);
-      read(*regressorArchive, fileName, fldr);
-      regressorArchive->Predict(dataset, predictionStep);
+      read(*classifierArchive, fileName, fldr);
+      classifierArchive->Predict(dataset, predictionStep, true);
+      ab = classifierArchive->getAB();
       prediction += predictionStep;
     }
   }
 
-  // Create summary stats
-  auto mn = mean(labels);
-  auto num = sum(pow((labels - prediction), 2));
-  auto den = sum(pow((labels - mn), 2));
-  double r_squared = 1. - (num/den);
+  desymmetrize(prediction, ab.first, ab.second);
 
-  std::cout << prefixStr << " OOS: (r_squared): ("
-	    << r_squared << ")" << std::endl;
-  
+  double error = err(prediction, labels);
+
+  // Symmetrize labels for remaining metrics
+  classifierArchive->symmetrizeLabels(labels);
+  classifierArchive->symmetrizeLabels(prediction);
+
+  Row<int> labels_i = conv_to<Row<int>>::from(labels);
+  Row<int> prediction_i = conv_to<Row<int>>::from(prediction);
+
+  auto [prec, recall, F1] = precision(labels_i, prediction_i);
+
+  double imb = imbalance(labels);
+
+  std::cout << prefixStr << " OOS: (error, precision, recall, F1, imbalance) : ("
+	    << error << ", "
+	    << prec << ", "
+	    << recall << ", "
+	    << F1 << ", "
+	    << imb << ")" << std::endl;
+
   return 0;
 }

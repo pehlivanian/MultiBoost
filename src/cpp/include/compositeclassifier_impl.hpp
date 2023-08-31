@@ -13,7 +13,7 @@ using namespace IB_utils;
 
 namespace ClassifierFileScope{
   const bool POST_EXTRAPOLATE = false;
-  const bool DIAGNOSTICS_0_ = false;
+  const bool DIAGNOSTICS_0_ = true;
   const bool DIAGNOSTICS_1_ = false;
   const std::string DIGEST_PATH = 
     "/home/charles/src/C++/sandbox/Inductive-Boost/digest/classify";
@@ -195,6 +195,10 @@ CompositeClassifier<ClassifierType>::init_(Context&& context) {
     
   }
 
+  // Will keep overwriting context
+  std::string contextFilename = "_Context_0.cxt";
+  writeBinary<Context>(contextFilename, context, fldr_);
+
   // Serialize dataset, labels first
   if (serializeDataset_) {
     std::string path;
@@ -231,10 +235,6 @@ CompositeClassifier<ClassifierType>::init_(Context&& context) {
     auto uniqueVals = uniqueCloseAndReplace(labels_);
   }
 
-  // partitions
-  Partition partition = PartitionUtils::_fullPartition(m_);
-  partitions_.push_back(partition);
-
   // classifiers
   // don't overfit on first classifier
   row_d constantLabels = _constantLeaf();
@@ -245,10 +245,6 @@ CompositeClassifier<ClassifierType>::init_(Context&& context) {
   std::unique_ptr<ClassifierType> classifier;
   const typename ClassifierType::Args& classifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize_));
   createClassifier(classifier, dataset_, constantLabels, classifierArgs);
-
-  // classifier.reset(new ClassifierType(dataset_,
-  //  				      constantLabels,
-  //				      std::forward<typename ClassifierType::Args>(classifierArgs)));
 
   // first prediction
   if (!hasInitialPrediction_){
@@ -265,7 +261,7 @@ CompositeClassifier<ClassifierType>::init_(Context&& context) {
   lossFn_ = lossMap<DataType>[loss_];
 
   // ensure this is a leaf classifier for lowest-level call
-  if (partitionSize_ == 1) {
+  if (childPartitionSize_.size() <= 1) {
     recursiveFit_ = false;
   }
 
@@ -585,7 +581,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
   if (ClassifierFileScope::DIAGNOSTICS_0_)
     std::cerr << fit_prefix(depth_);
-    std::cerr << "FITTING LEAF CLASSIFIER FOR (PARTITIONSIZE, STEPNUM): ("
+    std::cerr << "[*]FITTING LEAF CLASSIFIER FOR (PARTITIONSIZE, STEPNUM): ("
 	      << partitionSize_ << ", "
 	      << stepNum << " of "
 	      << steps_ << ")"
@@ -667,12 +663,12 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
   std::vector<double> hv = arma::conv_to<std::vector<double>>::from(h);
 
   int n = colMask.n_rows, T = partitionSize;
-  bool risk_partitioning_objective = true;
-  bool use_rational_optimization = true;
-  bool sweep_down = false;
-  double gamma = 0.;
-  double reg_power=1.;
-  bool find_optimal_t = false;
+  bool risk_partitioning_objective			= true;
+  bool use_rational_optimization			= true;
+  bool sweep_down					= false;
+  double gamma						= 0.;
+  double reg_power					= 1.;
+  bool find_optimal_t					= false;
 
   // std::cout << "PARTITION SIZE: " << T << std::endl;
 
@@ -698,8 +694,6 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
     }
   }
 
-  partitions_.emplace_back(subsets);
-
   return leaf_values;
     
 }
@@ -712,13 +706,11 @@ CompositeClassifier<ClassifierType>::purge_() {
   labels_ = ones<Row<double>>(0);
   dataset_oos_ = ones<mat>(0,0);
   labels_oos_ = ones<Row<double>>(0);
-  std::vector<Partition>().swap(partitions_);
 
   // dataset_.clear();
   // labels_.clear();
   // dataset_oos_.clear();
   // labels_oos_.clear();
-  // partitions_.clear();
 }
 
 template<typename ClassifierType>
@@ -973,15 +965,13 @@ CompositeClassifier<ClassifierType>::fit() {
   for (int stepNum=1; stepNum<=steps_; ++stepNum) {
     fit_step(stepNum);
     
-    if ((stepNum > 5) && ((stepNum%serializationWindow_) == 1)) {
-      if (serializeModel_) {
-	commit();
-      }
-      if (!quietRun_) {
-	printStats(stepNum);
-      }
+    if (serializeModel_) {
+      commit();
     }
-    
+    if (!quietRun_) {
+      printStats(stepNum);
+    }
+
   }
 
   // Serialize residual
@@ -1139,12 +1129,5 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
   
   return std::make_pair(g, h);
 }
-/*
-  double
-  CompositeClassifier<ClassifierType>::imbalance() {
-  ;
-  }
-  // 2.0*((sum(y_train==0)/len(y_train) - .5)**2 + (sum(y_train==1)/len(y_train) - .5)**2)
-  */
 
 #endif

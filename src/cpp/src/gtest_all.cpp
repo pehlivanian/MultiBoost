@@ -623,7 +623,6 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
   dataset_t dataset, trainDataset, testDataset;
   labels_t labels, trainLabels, testLabels;
 
-
   loadClassifierDatasets(dataset, labels);
   data::Split(dataset, 
 	      labels,

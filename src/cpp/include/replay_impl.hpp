@@ -173,6 +173,7 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
 	classifierFileName = strJoin(tokens, '_', 1);
 	std::string outFile = outFilePref + std::to_string(classifierNum) + ".prd";
 	std::string outFile_is = outFilePref + std::to_string(classifierNum) + ".is.prd";
+
 	// Call ClassifyStep at this point, but 
 	// wrapped in another process we can launch as a 
 	// true subprocess

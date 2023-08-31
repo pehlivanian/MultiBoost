@@ -77,43 +77,6 @@ SPLITRATIO=0.2
 CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCrosserge.cxt
 CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCrosserge.cxt
 
-# CHILDPARTITIONSIZE=(1000 500 250 100 20 10 5 1)
-# CHILDNUMSTEPS=(1 1 1 3 5 3 1 1 1)
-# CHILDLEARNINGRATE=(.001 .001 .002 .002 .003 .003 .004 .004)
-# CHILDMAXDEPTH=(20 20 20 20 20 10 5 5)
-# CHILDMINLEAFSIZE=(1 1 1 1 1 50 100 100)
-# CHILDMINIMUMGAINSPLIT=(0. 0. 0. 0. 0. 0. 0. 0.)
-
-# # CHILDPARTITIONSIZE=(2000 1000 500 250 100 50 25 10 5 1)
-# CHILDPARTITIONSIZE=(2 1 5 2 1 5 2 1 5 1)
-# CHILDNUMSTEPS=(1 1 2 2 3 4 3 2 2 1)
-# CHILDLEARNINGRATE=(.0225 .0225 .025 .025 .0375 .0375 .04 .04 .05 .05)
-# # CHILDLEARNINGRATE=(.01 .01 .01 .01 .01 .01 .01 .01 .01 .01)
-# CHILDMAXDEPTH=(20 20 20 20 20 20 10 10 5 5)
-# CHILDMINLEAFSIZE=(1 1 1 1 1 1 25 50 100 100)
-# CHILDMINIMUMGAINSPLIT=(0. 0. 0. 0. 0. 0. 0. 0. 0. 0.)
-# STEPS=1
-# BASESTEPS=500
-# RECURSIVE_FIT=true
-# MINLEAFSIZE=1
-# MINGAINSPLIT=0.
-# MAXDEPTH=20
-# LOSS_FN=0
-# COLSUBSAMPLE_RATIO=1.
-
-# DATANAME=tabular_benchmark/Regression/Mixed/Mercedes_Benz_Greener_Manufacturing
-# DATANAME=tabular_benchmark/Regression/superconduct
-# DATANAME=tabular_benchmark/Regression/wine_quality
-# DATANAME=tabular_benchmark/Regression/sulfur
-# DATANAME=tabular_benchmark/Regression/houses
-# DATANAME=tabular_benchmark/Regression/house_sale
-# DATANAME=tabular_benchmark/Regression/MiamiHousing2016
-# DATANAME=tabular_benchmark/Regression/Bike_Sharing_Demand
-# DATANAME=tabular_benchmark/Regression/elevators
-# DATANAME=tabular_benchmark/Regression/house_16H
-# DATANAME=tabular_benchmark/Regression/yprop_4_1
-SPLITRATIO=0.2
-
 ((ITERS=$basesteps / $STEPS))
 PREFIX="["${dataname}"]"
 
@@ -235,16 +198,28 @@ do
   ((n=n+1))
 done
 
+# Final OOS test prediction
+# It is assumed that the {*_train_X.csv, *_train_y.csv} datasets
+# have companion {*_test_X.csv, *_test_y.csv} datasets on which
+# we test the above fitted archived regressor.
+
+# Note: The proper procedure would be to fit a model on all of
+# the _train dataset, we fitted it on the proportion (1 - $SPLITRATIO)
+# above.
 
 if [ ! -z "$runOnTestDataset" ]; then
-# We assume that ${dataname} ends with the pattern r'''_train$'''
-# and we test OOS fit on the dataset with "_test" suffix
+  # We assume that ${dataname} ends with the pattern r'''_train$'''
+  # and we test OOS fit on the dataset with "_test" suffix
+
   testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
   testdataname=${testdataname}"_test"
-  echo "Testing OOS fit on "${testdataname}
+
   EXEC_TEST_OOS=${PATH}OOS_predict
+  PREFIX="["${testdataname}"]"
+
   $EXEC_TEST_OOS \
   --dataName ${testdataname} \
   --indexName $INDEX_NAME_STEP \
-  --folderName $FOLDER_STEP
+  --folderName $FOLDER_STEP \
+  --prefixStr $PREFIX
 fi

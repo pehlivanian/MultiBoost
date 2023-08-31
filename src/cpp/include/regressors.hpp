@@ -27,12 +27,14 @@ namespace Model_Traits {
   
   namespace RegressorTypes {
 
-    using DecisionTreeRegressorRegressorType  = DecisionTreeRegressor<MADGain, BestBinaryNumericSplit>;
+    // XXX
+    using DecisionTreeRegressorRegressorType = DecisionTreeRegressor<MADGain>;
 
-    // using DecisionTreeRegressorRegressorType = DecisionTreeRegressor<MADGain>;
+    // using DecisionTreeRegressorRegressorType  = DecisionTreeRegressor<MADGain, BestBinaryNumericSplit>;
     // using DecisionTreeRegressorRegressorType = DecisionTreeRegressor<>;
     // using DecisionTreeRegressorRegressorType = DecisionTreeRegressor<MSEGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
     // using DecisionTreeRegressorRegressorType = DecisionTreeRegressor<InformationGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
+    // using DecisionTreeRegressorRegressorType = DecisionTreeRegressor<MADGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
   
   };
 } // namespace Model_Traits
