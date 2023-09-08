@@ -37,6 +37,7 @@ auto main() -> int {
   Context context{};
   // context.loss = lossFunction::Savage;
   context.loss = lossFunction::BinomialDeviance;
+  // context.loss = lossFunction::LogLoss;
   // context.loss = lossFunction::MSE;
   // context.loss = lossFunction::Exp;
   // context.loss = lossFunction::Arctan;

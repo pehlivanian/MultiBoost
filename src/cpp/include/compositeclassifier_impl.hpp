@@ -134,6 +134,16 @@ CompositeClassifier<ClassifierType>::_constantLeaf() const {
 
 template<typename ClassifierType>
 row_d
+CompositeClassifier<ClassifierType>::_constantLeaf(double val) const {
+  
+  row_d r;
+  r.ones(dataset_.n_cols);
+  r *= val;
+  return r;
+}
+
+template<typename ClassifierType>
+row_d
 CompositeClassifier<ClassifierType>::_randomLeaf() const {
 
   row_d r(dataset_.n_cols, arma::fill::none);
@@ -171,6 +181,7 @@ template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::updateClassifiers(std::unique_ptr<ClassifierBase<DataType, Classifier>>&& classifier,
 						       Row<DataType>& prediction) {
+
   latestPrediction_ += prediction;
   classifier->purge();
   classifiers_.push_back(std::move(classifier));
@@ -235,27 +246,10 @@ CompositeClassifier<ClassifierType>::init_(Context&& context) {
     auto uniqueVals = uniqueCloseAndReplace(labels_);
   }
 
-  // classifiers
-  // don't overfit on first classifier
-  row_d constantLabels = _constantLeaf();
-  // row_d constantLabels = _randomLeaf();
- 
-  // numClasses is always the first parameter for the classifier
-  // form parameter pack based on ClassifierType
-  std::unique_ptr<ClassifierType> classifier;
-  const typename ClassifierType::Args& classifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize_));
-  createClassifier(classifier, dataset_, constantLabels, classifierArgs);
-
-  // first prediction
-  if (!hasInitialPrediction_){
-    latestPrediction_ = zeros<Row<DataType>>(dataset_.n_cols);
+  // Set latestPrediction to 0 if not passed
+  if (!hasInitialPrediction_) {
+    latestPrediction_ = _constantLeaf(0.0);
   }
-
-  Row<DataType> prediction;
-  classifier->Classify(dataset_, prediction);
-
-  // update classifier, predictions
-  updateClassifiers(std::move(classifier), prediction);
 
   // set loss function
   lossFn_ = lossMap<DataType>[loss_];
@@ -443,19 +437,21 @@ CompositeClassifier<ClassifierType>::symmetrizeLabels(Row<DataType>& labels) {
   Row<DataType> uniqueVals = uniqueCloseAndReplace(labels);
 
   if (uniqueVals.n_cols == 1) {
-
-    // a_ = fabs(1./uniqueVals(0)); b_ = 0.;
-    // labels = sign(labels);
     a_ = 1.; b_ = 1.;
     labels = ones<Row<double>>(labels.n_elem);
   } else if (uniqueVals.size() == 2) {
-
     double m = *std::min_element(uniqueVals.cbegin(), uniqueVals.cend());
     double M = *std::max_element(uniqueVals.cbegin(), uniqueVals.cend());
-    a_ = 2./static_cast<double>(M-m);
-    b_ = static_cast<double>(m+M)/static_cast<double>(m-M);
-    labels = sign(a_*labels + b_);
-    // labels = sign(2 * labels - 1);      
+    if (loss_ == lossFunction::LogLoss) {
+      // Normalize so that $y \in \left\lbrace 0,1\right\rbrace$
+      a_ = 1./(M-m);
+      b_ = -1*static_cast<double>(m)/static_cast<double>(M-m);
+      labels = a_*labels + b_;
+    } else {
+      a_ = 2./static_cast<double>(M-m);
+      b_ = static_cast<double>(m+M)/static_cast<double>(m-M);
+      labels = sign(a_*labels + b_);
+    }
   } else if (uniqueVals.size() == 3) { // for the multiclass case, we may have values in {0, 1, 2}
 
     uniqueVals = sort(uniqueVals);
@@ -492,7 +488,13 @@ template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::deSymmetrize(Row<DataType>& prediction) {
 
-  prediction = (sign(prediction) - b_)/ a_;
+    if (loss_ == lossFunction::LogLoss) {
+      // Normalized values were in $\left\lbrace 0,1\right\rightbrace$
+      prediction = ((0.5*sign(prediction)+0.5) - b_)/ a_;
+    }
+    else {
+      prediction = (sign(prediction) - b_)/ a_;
+    }
 }
 
 template<typename ClassifierType>
@@ -521,7 +523,6 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
       computeChildPartitionInfo();
 
     if (ClassifierFileScope::DIAGNOSTICS_1_ || ClassifierFileScope::DIAGNOSTICS_0_) {
-
       std::cerr << fit_prefix(depth_);
       std::cerr << "FITTING COMPOSITE CLASSIFIER FOR (PARTITIONSIZE, STEPNUM): ("
 		<< partitionSize_ << ", "
@@ -538,11 +539,18 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     // than one class. So we don't want to symmetrize, but we want 
     // to remap the redundant values.
     std::unique_ptr<CompositeClassifier<ClassifierType>> classifier;
-    classifier.reset(new CompositeClassifier<ClassifierType>(dataset_, 
-							     labels_, 
-							     latestPrediction_, 
-							     colMask_, 
-							     context));
+    if (hasInitialPrediction_) {
+      classifier.reset(new CompositeClassifier<ClassifierType>(dataset_, 
+							       labels_, 
+							       latestPrediction_, 
+							       colMask_, 
+							       context));
+    } else {
+      classifier.reset(new CompositeClassifier<ClassifierType>(dataset_,
+							       labels_,
+							       colMask_,
+							       context));
+    }
 
     if (ClassifierFileScope::DIAGNOSTICS_1_) {
 
@@ -571,6 +579,8 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
     updateClassifiers(std::move(classifier), prediction);
 
+    hasInitialPrediction_ = true;
+
   } 
   ////////////////////////
   // END RECURSIVE STEP //
@@ -579,18 +589,27 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   // If we are in recursive mode and partitionSize <= 2, fall through
   // to this case for the leaf classifier
 
-  if (ClassifierFileScope::DIAGNOSTICS_0_)
+  if (ClassifierFileScope::DIAGNOSTICS_0_) {
     std::cerr << fit_prefix(depth_);
     std::cerr << "[*]FITTING LEAF CLASSIFIER FOR (PARTITIONSIZE, STEPNUM): ("
 	      << partitionSize_ << ", "
 	      << stepNum << " of "
 	      << steps_ << ")"
 	      << std::endl;
+  }
+
+  if (!hasInitialPrediction_){
+    if (loss_ == lossFunction::LogLoss) {
+      latestPrediction_ = _constantLeaf(mean(labels_slice));
+    } else {
+      latestPrediction_ = _constantLeaf(0.0);
+    }
+  }
   
   // Generate coefficients g, h
   std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
-
-   // Compute optimal leaf choice on unrestricted dataset
+  
+  // Compute optimal leaf choice on unrestricted dataset
   best_leaves = computeOptimalSplit(coeffs.first, 
 				    coeffs.second, 
 				    stepNum, 
@@ -622,7 +641,6 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   classifier->Classify(dataset_, prediction);
 
   if (ClassifierFileScope::DIAGNOSTICS_1_) {
-    
     std::cerr << fit_prefix(depth_);
     std::cerr << "FITTING LEAF CLASSIFIER FOR (PARTITIONSIZE, STEPNUM): ("
 	      << partitionSize_ << ", "
@@ -644,6 +662,8 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   }
 
   updateClassifiers(std::move(classifier), prediction);
+  
+  hasInitialPrediction_ = true;
 
 }
 
@@ -1114,20 +1134,6 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
 
   return std::make_pair(g, h);
 
-}
-
-template<typename ClassifierType>
-std::pair<rowvec, rowvec>
-CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& yhat,
-							   const Row<DataType>& y,
-							   const uvec& colMask) {
-  
-  (void)colMask;
-
-  rowvec g, h;
-  lossFn_->loss(yhat, y, &g, &h);
-  
-  return std::make_pair(g, h);
 }
 
 #endif

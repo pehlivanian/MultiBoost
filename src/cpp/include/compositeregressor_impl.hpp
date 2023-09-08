@@ -132,6 +132,15 @@ CompositeRegressor<RegressorType>::_constantLeaf() const {
 
 template<typename RegressorType>
 row_d
+CompositeRegressor<RegressorType>::_constantLeaf(double val) const {
+  row_d r;
+  r.ones(dataset_.n_cols);
+  r *= val;
+  return r;
+}
+
+template<typename RegressorType>
+row_d
 CompositeRegressor<RegressorType>::_randomLeaf() const {
 
   row_d r(dataset_.n_cols, arma::fill::none);
@@ -219,28 +228,12 @@ CompositeRegressor<RegressorType>::init_(Context&& context) {
 
   // Initialize rng  
   std::size_t a=1, b=std::max(1, static_cast<int>(m_ * col_subsample_ratio_));
-  partitionDist_ = std::uniform_int_distribution<std::size_t>(a, b);							      
+  partitionDist_ = std::uniform_int_distribution<std::size_t>(a, b);
 
-  // regressors
-  // don't overfit on first regressor
-  row_d constantLabels = _constantLeaf();
-  // row_d constantLabels = _randomLeaf();
- 
-  // form parameter pack based on RegressorType
-  std::unique_ptr<RegressorType> regressor;
-  const typename RegressorType::Args& regressorArgs = RegressorType::_args(allRegressorArgs());
-  createRegressor(regressor, dataset_, constantLabels, regressorArgs);
-
-  // first prediction
-  if (!hasInitialPrediction_){
-    latestPrediction_ = zeros<Row<DataType>>(dataset_.n_cols);
+  // Set latestPrediction to 0 if not passed
+  if (!hasInitialPrediction_) {
+    latestPrediction_ = _constantLeaf(0.0);
   }
-
-  Row<DataType> prediction;
-  regressor->Predict(dataset_, prediction);
-
-  // update regressor, predictions
-  updateRegressors(std::move(regressor), prediction);
 
   // set loss function
   lossFn_ = lossMap<DataType>[loss_];
@@ -355,7 +348,6 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
       computeChildPartitionInfo();
 
     if (RegressorFileScope::DIAGNOSTICS_1_ || RegressorFileScope::DIAGNOSTICS_0_) {
-
       std::cerr << fit_prefix(depth_);
       std::cerr << "FITTING COMPOSITE REGRESSOR FOR (PARTITIONSIZE, STEPNUM): ("
 		<< partitionSize_ << ", "
@@ -373,11 +365,18 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
     // than one class. So we don't want to symmetrize, but we want 
     // to remap the redundant values.
     std::unique_ptr<CompositeRegressor<RegressorType>> regressor;
-    regressor.reset(new CompositeRegressor<RegressorType>(dataset_, 
-							  labels_, 
-							  latestPrediction_, 
-							  colMask_, 
-							  context));
+    if (hasInitialPrediction_) {
+      regressor.reset(new CompositeRegressor<RegressorType>(dataset_, 
+							    labels_, 
+							    latestPrediction_, 
+							    colMask_, 
+							    context));
+    } else {
+      regressor.reset(new CompositeRegressor<RegressorType>(dataset_, 
+							    labels_, 
+							    colMask_, 
+							    context));
+    }
 
     if (RegressorFileScope::DIAGNOSTICS_1_) {
 
@@ -405,6 +404,8 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
 
     updateRegressors(std::move(regressor), prediction);
 
+    hasInitialPrediction_ = true;
+
   } 
   ////////////////////////
   // END RECURSIVE STEP //
@@ -423,7 +424,11 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
 	      << steps_ << ")"
 	      << std::endl;
   }
-  
+
+  if (!hasInitialPrediction_) {
+    latestPrediction_ = _constantLeaf(0.0);
+  }
+
   // Generate coefficients g, h
   std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
 
@@ -497,6 +502,8 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
   }
 
   updateRegressors(std::move(regressor), prediction);
+
+  hasInitialPrediction_ = true;
 
 }
 
@@ -969,20 +976,6 @@ CompositeRegressor<RegressorType>::generate_coefficients(const Row<DataType>& la
 
   return std::make_pair(g, h);
 
-}
-
-template<typename RegressorType>
-std::pair<rowvec, rowvec>
-CompositeRegressor<RegressorType>::generate_coefficients(const Row<DataType>& yhat,
-							 const Row<DataType>& y,
-							 const uvec& colMask) {
-  
-  (void)colMask;
-
-  rowvec g, h;
-  lossFn_->loss(yhat, y, &g, &h);
-  
-  return std::make_pair(g, h);
 }
 
 #endif

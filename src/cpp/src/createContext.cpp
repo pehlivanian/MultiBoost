@@ -61,6 +61,9 @@ namespace std {
     case (9):
       loss = lossFunction::SyntheticRegLoss;
       break;
+    case (10):
+      loss = lossFunction::LogLoss;
+      break;
     default:
       in.setstate(std::ios_base::failbit);
     }

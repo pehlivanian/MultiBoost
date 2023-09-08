@@ -667,7 +667,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
 
     // Predict IS with live classifier fails due to serialization...
     Row<double> liveTrainPrediction;
-    EXPECT_THROW(classifier.Predict(trainDataset, liveTrainPrediction), 
+    EXPECT_THROW(classifier.Predict(trainDataset, liveTrainPrediction),
 		 predictionAfterClearedClassifiersException );
 
     // Use latestPrediction_ instead

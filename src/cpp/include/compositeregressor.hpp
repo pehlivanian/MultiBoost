@@ -82,6 +82,25 @@ public:
   {
     init_(std::move(context));
   }
+  
+  // 2a
+  CompositeRegressor(const mat& dataset,
+		     const Row<double>& labels,
+		     const uvec& colMask,
+		     Context context,
+		     const std::string& folderName=std::string{}) :
+    RegressorBase<typename regressor_traits<RegressorType>::datatype,
+		  typename regressor_traits<RegressorType>::model>(typeid(*this).name()),    
+    dataset_{dataset},
+    labels_{labels},
+    hasOOSData_{false},
+    hasInitialPrediction_{false},
+    reuseColMask_{true},
+    colMask_{colMask},
+    folderName_{folderName}
+  {
+    init_(std::move(context));
+  }
 
   // 3
   // mat		: arma::Mat<double>
@@ -256,6 +275,7 @@ private:
   void contextInit_(Context&&);
   void init_(Context&&);
   Row<double> _constantLeaf() const;
+  Row<double> _constantLeaf(double) const;
   Row<double> _randomLeaf() const;
   uvec subsampleRows(size_t);
   uvec subsampleCols(size_t);
@@ -287,7 +307,6 @@ private:
   void updateRegressors(std::unique_ptr<RegressorBase<DataType, Regressor>>&&, Row<DataType>&);
 
   std::pair<rowvec,rowvec> generate_coefficients(const Row<DataType>&, const uvec&);
-  std::pair<rowvec,rowvec> generate_coefficients(const Row<DataType>&, const Row<DataType>&, const uvec&);
   Leaves computeOptimalSplit(rowvec&, rowvec&, std::size_t, std::size_t, double, const uvec&);
 
   void setNextRegressor(const RegressorType&);

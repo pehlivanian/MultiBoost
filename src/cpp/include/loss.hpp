@@ -31,16 +31,17 @@ using namespace std::placeholders;
 
 
 enum class lossFunction {    MSE = 0,
-			       BinomialDeviance = 1,
-			       Savage = 2,
-			       Exp = 3,
-			       Arctan = 4,
-			       Synthetic = 5,
-			       SyntheticVar1 = 6,
-			       SyntheticVar2 = 7,
-                               SquareLoss = 8,
-			       SyntheticRegLoss = 9
-			       };
+			     BinomialDeviance = 1,
+			     Savage = 2,
+			     Exp = 3,
+			     Arctan = 4,
+			     Synthetic = 5,
+			     SyntheticVar1 = 6,
+			     SyntheticVar2 = 7,
+                             SquareLoss = 8,
+			     SyntheticRegLoss = 9,
+                             LogLoss = 10
+			};
 
 
 #ifdef AUTODIFF
@@ -231,6 +232,20 @@ namespace LossMeasures {
     void hessian_(const rowvec&, const rowvec&, rowvec*) override;
   };
 
+  template<typename DataType>
+  class LogLoss : public LossFunction<DataType> {
+  public:
+    LogLoss() = default;
+    LogLoss<DataType>* create() override { return new LogLoss<DataType>(); }
+  private:
+#ifdef AUTODIFF
+    autodiff::real loss_reverse(const ArrayXreal&,, const ArrayXreal&) override;
+#endif
+    DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
+    DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
+    void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+  };
+
   struct lossMapHash {
     std::size_t operator()(lossFunction l) const { return static_cast<std::size_t>(l); }
   };
@@ -247,7 +262,8 @@ namespace LossMeasures {
       {lossFunction::SyntheticVar1,	new SyntheticLossVar1<T>() },
       {lossFunction::SyntheticVar2,	new SyntheticLossVar2<T>() },
       {lossFunction::SquareLoss,	new SquareLoss<T>() },
-      {lossFunction::SyntheticRegLoss,	new SyntheticRegLoss<T>() }
+      {lossFunction::SyntheticRegLoss,	new SyntheticRegLoss<T>() },
+      {lossFunction::LogLoss,		new LogLoss<T>() }
     };
 
 } // namespace LossMeasures

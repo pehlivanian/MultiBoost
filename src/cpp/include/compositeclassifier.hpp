@@ -77,6 +77,54 @@ public:
     init_(std::move(context));
   }
 
+  // 2a
+  // mat		: arma::Mat<double>
+  // labels		: arma::Row<std::size_t> <- CONVERTED TO Row<double>
+  // colMask		: uvec
+  // context		: ModelContext::Context
+  CompositeClassifier(const mat& dataset,
+		      const Row<std::size_t>& labels,
+		      const uvec& colMask,
+		      Context context,
+		      const std::string& folderName=std::string{}) :
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
+    dataset_{dataset},
+    labels_{conv_to<Row<double>>::from(labels)},
+    hasOOSData_{false},
+    hasInitialPrediction_{false},
+    reuseColMask_{true},
+    colMask_{colMask},
+    folderName_{folderName}
+  { 
+    init_(std::move(context));
+  }
+
+  // 2b
+  // mat		: arma::Mat<double>
+  // labels		: arma::Row<double>
+  // colMask		: uvec
+  // context		: ModelContext::Context
+  CompositeClassifier(const mat& dataset,
+		      const Row<double>& labels,
+		      const uvec& colMask,
+		      Context context,
+		      const std::string& folderName=std::string{}) :
+    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
+		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
+    dataset_{dataset},
+    labels_{labels},
+    hasOOSData_{false},
+    hasInitialPrediction_{false},
+    reuseColMask_{true},
+    colMask_{colMask},
+    folderName_{folderName}
+  { 
+    init_(std::move(context));
+  }
+
+
+
   // 3
   // mat		: arma::Mat<double>
   // labels		: arma::Row<std::size_t> <- CONVERTED TO Row<double>
@@ -120,7 +168,7 @@ public:
     dataset_{dataset},
     labels_{labels},
     dataset_oos_{dataset_oos},
-    labels_oos_{conv_to<Row<double>>::from(labels_oos)},
+    labels_oos_{labels_oos},
     hasOOSData_{true},
     hasInitialPrediction_{false},
     reuseColMask_{false},
@@ -424,6 +472,7 @@ private:
   void contextInit_(Context&&);
   void init_(Context&&);
   Row<double> _constantLeaf() const;
+  Row<double> _constantLeaf(double) const;
   Row<double> _randomLeaf() const;
   uvec subsampleRows(size_t);
   uvec subsampleCols(size_t);
@@ -458,7 +507,6 @@ private:
   void updateClassifiers(std::unique_ptr<ClassifierBase<DataType, Classifier>>&&, Row<DataType>&);
 
   std::pair<rowvec,rowvec> generate_coefficients(const Row<DataType>&, const uvec&);
-  std::pair<rowvec,rowvec> generate_coefficients(const Row<DataType>&, const Row<DataType>&, const uvec&);
   Leaves computeOptimalSplit(rowvec&, rowvec&, std::size_t, std::size_t, double, const uvec&);
 
   void setNextClassifier(const ClassifierType&);
