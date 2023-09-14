@@ -89,6 +89,9 @@ namespace ModelContext{
 
     Context(const Context& rhs) {
       loss = rhs.loss;
+      clamp_gradient = rhs.clamp_gradient;
+      upper_val = rhs.upper_val;
+      lower_val = rhs.lower_val;
       partitionSize = rhs.partitionSize;
       partitionRatio = rhs.partitionRatio;
       learningRate = rhs.learningRate;
@@ -130,6 +133,9 @@ namespace ModelContext{
     template<class Archive>
     void serialize(Archive &ar) {
       ar(loss);
+      ar(clamp_gradient);
+      ar(upper_val);
+      ar(lower_val);
       ar(partitionSize);
       ar(partitionRatio);
       ar(learningRate);
@@ -161,6 +167,9 @@ namespace ModelContext{
     }
       
     lossFunction loss;
+    bool clamp_gradient;
+    double upper_val;
+    double lower_val;
     std::size_t partitionSize;
     double partitionRatio;
     double learningRate;

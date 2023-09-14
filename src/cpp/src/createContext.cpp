@@ -159,6 +159,9 @@ auto main(int argc, char **argv) -> int {
   */
 
   lossFunction				loss=lossFunction::Synthetic;
+  bool					clamp_gradient		= false;
+  double				upper_val		= 0.;
+  double				lower_val		= 0.;
   std::size_t				partitionSize		= 6;
   double				partitionRatio		= .25;
   double				learningRate		= .0001;
@@ -197,6 +200,9 @@ auto main(int argc, char **argv) -> int {
   desc.add_options()
     ("help,h", "Help screen")
     ("loss",			value<lossFunction>(&loss),					"loss")
+    ("clamp_gradient",		value<bool>(&clamp_gradient),					"clamp_gradient")
+    ("upper_val",		value<double>(&upper_val),					"upper_val")
+    ("lower_val",		value<double>(&lower_val),					"lower_val")
     ("partitionSize",		value<std::size_t>(&partitionSize),				"partitionSize")
     ("partitionRatio",		value<double>(&partitionRatio),					"partitionRatio")
     ("learningRate",		value<double>(&learningRate),					"learningRate")
@@ -252,6 +258,9 @@ auto main(int argc, char **argv) -> int {
   Context context{};
 
   context.loss		= loss;
+  context.clamp_gradient = clamp_gradient;
+  context.upper_val = upper_val;
+  context.lower_val = lower_val;
   context.partitionSize = partitionSize;
   context.partitionRatio = partitionRatio;
   context.learningRate = learningRate;
@@ -293,10 +302,10 @@ auto main(int argc, char **argv) -> int {
   dumps<CerealT, CerealIArch, CerealOArch>(context, fileName, fldr);
 
   // To deserialize
-  // Context context_archive;
-  // loads<CerealT, CerealIArch, CerealOArch>(context_archive, fileName, fldr);
+  Context context_archive;
+  loads<CerealT, CerealIArch, CerealOArch>(context_archive, fileName, fldr);
 
-  // std::cout << "Context archive: " << fileName << std::endl;
+  std::cout << "Context archive: " << fileName << std::endl;
     
   return 0;
 }

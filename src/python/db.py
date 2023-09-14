@@ -179,8 +179,11 @@ class DBExt(object):
                            min_leafsize, min_gainsplit])
         return df,params
 
-    def plot_part_v_r2(self, dataset_name="Regression/195_auto_price"):
-        req = self.conn.execute(text('select dataset_name, run_key, max(r2) as r2 \
+    def plot_part_v_perf(self, dataset_name="Regression/195_auto_price"):
+        if self.is_classifier:
+            req = self.conn.execute(text('select dataset_name, run_key, min(err) as err from outofsample group by run_key'))
+        else:
+            req = self.conn.execute(text('select dataset_name, run_key, max(r2) as r2 \
             from outofsample group by run_key'))
         df_oos = pd.DataFrame(columns=req.keys(), data=req.fetchall())
         req = self.conn.execute(text('select dataset_name, run_key, num_partitions0, \
@@ -189,12 +192,20 @@ class DBExt(object):
         joined = pd.merge(df_oos, df_rs, left_on=['dataset_name', 'run_key'], right_on=['dataset_name', 'run_key'],
                           how='inner')
         joined = joined[joined['dataset_name'] == dataset_name]
-        if dataset_name not in ("Regression/1199_BNG_echoMonths_train",):
-            joined = joined[joined['r2'] > .5]
+        if self.is_classifier:
+            joined = joined
         else:
-            joined = joined[joined['r2'] > 0.]
+            if dataset_name not in ("Regression/1199_BNG_echoMonths_train",):
+                joined = joined[joined['r2'] > .5]
+            else:
+                joined = joined[joined['r2'] > 0.]
+        # XXX
+        joined = joined[joined['learning_rate0'] < 0.05]
         xaxis = joined['num_partitions0'].values
-        yaxis = joined['r2'].values
+        if self.is_classifier:
+            yaxis = joined['err'].values
+        else:
+            yaxis = joined['r2'].values
         return xaxis,yaxis
 
     def plot_part_v_r2_2dim(self, dataset_name="Regression/195_auto_price", random_only=False):
@@ -257,14 +268,14 @@ class DBExt(object):
         return xaxis,yaxis        
 
 if __name__ == "__main__":
-    dbext = DBExt(is_classifier=False);
+    # dbext = DBExt(is_classifier=False);
     # xaxis,yaxis = dbext.plot_part_v_r2("Regression/195_auto_price")
     # xaxis,yaxis = dbext.plot_part_v_r2("Regression/207_autoPrice")
     # xaxis,yaxis = dbext.plot_part_v_r2("Regression/584_fri_c4_500_25")
     # xaxis,yaxis = dbext.plot_part_v_r2("Regression/606_fri_c2_1000_10_train")
     # xaxis,yaxis = dbext.plot_part_v_r2("Regression/529_pollen_train")    
     # xaxis,yaxis = dbext.plot_part_v_r2("Regression/197_cpu_act_train")
-    xaxis,yaxis = dbext.plot_part_v_r2("Regression/1199_BNG_echoMonths_train")
+    # xaxis,yaxis = dbext.plot_part_v_r2("Regression/1199_BNG_echoMonths_train")
     # xaxis,yaxis = dbext.plot_part_v_r2("Regression/564_fried_train")            
     # xaxis,yaxis = dbext.plot_part_v_r2("Regression/529_pollen_train")    
     # xaxis,yaxis = dbext.plot_part_v_r2_2dim("Regression/195_auto_price")
@@ -273,16 +284,17 @@ if __name__ == "__main__":
     # xaxis,yaxis = dbext.plot_part_v_r2_random("Regression/195_auto_price")
     # xaxis,yaxis = dbext.plot_part_v_r2_random("Regression/207_autoPrice")
 
+    dbext = DBExt(is_classifier=True)
+    # xaxis,yaxis = dbext.plot_part_v_perf("GAMETES_Epistasis_2_Way_20atts_0.1H_EDM_1_1_train")
+    # xaxis,yaxis = dbext.plot_part_v_perf("GAMETES_Epistasis_2_Way_20atts_0.4H_EDM_1_1_train")
+    # xaxis,yaxis = dbext.plot_part_v_perf("flare_train")
+    xaxis,yaxis = dbext.plot_part_v_perf("phoneme_train")
+
     sortind = [x[0] for x in sorted(enumerate(xaxis), key=lambda x: x[1])]
     xaxis = xaxis[[sortind]]
     yaxis = yaxis[[sortind]]
-    import pdb; pdb.set_trace()
     plot.scatter(xaxis,yaxis)
     # plot.plot(xaxis, yaxis)
     plot.show()
 
-    xaxis = xaxis[0,:150]
-    yaxis = yaxis[0,:150]
-    plot.plot(xaxis,yaxis)
-    plot.show()
     

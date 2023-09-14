@@ -12,7 +12,7 @@ using namespace Objectives;
 using namespace IB_utils;
 
 namespace ClassifierFileScope{
-  const bool POST_EXTRAPOLATE = false;
+  const bool POST_EXTRAPOLATE = true;
   const bool DIAGNOSTICS_0_ = true;
   const bool DIAGNOSTICS_1_ = false;
   const std::string DIGEST_PATH = 
@@ -27,6 +27,9 @@ CompositeClassifier<ClassifierType>::childContext(Context& context) {
   auto [maxDepth, minLeafSize, minimumGainSplit] = computeChildModelInfo();
 
   context.loss			= loss_;
+  context.clamp_gradient	= clamp_gradient_;
+  context.upper_val		= upper_val_;
+  context.lower_val		= lower_val_;
   context.partitionRatio	= std::min(1., 2*partitionRatio_);
   context.baseSteps		= baseSteps_;
   context.symmetrizeLabels	= false;
@@ -83,6 +86,9 @@ void
 CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
 
   loss_				= context.loss;
+  clamp_gradient_		= context.clamp_gradient;
+  upper_val_			= context.upper_val;
+  lower_val_			= context.lower_val;
 
   partitionSize_		= context.childPartitionSize[0];
   steps_			= context.childNumSteps[0];
@@ -619,9 +625,10 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   
   if (ClassifierFileScope::POST_EXTRAPOLATE) {
     // Fit classifier on {dataset_slice, best_leaves}, both subsets of the original data
-    // There will be no post-padding of zeros as that is not defined for OOS prediction, we
-    // just use the classifier below to predict on the larger dataset for this step's
+    // There will be no post-padding of zeros as that is not well-defined for OOS prediction,
+    // we just use the classifier below to predict on the larger dataset for this step's
     // prediction
+
     uvec rowMask = linspace<uvec>(0, -1+n_, n_);
     auto dataset_slice = dataset_.submat(rowMask, colMask_);
     
@@ -629,7 +636,9 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     createClassifier(classifier, dataset_slice, best_leaves, rootClassifierArgs);
 
   } else {
-    // Fit classifier on {dataset, padded best_leaves}
+    // Fit classifier on {dataset, padded best_leaves}, where padded best_leaves is the
+    // label slice padded with zeros to match original dataset size
+
     // Zero pad labels first
     allLeaves(colMask_) = best_leaves;
 
@@ -1130,7 +1139,7 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
   Predict(yhat, colMask);
 
   rowvec g, h;
-  lossFn_->loss(yhat, labels, &g, &h);
+  lossFn_->loss(yhat, labels, &g, &h, clamp_gradient_, upper_val_, lower_val_);
 
   return std::make_pair(g, h);
 

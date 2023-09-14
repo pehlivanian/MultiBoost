@@ -7,6 +7,7 @@
 #include <functional>
 #include <cstring>
 #include <exception>
+#include <cmath>
 #include <mlpack/core.hpp>
 
 // I orginally coded this to use automatic differentiation to compute
@@ -40,7 +41,8 @@ enum class lossFunction {    MSE = 0,
 			     SyntheticVar2 = 7,
                              SquareLoss = 8,
 			     SyntheticRegLoss = 9,
-                             LogLoss = 10
+			     LogLoss = 10
+
 			};
 
 
@@ -79,7 +81,7 @@ namespace LossMeasures {
   template<typename DataType>
   class LossFunction {
   public:
-    DataType loss(const rowvec&, const rowvec&, rowvec*, rowvec*);
+    DataType loss(const rowvec&, const rowvec&, rowvec*, rowvec*, bool=false, DataType=DataType{}, DataType=DataType{});
     DataType loss(const rowvec& yhat, const rowvec& y) { return loss_reverse_arma(yhat, y); }
     virtual LossFunction* create() = 0;
   private:

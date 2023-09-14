@@ -23,7 +23,7 @@ pub fn insert_to_table(uri: &str, creds: &(String, String), query: &str) {
 
 pub fn check_for_existing_run_dim1(uri: &str, creds: &(String, String), num_partitions: i32, datasetname: &str) -> Vec<i32> {
     let mut conn = get_connection(uri, creds).unwrap();
-    let query = format!("select count(*) from run_specification where num_partitions0 = {} and num_partitions1 = 0 and dataset_name=\"{}\"",
+    let query = format!("select count(*) from run_specification where num_partitions0 = {} and num_partitions1 = 0 and learning_rate0 < .05 and dataset_name=\"{}\"",
         num_partitions.to_string(),
         datasetname);
     let r = conn.query(query).expect("Failed to select from table");

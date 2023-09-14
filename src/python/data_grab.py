@@ -79,3 +79,48 @@ for DATA_TYPE in DATA_TYPES:
                 
 
         
+###############
+# single case #
+###############
+
+import pmlb
+import numpy as np
+from pmlb import classification_dataset_names, regression_dataset_names
+from sklearn.model_selection import train_test_split
+
+ROOT_DATA = "/home/charles/Data/"
+MODEL_TYPE = "Classifier"
+TEST_SIZE = 0.7825
+
+# dataset_name = "606_fri_c2_1000_10"
+# dataset_name = "529_pollen"
+# dataset_name = "197_cpu_act"
+# dataset_name = "1199_BNG_echoMonths"
+# dataset_name = "1030_ERA"
+# dataset_name = "564_fried"
+
+# dataset_name = "spambase"
+# dataset_name = "backache"
+# dataset_name = "GAMETES_Epistasis_2_Way_20atts_0.1H_EDM_1_1"
+# dataset_name = "GAMETES_Epistasis_2_Way_20atts_0.4H_EDM_1_1"
+# dataset_name = "flare"
+dataset_name = "phoneme"
+
+
+X,y = pmlb.fetch_data(dataset_name, return_X_y=True)
+X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=1000)
+X = X_train; y = y_train
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.20)
+
+
+if MODEL_TYPE in ("Regression", ):
+    np.savetxt( '{}/{}/{}_train_X.csv'.format(ROOT_DATA, MODEL_TYPE, dataset_name), X_train, delimiter=',')
+    np.savetxt( '{}/{}/{}_train_y.csv'.format(ROOT_DATA, MODEL_TYPE, dataset_name), y_train, delimiter=',')
+    np.savetxt( '{}/{}/{}_test_X.csv'. format(ROOT_DATA, MODEL_TYPE, dataset_name), X_test,  delimiter=',')
+    np.savetxt( '{}/{}/{}_test_y.csv'. format(ROOT_DATA, MODEL_TYPE, dataset_name), y_test,  delimiter=',')
+else:
+    np.savetxt( '{}/{}_train_X.csv'.format(ROOT_DATA, dataset_name), X_train, delimiter=',')
+    np.savetxt( '{}/{}_train_y.csv'.format(ROOT_DATA, dataset_name), y_train, delimiter=',')
+    np.savetxt( '{}/{}_test_X.csv'. format(ROOT_DATA, dataset_name), X_test,  delimiter=',')
+    np.savetxt( '{}/{}_test_y.csv'. format(ROOT_DATA, dataset_name), y_test,  delimiter=',')    

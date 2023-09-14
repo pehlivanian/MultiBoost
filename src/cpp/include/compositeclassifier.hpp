@@ -530,6 +530,9 @@ private:
 
   lossFunction loss_;
   LossFunction<double>* lossFn_;
+
+  bool clamp_gradient_;
+  double upper_val_, lower_val_;
   
   double learningRate_;
 
