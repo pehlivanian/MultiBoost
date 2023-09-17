@@ -23,6 +23,9 @@ declare -a num_args
 declare -a dataname
 declare -a loss_fn
 declare -a recursivefit
+declare -a clamp_gradient
+declare -a upper_val
+declare -a lower_val
 declare -a runOnTestDataset
 
 dataname=""
@@ -67,6 +70,9 @@ while (( $# )); do
   loss_fn+=$1; shift
   colsubsample_ratio+=$1; shift
   recursivefit+=$1; shift
+  clamp_gradient+=${1:0}; shift
+  upper_val+=${1:0}; shift
+  lower_val+=${1:0}; shift
   runOnTestDataset+=${1:0}; shift
 
 done
@@ -80,9 +86,18 @@ CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCreifissa.cxt
 ((ITERS=$basesteps / $STEPS))
 PREFIX="["${dataname}"]"
 
+if [ -z "$clamp_gradient" ]; then
+  clamp_gradient=0
+  upper_val=0
+  lower_val=0
+fi
+
 # create context for first run
 $EXEC_CC \
 --loss ${loss_fn} \
+--clamp_gradient ${clamp_gradient} \
+--upper_val ${upper_val} \
+--lower_val ${lower_val} \
 --childPartitionSize ${childpartitionsize[@]} \
 --childNumSteps ${childnumsteps[@]} \
 --childLearningRate ${childlearningrate[@]} \
@@ -110,6 +125,9 @@ $EXEC_CC \
 # create context for subsequent runs
 $EXEC_CC \
 --loss ${loss_fn} \
+--clamp_gradient ${clamp_gradient} \
+--upper_val ${upper_val} \
+--lower_val ${lower_val} \
 --childPartitionSize ${childpartitionsize[@]} \
 --childNumSteps ${childnumsteps[@]} \
 --childLearningRate ${childlearningrate[@]} \

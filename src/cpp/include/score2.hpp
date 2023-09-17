@@ -75,6 +75,7 @@ namespace Objectives {
 
     std::vector<std::vector<DataType>> get_partial_sums_a() const;
     std::vector<std::vector<DataType>> get_partial_sums_b() const;
+    std::vector<std::vector<DataType>> get_partial_sums() const;
 
     // Really for testing purposes
     // __compute_partial_sums__* fills a_sums_, b_sums_
@@ -213,9 +214,12 @@ namespace Objectives {
     DataType compute_score_multclust_optimized(int, int) override;
     DataType compute_ambient_score_multclust(DataType, DataType) override;
     DataType compute_ambient_score_riskpart(DataType, DataType) override;
+
+    // Override these only for RationalScoreContext, for 
+    // optimization purposes
+    void compute_scores() override;
+    void compute_scores_AVX256() override;
     void compute_scores_parallel() override;
-
-
   };
 
 }

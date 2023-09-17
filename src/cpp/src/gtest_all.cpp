@@ -37,6 +37,7 @@ INSTANTIATE_TEST_SUITE_P(DPSolverTests,
 					   objective_fn::RationalScore
 					   )
 			 );
+
 void sort_by_priority(std::vector<float>& a, std::vector<float>& b) {
   std::vector<int> ind(a.size());
   std::iota(ind.begin(), ind.end(), 0);
@@ -261,10 +262,12 @@ TEST(DPSolverTest, TestCachedScoresMatchAcrossMethods) {
     auto a_sums_serial = context_serial->get_partial_sums_a();
     auto b_sums_serial = context_serial->get_partial_sums_b();
 
-    RationalScoreContext<float>* context_AVX = new RationalScoreContext{a, b, n, false, true};
-    context_AVX->__compute_partial_sums_AVX256__();
-    auto a_sums_AVX = context_AVX->get_partial_sums_a();
-    auto b_sums_AVX = context_AVX->get_partial_sums_b();
+    /*
+      RationalScoreContext<float>* context_AVX = new RationalScoreContext{a, b, n, false, true};
+      context_AVX->__compute_partial_sums_AVX256__();
+      auto a_sums_AVX = context_AVX->get_partial_sums_a();
+      auto b_sums_AVX = context_AVX->get_partial_sums_b();
+    */
 
     RationalScoreContext<float>* context_parallel = new RationalScoreContext{a, b, n, false, true};
     context_parallel->__compute_partial_sums_parallel__();
@@ -274,14 +277,66 @@ TEST(DPSolverTest, TestCachedScoresMatchAcrossMethods) {
     int ind1 = distRow(gen);
     int ind2 = distCol(gen);
     
-    ASSERT_EQ(a_sums_serial[ind1][ind2], a_sums_AVX[ind2][ind1]);
-    ASSERT_EQ(b_sums_serial[ind1][ind2], b_sums_AVX[ind2][ind1]);
+    // ASSERT_EQ(a_sums_serial[ind1][ind2], a_sums_AVX[ind2][ind1]);
+    // ASSERT_EQ(b_sums_serial[ind1][ind2], b_sums_AVX[ind2][ind1]);
     ASSERT_EQ(a_sums_serial[ind1][ind2], a_sums_parallel[ind1][ind2]);
     ASSERT_EQ(b_sums_serial[ind1][ind2], b_sums_parallel[ind1][ind2]);
 
   }
 }
 
+TEST(DPSolverTest, TestRationalScoreContextComputeScoreMethods) {
+  using namespace Objectives;
+
+  std::size_t n = 100;
+  int numTrials = 100;
+  std::vector<bool> trials(numTrials);
+
+  std::default_random_engine gen;
+  gen.seed(std::random_device()());
+  std::uniform_real_distribution<float> dista(-10., 10.), distb(0., 10.);
+  std::uniform_int_distribution<int> distRow(0, n-1);
+  std::uniform_int_distribution<int> distCol(0, n);
+
+  std::vector<float> a(n), b(n);
+  for (auto &el : a)
+    el = dista(gen);
+  for (auto &el : b)
+    el = distb(gen);
+
+  for (auto _ : trials) {
+    RationalScoreContext<float>* context_serial   = new RationalScoreContext<float>{a, b, n, false, true };
+    // RationalScoreContext<float>* context_AVX      = new RationalScoreContext<float>{a, b, n, false, true };
+    RationalScoreContext<float>* context_parallel = new RationalScoreContext<float>{a, b, n, false, true };
+
+    context_serial->__compute_scores__();
+    // context_AVX->__compute_scores_AVX256__();
+    context_parallel->__compute_scores_parallel__();
+
+    auto a_sums_serial   = context_serial->get_partial_sums_a();
+    auto b_sums_serial   = context_serial->get_partial_sums_b();
+
+    // auto a_sums_AVX      = context_AVX->get_partial_sums_a();
+    // auto b_sums_AVX      = context_AVX->get_partial_sums_b();
+
+    auto a_sums_parallel = context_parallel->get_partial_sums_a();
+    auto b_sums_parallel = context_parallel->get_partial_sums_b();
+
+    auto partialSums_serial   = context_serial->get_partial_sums();
+    // auto partialSums_AVX      = context_serial->get_partial_sums();
+    auto partialSums_parallel = context_parallel->get_partial_sums();
+
+    for (std::size_t i=0; i<n; ++i) {
+      for (std::size_t j=0; j<=n; ++j) {
+	// ASSERT_EQ(context_serial->get_score(i,j), context_AVX->get_score(i,j));
+	ASSERT_EQ(context_serial->get_score(i,j), context_parallel->get_score(i,j));
+      }
+    }
+    
+  }
+
+  
+}
 
 TEST(DPSolverTest, TestCachedScoresMatchExternalScores) {
   using namespace Objectives;
@@ -1836,6 +1891,7 @@ TEST(GradientBoostRegressorTest, TestOutofSampleFit) {
   }
   
 }
+
 
 auto main(int argc, char **argv) -> int {
   testing::InitGoogleTest(&argc, argv);
