@@ -692,8 +692,6 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
   std::vector<double> hv = arma::conv_to<std::vector<double>>::from(h);
 
   int n = colMask.n_rows, T = partitionSize;
-  // XXX
-  // bool risk_partitioning_objective			= true;
   bool risk_partitioning_objective			= false;
   bool use_rational_optimization			= true;
   bool sweep_down					= false;
@@ -716,16 +714,14 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
   rowvec leaf_values = arma::zeros<rowvec>(n);
 
   if (T > 1 || risk_partitioning_objective) {
-    // int count=0;
-    std::size_t start_ind = risk_partitioning_objective ? 0 : 1;
+    std::size_t start_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(T/2);
+
     for (std::size_t i=start_ind; i<subsets.size(); ++i) {      
       uvec ind = arma::conv_to<uvec>::from(subsets[i]);
       double val = -1. * learningRate * sum(g(ind))/sum(h(ind));
-      // std::cout << count << " : " << subsets[i].size() << " : " << val << std::endl;
       for (auto i: ind) {
 	leaf_values(i) = val;
       }
-      // ++count;
     }
   }
 

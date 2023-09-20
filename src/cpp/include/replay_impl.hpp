@@ -123,10 +123,14 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
     }
   }
 
-  distribute = false; // before enabling, make sure we have the memory
+  distribute = false; // before enabling, make sure we have the machine resources
 
   // Next pass - generate prediction
   if (distribute) {
+
+    
+
+    /*
 
     ThreadsafeQueue<Row<double>> results_queue;
     std::vector<ThreadPool::TaskFuture<int>> futures;
@@ -164,6 +168,7 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
       results_queue.waitPop(predictionStep);
       prediction += predictionStep;
     }
+    */
     
   } else {
 
