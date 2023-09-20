@@ -153,6 +153,9 @@ public:
     optimal_num_clusters_OLS_{0}    
   { _init(); }
 
+  std::vector<DataType> get_a() const { return a_; }
+  std::vector<DataType> get_b() const { return b_; }
+
   std::vector<std::vector<int> > get_optimal_subsets_extern() const;
   DataType get_optimal_score_extern() const;
   std::vector<DataType> get_score_by_subset_extern() const;
@@ -160,6 +163,21 @@ public:
   int get_optimal_num_clusters_OLS_extern() const;
   void print_maxScore_();
   void print_nextStart_();
+
+
+  DataType __compute_score__(int i, int j) {
+    return context_->get_score(i,j);
+  }
+  
+  DataType __compute_score_from_subset__(std::vector<int> subset) {
+    DataType cum_score = 0.;
+    DataType a=0., b=0.;
+    for (const auto &el : subset) {
+      a+=a_[el];
+      b+=b_[el];
+    }
+    return context_->__compute_ambient_score__(a,b);
+  }
     
 private:
   int n_;

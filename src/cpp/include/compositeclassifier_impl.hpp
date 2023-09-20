@@ -692,14 +692,14 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
   std::vector<double> hv = arma::conv_to<std::vector<double>>::from(h);
 
   int n = colMask.n_rows, T = partitionSize;
-  bool risk_partitioning_objective			= true;
+  // XXX
+  // bool risk_partitioning_objective			= true;
+  bool risk_partitioning_objective			= false;
   bool use_rational_optimization			= true;
   bool sweep_down					= false;
   double gamma						= 0.;
   double reg_power					= 1.;
   bool find_optimal_t					= false;
-
-  // std::cout << "PARTITION SIZE: " << T << std::endl;
 
   auto dp = DPSolver(n, T, std::move(gv), std::move(hv),
 		     objective_fn::RationalScore,
@@ -712,14 +712,20 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
 		     );
   
   auto subsets = dp.get_optimal_subsets_extern();
-  
+
   rowvec leaf_values = arma::zeros<rowvec>(n);
-  
-  for (auto &subset : subsets) {
-    uvec ind = arma::conv_to<uvec>::from(subset);
-    double val = -1. * learningRate * sum(g(ind))/sum(h(ind));
-    for (auto i: ind) {
-      leaf_values(i) = val;
+
+  if (T > 1 || risk_partitioning_objective) {
+    // int count=0;
+    std::size_t start_ind = risk_partitioning_objective ? 0 : 1;
+    for (std::size_t i=start_ind; i<subsets.size(); ++i) {      
+      uvec ind = arma::conv_to<uvec>::from(subsets[i]);
+      double val = -1. * learningRate * sum(g(ind))/sum(h(ind));
+      // std::cout << count << " : " << subsets[i].size() << " : " << val << std::endl;
+      for (auto i: ind) {
+	leaf_values(i) = val;
+      }
+      // ++count;
     }
   }
 
@@ -736,10 +742,6 @@ CompositeClassifier<ClassifierType>::purge_() {
   dataset_oos_ = ones<mat>(0,0);
   labels_oos_ = ones<Row<double>>(0);
 
-  // dataset_.clear();
-  // labels_.clear();
-  // dataset_oos_.clear();
-  // labels_oos_.clear();
 }
 
 template<typename ClassifierType>
@@ -1043,9 +1045,6 @@ CompositeClassifier<ClassifierType>::computeLearningRate(std::size_t stepNum) {
     learningRate = A * exp(B * (-1 + stepNum));
   }
 
-  // if ((stepNum%100)==0)
-  //   std::cout << "stepNum: " << stepNum << " LEARNING RATE: " << learningRate << std::endl;
-
   return learningRate;
 }
 
@@ -1125,9 +1124,6 @@ CompositeClassifier<ClassifierType>::computePartitionSize(std::size_t stepNum, c
     }
   }
   
-  // if ((stepNum%100)==0)
-  //   std::cout << "stepNum: " << stepNum << " PARTITIONSIZE: " << partitionSize << std::endl;
-
   return partitionSize;
 }
 

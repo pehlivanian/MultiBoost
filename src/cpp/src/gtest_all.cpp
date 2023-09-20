@@ -262,13 +262,6 @@ TEST(DPSolverTest, TestCachedScoresMatchAcrossMethods) {
     auto a_sums_serial = context_serial->get_partial_sums_a();
     auto b_sums_serial = context_serial->get_partial_sums_b();
 
-    /*
-      RationalScoreContext<float>* context_AVX = new RationalScoreContext{a, b, n, false, true};
-      context_AVX->__compute_partial_sums_AVX256__();
-      auto a_sums_AVX = context_AVX->get_partial_sums_a();
-      auto b_sums_AVX = context_AVX->get_partial_sums_b();
-    */
-
     RationalScoreContext<float>* context_parallel = new RationalScoreContext{a, b, n, false, true};
     context_parallel->__compute_partial_sums_parallel__();
     auto a_sums_parallel = context_parallel->get_partial_sums_a();
@@ -477,7 +470,77 @@ TEST_P(DPSolverTestFixture, TestConsecutiveProperty) {
   }
 }
 
-TEST_P(DPSolverTestFixture, TestOptimalityWithRandomPartitions) {
+TEST(DPSolverTest, TestOptimalityWithRandomPartitionsRationalScore) {
+
+  const int NUM_CASES=100, NUM_SUB_CASES=100;
+
+  std::default_random_engine gen;
+  gen.seed(std::random_device()());
+  std::uniform_int_distribution<int> distn(100, 1000);
+  std::uniform_real_distribution<float> dista( 1., 10.);
+  std::uniform_real_distribution<float> distb( 1., 10.);
+
+  std::vector<float> a, b;
+
+  for (int case_num=0; case_num<NUM_CASES; ++case_num) {
+
+    int n = distn(gen);
+    std::uniform_int_distribution<int> distT(2, n-1);
+    int T = distT(gen);
+
+    a.resize(n); b.resize(n);
+
+    for (auto &el : a)
+      el = dista(gen);
+    for (auto &el : b)
+      el = distb(gen);
+
+    objective_fn objective = objective_fn::RationalScore;
+
+    auto dp = DPSolver(n, T, a, b, objective, true, true);
+
+    auto subsets = dp.get_optimal_subsets_extern();
+    float cum_opt_score = 0.;
+    for (const auto &subset : subsets) {
+      float cum_a=0., cum_b=0.;
+      for (const auto &el : subset) {
+	cum_a+=a[el];
+	cum_b+=b[el];
+      }
+      cum_opt_score += cum_a*cum_a/cum_b;
+    }
+    
+    auto dp_score = dp.get_optimal_score_extern();
+      
+    for (int subcase_num=0; subcase_num<NUM_SUB_CASES; ++subcase_num) {
+      int last_pt = 0;
+      std::vector<int> div_pts;
+      div_pts.push_back(last_pt);
+      
+      auto T_tmp = T;
+      while (T_tmp > 1) {
+	std::uniform_int_distribution<int> distdivpt(last_pt, n-1);
+	div_pts.push_back(distdivpt(gen));
+	--T_tmp;
+      }
+      div_pts.push_back(n);
+      std::sort(div_pts.begin(), div_pts.end());
+      
+      float cum_rnd_score = 0.;
+      auto dp_a = dp.get_a();
+      auto dp_b = dp.get_b();
+      for (std::size_t i=0; i<div_pts.size()-1; ++i) {
+	cum_rnd_score += dp.__compute_score__(div_pts[i], div_pts[i+1]);
+      }
+      
+      ASSERT_LT(fabs(dp_score - cum_opt_score), std::numeric_limits<float>::epsilon());
+      ASSERT_LE(cum_rnd_score, dp_score);
+    }
+  }  
+  
+}
+
+TEST_P(DPSolverTestFixture, TestOptimalityWithRandomPartitionsSmallT) {
   int NUM_CASES = 1000, NUM_SUBCASES = 500, T = 3;
 
   std::default_random_engine gen;
