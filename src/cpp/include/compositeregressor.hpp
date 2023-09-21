@@ -280,8 +280,6 @@ private:
   uvec subsampleRows(size_t);
   uvec subsampleCols(size_t);
   void fit_step(std::size_t);
-  double computeLearningRate(std::size_t);
-  std::size_t computePartitionSize(std::size_t, const uvec&);
   
   void Predict_(const mat& dataset, Row<DataType>& prediction) override { 
     Predict(dataset, prediction);
@@ -298,9 +296,6 @@ private:
 		       rowvec&,
 		       std::tuple<Ts...> const&);
 
-  double computeSubLearningRate(std::size_t);
-  std::size_t computeSubPartitionSize(std::size_t);
-  std::size_t computeSubStepSize(std::size_t);
   std::tuple<std::size_t, std::size_t, double> computeChildPartitionInfo();
   std::tuple<std::size_t, std::size_t, double> computeChildModelInfo();
 
@@ -324,7 +319,6 @@ private:
   bool reuseColMask_;
 
   std::size_t partitionSize_;
-  double partitionRatio_;
   Row<DataType> latestPrediction_;
   std::vector<std::string> fileNames_;
 

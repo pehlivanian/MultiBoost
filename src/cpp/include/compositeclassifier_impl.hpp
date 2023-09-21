@@ -23,14 +23,18 @@ template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::childContext(Context& context) {
 
-  auto [partitionSize, stepSize, learningRate] = computeChildPartitionInfo();
-  auto [maxDepth, minLeafSize, minimumGainSplit] = computeChildModelInfo();
+  auto [partitionSize, 
+	stepSize, 
+	learningRate, 
+	activePartitionRatio] = computeChildPartitionInfo();
+  auto [maxDepth, 
+	minLeafSize, 
+	minimumGainSplit] = computeChildModelInfo();
 
   context.loss			= loss_;
   context.clamp_gradient	= clamp_gradient_;
   context.upper_val		= upper_val_;
   context.lower_val		= lower_val_;
-  context.partitionRatio	= std::min(1., 2*partitionRatio_);
   context.baseSteps		= baseSteps_;
   context.symmetrizeLabels	= false;
   context.removeRedundantLabels	= true;
@@ -42,6 +46,7 @@ CompositeClassifier<ClassifierType>::childContext(Context& context) {
   context.partitionSize		= partitionSize+1;
   context.steps			= stepSize;
   context.learningRate		= learningRate;
+  context.activePartitionRatio	= activePartitionRatio;
 
   context.maxDepth		= maxDepth;
   context.minLeafSize		= minLeafSize;
@@ -58,7 +63,8 @@ CompositeClassifier<ClassifierType>::childContext(Context& context) {
 							   childNumSteps_.cend());
   context.childLearningRate	= std::vector<double>(childLearningRate_.cbegin()+ind,
 						      childLearningRate_.cend());
-  
+  context.childActivePartitionRatio = std::vector<double>(childActivePartitionRatio_.cbegin()+ind,
+							  childActivePartitionRatio_.cend());
   // Model args
   context.childMinLeafSize	= std::vector<std::size_t>(childMinLeafSize_.cbegin()+ind,
 							   childMinLeafSize_.cend());
@@ -66,10 +72,6 @@ CompositeClassifier<ClassifierType>::childContext(Context& context) {
 							   childMaxDepth_.cend());
   context.childMinimumGainSplit	= std::vector<double>(childMinimumGainSplit_.cbegin()+ind,
 						      childMinimumGainSplit_.cend());
-
-  context.stepSizeMethod	= stepSizeMethod_;
-  context.partitionSizeMethod	= partitionSizeMethod_;
-  context.learningRateMethod	= learningRateMethod_;   
 
   context.depth			= depth_ + 1;
 
@@ -93,6 +95,7 @@ CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
   partitionSize_		= context.childPartitionSize[0];
   steps_			= context.childNumSteps[0];
   learningRate_			= context.childLearningRate[0];
+  activePartitionRatio_		= context.childActivePartitionRatio[0];
 
   minLeafSize_			= context.childMinLeafSize[0];
   minimumGainSplit_		= context.childMinimumGainSplit[0];
@@ -105,13 +108,11 @@ CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
   row_subsample_ratio_		= context.rowSubsampleRatio;
   col_subsample_ratio_		= context.colSubsampleRatio;
   recursiveFit_			= context.recursiveFit;
-  partitionSizeMethod_		= context.partitionSizeMethod;
-  learningRateMethod_		= context.learningRateMethod;
-  stepSizeMethod_		= context.stepSizeMethod;
 
   childPartitionSize_		= context.childPartitionSize;
   childNumSteps_		= context.childNumSteps;
   childLearningRate_		= context.childLearningRate;
+  childActivePartitionRatio_	= context.childActivePartitionRatio;
 
   childMinLeafSize_		= context.childMinLeafSize;
   childMaxDepth_		= context.childMaxDepth;
@@ -525,8 +526,6 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   // BEGIN RECURSIVE STEP //
   //////////////////////////
   if (recursiveFit_ && (childPartitionSize_.size() > 1)) {
-    auto [subPartitionSize, subStepSize, subLearningRate] = 
-      computeChildPartitionInfo();
 
     if (ClassifierFileScope::DIAGNOSTICS_1_ || ClassifierFileScope::DIAGNOSTICS_0_) {
       std::cerr << fit_prefix(depth_);
@@ -621,6 +620,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 				    stepNum, 
 				    partitionSize_, 
 				    learningRate_,
+				    activePartitionRatio_,
 				    colMask_);
   
   if (ClassifierFileScope::POST_EXTRAPOLATE) {
@@ -683,6 +683,7 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
 							 std::size_t stepNum, 
 							 std::size_t partitionSize,
 							 double learningRate,
+							 double activePartitionRatio,
 							 const uvec& colMask) {
 
   (void)stepNum;
@@ -714,13 +715,13 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
   rowvec leaf_values = arma::zeros<rowvec>(n);
 
   if (T > 1 || risk_partitioning_objective) {
-    std::size_t start_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(T/2);
+    std::size_t start_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(T*activePartitionRatio);
 
     for (std::size_t i=start_ind; i<subsets.size(); ++i) {      
       uvec ind = arma::conv_to<uvec>::from(subsets[i]);
       double val = -1. * learningRate * sum(g(ind))/sum(h(ind));
-      for (auto i: ind) {
-	leaf_values(i) = val;
+      for (auto j: ind) {
+	leaf_values(j) = val;
       }
     }
   }
@@ -833,12 +834,13 @@ CompositeClassifier<ClassifierType>::_predict_in_loop_archive(std::vector<std::s
 }
 
 template<typename ClassifierType>
-std::tuple<std::size_t, std::size_t, double>
+std::tuple<std::size_t, std::size_t, double, double>
 CompositeClassifier<ClassifierType>::computeChildPartitionInfo() {
 
   return std::make_tuple(childPartitionSize_[1],
-                        childNumSteps_[1],
-                        childLearningRate_[1]);
+			 childNumSteps_[1],
+			 childLearningRate_[1],
+			 childActivePartitionRatio_[1]);
 
 }
 
@@ -962,8 +964,8 @@ CompositeClassifier<ClassifierType>::printStats(int stepNum) {
     double error_is = err(yhat, labels_);
     std::cout << suff << ": " 
 	      << "(PARTITION SIZE = " << partitionSize_
-	      << ", STEPS = " << steps_ << ") "
-	      << "STEP: " << stepNum 
+	      << ", STEPS = " << steps_ << ")"
+	      << " STEP: " << stepNum 
 	      << " IS LOSS: " << r
 	      << " IS ERROR: " << error_is << "%" << std::endl;
   }
@@ -978,8 +980,8 @@ CompositeClassifier<ClassifierType>::printStats(int stepNum) {
     double error_oos = err(yhat_oos, labels_oos_);
     std::cout << suff<< ": "
 	      << "(PARTITION SIZE = " << partitionSize_
-	      << ", STEPS = " << steps_ << ") "
-	      << "STEP: " << stepNum
+	      << ", STEPS = " << steps_ << ")"
+	      << " STEP: " << stepNum
 	      << " OOS ERROR: " << error_oos << "%" << std::endl;
   }
 
@@ -1019,109 +1021,6 @@ CompositeClassifier<ClassifierType>::Classify(const mat& dataset, Row<DataType>&
   Predict(dataset, labels);
 }
 
-template<typename ClassifierType>
-double
-CompositeClassifier<ClassifierType>::computeLearningRate(std::size_t stepNum) {
-
-  double learningRate = learningRate_;
-
-  if (learningRateMethod_ == LearningRateMethod::FIXED) {
-
-    learningRate = learningRate_;
-
-  } else if (learningRateMethod_ == LearningRateMethod::DECREASING) {
-
-    double A = learningRate_, B = -log(.5) / static_cast<double>(steps_);
-    learningRate = A * exp(-B * (-1 + stepNum));
-
-  } else if (learningRateMethod_ == LearningRateMethod::INCREASING) {
-
-    double A = learningRate_, B = log(2.) / static_cast<double>(steps_);
-
-    learningRate = A * exp(B * (-1 + stepNum));
-  }
-
-  return learningRate;
-}
-
-template<typename ClassifierType>
-std::size_t
-CompositeClassifier<ClassifierType>::computeSubPartitionSize(std::size_t stepNum) {
-  
-  (void)stepNum;
-
-  return static_cast<std::size_t>(partitionSize_/2);
-}
-
-template<typename ClassifierType>
-double
-CompositeClassifier<ClassifierType>::computeSubLearningRate(std::size_t stepNum) {
-
-  (void)stepNum;
-
-  return learningRate_;
-}
-
-template<typename ClassifierType>
-std::size_t
-CompositeClassifier<ClassifierType>::computeSubStepSize(std::size_t stepNum) {
-
-  (void)stepNum;
-
-  double mult = 1.;
-  return std::max(1, static_cast<int>(mult * std::log(steps_)));    
-}
-
-template<typename ClassifierType>
-std::size_t
-CompositeClassifier<ClassifierType>::computePartitionSize(std::size_t stepNum, const uvec& colMask) {
-
-  // stepNum is in range [1,...,context.steps]
-
-  std::size_t partitionSize = partitionSize_;
-  double lowRatio = .05;
-  double highRatio = .95;
-  int attach = 1000;
-
-  if (partitionSizeMethod_ == PartitionSizeMethod::FIXED) {
-
-    partitionSize = partitionSize_;
-
-  } else if (partitionSizeMethod_ == PartitionSizeMethod::FIXED_PROPORTION) {
-
-    partitionSize = static_cast<std::size_t>(partitionRatio_ * row_subsample_ratio_ * colMask.n_rows);
-
-  } else if (partitionSizeMethod_ == PartitionSizeMethod::DECREASING) {
-
-    double A = colMask.n_rows, B = log(colMask.n_rows)/steps_;
-    partitionSize = std::max(1, static_cast<int>(A * exp(-B * (-1 + stepNum))));
-
-  } else if (partitionSizeMethod_ == PartitionSizeMethod::INCREASING) {
-
-    double A = 2., B = log(colMask.n_rows)/static_cast<double>(steps_);
-    partitionSize = std::max(1, static_cast<int>(A * exp(B * (-1 + stepNum))));
-
-  } else if (partitionSizeMethod_ == PartitionSizeMethod::RANDOM) {
-
-    partitionSize = partitionDist_(default_engine_);
-
-  } else if (partitionSizeMethod_ == PartitionSizeMethod::MULTISCALE) {
-
-    if ((stepNum%attach) < static_cast<std::size_t>(attach/2)) {
-
-      partitionSize = static_cast<std::size_t>(lowRatio * col_subsample_ratio_ * colMask.n_rows);
-      partitionSize = partitionSize >= 1 ? partitionSize : 1;
-
-    } else {
-
-      partitionSize = static_cast<std::size_t>(highRatio * col_subsample_ratio_ * colMask.n_rows);
-      partitionSize = partitionSize >= 1 ? partitionSize : 1;
-
-    }
-  }
-  
-  return partitionSize;
-}
 
 template<typename ClassifierType>
 std::pair<rowvec, rowvec>

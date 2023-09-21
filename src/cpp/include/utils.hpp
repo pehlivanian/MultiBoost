@@ -75,6 +75,7 @@ namespace ModelContext{
       childPartitionSize{std::vector<std::size_t>()},
       childNumSteps{std::vector<std::size_t>()},
       childLearningRate{std::vector<double>()},
+      childActivePartitionRatio{std::vector<double>()},
       childMinLeafSize{std::vector<std::size_t>()},
       childMaxDepth{std::vector<std::size_t>()},
       childMinimumGainSplit{std::vector<double>()},
@@ -95,6 +96,7 @@ namespace ModelContext{
       partitionSize = rhs.partitionSize;
       partitionRatio = rhs.partitionRatio;
       learningRate = rhs.learningRate;
+      activePartitionRatio = rhs.activePartitionRatio;
       steps = rhs.steps;
       if (rhs.baseSteps > 0) {
 	baseSteps = rhs.baseSteps;
@@ -113,6 +115,7 @@ namespace ModelContext{
       childPartitionSize = rhs.childPartitionSize;
       childNumSteps = rhs.childNumSteps;
       childLearningRate = rhs.childLearningRate;
+      childActivePartitionRatio = rhs.childActivePartitionRatio;
       childMinLeafSize = rhs.childMinLeafSize;
       childMaxDepth = rhs.childMaxDepth;
       childMinimumGainSplit = rhs.childMinimumGainSplit;
@@ -139,6 +142,7 @@ namespace ModelContext{
       ar(partitionSize);
       ar(partitionRatio);
       ar(learningRate);
+      ar(activePartitionRatio);
       ar(steps);
       ar(baseSteps);
       ar(symmetrizeLabels);
@@ -153,6 +157,7 @@ namespace ModelContext{
       ar(childPartitionSize);
       ar(childNumSteps);
       ar(childLearningRate);
+      ar(childActivePartitionRatio);
       ar(childMinLeafSize);
       ar(childMinimumGainSplit);
       ar(childMaxDepth);
@@ -173,6 +178,7 @@ namespace ModelContext{
     std::size_t partitionSize;
     double partitionRatio;
     double learningRate;
+    double activePartitionRatio;
     std::size_t minLeafSize;
     std::size_t maxDepth;
     double minimumGainSplit;
@@ -191,6 +197,7 @@ namespace ModelContext{
     std::vector<std::size_t> childPartitionSize;
     std::vector<std::size_t> childNumSteps;
     std::vector<double> childLearningRate;
+    std::vector<double> childActivePartitionRatio;
     std::vector<std::size_t> childMinLeafSize;
     std::vector<std::size_t> childMaxDepth;
     std::vector<double> childMinimumGainSplit;

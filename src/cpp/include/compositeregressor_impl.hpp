@@ -29,7 +29,6 @@ CompositeRegressor<RegressorType>::childContext(Context& context) {
   auto [maxDepth, minLeafSize, minimumGainSplit] = computeChildModelInfo();
 
   context.loss			= loss_;
-  context.partitionRatio	= std::min(1., 2*partitionRatio_);
   context.baseSteps		= baseSteps_;
   context.symmetrizeLabels	= false;
   context.removeRedundantLabels	= false;
@@ -85,7 +84,6 @@ void
 CompositeRegressor<RegressorType>::contextInit_(Context&& context) {
 
   loss_				= context.loss;
-  partitionRatio_		= context.partitionRatio;
 
   partitionSize_		= context.childPartitionSize[0];
   steps_			= context.childNumSteps[0];
@@ -524,7 +522,7 @@ CompositeRegressor<RegressorType>::computeOptimalSplit(rowvec& g,
   std::vector<double> hv = arma::conv_to<std::vector<double>>::from(h);
 
   int n = colMask.n_rows, T = partitionSize;
-  constexpr bool risk_partitioning_objective	= true;
+  constexpr bool risk_partitioning_objective	= false;
   constexpr bool use_rational_optimization	= true;
   constexpr bool sweep_down			= false;
   constexpr double gamma			= 0.;
@@ -557,11 +555,15 @@ CompositeRegressor<RegressorType>::computeOptimalSplit(rowvec& g,
   {
     // auto timer_ = __timer{"DPSolver set leaves"};
 
-    for (auto &subset : subsets) {
-      uvec ind = arma::conv_to<uvec>::from(subset);
-      double val = -1. * learningRate * sum(g(ind))/sum(h(ind));
-      for (auto i: ind) {
-	leaf_values(i) = val;
+    if (T > 1 || risk_partitioning_objective) {
+      std::size_t start_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(T/2);
+
+      for (std::size_t i=start_ind; i<subsets.size(); ++i) {
+	uvec ind = arma::conv_to<uvec>::from(subsets[i]);
+	double val = -1. * learningRate * sum(g(ind))/sum(h(ind));
+	for (auto j: ind) {
+	  leaf_values(j) = val;
+	}
       }
     }
   }
@@ -841,33 +843,6 @@ CompositeRegressor<RegressorType>::fit() {
 }
 
 template<typename RegressorType>
-double
-CompositeRegressor<RegressorType>::computeLearningRate(std::size_t stepNum) {
-
-  double learningRate = learningRate_;
-
-  if (learningRateMethod_ == LearningRateMethod::FIXED) {
-
-    learningRate = learningRate_;
-  } else if (learningRateMethod_ == LearningRateMethod::DECREASING) {
-
-    double A = learningRate_, B = -log(.5) / static_cast<double>(steps_);
-    learningRate = A * exp(-B * (-1 + stepNum));
-  } else if (learningRateMethod_ == LearningRateMethod::INCREASING) {
-
-    double A = learningRate_, B = log(2.) / static_cast<double>(steps_);
-
-    learningRate = A * exp(B * (-1 + stepNum));
-
-  }
-
-  // if ((stepNum%100)==0)
-  //   std::cout << "stepNum: " << stepNum << " LEARNING RATE: " << learningRate << std::endl;
-
-  return learningRate;
-}
-
-template<typename RegressorType>
 std::tuple<std::size_t, std::size_t, double>
 CompositeRegressor<RegressorType>::computeChildPartitionInfo() {
 
@@ -884,84 +859,6 @@ CompositeRegressor<RegressorType>::computeChildModelInfo() {
   return std::make_tuple(childMaxDepth_[1],
 			 childMinLeafSize_[1],
 			 childMinimumGainSplit_[1]);
-}
-
-template<typename RegressorType>
-std::size_t
-CompositeRegressor<RegressorType>::computeSubPartitionSize(std::size_t stepNum) {
-
-  (void)stepNum;
-
-  return static_cast<std::size_t>(partitionSize_/2);
-}
-
-template<typename RegressorType>
-double
-CompositeRegressor<RegressorType>::computeSubLearningRate(std::size_t stepNum) {
-
-  (void)stepNum;
-
-  return learningRate_;
-}
-
-template<typename RegressorType>
-std::size_t
-CompositeRegressor<RegressorType>::computeSubStepSize(std::size_t stepNum) {
-
-  (void)stepNum;
-
-  // XXX
-  double mult = 2.;
-  return std::max(1, static_cast<int>(mult * std::log(steps_)));    
-}
-
-template<typename RegressorType>
-std::size_t
-CompositeRegressor<RegressorType>::computePartitionSize(std::size_t stepNum, const uvec& colMask) {
-
-  // stepNum is in range [1,...,context.steps]
-
-  std::size_t partitionSize = partitionSize_;
-  double lowRatio = .05;
-  double highRatio = .95;
-  int attach = 1000;
-
-  if (partitionSizeMethod_ == PartitionSizeMethod::FIXED) {
-
-    partitionSize = partitionSize_;
-
-  } else if (partitionSizeMethod_ == PartitionSizeMethod::FIXED_PROPORTION) {
-
-    partitionSize = static_cast<std::size_t>(partitionRatio_ * row_subsample_ratio_ * colMask.n_rows);
-  } else if (partitionSizeMethod_ == PartitionSizeMethod::DECREASING) {
-
-    double A = colMask.n_rows, B = log(colMask.n_rows)/steps_;
-    partitionSize = std::max(1, static_cast<int>(A * exp(-B * (-1 + stepNum))));
-  } else if (partitionSizeMethod_ == PartitionSizeMethod::INCREASING) {
-
-    double A = 2., B = log(colMask.n_rows)/static_cast<double>(steps_);
-    partitionSize = std::max(1, static_cast<int>(A * exp(B * (-1 + stepNum))));
-  } else if (partitionSizeMethod_ == PartitionSizeMethod::RANDOM) {
-
-    partitionSize = partitionDist_(default_engine_);
-
-  } else if (partitionSizeMethod_ == PartitionSizeMethod::MULTISCALE) {
-
-    if ((stepNum%attach) < static_cast<std::size_t>(attach/2)) {
-
-      partitionSize = static_cast<std::size_t>(lowRatio * col_subsample_ratio_ * colMask.n_rows);
-      partitionSize = partitionSize >= 1 ? partitionSize : 1;
-    } else {
-
-      partitionSize = static_cast<std::size_t>(highRatio * col_subsample_ratio_ * colMask.n_rows);
-      partitionSize = partitionSize >= 1 ? partitionSize : 1;
-    }
-  }
-  
-  // if ((stepNum%100)==0)
-  //   std::cout << "stepNum: " << stepNum << " PARTITIONSIZE: " << partitionSize << std::endl;
-
-  return partitionSize;
 }
 
 template<typename RegressorType>

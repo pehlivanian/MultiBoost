@@ -479,10 +479,9 @@ private:
   Row<DataType> uniqueCloseAndReplace(Row<DataType>&);
   void symmetrize(Row<DataType>&);
   void deSymmetrize(Row<DataType>&);
+
   void fit_step(std::size_t);
-  double computeLearningRate(std::size_t);
-  std::size_t computePartitionSize(std::size_t, const uvec&);
-  
+
   void Classify_(const mat& dataset, Row<DataType>& prediction) override { 
     Predict(dataset, prediction); 
   }
@@ -498,16 +497,13 @@ private:
 			rowvec&,
 			std::tuple<Ts...> const&);
 
-  double computeSubLearningRate(std::size_t);
-  std::size_t computeSubPartitionSize(std::size_t);
-  std::size_t computeSubStepSize(std::size_t);
-  std::tuple<std::size_t, std::size_t, double> computeChildPartitionInfo();
+  std::tuple<std::size_t, std::size_t, double, double> computeChildPartitionInfo();
   std::tuple<std::size_t, std::size_t, double> computeChildModelInfo();
 
   void updateClassifiers(std::unique_ptr<ClassifierBase<DataType, Classifier>>&&, Row<DataType>&);
 
   std::pair<rowvec,rowvec> generate_coefficients(const Row<DataType>&, const uvec&);
-  Leaves computeOptimalSplit(rowvec&, rowvec&, std::size_t, std::size_t, double, const uvec&);
+  Leaves computeOptimalSplit(rowvec&, rowvec&, std::size_t, std::size_t, double, double, const uvec&);
 
   void setNextClassifier(const ClassifierType&);
   AllClassifierArgs allClassifierArgs(std::size_t);
@@ -524,7 +520,6 @@ private:
   bool reuseColMask_;
 
   std::size_t partitionSize_;
-  double partitionRatio_;
   Row<DataType> latestPrediction_;
   std::vector<std::string> fileNames_;
 
@@ -535,10 +530,7 @@ private:
   double upper_val_, lower_val_;
   
   double learningRate_;
-
-  PartitionSize::PartitionSizeMethod partitionSizeMethod_;
-  LearningRate::LearningRateMethod learningRateMethod_;
-  StepSize::StepSizeMethod stepSizeMethod_;
+  double activePartitionRatio_;
 
   double row_subsample_ratio_;
   double col_subsample_ratio_;
@@ -581,6 +573,7 @@ private:
   std::vector<std::size_t> childPartitionSize_;
   std::vector<std::size_t> childNumSteps_;
   std::vector<double> childLearningRate_;
+  std::vector<double> childActivePartitionRatio_;
 
   std::vector<std::size_t> childMinLeafSize_;
   std::vector<std::size_t> childMaxDepth_;

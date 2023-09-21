@@ -159,42 +159,44 @@ auto main(int argc, char **argv) -> int {
   */
 
   lossFunction				loss=lossFunction::Synthetic;
-  bool					clamp_gradient		= false;
-  double				upper_val		= 0.;
-  double				lower_val		= 0.;
-  std::size_t				partitionSize		= 6;
-  double				partitionRatio		= .25;
-  double				learningRate		= .0001;
-  int					steps			= 10000;
-  int					baseSteps		= 10000;
-  bool					symmetrizeLabels	= true;
-  bool					removeRedundantLabels	= true;
-  bool					quietRun		= false;
-  double				rowSubsampleRatio	= 1.;
-  double				colSubsampleRatio	= .25;
-  bool					recursiveFit		= true;
-  PartitionSize::PartitionSizeMethod	partitionSizeMethod	= PartitionSize::PartitionSizeMethod::FIXED;
-  LearningRate::LearningRateMethod	learningRateMethod	= LearningRate::LearningRateMethod::FIXED;
-  StepSize::StepSizeMethod		stepSizeMethod		= StepSize::StepSizeMethod::LOG;
-  std::vector<std::size_t>		childPartitionSize	= std::vector<std::size_t>{};
-  std::vector<std::size_t>		childNumSteps		= std::vector<std::size_t>{};
-  std::vector<double>			childLearningRate	= std::vector<double>{};
-  std::vector<std::size_t>		childMinLeafSize	= std::vector<std::size_t>{};
-  std::vector<std::size_t>		childMaxDepth		= std::vector<std::size_t>{};
-  std::vector<double>			childMinimumGainSplit	= std::vector<double>{};
-  std::size_t				minLeafSize		= 1;
-  double				minimumGainSplit	= 0.;
-  std::size_t				maxDepth		= 10;
-  std::size_t				numTrees		= 10;
-  bool					serializeModel		= false;
-  bool					serializePrediction	= false;
-  bool					serializeColMask	= false;
-  bool					serializeDataset	= false;
-  bool					serializeLabels		= false;
-  std::size_t				serializationWindow	= 1000;
-  std::size_t				depth			= 0;
+  bool					clamp_gradient		  = false;
+  double				upper_val		  = 0.;
+  double				lower_val		  = 0.;
+  std::size_t				partitionSize		  = 6;
+  double				partitionRatio		  = .25;
+  double				learningRate		  = .0001;
+  double				activePartitionRatio	  = 0.5;
+  int					steps			  = 10000;
+  int					baseSteps		  = 10000;
+  bool					symmetrizeLabels	  = true;
+  bool					removeRedundantLabels	  = true;
+  bool					quietRun		  = false;
+  double				rowSubsampleRatio	  = 1.;
+  double				colSubsampleRatio	  = .25;
+  bool					recursiveFit		  = true;
+  PartitionSize::PartitionSizeMethod	partitionSizeMethod	  = PartitionSize::PartitionSizeMethod::FIXED;
+  LearningRate::LearningRateMethod	learningRateMethod	  = LearningRate::LearningRateMethod::FIXED;
+  StepSize::StepSizeMethod		stepSizeMethod		  = StepSize::StepSizeMethod::LOG;
+  std::vector<std::size_t>		childPartitionSize	  = std::vector<std::size_t>{};
+  std::vector<std::size_t>		childNumSteps		  = std::vector<std::size_t>{};
+  std::vector<double>			childLearningRate	  = std::vector<double>{};
+  std::vector<double>			childActivePartitionRatio = std::vector<double>{};
+  std::vector<std::size_t>		childMinLeafSize	  = std::vector<std::size_t>{};
+  std::vector<std::size_t>		childMaxDepth		  = std::vector<std::size_t>{};
+  std::vector<double>			childMinimumGainSplit	  = std::vector<double>{};
+  std::size_t				minLeafSize		  = 1;
+  double				minimumGainSplit	  = 0.;
+  std::size_t				maxDepth		  = 10;
+  std::size_t				numTrees		  = 10;
+  bool					serializeModel		  = false;
+  bool					serializePrediction	  = false;
+  bool					serializeColMask	  = false;
+  bool					serializeDataset	  = false;
+  bool					serializeLabels		  = false;
+  std::size_t				serializationWindow	  = 1000;
+  std::size_t				depth			  = 0;
 
-  std::string				fileName		= path_(typeid(Context).name());
+  std::string				fileName		  = path_(typeid(Context).name());
 
   options_description desc("Options");
   desc.add_options()
@@ -206,6 +208,7 @@ auto main(int argc, char **argv) -> int {
     ("partitionSize",		value<std::size_t>(&partitionSize),				"partitionSize")
     ("partitionRatio",		value<double>(&partitionRatio),					"partitionRatio")
     ("learningRate",		value<double>(&learningRate),					"learningRate")
+    ("activePartitionRatio",	value<double>(&activePartitionRatio),				"activePartitionRatio")
     ("steps",			value<int>(&steps),						"steps")
     ("baseSteps",		value<int>(&baseSteps),						"baseSteps")
     ("symmetrizeLabels",	value<bool>(&symmetrizeLabels),					"symmetrizeLabels")
@@ -220,6 +223,7 @@ auto main(int argc, char **argv) -> int {
     ("childPartitionSize",	value<std::vector<std::size_t>>(&childPartitionSize)->multitoken(),		"childPartitionSize")
     ("childNumSteps",		value<std::vector<std::size_t>>(&childNumSteps)->multitoken(),		"childNumSteps")
     ("childLearningRate",	value<std::vector<double>>(&childLearningRate)->multitoken(),	"childLearningRate")
+    ("childActivePartitionRatio", value<std::vector<double>>(&childActivePartitionRatio)->multitoken(), "childActivePartitionRatio")
     ("childMinLeafSize",	value<std::vector<std::size_t>>(&childMinLeafSize)->multitoken(),	"childMinLeafSize")
     ("childMaxDepth",		value<std::vector<std::size_t>>(&childMaxDepth)->multitoken(),	"childMaxDepth")
     ("childMinimumGainSplit",	value<std::vector<double>>(&childMinimumGainSplit)->multitoken(),	"childMinimumGainSplit")
@@ -264,6 +268,7 @@ auto main(int argc, char **argv) -> int {
   context.partitionSize = partitionSize;
   context.partitionRatio = partitionRatio;
   context.learningRate = learningRate;
+  context.activePartitionRatio = activePartitionRatio;
   context.steps = steps;
   context.baseSteps = baseSteps;
   context.symmetrizeLabels = symmetrizeLabels;
@@ -278,6 +283,7 @@ auto main(int argc, char **argv) -> int {
   context.childPartitionSize = childPartitionSize;
   context.childNumSteps = childNumSteps;
   context.childLearningRate = childLearningRate;
+  context.childActivePartitionRatio = childActivePartitionRatio;
   context.childMinLeafSize = childMinLeafSize;
   context.childMaxDepth = childMaxDepth;
   context.childMinimumGainSplit = childMinimumGainSplit;
