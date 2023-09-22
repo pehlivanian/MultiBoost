@@ -4,6 +4,8 @@ DELIM=';'
 CLASSIFIER=DecisionTreeClassifier
 PATH=/home/charles/src/C++/sandbox/Inductive-Boost/build/
 
+SHOW_OOS=1
+
 # Context creation
 EXEC_CC=${PATH}createContext
 
@@ -16,6 +18,7 @@ EXEC_PRED_OOS=${PATH}stepwise_classify
 declare -i childpartitionsize
 declare -i childnumsteps
 declare -f childlearningrate
+declare -f childactivepartitionratio
 declare -i childmaxdepth
 declare -i childminleafsize
 declare -f childminimumgainsplit
@@ -33,6 +36,7 @@ basesteps=""
 colsubsample_ratio=""
 
 while (( $# )); do
+
   num_args=$1; shift
 
   counter=0
@@ -48,6 +52,11 @@ while (( $# )); do
   counter=0
   while (( counter++ < ${num_args} )); do
     childlearningrate[${#childlearningrate[@]}]=$1; shift
+  done
+
+  counter=0
+  while (( counter++ < ${num_args} )); do
+    childactivepartitionratio[${#childactivepartitionratio[@]}]=$1; shift
   done
 
   counter=0
@@ -92,6 +101,7 @@ if [ -z "$clamp_gradient" ]; then
   lower_val=0
 fi
 
+echo -n $PREFIX" "
 # create context for first run
 $EXEC_CC \
 --loss ${loss_fn} \
@@ -101,6 +111,7 @@ $EXEC_CC \
 --childPartitionSize ${childpartitionsize[@]} \
 --childNumSteps ${childnumsteps[@]} \
 --childLearningRate ${childlearningrate[@]} \
+--childActivePartitionRatio ${childactivepartitionratio[@]} \
 --partitionRatio .25 \
 --baseSteps ${basesteps} \
 --symmetrizeLabels true \
@@ -122,6 +133,7 @@ $EXEC_CC \
 --serializationWindow 10 \
 --fileName $CONTEXT_PATH_RUN1
 
+echo -n $PREFIX" "
 # create context for subsequent runs
 $EXEC_CC \
 --loss ${loss_fn} \
@@ -131,6 +143,7 @@ $EXEC_CC \
 --childPartitionSize ${childpartitionsize[@]} \
 --childNumSteps ${childnumsteps[@]} \
 --childLearningRate ${childlearningrate[@]} \
+--childActivePartitionRatio ${childactivepartitionratio[@]} \
 --partitionRatio .25 \
 --baseSteps ${basesteps} \
 --symmetrizeLabels true \
@@ -180,11 +193,19 @@ echo ${PREFIX}" ITER: 1"
 
 ((n=n+1))
 
-# Classify OOS
-$EXEC_PRED_OOS \
+echo $EXEC_PRED_OOS \
 --indexFileName $INDEX_NAME_STEP \
 --folderName $FOLDER_STEP \
 --prefixStr $PREFIX
+
+if [ 0 -eq 1 ];then
+# Classify OOS
+if [ $SHOW_OOS -eq 1 ]; then
+  $EXEC_PRED_OOS \
+  --indexFileName $INDEX_NAME_STEP \
+  --folderName $FOLDER_STEP \
+  --prefixStr $PREFIX
+fi
 
 # Subsequent runs
 for (( ; ; ));
@@ -208,10 +229,12 @@ do
   echo ${PREFIX}" ITER: ${n}"
 
   # Classify OOS
-  $EXEC_PRED_OOS \
-  --indexFileName $INDEX_NAME_STEP \
-  --folderName $FOLDER_STEP \
-  --prefixStr $PREFIX
+  if [ $SHOW_OOS -eq 1 ]; then
+    $EXEC_PRED_OOS \
+    --indexFileName $INDEX_NAME_STEP \
+    --folderName $FOLDER_STEP \
+    --prefixStr $PREFIX
+  fi
 
   ((n=n+1))
 done
@@ -240,4 +263,5 @@ if [ ! -z "$runOnTestDataset" ]; then
   --indexName $INDEX_NAME_STEP \
   --folderName $FOLDER_STEP \
   --prefixStr $PREFIX
+fi
 fi

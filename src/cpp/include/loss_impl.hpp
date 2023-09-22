@@ -52,7 +52,7 @@ template<typename DataType>
 DataType
 LogLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
   // *grad = (y - yhat) / ((yhat - 1) % yhat);
-  *grad = -1*(y - yhat);
+  *grad = -1 * (y - yhat);
 
 #ifdef AUTODIFF
   ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
@@ -68,7 +68,7 @@ template<typename DataType>
 void
 LogLoss<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
   // *hess = (-2*y % yhat + y + pow(yhat, 2))/pow(yhat % (yhat-1), 2);
-  *hess = yhat * (1 - yhat);
+  *hess = yhat % (1 - yhat);
 }
 
 template<typename DataType>
