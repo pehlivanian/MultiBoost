@@ -13,6 +13,7 @@ using namespace IB_utils;
 
 namespace ClassifierFileScope{
   const bool POST_EXTRAPOLATE = true;
+  const bool W_CYCLE_PREFIT = true;
   const bool DIAGNOSTICS_0_ = true;
   const bool DIAGNOSTICS_1_ = false;
   const std::string DIGEST_PATH = 
@@ -163,28 +164,6 @@ CompositeClassifier<ClassifierType>::_randomLeaf() const {
 }
 
 template<typename ClassifierType>
-template<typename... Ts>
-void
-CompositeClassifier<ClassifierType>::createClassifier(std::unique_ptr<ClassifierType>& classifier,
-						      const mat& dataset,
-						      rowvec& labels,
-						      std::tuple<Ts...> const& args) {
-  // mimic:
-  // classifier.reset(new ClassifierType(dataset_,
-  //  				      constantLabels,
-  // 				      std::forward<typename ClassifierType::Args>(classifierArgs)));
-
-  // Instantiation of ClassifierType should include fit stage; look at profile results
-  auto _c = [&classifier, &dataset, &labels](Ts const&... classArgs) { 
-    classifier.reset(new ClassifierType(dataset,
-					labels,
-					classArgs...)
-					);
-  };
-  std::apply(_c, args);
-}
-
-template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::updateClassifiers(std::unique_ptr<ClassifierBase<DataType, Classifier>>&& classifier,
 						       Row<DataType>& prediction) {
@@ -237,6 +216,9 @@ CompositeClassifier<ClassifierType>::init_(Context&& context) {
   // Note these are flipped
   n_ = dataset_.n_rows; 
   m_ = dataset_.n_cols;
+
+  // Initialize rowMask
+  rowMask_ = linspace<uvec>(0, -1+n_, n_);
 
   // Initialize rng  
   std::size_t a=1, b=std::max(1, static_cast<int>(m_ * col_subsample_ratio_));
@@ -505,22 +487,129 @@ CompositeClassifier<ClassifierType>::deSymmetrize(Row<DataType>& prediction) {
 }
 
 template<typename ClassifierType>
+template<typename... Ts>
+void
+CompositeClassifier<ClassifierType>::setRootClassifier(std::unique_ptr<ClassifierType>& classifier,
+						       const mat& dataset,
+						       rowvec& labels,
+						       std::tuple<Ts...> const& args) {
+  // mimic:
+  // classifier.reset(new ClassifierType(dataset_,
+  //  				      constantLabels,
+  // 				      std::forward<typename ClassifierType::Args>(classifierArgs)));
+
+  // Instantiation of ClassifierType should include fit stage; no need to call explicity
+  auto _c = [&classifier, &dataset, &labels](Ts const&... classArgs) { 
+    classifier.reset(new ClassifierType(dataset,
+					labels,
+					classArgs...)
+					);
+  };
+  std::apply(_c, args);
+}
+
+
+template<typename ClassifierType>
+void
+CompositeClassifier<ClassifierType>::createRootClassifier(std::unique_ptr<ClassifierType>& classifier,
+							  uvec rowMask, 
+							  uvec colMask, 
+							  const row_d& best_leaves) {
+
+  const typename ClassifierType::Args& rootClassifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize_+1));
+  
+  if (ClassifierFileScope::POST_EXTRAPOLATE) {
+    // Fit classifier on {dataset_slice, best_leaves}, both subsets of the original data
+    // There will be no post-padding of zeros as that is not well-defined for OOS prediction,
+    // we just use the classifier below to predict on the larger dataset for this step's
+    // prediction
+
+    auto dataset_slice = dataset_.submat(rowMask, colMask);
+    Leaves allLeaves = best_leaves;
+    
+    setRootClassifier(classifier, dataset_slice, allLeaves, rootClassifierArgs);
+
+  } else {
+    // Fit classifier on {dataset, padded best_leaves}, where padded best_leaves is the
+    // label slice padded with zeros to match original dataset size
+
+    // Zero pad labels first
+    Leaves allLeaves = zeros<row_d>(m_);
+    allLeaves(colMask) = best_leaves;
+
+    setRootClassifier(classifier, dataset_, allLeaves, rootClassifierArgs);
+    
+  }
+}
+
+template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
-
+  // Implementation of W-cycle
+  
   if (!reuseColMask_) {
     int colRatio = static_cast<size_t>(m_ * col_subsample_ratio_);
-    // Equivalent, second a little faster, see benchmarks
-    // colMask_ = subsampleCols(colRatio);
     colMask_ = PartitionUtils::sortedSubsample2(m_, colRatio);
   }
 
   row_d labels_slice = labels_.submat(zeros<uvec>(1), colMask_);
-
-  Leaves allLeaves = zeros<row_d>(m_), best_leaves;
-
-  Row<DataType> prediction, prediction_slice;
+  row_d best_leaves;
+  std::pair<rowvec, rowvec> coeffs;
+  
+  Row<DataType> prediction;
   std::unique_ptr<ClassifierType> classifier;
+
+  if (!hasInitialPrediction_) {
+    if (loss_ == lossFunction::LogLoss) {
+      latestPrediction_ = _constantLeaf(mean(labels_slice));
+    } else {
+      latestPrediction_ = _constantLeaf(0.0);
+    }
+  }
+
+  if (ClassifierFileScope::W_CYCLE_PREFIT) {
+
+    if (ClassifierFileScope::DIAGNOSTICS_0_ || ClassifierFileScope::DIAGNOSTICS_1_) {
+      std::cerr << fit_prefix(depth_);
+      std::cerr << "[*]PRE-FITTING LEAF CLASSIFIER FOR (PARTITIONSIZE, STEPNUM): ("
+		<< partitionSize_ << ", "
+		<< stepNum << " of "
+		<< steps_ << ")"
+		<< std::endl;
+    }
+    
+    coeffs = generate_coefficients(labels_slice, colMask_);
+    
+    best_leaves = computeOptimalSplit(coeffs.first,
+				      coeffs.second,
+				      stepNum,
+				      partitionSize_,
+				      learningRate_,
+				      activePartitionRatio_,
+				      colMask_);
+    
+    createRootClassifier(classifier, rowMask_, colMask_, best_leaves);
+    
+    classifier->Classify(dataset_, prediction);
+    
+    if (ClassifierFileScope::DIAGNOSTICS_1_) {    
+      rowvec yhat_debug;
+      Predict(yhat_debug, colMask_);
+      
+      for (std::size_t i=0; i<best_leaves.size(); ++i) {
+	std::cerr << labels_slice[i] << " : "
+		  << yhat_debug[i] << " : "
+		  << best_leaves[i] << " : "
+		  << prediction[i] << " : "
+		  << coeffs.first[i] << " : " 
+		  << coeffs.second[i] << std::endl;
+      }
+    }
+    
+    updateClassifiers(std::move(classifier), prediction);
+    
+    hasInitialPrediction_ = true;
+  }
 
   //////////////////////////
   // BEGIN RECURSIVE STEP //
@@ -529,7 +618,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
     if (ClassifierFileScope::DIAGNOSTICS_1_ || ClassifierFileScope::DIAGNOSTICS_0_) {
       std::cerr << fit_prefix(depth_);
-      std::cerr << "FITTING COMPOSITE CLASSIFIER FOR (PARTITIONSIZE, STEPNUM): ("
+      std::cerr << "[-]FITTING COMPOSITE CLASSIFIER FOR (PARTITIONSIZE, STEPNUM): ("
 		<< partitionSize_ << ", "
 		<< stepNum << " of "
 		<< steps_ << ")"
@@ -594,9 +683,9 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   // If we are in recursive mode and partitionSize <= 2, fall through
   // to this case for the leaf classifier
 
-  if (ClassifierFileScope::DIAGNOSTICS_0_) {
+  if (ClassifierFileScope::DIAGNOSTICS_0_ || ClassifierFileScope::DIAGNOSTICS_1_) {
     std::cerr << fit_prefix(depth_);
-    std::cerr << "[*]FITTING LEAF CLASSIFIER FOR (PARTITIONSIZE, STEPNUM): ("
+    std::cerr << "[*]POST-FITTING LEAF CLASSIFIER FOR (PARTITIONSIZE, STEPNUM): ("
 	      << partitionSize_ << ", "
 	      << stepNum << " of "
 	      << steps_ << ")"
@@ -612,7 +701,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   }
   
   // Generate coefficients g, h
-  std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
+  coeffs = generate_coefficients(labels_slice, colMask_);
   
   // Compute optimal leaf choice on unrestricted dataset
   best_leaves = computeOptimalSplit(coeffs.first, 
@@ -622,40 +711,12 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 				    learningRate_,
 				    activePartitionRatio_,
 				    colMask_);
-  
-  if (ClassifierFileScope::POST_EXTRAPOLATE) {
-    // Fit classifier on {dataset_slice, best_leaves}, both subsets of the original data
-    // There will be no post-padding of zeros as that is not well-defined for OOS prediction,
-    // we just use the classifier below to predict on the larger dataset for this step's
-    // prediction
 
-    uvec rowMask = linspace<uvec>(0, -1+n_, n_);
-    auto dataset_slice = dataset_.submat(rowMask, colMask_);
-    
-    const typename ClassifierType::Args& rootClassifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize_+1));
-    createClassifier(classifier, dataset_slice, best_leaves, rootClassifierArgs);
-
-  } else {
-    // Fit classifier on {dataset, padded best_leaves}, where padded best_leaves is the
-    // label slice padded with zeros to match original dataset size
-
-    // Zero pad labels first
-    allLeaves(colMask_) = best_leaves;
-
-    const typename ClassifierType::Args& rootClassifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize_+1));
-    createClassifier(classifier, dataset_, allLeaves, rootClassifierArgs);
-    
-  }
+  createRootClassifier(classifier, rowMask_, colMask_, best_leaves);
 
   classifier->Classify(dataset_, prediction);
 
   if (ClassifierFileScope::DIAGNOSTICS_1_) {
-    std::cerr << fit_prefix(depth_);
-    std::cerr << "FITTING LEAF CLASSIFIER FOR (PARTITIONSIZE, STEPNUM): ("
-	      << partitionSize_ << ", "
-	      << stepNum << " of "
-	      << steps_ << ")"
-	      << std::endl;
     
     rowvec yhat_debug;
     Predict(yhat_debug, colMask_);

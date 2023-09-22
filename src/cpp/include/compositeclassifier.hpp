@@ -491,11 +491,14 @@ private:
 
   void purge_() override;
   
+  void createRootClassifier(std::unique_ptr<ClassifierType>&, 
+			    uvec, 
+			    uvec, const Row<double>&);
   template<typename... Ts>
-  void createClassifier(std::unique_ptr<ClassifierType>&, 
-			const mat&,
-			rowvec&,
-			std::tuple<Ts...> const&);
+  void setRootClassifier(std::unique_ptr<ClassifierType>&, 
+			 const mat&,
+			 Row<double>&,
+			 std::tuple<Ts...> const&);
 
   std::tuple<std::size_t, std::size_t, double, double> computeChildPartitionInfo();
   std::tuple<std::size_t, std::size_t, double> computeChildModelInfo();
@@ -535,6 +538,7 @@ private:
   double row_subsample_ratio_;
   double col_subsample_ratio_;
 
+  uvec rowMask_;
   uvec colMask_;
   std::string folderName_;
 
