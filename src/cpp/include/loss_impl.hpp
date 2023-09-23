@@ -51,8 +51,13 @@ LossFunction<DataType>::loss(const rowvec& yhat, const rowvec& y, rowvec* grad, 
 template<typename DataType>
 DataType
 LogLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
-  // *grad = (y - yhat) / ((yhat - 1) % yhat);
-  *grad = -1 * (y - yhat);
+  // The usual log loss function assumes that $y \in \left\lbrace 0, 1\right\rbrace$
+  // We maintain the consistency by assuming $y \in \left\brace -1, 1\right\rbrace$
+  // here, and do a pre-transformation
+
+  rowvec yhat_norm = 0.5 * yhat + 0.5;
+  rowvec y_norm = 0.5 * y + 0.5;
+  *grad = -1 * (y_norm - yhat_norm);
 
 #ifdef AUTODIFF
   ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
@@ -67,8 +72,12 @@ LogLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) 
 template<typename DataType>
 void
 LogLoss<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
-  // *hess = (-2*y % yhat + y + pow(yhat, 2))/pow(yhat % (yhat-1), 2);
-  *hess = yhat % (1 - yhat);
+  // The usual log loss function assumes that $y \in \left\lbrace 0, 1\right\rbrace$
+  // We maintain the consistency by assuming $y \in \left\brace -1, 1\right\rbrace$
+  // here, and do a pre-transformation
+  
+  rowvec yhat_norm = 0.5 * yhat + 0.5;
+  *hess = yhat_norm % (1 - yhat_norm);
 }
 
 template<typename DataType>
@@ -76,18 +85,12 @@ DataType
 LogLoss<DataType>::loss_reverse_arma(const rowvec& yhat, const rowvec& y) {
   return 0.;
 
-  rowvec log_odds = log(yhat / (1 - yhat));
-  return -1 * sum(y % log_odds - log(1 + exp(log_odds)));
+  rowvec yhat_norm = 0.5 * yhat + 0.5;
+  rowvec y_norm = 0.5 * y + 0.5;
 
-  /*
-    rowvec a = exp(yhat) / (1 + exp(yhat));
-    double b = -1 * sum(y % log(yhat) + (1 - y) % log(1 - yhat));
-    
-    rowvec log_odds = log(yhat / (1 - yhat));
-    double c = -1 * sum(log_odds - log(1 + exp(log_odds)));
-    
-    return -1 * sum(log_odds - log(1 + exp(log_odds)));
-  */
+  rowvec log_odds = log(yhat_norm / (1 - yhat_norm));
+  return -1 * sum(y_norm % log_odds - log(1 + exp(log_odds)));
+
 }
 
 #ifdef AUTODIFF

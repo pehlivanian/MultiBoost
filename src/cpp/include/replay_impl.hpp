@@ -241,13 +241,13 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
   }
 
   for (int i=0; i<15; ++i) {
-    std::cout << "OOS: (raw y,y_hat): ("
+    std::cout << "OOS: (y_hat, raw y): ("
 	      << prediction[i] << ", "
 	      << labels_oos[i] << ")" << std::endl;
   }
   
   for (int i=0; i<15; ++i) {
-    std::cout << "IS: (raw labels, labels_hat): ("
+    std::cout << "IS: (labels_hat, raw labels): ("
 	      << prediction_is[i] << ", "
 	      << labels[i] << ")" << std::endl;
   }
@@ -265,14 +265,14 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
    
   /*
     for (int i=0; i<10; ++i) {
-    std::cout << "OOS: (sym y,y_hat): ("
+    std::cout << "OOS: (y_hat, sym y): ("
     << prediction[i] << ", "
     << labels_oos[i] << ")" << std::endl;
     }
     std::cout << std::endl;
     
     for (int i=0; i<10; ++i) {
-    std::cout << "IS: (labels, labels_hat): ("
+    std::cout << "IS: (labels_hat, labels): ("
     << prediction_is[i] << ", "
     << labels[i] << ")" << std::endl;
     }
@@ -502,14 +502,14 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
 
     /*
       for (int i=0; i<10; ++i) {
-      std::cout << "OOS: (y, y_hat): (" 
+      std::cout << "OOS: (y_hat, y): (" 
       << prediction[i] << ", "
       << labels_oos[i] << ")" << std::endl;
       }
       std::cout << std::endl;
       
       for (int i=0; i<10; ++i) {
-      std::cout << "IS: (labels, labels_hat): (" 
+      std::cout << "IS: (labels_hat, labels): (" 
       << prediction_is[i] << ", "
       << labels[i] << ")" << std::endl;
       }

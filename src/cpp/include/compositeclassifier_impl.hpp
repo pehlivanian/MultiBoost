@@ -431,7 +431,7 @@ CompositeClassifier<ClassifierType>::symmetrizeLabels(Row<DataType>& labels) {
   } else if (uniqueVals.size() == 2) {
     double m = *std::min_element(uniqueVals.cbegin(), uniqueVals.cend());
     double M = *std::max_element(uniqueVals.cbegin(), uniqueVals.cend());
-    if (loss_ == lossFunction::LogLoss) {
+    if (false && (loss_ == lossFunction::LogLoss)) {
       // Normalize so that $y \in \left\lbrace 0,1\right\rbrace$
       a_ = 1./(M-m);
       b_ = -1*static_cast<double>(m)/static_cast<double>(M-m);
@@ -477,7 +477,7 @@ template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::deSymmetrize(Row<DataType>& prediction) {
 
-    if (loss_ == lossFunction::LogLoss) {
+  if (false && (loss_ == lossFunction::LogLoss)) {
       // Normalized values were in $\left\lbrace 0,1\right\rightbrace$
       prediction = ((0.5*sign(prediction)+0.5) - b_)/ a_;
     }
@@ -560,7 +560,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   std::unique_ptr<ClassifierType> classifier;
 
   if (!hasInitialPrediction_) {
-    if (loss_ == lossFunction::LogLoss) {
+    if (false && (loss_ == lossFunction::LogLoss)) {
       latestPrediction_ = _constantLeaf(mean(labels_slice));
     } else {
       latestPrediction_ = _constantLeaf(0.0);
@@ -693,7 +693,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   }
 
   if (!hasInitialPrediction_){
-    if (loss_ == lossFunction::LogLoss) {
+    if (false&& (loss_ == lossFunction::LogLoss)) {
       latestPrediction_ = _constantLeaf(mean(labels_slice));
     } else {
       latestPrediction_ = _constantLeaf(0.0);
