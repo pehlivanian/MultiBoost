@@ -4,7 +4,7 @@ DELIM=';'
 CLASSIFIER=DecisionTreeClassifier
 PATH=/home/charles/src/C++/sandbox/Inductive-Boost/build/
 
-SHOW_OOS=1
+SHOW_OOS=0
 
 # Context creation
 EXEC_CC=${PATH}createContext
@@ -193,12 +193,6 @@ echo ${PREFIX}" ITER: 1"
 
 ((n=n+1))
 
-echo $EXEC_PRED_OOS \
---indexFileName $INDEX_NAME_STEP \
---folderName $FOLDER_STEP \
---prefixStr $PREFIX
-
-if [ 0 -eq 1 ];then
 # Classify OOS
 if [ $SHOW_OOS -eq 1 ]; then
   $EXEC_PRED_OOS \
@@ -263,5 +257,4 @@ if [ ! -z "$runOnTestDataset" ]; then
   --indexName $INDEX_NAME_STEP \
   --folderName $FOLDER_STEP \
   --prefixStr $PREFIX
-fi
 fi
