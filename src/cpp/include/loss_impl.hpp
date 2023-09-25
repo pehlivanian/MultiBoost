@@ -435,8 +435,19 @@ template<typename DataType>
 DataType
 SyntheticLossVar1<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
 
-  rowvec f(y.n_cols, arma::fill::zeros);
-  *grad = -sign(y) % max(1 - sign(y) % yhat, f);
+  // Recasting of BinomialDevianceLoss
+  // rowvec f = exp(y % yhat);
+  // rowvec g = (pow(y, 2) % f)/pow(1 + f, 2);
+  // *grad = -y/(g % (1 + f));
+
+  // Second recasting of BinomialDevianceLoss
+  rowvec f = exp(y % yhat);
+  rowvec g = (pow(y, 2) % f);
+  *grad = -y/(g % (1 + f));
+  
+  // rowvec f(y.n_cols, arma::fill::zeros);
+  // *grad = -sign(y) % max(1 - sign(y) % yhat, f);
+
   // *grad = -sign(y) % max(sign(y) % (y - yhat), f);
   // *grad = -y % pow(y - yhat, 2);
 
@@ -455,10 +466,18 @@ template<typename DataType>
 void
 SyntheticLossVar1<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
 
-  (void)yhat;
+  // Recasting of BinomialDevianceLoss
+  // rowvec f(y.n_cols, arma::fill::ones);
+  // *hess = f;
 
-  rowvec f(y.n_cols, arma::fill::ones);
-  *hess = f;
+  // Second recasting of BinomialDevianceLoss
+  rowvec f = exp(y % yhat);
+  *hess = 1. / pow(1 + f, 2);
+  
+  // (void)yhat;
+
+  // rowvec f(y.n_cols, arma::fill::ones);
+  // *hess = f;
 }
 
 template<typename DataType>

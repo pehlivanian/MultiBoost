@@ -1,13 +1,22 @@
 #include "DP_solver_ex.hpp"
 
-void print_subsets(std::vector<std::vector<int> >& subsets) {
+void print_subsets(std::vector<std::vector<int> >& subsets, const std::vector<double>& a, const std::vector<double>& b) {
   std::cout << "SUBSETS\n";
   std::cout << "[\n";
-  std::for_each(subsets.begin(), subsets.end(), [](std::vector<int>& subset){
+  std::for_each(subsets.begin(), subsets.end(), [&a, &b](std::vector<int>& subset){
+		  std::cout << "[size: " << subset.size() << "] ";
 		  std::cout << "[";
+		  std::sort(subset.begin(), subset.end());
 		  std::copy(subset.begin(), subset.end(),
 			    std::ostream_iterator<int>(std::cout, " "));
-		  std::cout << "]\n";
+		  std::cout << "] ";
+
+		  double sum_a=0., sum_b=0.;
+		  for (const int& ind : subset) {
+		    sum_a+=a[ind];
+		    sum_b+=b[ind];
+		  }
+		  std::cout << "[avg. priority: " << -1*sum_b/sum_a << "]\n";
 		});
   std::cout << "]";
 }
@@ -64,6 +73,7 @@ void sort_by_priority(std::vector<double>& a, std::vector<double>& b) {
 
 auto main() -> int {
 
+  /*
   constexpr int n = 5000;
   constexpr int T = 20;
   constexpr int NUM_TRIALS = 5;
@@ -167,6 +177,7 @@ auto main() -> int {
     std::cout << "=================\n\n";
   
   }
+  */
 
   /*
   // Large-scale example
@@ -200,6 +211,75 @@ auto main() -> int {
   print_scores(dp_scores);
   */
 
+  const int n = 50;
+  const int T = 5;
+
+  std::random_device rnd_device;
+  std::mt19937 mersenne_engine{rnd_device()};
+  std::uniform_real_distribution<double> dista(0., 10.);
+  std::uniform_real_distribution<double> distb(0., 10.);
+
+  auto gena = [&mersenne_engine, &dista](){ return dista(mersenne_engine); };
+  auto genb = [&mersenne_engine, &distb](){ return distb(mersenne_engine); };
+
+  std::vector<double> a0(n), b0(n), a1(n), b1(n), a2(n), b2(n);
+
+  std::generate(a0.begin(), a0.end(), gena);
+  std::generate(b0.begin(), b0.end(), genb);
+
+  sort_by_priority(a0, b0);
+
+  for (std::size_t i=0; i<a0.size(); ++i) {
+    a1[i] = a0[i]/b0[i];
+    b1[i] = 1.;
+    a2[i] = 1.;
+    b2[i] = b0[i]/a0[i];
+  }
+
+  bool risk_partitioning_objective = false;
+  bool use_rational_optimization = true;
+
+  auto dp0 = DPSolver<double>(n, T, a0, b0,
+			      objective_fn::RationalScore,
+			      risk_partitioning_objective,
+			      use_rational_optimization);
+
+  auto dp0_opt = dp0.get_optimal_subsets_extern();
+  auto dp0_scores = dp0.get_score_by_subset_extern();
+
+  auto dp1 = DPSolver<double>(n, T, a1, b1,
+			      objective_fn::RationalScore,
+			      risk_partitioning_objective,
+			      use_rational_optimization);
+
+
+  auto dp1_opt = dp1.get_optimal_subsets_extern();
+  auto dp1_scores = dp1.get_score_by_subset_extern();
+
+  auto dp2 = DPSolver<double>(n, T, a2, b2,
+			      objective_fn::RationalScore,
+			      risk_partitioning_objective,
+			      use_rational_optimization);
+
+
+  auto dp2_opt = dp2.get_optimal_subsets_extern();
+  auto dp2_scores = dp2.get_score_by_subset_extern();
+
+  print_subsets(dp0_opt, a0, b0);
+  std::cout << "\n dp0 Subset scores: ";
+  std::copy(dp0_scores.begin(), dp0_scores.end(), std::ostream_iterator<double>(std::cout, " "));
+  std::cout << std::endl;
+
+  print_subsets(dp1_opt, a1, b1);
+  std::cout << "\n dp1 Subset scores: ";
+  std::copy(dp1_scores.begin(), dp1_scores.end(), std::ostream_iterator<double>(std::cout, " "));
+  std::cout << std::endl;
+
+  print_subsets(dp2_opt, a2, b2);
+  std::cout << "\n dp2 Subset scores: ";
+  std::copy(dp2_scores.begin(), dp2_scores.end(), std::ostream_iterator<double>(std::cout, " "));
+  std::cout << std::endl;
+  
   /*  
   const int n = 50;
   const int T = 4;
