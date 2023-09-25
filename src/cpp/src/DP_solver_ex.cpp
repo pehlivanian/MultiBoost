@@ -4,7 +4,7 @@ void print_subsets(std::vector<std::vector<int> >& subsets, const std::vector<do
   std::cout << "SUBSETS\n";
   std::cout << "[\n";
   std::for_each(subsets.begin(), subsets.end(), [&a, &b](std::vector<int>& subset){
-		  std::cout << "[size: " << subset.size() << "] ";
+		  std::cout << "  [size: " << subset.size() << "] ";
 		  std::cout << "[";
 		  std::sort(subset.begin(), subset.end());
 		  std::copy(subset.begin(), subset.end(),
@@ -239,13 +239,21 @@ auto main() -> int {
   bool risk_partitioning_objective = false;
   bool use_rational_optimization = true;
 
-  auto dp0 = DPSolver<double>(n, T, a0, b0,
-			      objective_fn::RationalScore,
-			      risk_partitioning_objective,
-			      use_rational_optimization);
+  auto dp00 = DPSolver<double>(n, T, a0, b0,
+			       objective_fn::RationalScore,
+			       risk_partitioning_objective,
+			       use_rational_optimization);
 
-  auto dp0_opt = dp0.get_optimal_subsets_extern();
-  auto dp0_scores = dp0.get_score_by_subset_extern();
+  auto dp00_opt = dp00.get_optimal_subsets_extern();
+  auto dp00_scores = dp00.get_score_by_subset_extern();
+
+  auto dp01 = DPSolver<double>(n, T, a0, b0,
+			       objective_fn::RationalScore,
+			       true,
+			       use_rational_optimization);
+
+  auto dp01_opt = dp01.get_optimal_subsets_extern();
+  auto dp01_scores = dp01.get_score_by_subset_extern();
 
   auto dp1 = DPSolver<double>(n, T, a1, b1,
 			      objective_fn::RationalScore,
@@ -265,9 +273,14 @@ auto main() -> int {
   auto dp2_opt = dp2.get_optimal_subsets_extern();
   auto dp2_scores = dp2.get_score_by_subset_extern();
 
-  print_subsets(dp0_opt, a0, b0);
-  std::cout << "\n dp0 Subset scores: ";
-  std::copy(dp0_scores.begin(), dp0_scores.end(), std::ostream_iterator<double>(std::cout, " "));
+  print_subsets(dp00_opt, a0, b0);
+  std::cout << "\n dp00 Subset scores: ";
+  std::copy(dp00_scores.begin(), dp00_scores.end(), std::ostream_iterator<double>(std::cout, " "));
+  std::cout << std::endl;
+
+  print_subsets(dp01_opt, a0, b0);
+  std::cout << "\n dp01 Subset scores: ";
+  std::copy(dp01_scores.begin(), dp01_scores.end(), std::ostream_iterator<double>(std::cout, " "));
   std::cout << std::endl;
 
   print_subsets(dp1_opt, a1, b1);

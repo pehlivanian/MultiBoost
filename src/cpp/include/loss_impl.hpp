@@ -441,9 +441,14 @@ SyntheticLossVar1<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowv
   // *grad = -y/(g % (1 + f));
 
   // Second recasting of BinomialDevianceLoss
-  rowvec f = exp(y % yhat);
-  rowvec g = (pow(y, 2) % f);
-  *grad = -y/(g % (1 + f));
+  // rowvec f = exp(y % yhat);
+  // rowvec g = (pow(y, 2) % f);
+  // *grad = -y/(g % (1 + f));
+
+  // Proper decomposition of \Phi\left( y,\hat{y}\right) = \left( y-\hat{y}\right)^3
+  rowvec f = exp(-0.5 * (1/pow(y-yhat, 2)));
+  rowvec g = exp(0.5 * (1/pow(y, 2)));
+  *grad = -y % f % g;
   
   // rowvec f(y.n_cols, arma::fill::zeros);
   // *grad = -sign(y) % max(1 - sign(y) % yhat, f);
@@ -471,8 +476,13 @@ SyntheticLossVar1<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowve
   // *hess = f;
 
   // Second recasting of BinomialDevianceLoss
-  rowvec f = exp(y % yhat);
-  *hess = 1. / pow(1 + f, 2);
+  // rowvec f = exp(y % yhat);
+  // *hess = 1. / pow(1 + f, 2);
+
+  // Proper decomposition of \Phi\left( y,\hat{y}\right) = \left( y-\hat{y}\right)^3
+  rowvec f = exp(-0.5 * (1/pow(y-yhat, 2)));
+  rowvec g = exp(0.5 * (1/pow(y, 2)));
+  *hess = (y / pow(y-yhat,3)) % f % g;
   
   // (void)yhat;
 

@@ -750,10 +750,8 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
   (void)stepNum;
 
   // We should implement several methods here
-  std::vector<double> gv = arma::conv_to<std::vector<double>>::from(g);
-  std::vector<double> hv = arma::conv_to<std::vector<double>>::from(h);
-
   int n = colMask.n_rows, T = partitionSize;
+  objective_fn obj_fn					= objective_fn::RationalScore;
   bool risk_partitioning_objective			= false;
   bool use_rational_optimization			= true;
   bool sweep_down					= false;
@@ -761,8 +759,24 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
   double reg_power					= 1.;
   bool find_optimal_t					= false;
 
-  auto dp = DPSolver(n, T, std::move(gv), std::move(hv),
-		     objective_fn::RationalScore,
+  std::vector<double> gv0 = arma::conv_to<std::vector<double>>::from(g);
+  std::vector<double> hv0 = arma::conv_to<std::vector<double>>::from(h);
+  /*
+  std::vector<double> gv1(n), hv1(n);
+  std::vector<double> gv2(n), hv2(n);
+  for (std::size_t i=0; i<n; ++i) {
+    gv1[i] = g[i]/h[i];
+    hv1[i] = 1.;
+  }
+  for (std::size_t i=0; i<n; ++i) {
+    gv2[i] = 1.;
+    hv2[i] = h[i]/g[i];
+  }
+  */
+
+  // First solver
+  auto dp0 = DPSolver(n, T, std::move(gv0), std::move(hv0),
+		     obj_fn,
 		     risk_partitioning_objective,
 		     use_rational_optimization,
 		     gamma,
@@ -771,23 +785,81 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
 		     find_optimal_t
 		     );
   
-  auto subsets = dp.get_optimal_subsets_extern();
+  auto subsets0 = dp0.get_optimal_subsets_extern();
 
-  rowvec leaf_values = arma::zeros<rowvec>(n);
+  rowvec leaf_values0 = arma::zeros<rowvec>(n);
 
   if (T > 1 || risk_partitioning_objective) {
     std::size_t start_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(T*activePartitionRatio);
 
-    for (std::size_t i=start_ind; i<subsets.size(); ++i) {      
-      uvec ind = arma::conv_to<uvec>::from(subsets[i]);
+    for (std::size_t i=start_ind; i<subsets0.size(); ++i) {      
+      uvec ind = arma::conv_to<uvec>::from(subsets0[i]);
       double val = -1. * learningRate * sum(g(ind))/sum(h(ind));
       for (auto j: ind) {
-	leaf_values(j) = val;
+	leaf_values0(j) = val;
       }
     }
   }
 
-  return leaf_values;
+  /*
+  // Second solver
+  auto dp1 = DPSolver(n, T, std::move(gv1), std::move(hv1),
+		      obj_fn,
+		      risk_partitioning_objective,
+		      use_rational_optimization,
+		      gamma,
+		      reg_power,
+		      sweep_down,
+		      find_optimal_t
+		      );
+
+  auto subsets1 = dp1.get_optimal_subsets_extern();
+  
+  rowvec leaf_values1 = arma::zeros<rowvec>(n);
+
+  if (T > 1 || risk_partitioning_objective) {
+    std::size_t start_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(T*activePartitionRatio);
+
+    for (std::size_t i=start_ind; i<subsets1.size(); ++i) {      
+      uvec ind = arma::conv_to<uvec>::from(subsets1[i]);
+      double val = -1. * learningRate * sum(g(ind))/sum(h(ind));
+      for (auto j: ind) {
+	leaf_values1(j) = val;
+      }
+    }
+  }
+
+  // Third solver
+  auto dp2 = DPSolver(n, T, std::move(gv2), std::move(hv2),
+		      obj_fn,
+		      risk_partitioning_objective,
+		      use_rational_optimization,
+		      gamma,
+		      reg_power,
+		      sweep_down,
+		      find_optimal_t
+		      );
+
+  auto subsets2 = dp2.get_optimal_subsets_extern();
+  
+  rowvec leaf_values2 = arma::zeros<rowvec>(n);
+
+  if (T > 1 || risk_partitioning_objective) {
+    std::size_t start_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(T*activePartitionRatio);
+
+    for (std::size_t i=start_ind; i<subsets2.size(); ++i) {      
+      uvec ind = arma::conv_to<uvec>::from(subsets2[i]);
+      double val = -1. * learningRate * sum(g(ind))/sum(h(ind));
+      for (auto j: ind) {
+	leaf_values2(j) = val;
+      }
+    }
+  }
+  */
+
+  // return (1./3.) * (leaf_values0 + leaf_values1 + leaf_values2);
+  // return 0.5 * (leaf_values0 + leaf_values1);
+  return leaf_values0;
     
 }
 
