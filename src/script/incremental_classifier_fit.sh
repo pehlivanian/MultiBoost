@@ -4,7 +4,7 @@ DELIM=';'
 CLASSIFIER=DecisionTreeClassifier
 PATH=/home/charles/src/C++/sandbox/Inductive-Boost/build/
 
-SHOW_OOS=0
+SHOW_OOS=1
 
 # Context creation
 EXEC_CC=${PATH}createContext
@@ -34,6 +34,7 @@ declare -a runOnTestDataset
 dataname=""
 basesteps=""
 colsubsample_ratio=""
+split_ratio=""
 
 while (( $# )); do
 
@@ -83,23 +84,29 @@ while (( $# )); do
   upper_val+=${1:0}; shift
   lower_val+=${1:0}; shift
   runOnTestDataset+=${1:0}; shift
+  split_ratio+=$1; shift
 
 done
-
-STEPS=1
-SPLITRATIO=0.2
-
-CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCreifissa.cxt
-CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCreifissa.cxt
-
-((ITERS=$basesteps / $STEPS))
-PREFIX="["${dataname}"]"
 
 if [ -z "$clamp_gradient" ]; then
   clamp_gradient=0
   upper_val=0
   lower_val=0
 fi
+
+if [ -z "$split_ratio" ]; then
+  split_ratio=0
+  test_OOS_no_split=1
+fi
+
+STEPS=1
+SPLITRATIO=${split_ratio}
+
+CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCreifissa.cxt
+CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCreifissa.cxt
+
+((ITERS=$basesteps / $STEPS))
+PREFIX="["${dataname}"]"
 
 echo -n $PREFIX" "
 # create context for first run
@@ -193,12 +200,27 @@ echo ${PREFIX}" ITER: 1"
 
 ((n=n+1))
 
-# Classify OOS
-if [ $SHOW_OOS -eq 1 ]; then
-  $EXEC_PRED_OOS \
-  --indexFileName $INDEX_NAME_STEP \
+if [ ! -z "$test_OOS_no_split" ]; then
+
+  testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
+  testdataname=${testdataname}"_test"
+
+  EXEC_TEST_OOS=${PATH}OOS_classify
+  PREFIX="["${testdataname}"]"
+
+  $EXEC_TEST_OOS \
+  --dataName ${testdataname} \
+  --indexName $INDEX_NAME_STEP \
   --folderName $FOLDER_STEP \
-  --prefixStr $PREFIX
+  --prefixStr $PREFIX  
+else
+  # Classify OOS
+  if [ $SHOW_OOS -eq 1 ]; then
+    $EXEC_PRED_OOS \
+    --indexFileName $INDEX_NAME_STEP \
+    --folderName $FOLDER_STEP \
+    --prefixStr $PREFIX
+  fi
 fi
 
 # Subsequent runs
@@ -222,12 +244,28 @@ do
   # echo ${n}" : STEPWISE CLASSIFY :: "${INDEX_NAME_STEP}" "${DETAILS}
   echo ${PREFIX}" ITER: ${n}"
 
-  # Classify OOS
-  if [ $SHOW_OOS -eq 1 ]; then
-    $EXEC_PRED_OOS \
-    --indexFileName $INDEX_NAME_STEP \
+  if [ ! -z "$test_OOS_no_split" ]; then
+
+    testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
+    testdataname=${testdataname}"_test"
+
+    EXEC_TEST_OOS=${PATH}OOS_classify
+    PREFIX="["${testdataname}"]"
+
+    $EXEC_TEST_OOS \
+    --dataName ${testdataname} \
+    --indexName $INDEX_NAME_STEP \
     --folderName $FOLDER_STEP \
-    --prefixStr $PREFIX
+    --prefixStr $PREFIX  
+
+  else
+    # Classify OOS
+    if [ $SHOW_OOS -eq 1 ]; then
+      $EXEC_PRED_OOS \
+      --indexFileName $INDEX_NAME_STEP \
+      --folderName $FOLDER_STEP \
+      --prefixStr $PREFIX
+    fi
   fi
 
   ((n=n+1))

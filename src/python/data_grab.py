@@ -85,12 +85,12 @@ for DATA_TYPE in DATA_TYPES:
 
 import pmlb
 import numpy as np
+import pandas as pd
 from pmlb import classification_dataset_names, regression_dataset_names
 from sklearn.model_selection import train_test_split
 
 ROOT_DATA = "/home/charles/Data/"
 MODEL_TYPE = "Classifier"
-TEST_SIZE = 0.7825
 
 # dataset_name = "606_fri_c2_1000_10"
 # dataset_name = "529_pollen"
@@ -104,10 +104,12 @@ TEST_SIZE = 0.7825
 # dataset_name = "GAMETES_Epistasis_2_Way_20atts_0.1H_EDM_1_1"
 # dataset_name = "GAMETES_Epistasis_2_Way_20atts_0.4H_EDM_1_1"
 # dataset_name = "flare"
-dataset_name = "phoneme"
+dataset_name = "income"
 
+X = pd.read_csv("/home/charles/Data/income_train_X.csv",header=None)
+y = pd.read_csv("/home/charles/Data/income_train_y.csv",header=None)
 
-X,y = pmlb.fetch_data(dataset_name, return_X_y=True)
+# X,y = pmlb.fetch_data(dataset_name, return_X_y=True)
 X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=1000)
 X = X_train; y = y_train
 
@@ -120,7 +122,7 @@ if MODEL_TYPE in ("Regression", ):
     np.savetxt( '{}/{}/{}_test_X.csv'. format(ROOT_DATA, MODEL_TYPE, dataset_name), X_test,  delimiter=',')
     np.savetxt( '{}/{}/{}_test_y.csv'. format(ROOT_DATA, MODEL_TYPE, dataset_name), y_test,  delimiter=',')
 else:
-    np.savetxt( '{}/{}_train_X.csv'.format(ROOT_DATA, dataset_name), X_train, delimiter=',')
-    np.savetxt( '{}/{}_train_y.csv'.format(ROOT_DATA, dataset_name), y_train, delimiter=',')
-    np.savetxt( '{}/{}_test_X.csv'. format(ROOT_DATA, dataset_name), X_test,  delimiter=',')
-    np.savetxt( '{}/{}_test_y.csv'. format(ROOT_DATA, dataset_name), y_test,  delimiter=',')    
+    np.savetxt( '{}/{}_small_train_X.csv'.format(ROOT_DATA, dataset_name), X_train, delimiter=',')
+    np.savetxt( '{}/{}_small_train_y.csv'.format(ROOT_DATA, dataset_name), y_train, delimiter=',')
+    np.savetxt( '{}/{}_small_test_X.csv'. format(ROOT_DATA, dataset_name), X_test,  delimiter=',')
+    np.savetxt( '{}/{}_small_test_y.csv'. format(ROOT_DATA, dataset_name), y_test,  delimiter=',')    

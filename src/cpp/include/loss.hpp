@@ -41,8 +41,7 @@ enum class lossFunction {    MSE = 0,
 			     SyntheticVar2 = 7,
                              SquareLoss = 8,
 			     SyntheticRegLoss = 9,
-			     LogLoss = 10
-
+			     LogLoss = 10,
 			};
 
 

@@ -249,7 +249,7 @@ auto main() -> int {
 
   auto dp01 = DPSolver<double>(n, T, a0, b0,
 			       objective_fn::RationalScore,
-			       true,
+			       !risk_partitioning_objective,
 			       use_rational_optimization);
 
   auto dp01_opt = dp01.get_optimal_subsets_extern();
