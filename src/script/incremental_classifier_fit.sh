@@ -96,7 +96,7 @@ fi
 
 if [ -z "$split_ratio" ]; then
   split_ratio=0
-  test_OOS_no_split=1
+  test_OOS_each_it=1
 fi
 
 STEPS=1
@@ -200,7 +200,7 @@ echo ${PREFIX}" ITER: 1"
 
 ((n=n+1))
 
-if [ ! -z "$test_OOS_no_split" ]; then
+if [ ! -z "$test_OOS_each_it" ]; then
 
   testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
   testdataname=${testdataname}"_test"
@@ -244,7 +244,7 @@ do
   # echo ${n}" : STEPWISE CLASSIFY :: "${INDEX_NAME_STEP}" "${DETAILS}
   echo ${PREFIX}" ITER: ${n}"
 
-  if [ ! -z "$test_OOS_no_split" ]; then
+  if [ ! -z "$test_OOS_each_it" ]; then
 
     testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
     testdataname=${testdataname}"_test"

@@ -104,12 +104,10 @@ MODEL_TYPE = "Classifier"
 # dataset_name = "GAMETES_Epistasis_2_Way_20atts_0.1H_EDM_1_1"
 # dataset_name = "GAMETES_Epistasis_2_Way_20atts_0.4H_EDM_1_1"
 # dataset_name = "flare"
-dataset_name = "income"
+# dataset_name = "income"
+dataset_name = "australian"
 
-X = pd.read_csv("/home/charles/Data/income_train_X.csv",header=None)
-y = pd.read_csv("/home/charles/Data/income_train_y.csv",header=None)
-
-# X,y = pmlb.fetch_data(dataset_name, return_X_y=True)
+X,y = pmlb.fetch_data(dataset_name, return_X_y=True)
 X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=1000)
 X = X_train; y = y_train
 

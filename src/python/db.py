@@ -265,7 +265,48 @@ class DBExt(object):
         joined = joined[joined['r2'] > .5]
         xaxis = joined['num_partitions0'].values
         yaxis = joined['r2'].values
-        return xaxis,yaxis        
+        return xaxis,yaxis
+
+    def plot_OOS_fits(self, run_keys):
+        xaxis = np.array([]); erraxis = np.array([]); F1axis = np.array([])
+        for run_key in run_keys:
+            req = self.conn.execute(text('select iteration, err, prcsn, recall, F1 from outofsample where run_key={}'.format(
+                run_key)))
+            df = pd.DataFrame(columns=req.keys(), data=req.fetchall())
+            xaxis = xaxis if xaxis.shape[0] > 0 else df.iteration.values
+            erraxis = np.concatenate([erraxis, df.err.values.reshape(1,-1)]) if erraxis.shape[0] > 0 else df.err.values.reshape(1,-1)
+            F1axis = np.concatenate([F1axis, df.F1.values.reshape(1,-1)]) if F1axis.shape[0] > 0 else df.F1.values.reshape(1,-1)
+
+        # plot
+        fig, ax1 = plot.subplots()
+
+        colors = ['tab:red', 'tab:green', 'tab:orange', 'tab:blue']
+        labels = ['exp loss', 'binom dev loss', 'square loss', 'synth loss']
+        linestyles = {'dense dashdot': (0, (3, 1, 1, 1))}
+        ax1.set_xlabel('Iteration')
+        ax1.set_ylabel('Out of sample error')
+        ax1.set_title('Out of sample convergence [income]')
+        ax1.tick_params(axis='y')
+        for i,_ in enumerate(run_keys):
+            ax1.plot(xaxis, erraxis[i,:],
+                     linestyle='solid',
+                     color=colors[i],
+                     marker='.',
+                     linewidth=1.0,
+                     label=labels[i])
+        ax1.legend()
+        ax1.grid(True)
+        
+        # ax2 = ax1.twinx()
+        
+        # color = 'tab:green'
+        # ax2.set_ylabel('F1', color=color)
+        # for i,_ in enumerate(run_keys):
+        #     ax2.plot(xaxis, F1axis[i,:], color=color)
+        # ax2.tick_params(axis='y', labelcolor=color)
+
+        # fig.tight_layout()
+        plot.show()
 
 if __name__ == "__main__":
     # dbext = DBExt(is_classifier=False);
@@ -288,13 +329,24 @@ if __name__ == "__main__":
     # xaxis,yaxis = dbext.plot_part_v_perf("GAMETES_Epistasis_2_Way_20atts_0.1H_EDM_1_1_train")
     # xaxis,yaxis = dbext.plot_part_v_perf("GAMETES_Epistasis_2_Way_20atts_0.4H_EDM_1_1_train")
     # xaxis,yaxis = dbext.plot_part_v_perf("flare_train")
-    xaxis,yaxis = dbext.plot_part_v_perf("phoneme_train")
-
-    sortind = [x[0] for x in sorted(enumerate(xaxis), key=lambda x: x[1])]
-    xaxis = xaxis[[sortind]]
-    yaxis = yaxis[[sortind]]
-    plot.scatter(xaxis,yaxis)
+    # xaxis,yaxis = dbext.plot_part_v_perf("phoneme_train")
+    
+    # spambase_train
+    # dbext.plot_OOS_fits([13784078293975702669, 9187967397797350836, 15767095704017143287, 12793747121298945138])
+    # income_small_train
+    # dbext.plot_OOS_fits([7533277102691265751, 8251155077064940421, 7400247794797131665, 12836108145017863223])
+    # phoneme
+    # dbext.plot_OOS_fits([8705424173097098323, 2421851584358366385, 1820609185731366400, 1998113784327814407])
+    # flare
+    # dbext.plot_OOS_fits([1917161425195422475, 1274523705138131147, 197195856475585082, 7986938987171996673])
+    # GAMETES_Epistasis_2_Way_20atts_0.1H_EDM_1_1_train
+    dbext.plot_OOS_fits([12806597599666742865, 18329239330487574321, 8061260327215002817, 15890096115503869579])
+    
+    # sortind = [x[0] for x in sorted(enumerate(xaxis), key=lambda x: x[1])]
+    # xaxis = xaxis[[sortind]]
+    # yaxis = yaxis[[sortind]]
+    # plot.scatter(xaxis,yaxis)
     # plot.plot(xaxis, yaxis)
-    plot.show()
+    # plot.show()
 
     

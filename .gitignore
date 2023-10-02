@@ -26,6 +26,7 @@ EtxetnoC*
 *.gnd
 *.prd
 *.cxt
+*.d
 prof.data*
 prof.callgrind*
 core
