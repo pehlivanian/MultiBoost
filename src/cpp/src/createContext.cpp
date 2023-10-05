@@ -64,6 +64,9 @@ namespace std {
     case (10):
       loss = lossFunction::LogLoss;
       break;
+    case (11):
+      loss = lossFunction::SyntheticVar3;
+      break;
     default:
       in.setstate(std::ios_base::failbit);
     }
@@ -307,11 +310,11 @@ auto main(int argc, char **argv) -> int {
   boost::filesystem::path fldr{"./"};
   dumps<CerealT, CerealIArch, CerealOArch>(context, fileName, fldr);
 
-  // To deserialize
-  Context context_archive;
-  loads<CerealT, CerealIArch, CerealOArch>(context_archive, fileName, fldr);
-
   std::cout << "Context archive: " << fileName << std::endl;
     
+  // To deserialize
+  // Context context_archive;
+  // loads<CerealT, CerealIArch, CerealOArch>(context_archive, fileName, fldr);
+
   return 0;
 }

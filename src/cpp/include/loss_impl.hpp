@@ -461,35 +461,21 @@ template<typename DataType>
 DataType
 SyntheticLossVar2<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
 
-  // Tent function
-  // *grad = -sign(y) % ( y - yhat);
-
-  // Cubic cutoff
-  // rowvec f(y.n_cols, arma::fill::ones);
-  // *grad = -sign(y) % max(-sign(y) * pow(yhat - y, 3), sign(y) % f);
-
-  // Quadratic cutoff
-  // rowvec f(y.n_cols, arma::fill::zeros);
-  // *grad = -sign(y) % max(-sign(y) % sign(yhat - y) % pow(yhat - y, 2), f);
-
-  // Quartic cutoff
-  // rowvec f(y.n_cols, arma::fill::zeros);
-  // *grad = -sign(y) % max(-sign(y) % sign(yhat - y) % pow(yhat - y, 4), f);
-
-  // Naive implementation of \Phi \left( y,\hat{y}\right) = \left( y-\hat{y}\right)^3
-  // *grad = -1 * pow(y-yhat,3);
-
   // Proper decomposition of \Phi\left( y,\hat{y}\right) = y\left( y-\hat{y}\right)^2
-  // rowvec f = exp(1/(y % (y - yhat)));
-  // rowvec g = exp(1/pow(y, 2));
+  // rowvec f = exp(-1.0 / (y % (y - yhat)));
+  // rowvec g = exp(1.0 / pow(y, 2));
   // *grad = -y % f % g;
 
-  // Proper decomposition of \Phi\left( y,\hat{y}\right) = \sqrt{ y\left( y-\hat{y}\right)}
-  rowvec f = sqrt( y % (y - yhat));
-  f.transform([](double val) { return (std::isnan(val) ? 0. : val);} );
-  rowvec g = exp(-2.0 * f);
-  rowvec h(y.n_cols, arma::fill::ones);
-  *grad = g % h;
+  // Proper decomposition of \Phi\left( y,\hat{y}\right) = \left( y-\hat{y}\right)^{\frac{1}{3}}
+  rowvec p_yyhat = pow(abs(y-yhat),1./3.);
+  p_yyhat = pow(p_yyhat, 2);
+  rowvec p_y = pow(abs(y),1./3.);
+  p_y = pow(p_y, 2);
+
+  rowvec f = exp((3./2.)*p_yyhat);
+  rowvec g = exp( -(3./2.)*p_y);
+
+  *grad = -y % f % g;
 
 #ifdef AUTODIFF
   ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
@@ -510,17 +496,22 @@ SyntheticLossVar2<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowve
   // *hess = f;
 
   // Proper decomposition of \Phi\left( y,\hat{y}\right) = y\left( y-\hat{y}\right)^2
-  // rowvec f = exp(1/(y % (y - yhat)));
-  // rowvec g = exp(1/pow(y, 2));
-  // *hess = (f % g)/pow(y-yhat,2);
+  // rowvec f = exp(-1.0 / (y % (y - yhat)));
+  // rowvec g = exp(1.0 / pow(y, 2));
+  // *hess = (f % g) / pow(y - yhat, 2);
 
-  // Proper decomposition of \Phi\left( y,\hat{y}\right) = \sqrt{ y\left( y-\hat{y}\right)}
-  rowvec f = sqrt( y % (y - yhat));
-  f.transform([](double val) { return (std::isnan(val) ? 0. : val); });
-  rowvec g = exp(-2.0 * f);
-  rowvec h(y.n_cols, arma::fill::ones);
-  *hess = g / f;
+  // Proper decomposition of \Phi\left( y,\hat{y}\right) = \left( y-\hat{y}\right)^{\frac{1}{3}}
+  rowvec p_yyhat = pow(abs(y-yhat),1./3.);
+  p_yyhat = pow(p_yyhat, 2);
+  rowvec p_y = pow(abs(y),1./3.);
+  p_y = pow(p_y, 2);
+  rowvec den = pow(abs(y-yhat),1./3.);
 
+  rowvec f = exp((3./2.)*p_yyhat);
+  rowvec g = exp( -(3./2.)*p_y);
+  
+  *hess = (1.0 / den) % f % g;
+  
 }
 
 template<typename DataType>
@@ -540,6 +531,57 @@ SyntheticLossVar2<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXre
 
 //////////////////////////////
 // END SyntheticLossVariation2
+//////////////////////////////
+
+//////////////////////////////
+// BEGIN SyntheticLossVariation3
+//////////////////////////////
+
+template<typename DataType>
+DataType
+SyntheticLossVar3<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
+  // Proper decomposition of \Phi \left( y,\hat{y}\right) = y\left( 1-y\hat{y}\right)^3
+  rowvec f = exp(-1.0 / (pow(y, 2) % pow(1 - y % yhat, 2)));
+  rowvec g = exp(1.0 / pow(y, 2));
+  *grad = -y % f % g;
+
+#ifdef AUTODIFF
+  ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
+  ArrayXreal yr = LossUtils::static_cast_eigen(y).eval();
+
+  return static_cast<DataType>(loss_reverse(yr, yhatr).val());
+#else
+  return static_cast<DataType>(loss_reverse_arma(y, yhat));
+#endif
+}
+
+template<typename DataType>
+void
+SyntheticLossVar3<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
+  rowvec f = exp(-1.0 / (pow(y, 2) % pow(1 - y % yhat, 2)));
+  rowvec g = exp(1.0 / pow(y, 2));
+  rowvec den = pow(1 - y % yhat, 2);
+  *hess = (2.0 / den) % f % g;
+
+}
+
+template<typename DataType>
+DataType
+SyntheticLossVar3<DataType>::loss_reverse_arma(const rowvec& yhat, const rowvec& y) {
+  // return 0.;
+  return sum(pow((y - yhat), 2));
+}
+
+#ifdef AUTODIFF
+template<typename DataType>
+autodiff::real
+SyntheticLossVar3<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
+  return pow((y - yhat), 2).sum();
+}
+#endif
+
+//////////////////////////////
+// END SyntheticLossVariation3
 //////////////////////////////
 
 /////////////////////////

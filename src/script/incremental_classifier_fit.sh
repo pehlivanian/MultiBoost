@@ -4,7 +4,7 @@ DELIM=';'
 CLASSIFIER=DecisionTreeClassifier
 PATH=/home/charles/src/C++/sandbox/Inductive-Boost/build/
 
-SHOW_OOS=1
+SHOW_OOS=0
 
 # Context creation
 EXEC_CC=${PATH}createContext

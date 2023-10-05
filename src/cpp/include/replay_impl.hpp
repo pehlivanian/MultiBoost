@@ -240,18 +240,20 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
 
   }
 
-  uvec negInd_IS = find(prediction_is < 0);
-  uvec posInd_IS = find(prediction_is > 0);
-  std::cout << "IS: (avg_neg, avg_pos): ("
-	    << mean(prediction_is.elem(negInd_IS)) << ", "
-	    << mean(prediction_is.elem(posInd_IS)) << ")" << std::endl;
-  
-  uvec negInd_OOS = find(prediction < 0);
-  uvec posInd_OOS = find(prediction > 0);
-  std::cout << "OOS: (avg_neg, avg_pos): ("
-	    << mean(prediction.elem(negInd_OOS)) << ", "
-	    << mean(prediction.elem(posInd_OOS)) << ")" << std::endl;
-  
+  /*
+    uvec negInd_IS = find(prediction_is < 0);
+    uvec posInd_IS = find(prediction_is > 0);
+    std::cout << "IS: (avg_neg, avg_pos): ("
+    << mean(prediction_is.elem(negInd_IS)) << ", "
+    << mean(prediction_is.elem(posInd_IS)) << ")" << std::endl;
+    
+    uvec negInd_OOS = find(prediction < 0);
+    uvec posInd_OOS = find(prediction > 0);
+    std::cout << "OOS: (avg_neg, avg_pos): ("
+    << mean(prediction.elem(negInd_OOS)) << ", "
+    << mean(prediction.elem(posInd_OOS)) << ")" << std::endl;    
+  */
+
   for (int i=0; i<15; ++i) {
     std::cout << "OOS: (y_hat, raw y): ("
 	      << prediction[i] << ", "
@@ -263,6 +265,7 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
 	      << prediction_is[i] << ", "
 	      << labels[i] << ")" << std::endl;
   }
+
   
   if (deSymmetrize) {
     using C = GradientBoostClassifier<ClassifierType>;

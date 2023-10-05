@@ -42,6 +42,7 @@ enum class lossFunction {    MSE = 0,
                              SquareLoss = 8,
 			     SyntheticRegLoss = 9,
 			     LogLoss = 10,
+			     SyntheticVar3 = 11,
 			};
 
 
@@ -219,6 +220,20 @@ namespace LossMeasures {
     void hessian_(const rowvec&, const rowvec&, rowvec*) override;
   };
 
+template<typename DataType>
+class SyntheticLossVar3 : public LossFunction<DataType> {
+public:
+  SyntheticLossVar3() = default;
+  SyntheticLossVar3<DataType>* create() override { return new SyntheticLossVar3<DataType>(); }
+private:
+#ifdef AUTODIFF
+  audodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
+#endif
+  DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
+  DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
+  void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+};
+  
   template<typename DataType>
   class SquareLoss : public LossFunction<DataType> {
   public:
@@ -264,7 +279,8 @@ namespace LossMeasures {
       {lossFunction::SyntheticVar2,	new SyntheticLossVar2<T>() },
       {lossFunction::SquareLoss,	new SquareLoss<T>() },
       {lossFunction::SyntheticRegLoss,	new SyntheticRegLoss<T>() },
-      {lossFunction::LogLoss,		new LogLoss<T>() }
+      {lossFunction::LogLoss,		new LogLoss<T>() },
+      {lossFunction::SyntheticVar3,	new SyntheticLossVar3<T>() }
     };
 
 } // namespace LossMeasures

@@ -2,6 +2,7 @@ import abc
 import logging
 import pandas as pd
 import numpy as np
+from numpy.polynomial.polynomial import polyfit
 import string
 from datetime import timedelta
 from collections import defaultdict
@@ -12,6 +13,7 @@ from sqlalchemy.orm import Session
 from contextlib import contextmanager
 
 import matplotlib.pyplot as plot
+from matplotlib.backends.backend_pdf import PdfPages
 
 from pymongo import MongoClient
 from sqlalchemy import create_engine, Table, Column, MetaData
@@ -181,17 +183,32 @@ class DBExt(object):
 
     def plot_part_v_perf(self, dataset_name="Regression/195_auto_price"):
         if self.is_classifier:
-            req = self.conn.execute(text('select dataset_name, run_key, min(err) as err from outofsample group by run_key'))
+            req = self.conn.execute(text('select dataset_name, run_key, err from outofsample'))
         else:
             req = self.conn.execute(text('select dataset_name, run_key, max(r2) as r2 \
             from outofsample group by run_key'))
         df_oos = pd.DataFrame(columns=req.keys(), data=req.fetchall())
         req = self.conn.execute(text('select dataset_name, run_key, num_partitions0, \
-            num_steps0, learning_rate0 from run_specification where num_partitions1 = 0'))
+            num_steps0, learning_rate0 from run_specification where loss_fn = 3 and num_partitions1 = 0'))
+        # req = self.conn.execute(text('select dataset_name, run_key, num_partitions0, \
+        #     num_steps0, learning_rate0, num_partitions1 from run_specification where \
+        #     loss_fn = 3 and num_partitions1 > 0'))
+        # req = self.conn.execute(text('select dataset_name, run_key, num_partitions0, \
+        #     num_steps0, learning_rate0, num_partitions1, num_partitions2 from \
+        #     run_specification where loss_fn = 3 and num_partitions2 > 0'))
         df_rs = pd.DataFrame(columns=req.keys(), data=req.fetchall())
         joined = pd.merge(df_oos, df_rs, left_on=['dataset_name', 'run_key'], right_on=['dataset_name', 'run_key'],
                           how='inner')
         joined = joined[joined['dataset_name'] == dataset_name]
+
+        # process
+        joined = joined[joined['num_partitions0'] >= 10]
+        # joined = joined[joined['num_partitions1'] >= 10]
+        # joined = joined[joined['num_partitions2'] >= 10]
+        joined = joined.drop_duplicates(subset=['num_partitions0'])
+        # joined = joined.drop_duplicates(subset=['num_partitions0', 'num_partitions1'])
+        # joined = joined.drop_duplicates(subset=['num_partitions0', 'num_partitions1', 'num_partitions2'])        
+        
         if self.is_classifier:
             joined = joined
         else:
@@ -199,114 +216,79 @@ class DBExt(object):
                 joined = joined[joined['r2'] > .5]
             else:
                 joined = joined[joined['r2'] > 0.]
-        # XXX
-        joined = joined[joined['learning_rate0'] < 0.05]
+
         xaxis = joined['num_partitions0'].values
+        # xaxis = joined['num_partitions1'].values
+        # xaxis = joined['num_partitions0'].values + joined['num_partitions1'].values + joined['num_partitions2'].values
         if self.is_classifier:
             yaxis = joined['err'].values
         else:
             yaxis = joined['r2'].values
         return xaxis,yaxis
 
-    def plot_part_v_r2_2dim(self, dataset_name="Regression/195_auto_price", random_only=False):
-        req = self.conn.execute(text('select dataset_name, run_key, max(r2) as r2 \
-            from outofsample group by run_key'))
-        df_oos = pd.DataFrame(columns=req.keys(), data=req.fetchall())
-        req = self.conn.execute(text('select dataset_name, run_key, num_partitions0, num_partitions1, num_partitions2, \
-            learning_rate0, learning_rate1, learning_rate2 from run_specification where rcsive=1'))
-        df_rs = pd.DataFrame(columns=req.keys(), data=req.fetchall())
-        joined = pd.merge(df_oos, df_rs, left_on=['dataset_name', 'run_key'], right_on=['dataset_name', 'run_key'],
-                          how='inner')
-        joined = joined[joined['dataset_name'] == dataset_name]
-        joined = joined[(joined['num_partitions0'] > 0) & (joined['num_partitions1'] > 0)]
-        joined = joined[(joined['learning_rate0'] == 0.10) & (joined['learning_rate1'] == 0.10)]
-        joined = joined[joined['r2'] > .5]
-        joined = joined[(joined['num_partitions0'] == 28) & (joined['num_partitions1'] > 0)]
-        # joined = joined[(joined['num_partitions0'] == 100) & (joined['num_partitions1'] > 0)]
-        # joined = joined[(joined['num_partitions0'] == 30) & (joined['num_partitions1'] > 0)]
-        if random_only:
-            joined = joined[(joined['num_partitions0'] != 30) | (joined['num_partitions0'] != 90)]
-        xaxis = joined['num_partitions1'].values
-        yaxis = joined['r2'].values
-        return xaxis,yaxis
-
-    def plot_part_v_r2_3dim(self, dataset_name="Regression/195_auto_price", random_only=False):
-        req = self.conn.execute(text('select dataset_name, run_key, max(r2) as r2 \
-            from outofsample group by run_key'))
-        df_oos = pd.DataFrame(columns=req.keys(), data=req.fetchall())
-        req = self.conn.execute(text('select dataset_name, run_key, num_partitions0, num_partitions1, num_partitions2, \
-            learning_rate0, learning_rate1, learning_rate2 from run_specification where rcsive=1'))
-        df_rs = pd.DataFrame(columns=req.keys(), data=req.fetchall())
-        joined = pd.merge(df_oos, df_rs, left_on=['dataset_name', 'run_key'], right_on=['dataset_name', 'run_key'],
-                          how='inner')
-        joined = joined[joined['dataset_name'] == dataset_name]
-        # joined = joined[(joined['num_partitions0'] > 0) & (joined['num_partitions1'] > 0) & (joined['num_partitions2'] > 0)]
-        if random_only:
-            joined = joined[(joined['num_partitions0'] != 30) | (joined['num_partitions0'] != 40)]
-        else:
-            joined = joined[(joined['num_partitions0'] == 40) & (joined['num_partitions1'] == 4)]
-        joined = joined[joined['r2'] > .5]
-        xaxis = joined['num_partitions2'].values
-        yaxis = joined['r2'].values
-        return xaxis,yaxis
-
-    def plot_part_v_r2_random(self, dataset_name="Regression/195_auto_price"):
-        req = self.conn.execute(text('select dataset_name, run_key, max(r2) as r2 \
-            from outofsample group by run_key'))
-        df_oos = pd.DataFrame(columns=req.keys(), data=req.fetchall())
-        req = self.conn.execute(text('select dataset_name, run_key, num_partitions0, num_partitions1, num_partitions2, \
-            learning_rate0, learning_rate1, learning_rate2 from run_specification where rcsive=1'))
-        df_rs = pd.DataFrame(columns=req.keys(), data=req.fetchall())
-        joined = pd.merge(df_oos, df_rs, left_on=['dataset_name', 'run_key'], right_on=['dataset_name', 'run_key'],
-                          how='inner')
-        joined = joined[joined['dataset_name'] == dataset_name]
-        joined = joined[(joined['num_partitions0'] > 0) & (joined['num_partitions1'] > 0) & (joined['num_partitions2'] > 0)]
-        joined = joined[(joined['num_partitions0'] != 30) & (joined['num_partitions0'] != 90)]
-        joined = joined[joined['r2'] > .5]
-        xaxis = joined['num_partitions0'].values
-        yaxis = joined['r2'].values
-        return xaxis,yaxis
-
-    def plot_OOS_fits(self, run_keys):
-        xaxis = np.array([]); erraxis = np.array([]); F1axis = np.array([])
+    def plot_OOS_fits(self, run_keys, dataset):
+        xaxis = np.array([]); erraxis = np.array([]); F1axis = np.array([]); prcsnaxis = np.array([])
         for run_key in run_keys:
             req = self.conn.execute(text('select iteration, err, prcsn, recall, F1 from outofsample where run_key={}'.format(
                 run_key)))
             df = pd.DataFrame(columns=req.keys(), data=req.fetchall())
             xaxis = xaxis if xaxis.shape[0] > 0 else df.iteration.values
             erraxis = np.concatenate([erraxis, df.err.values.reshape(1,-1)]) if erraxis.shape[0] > 0 else df.err.values.reshape(1,-1)
+            prcsnaxis=np.concatenate([prcsnaxis, df.prcsn.values.reshape(1,-1)]) if prcsnaxis.shape[0] > 0 else df.prcsn.values.reshape(1,-1)
             F1axis = np.concatenate([F1axis, df.F1.values.reshape(1,-1)]) if F1axis.shape[0] > 0 else df.F1.values.reshape(1,-1)
 
         # plot
         fig, ax1 = plot.subplots()
 
-        colors = ['tab:red', 'tab:green', 'tab:orange', 'tab:blue']
-        labels = ['exp loss', 'binom dev loss', 'square loss', 'synth loss']
+        colors = ['tab:red', 'tab:green', 'tab:orange', 'tab:blue', 'tab:pink', 'tab:gray']
+        labels = ['exp loss               ', 'binom dev loss    ', 'square loss          ', 'synth loss cubic   ', 'synth loss cube rt', 'synth loss cubicm']
+        # labels = ['All subsets   ', '50% subsets']
+        labels = [x+" [error: {}%]" for x in labels]
         linestyles = {'dense dashdot': (0, (3, 1, 1, 1))}
         ax1.set_xlabel('Iteration')
-        ax1.set_ylabel('Out of sample error')
-        ax1.set_title('Out of sample convergence [income]')
+        ax1.set_ylabel('Out of sample error (%)')
+        ax1.set_title('Out of sample convergence [{}]'.format(dataset[:16]))
         ax1.tick_params(axis='y')
         for i,_ in enumerate(run_keys):
+            label = labels[i].format(str(np.round(erraxis[i,-1],2)))
             ax1.plot(xaxis, erraxis[i,:],
                      linestyle='solid',
                      color=colors[i],
                      marker='.',
+                     markersize=5.0,
                      linewidth=1.0,
-                     label=labels[i])
-        ax1.legend()
-        ax1.grid(True)
-        
-        # ax2 = ax1.twinx()
-        
-        # color = 'tab:green'
-        # ax2.set_ylabel('F1', color=color)
-        # for i,_ in enumerate(run_keys):
-        #     ax2.plot(xaxis, F1axis[i,:], color=color)
-        # ax2.tick_params(axis='y', labelcolor=color)
+                     label=label)
 
-        # fig.tight_layout()
+        if False:
+            ax2 = ax1.twinx()
+            
+            color = 'tab:green'
+            ax2.set_ylabel('F1')
+            labels = ['All subsets   ', '50% subsets']
+            labels = [x+" [F1: {}]" for x in labels]        
+            for i,_ in enumerate(run_keys):
+                label = labels[i].format(str(np.round(F1axis[i,-1],2)))            
+                ax2.plot(xaxis, F1axis[i,:],
+                         linestyle=linestyles['dense dashdot'],
+                         color=colors[i],
+                         marker='.',
+                         markersize=5.0,
+                         label=label)
+                
+            ax1.legend(loc='lower right')
+            ax2.legend(loc='upper right')
+            ax1.grid(True)
+            ax2.grid(True)
+            
+            fig.tight_layout()                     
+
+        ax1.grid(True)
+        ax1.legend(loc='upper right')
         plot.show()
+        # filename = 'priority_adult_fig.pdf'
+        # with PdfPages(filename) as pdf:
+        #     pdf.savefig(fig)
+        
 
 if __name__ == "__main__":
     # dbext = DBExt(is_classifier=False);
@@ -330,23 +312,72 @@ if __name__ == "__main__":
     # xaxis,yaxis = dbext.plot_part_v_perf("GAMETES_Epistasis_2_Way_20atts_0.4H_EDM_1_1_train")
     # xaxis,yaxis = dbext.plot_part_v_perf("flare_train")
     # xaxis,yaxis = dbext.plot_part_v_perf("phoneme_train")
+    # xaxis,yaxis = dbext.plot_part_v_perf("income_small_train")
     
     # spambase_train
-    # dbext.plot_OOS_fits([13784078293975702669, 9187967397797350836, 15767095704017143287, 12793747121298945138])
+    # dbext.plot_OOS_fits([13784078293975702669, 9187967397797350836, 15767095704017143287, 12793747121298945138],
+    #                     "spambase")
     # income_small_train
-    # dbext.plot_OOS_fits([7533277102691265751, 8251155077064940421, 7400247794797131665, 12836108145017863223])
+    # dbext.plot_OOS_fits([7533277102691265751, 8251155077064940421, 7400247794797131665, 12836108145017863223],
+    #                     "income")
     # phoneme
     # dbext.plot_OOS_fits([8705424173097098323, 2421851584358366385, 1820609185731366400, 1998113784327814407])
     # flare
     # dbext.plot_OOS_fits([1917161425195422475, 1274523705138131147, 197195856475585082, 7986938987171996673])
     # GAMETES_Epistasis_2_Way_20atts_0.1H_EDM_1_1_train
-    dbext.plot_OOS_fits([12806597599666742865, 18329239330487574321, 8061260327215002817, 15890096115503869579])
+    # dbext.plot_OOS_fits([12806597599666742865, 18329239330487574321, 8061260327215002817, 15890096115503869579],
+
+    #                     "GAMETES_Epistasis_2_Way_20atts_0.1H_EDM_1_1") 200 iterations
+    # dbext.plot_OOS_fits([16658721250403211986, 9305782506885980955, 558962598135559380, 3006904790200134207, 836796850612459713], "GAMETES_Epistasis_2_Way_20atts_0.1H_EDM_1_1")
+
+    # LATEST
+    #                     "income"
+    # dbext.plot_OOS_fits([2450778176480913663, 16245809754040591623, 5702964362226338383, 12141359753427671061, 17087407651129546284], "income")
+    # phoneme
+    # dbext.plot_OOS_fits([2198770098628379437, 7919356570590355038, 5870206050745901991, 14972031634584792342, 5155973280160634802], "phoneme")
+    # spambase
+    # dbext.plot_OOS_fits([7509760514710782388, 16160241094113825097, 17044766082791278599, 6234424463209312435, 9046709106798984035], "spambase")
+    # flare
+    # dbext.plot_OOS_fits([13918540862625454121, 12497941719585348570, 15063258873168302088, 3699344882172787925, 10852222179632322186],"flare")
+    # german
+    # dbext.plot_OOS_fits([8363277825869133099, 2193534154822646370, 7712989217054850562, 1820462959196204091, 16021844930615959795], "german")
+
+    # 6 loss functions
+    # income
+    # dbext.plot_OOS_fits([9896831864593018725, 11760346465113099430, 11470328976658411635, 1593918338463665465, 13128485379685894848, 1471927161598063725], "income")
+    # spambase
+    # dbext.plot_OOS_fits([13037801800753975719, 10554336323616544769, 12397366513681523567, 13999283684645320268, 166732925607201951, 5753093941682235975], "spambase")
+    # phoneme
+    # dbext.plot_OOS_fits([3665393597474860163, 5991368650252470032, 1710142948180159165, 8431531754912409505, 15398622298968073629, 16530157184505497296], "phoneme")
+    # flare
+    # dbext.plot_OOS_fits([3665123017970236105, 6890981365057713202, 8248659231312751020, 830653885356967330, 2823164921657540188, 7126282586633062304], "flare")
+    # adult
+    dbext.plot_OOS_fits([8453587131535466825, 536224941498796699, 277025322160564859, 6160569975937583803, 4077672419385012766, 7660754858450613426], "adult")
     
+    # phoneme
+    # dbext.plot_OOS_fits([10983252967684601218, 2264980010301009553], "phoneme")
+    # spambase
+    # dbext.plot_OOS_fits([838851549671652446, 8906307970632292207], "spambase")
+    # income
+    # dbext.plot_OOS_fits([881529938279876822, 9083113082298868931], "income")
+    # hypothyroid
+    # dbext.plot_OOS_fits([12533667763751356557, 1969787373940308242], "hypothyroid")
+    # flare
+    # dbext.plot_OOS_fits([7801503716704362743, 9229190595195867291], "flare")
+    # coil2000
+    # dbext.plot_OOS_fits([16490765667426907248, 17096735190734304193], "coil2000")
+    # adult
+    # dbext.plot_OOS_fits([13716798805666073679, 7761421272482278056], "adult")
+    # dbext.plot_OOS_fits([17486348340806686583, 11723447567148917324], "adult")
+    # dbext.plot_OOS_fits([13561509335051850106, 8257621172237294579], "adult")
     # sortind = [x[0] for x in sorted(enumerate(xaxis), key=lambda x: x[1])]
     # xaxis = xaxis[[sortind]]
     # yaxis = yaxis[[sortind]]
-    # plot.scatter(xaxis,yaxis)
-    # plot.plot(xaxis, yaxis)
-    # plot.show()
 
+    # b, m = polyfit(xaxis[0,:], yaxis[0,:], 1)
+    # print(b, m)
+    # plot.scatter(xaxis, yaxis)
+    # plot.plot(xaxis, yaxis)
+    # plot.plot(xaxis[0,:], b + m*xaxis[0,:], '-')
+    # plot.show()
     
