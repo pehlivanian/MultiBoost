@@ -529,6 +529,8 @@ private:
   lossFunction loss_;
   LossFunction<double>* lossFn_;
 
+  float lossPower_ = -1.;
+
   bool clamp_gradient_;
   double upper_val_, lower_val_;
   

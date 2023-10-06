@@ -12,15 +12,14 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::process;
 
-
 pub mod mongodbext;
 pub mod mariadbext;
 pub mod dataset;
 pub mod model;
 
 // Utilities
-fn round(x: f64, decimals: u32) -> f64 {
-    let y = 10u32.pow(decimals) as f64;
+fn round(x: f32, decimals: u32) -> f32 {
+    let y = 10u32.pow(decimals) as f32;
     (x * y).round() / y
 }
 
@@ -79,84 +78,88 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let numRows = dataset_shape.0;
         let numCols = dataset_shape.1;
 	
-        // let mut ratio: f64 = rng.gen::<f64>();    
-        let mut ratio: f64 = rng.gen_range(0.0..1.0);
-        let mut ratio1: f64 = rng.gen_range(0.0..1.0);
-        // XXX
+        let mut ratio: f32 = rng.gen_range(0.25..1.0);
+        let mut ratio1: f32 = rng.gen_range(0.25..1.0);
         // let numGrids = rng.gen_range(2..6) as usize;
-	let numGrids: usize = 1;
-	let baseSteps: u32 = 50;
-        let loss_fn: u32  = 1;
+        let numGrids: usize = 2;
+	let baseSteps: u32 = 100;
+        let loss_fn: u32  = 6;
         let colsubsample_ratio: f32 = 0.85;
         let _recursivefit: bool = true;
+        let clampGradient: usize = 1;
+        let upperVal: f32 = 1.0;
+        let lowerVal: f32 = -1.0;
+        let testOOS: bool = true;
+        let splitRatio: f32 = 0.0;
 
         // Would like to use a Parzen estimator as in TPE, but
         // the interface doesn't support vector inputs
 
-        let mut childNumPartitions:    Vec<f64> = vec![0.0; numGrids];
-        let mut childNumSteps:         Vec<f64> = vec![0.0; numGrids];
-        let mut childLearningRate:     Vec<f64> = vec![0.0; numGrids];
-        let mut childMaxDepth:         Vec<f64> = vec![0.0; numGrids];
-        let mut childMinLeafSize:      Vec<f64> = vec![0.0; numGrids];
-        let mut childMinimumGainSplit: Vec<f64> = vec![0.0; numGrids];
-        let mut numPartitions: f64 = numRows as f64;
-        let mut numPartitionsBase: f64 = numPartitions;
+        let mut childNumPartitions:       Vec<f32> = vec![0.0; numGrids];
+        let mut childNumSteps:            Vec<f32> = vec![0.0; numGrids];
+        let mut childLearningRate:        Vec<f32> = vec![0.0; numGrids];
+        let mut childPartitionUsageRatio: Vec<f32> = vec![0.0; numGrids];
+        let mut childMaxDepth:            Vec<f32> = vec![0.0; numGrids];
+        let mut childMinLeafSize:         Vec<f32> = vec![0.0; numGrids];
+        let mut childMinimumGainSplit:    Vec<f32> = vec![0.0; numGrids];
+        let mut numPartitions: f32 = numRows as f32;
+        let mut numPartitionsBase: f32 = numPartitions;
 
 
         for ind in 0..numGrids {
 	    numPartitions *= ratio;
-            // numPartitions = (numPartitions / 10.).round() as f64 * 10.;
+            numPartitions = (numPartitions / 10.).round() as f32 * 10.;
             if numPartitions < 1. {
-                numPartitions = 1_f64;
+                numPartitions = 1_f32;
             }
-
 		
-            let maxDepth:         i32 = (numRows as f64).log2().floor() as i32 + 1;
-            // let numSteps:         f64 = rng.gen_range(1..5).into();
-            let numSteps:         f64 = 1.;
-            // XXX
-            // let learningRate:     f64 = rng.gen_range(0.005..0.15);
-            let learningRate:     f64 = 0.01;
-            let maxDepth:         f64 = rng.gen_range(maxDepth..maxDepth+1).into();
-            let minLeafSize:      f64 = rng.gen_range(1..2).into();
-            let minimumGainSplit: f64 = 0.0;
+            let numSteps:         f32 = 1.;
+            let learningRate:     f32 = 0.01;
+            let partitionUsageRatio: f32 = 0.5;
+            // let maxDepth:         f32 = (numRows as f32).log2().floor() + 1.0;
+            let maxDepth:         f32 = 0.0;
+            // let minLeafSize:      f32 = rng.gen_range(1.0..2.0).into();
+            let minLeafSize:      f32 = 1.0;
+            let minimumGainSplit: f32 = 0.0;
  
-            if (ind==0) {
+            if ind==0 {
                 let mut count: u32 = 0;
+                /*
                 let mut r = mariadbext::check_for_existing_run_dim1(mariadb_uri, &creds, numPartitions as i32, &datasetname);
-                while (r[0] != 0) {
+                while r[0] != 0 {
                     println!("{} bad starting partition; already tested...", numPartitions as i32);
                     ratio1 = rng.gen_range(0.0..1.0);
                     numPartitions = numPartitionsBase * ratio1;
-                    // numPartitions = (numPartitions / 10.).round() as f64 * 10.;
+                    numPartitions = (numPartitions / 10.).round() as f32 * 10.;
                     if numPartitions < 1. {
-                        numPartitions = 1_f64;
+                        numPartitions = 1_f32;
                     }
                     r = mariadbext::check_for_existing_run_dim1(mariadb_uri, &creds, numPartitions as i32, &datasetname);
                     count += 1;
-                    if (count > 100000) {
+                    if count > 100000 {
                         process::exit(1);
                     }
                 }
                 println!("found starting partition {}", numPartitions as i32);
-                if (numPartitions == 1.0) {
-                    numPartitions = 2.0;
-                }
+		*/
+                numPartitions = 1820.0;
             }
 
-            childNumPartitions[ind]    = round(numPartitions, 0);
-            childNumSteps[ind]         = numSteps;
-            childLearningRate[ind]     = learningRate;
-            childMaxDepth[ind]         = maxDepth;
-            childMinLeafSize[ind]      = minLeafSize;
-            childMinimumGainSplit[ind] = minimumGainSplit;
+            childNumPartitions[ind]       = round(numPartitions, 0);
+            childNumSteps[ind]            = numSteps;
+            childLearningRate[ind]        = learningRate;
+            childPartitionUsageRatio[ind] = partitionUsageRatio;
+            childMaxDepth[ind]            = maxDepth;
+            childMinLeafSize[ind]         = minLeafSize;
+            childMinimumGainSplit[ind]    = minimumGainSplit;
 
-	    ratio = rng.gen_range(0.0..1.0);
+	    ratio = rng.gen_range(0.25..1.0);
         }
 
         let specs: Vec<Vec<String>> = vec![childNumPartitions,
 	   			       childNumSteps,
                                        childLearningRate,
+                                       childPartitionUsageRatio,
                                        childMaxDepth,
                                        childMinLeafSize,
                                        childMinimumGainSplit]
@@ -187,8 +190,12 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             cmd.push_str(&baseSteps.to_string());             cmd.push_str(" ");
             cmd.push_str(&loss_fn.to_string());               cmd.push_str(" ");
             cmd.push_str(&colsubsample_ratio.to_string());    cmd.push_str(" ");
-
-            cmd.push_str(&(recursivefit as i32).to_string());
+            cmd.push_str(&(recursivefit as i32).to_string()); cmd.push_str(" ");
+            cmd.push_str(&clampGradient.to_string());         cmd.push_str(" ");
+            cmd.push_str(&upperVal.to_string());              cmd.push_str(" ");
+            cmd.push_str(&lowerVal.to_string());              cmd.push_str(" ");
+            cmd.push_str(&testOOS.to_string());               cmd.push_str(" "); 
+            cmd.push_str(&splitRatio.to_string());
 
             println!("RUNNING CASE: {}: \n{}", trial_num, cmd);
 
@@ -209,17 +216,22 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let mut it: i32 = 0;
 
+            let datasetname_test = datasetname.replace("_train", "_test");
+
             for line in lines {
+
                 if model::ITER.is_match(&line) {
                     for (_,[item]) in model::ITER.captures_iter(&line)
                         .map(|i| i.extract()) {
                         it = item.parse::<i32>()?;
+                        // noop
                     }
                 }
                 else if model::FOLDER.is_match(&line) {
                     for (_,[item]) in model::FOLDER.captures_iter(&line)
                         .map(|i| i.extract()) {
 	                folder = item;
+                        // noop
                     }
                 }
                 else if model::INDEX.is_match(&line) {
@@ -233,20 +245,21 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         folder: folder.to_string(), index: index.to_string()};
                     run_key = calculate_hash(&data);
                     let query = mariadbext::format_run_specification_query(run_key, &cmd, folder, index, datasetname,
-                        loss_fn, numRows, numCols, baseSteps, colsubsample_ratio, recursivefit, 0.2,
+                        loss_fn, numRows, numCols, baseSteps, colsubsample_ratio, recursivefit, 
+                        clampGradient, upperVal, lowerVal, splitRatio,
                         &specs);
                     let _r = conn.query_drop(query).expect("Failed to insert into run_specification table");
                 }
-                else if model::OOS.is_match(&line) {
-    	            for (_,[vals]) in model::OOS.captures_iter(&line)
+                else if model::OOS_patt(&datasetname_test).is_match(&line) {
+    	            for (_,[vals]) in model::OOS_patt(&datasetname_test).captures_iter(&line)
                         .map(|i| i.extract()) {
-            	        let parsed: Vec<String> = vals.split(", ").map(|i| i.to_string()).collect();
+    	                let parsed: Vec<String> = vals.split(", ").map(|i| i.to_string()).collect();
                         let query = mariadbext::format_outofsample_query(&model_type, run_key, datasetname, it, parsed);
                         let _r = conn.query_drop(query).expect("Failed to insert into outofsample table");
                     }
                 }            
-                else if model::IS.is_match(&line) {
-                    for(_,[vals]) in model::IS.captures_iter(&line)
+                else if model::IS_patt(datasetname).is_match(&line) {
+                    for(_,[vals]) in model::IS_patt(datasetname).captures_iter(&line)
                         .map(|i| i.extract()) {
                         let parsed: Vec<String> = vals.split(", ").map(|i| i.to_string()).collect();
                         let query = mariadbext::format_insample_query(&model_type, run_key, datasetname, it, parsed);

@@ -43,7 +43,7 @@ namespace LearningRate {
 
 namespace PartitionSize {
   enum class PartitionSizeMethod { 
-    FIXED = 0,
+      FIXED = 0,
       FIXED_PROPORTION = 1,
       DECREASING = 2,
       INCREASING = 3,
@@ -90,6 +90,7 @@ namespace ModelContext{
 
     Context(const Context& rhs) {
       loss = rhs.loss;
+      lossPower = rhs.lossPower;
       clamp_gradient = rhs.clamp_gradient;
       upper_val = rhs.upper_val;
       lower_val = rhs.lower_val;
@@ -136,6 +137,7 @@ namespace ModelContext{
     template<class Archive>
     void serialize(Archive &ar) {
       ar(loss);
+      ar(lossPower);
       ar(clamp_gradient);
       ar(upper_val);
       ar(lower_val);
@@ -172,6 +174,7 @@ namespace ModelContext{
     }
       
     lossFunction loss;
+    float lossPower;
     bool clamp_gradient;
     double upper_val;
     double lower_val;

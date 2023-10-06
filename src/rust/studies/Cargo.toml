@@ -1,17 +1,22 @@
 [package]
-name = "hyper_search"
+name = "mboost_studies"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [[bin]]
-name = "classifier"
+name = "classifier_hyperparam_search"
 test = false
 bench = false
 
 [[bin]]
-name = "regressor"
+name = "regressor_hyperparam_search"
+test = false
+bench = false
+
+[[bin]]
+name = "comparison_studies"
 test = false
 bench = false
 
@@ -27,4 +32,5 @@ ndarray = "0.15.6"
 rand = "0.8.5"
 lazy_static = "1.0"
 regex = "1.9.1"
+
 

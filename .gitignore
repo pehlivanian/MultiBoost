@@ -1,8 +1,7 @@
 build/
 catboost_info/
 src/python/Experiment*.py
-/src/rust/hyper_search/target/*
-/src/rust/hyper_search/EtxetnoC*
+/src/rust/studies/target/*
 proto.py
 protoPYTHON_wrap.cxx
 __pycache__

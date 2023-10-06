@@ -33,6 +33,7 @@ CompositeClassifier<ClassifierType>::childContext(Context& context) {
 	minimumGainSplit] = computeChildModelInfo();
 
   context.loss			= loss_;
+  context.lossPower		= lossPower_;
   context.clamp_gradient	= clamp_gradient_;
   context.upper_val		= upper_val_;
   context.lower_val		= lower_val_;
@@ -89,6 +90,7 @@ void
 CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
 
   loss_				= context.loss;
+  lossPower_			= context.lossPower;
   clamp_gradient_		= context.clamp_gradient;
   upper_val_			= context.upper_val;
   lower_val_			= context.lower_val;
@@ -241,7 +243,7 @@ CompositeClassifier<ClassifierType>::init_(Context&& context) {
   }
 
   // set loss function
-  lossFn_ = lossMap<DataType>[loss_];
+  lossFn_ = createLoss<DataType>(loss_, lossPower_);
 
   // ensure this is a leaf classifier for lowest-level call
   if (childPartitionSize_.size() <= 1) {

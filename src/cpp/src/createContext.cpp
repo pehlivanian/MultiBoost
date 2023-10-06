@@ -67,6 +67,9 @@ namespace std {
     case (11):
       loss = lossFunction::SyntheticVar3;
       break;
+    case (12):
+      loss = lossFunction::PowerLoss;
+      break;
     default:
       in.setstate(std::ios_base::failbit);
     }
@@ -161,7 +164,8 @@ auto main(int argc, char **argv) -> int {
      context.minimumGainSplit = 0.;
   */
 
-  lossFunction				loss=lossFunction::Synthetic;
+  lossFunction				loss			  = lossFunction::Synthetic;
+  float					lossPower		  = -1.0;
   bool					clamp_gradient		  = false;
   double				upper_val		  = 0.;
   double				lower_val		  = 0.;
@@ -205,6 +209,7 @@ auto main(int argc, char **argv) -> int {
   desc.add_options()
     ("help,h", "Help screen")
     ("loss",			value<lossFunction>(&loss),					"loss")
+    ("lossPower",		value<float>(&lossPower),					"lossPower")
     ("clamp_gradient",		value<bool>(&clamp_gradient),					"clamp_gradient")
     ("upper_val",		value<double>(&upper_val),					"upper_val")
     ("lower_val",		value<double>(&lower_val),					"lower_val")
@@ -265,6 +270,7 @@ auto main(int argc, char **argv) -> int {
   Context context{};
 
   context.loss		= loss;
+  context.lossPower	= lossPower;
   context.clamp_gradient = clamp_gradient;
   context.upper_val = upper_val;
   context.lower_val = lower_val;

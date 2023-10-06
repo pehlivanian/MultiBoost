@@ -104,6 +104,10 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let baseSteps: u32 = 75;
         let loss_fn: u32  = 0;
         let colsubsample_ratio: f32 = 1.0;
+	let clampGradient: usize = 0;
+        let upperVal: f32 = 1000.0;
+        let lowerVal: f32 = -1000.0;
+        let splitRatio: f32 = 0.20;
 
         // Would like to use a Parzen estimator as in TPE, but
         // the interface doesn't support vector inputs
@@ -282,7 +286,8 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         folder: folder.to_string(), index: index.to_string()};
                     run_key = calculate_hash(&data);
                     let query = mariadbext::format_run_specification_query(run_key, &cmd, folder, index, datasetname,
-                        loss_fn, numRows, numCols, baseSteps, colsubsample_ratio, recursivefit, 0.2,
+                        loss_fn, numRows, numCols, baseSteps, colsubsample_ratio, recursivefit, 
+                        clampGradient, upperVal, lowerVal, splitRatio,
                         &specs);
                     mariadbext::insert_to_table(mariadb_uri, &creds, &query);
                 }

@@ -1,6 +1,7 @@
 use lazy_static;
 use regex::Regex;
 
+// Static
 lazy_static!{
     pub static ref ITER: Regex = Regex::new(r"[\s]+ITER[\s]*:[\s]+([0-9]+)").unwrap();
 }
@@ -19,6 +20,15 @@ lazy_static!{
 
 lazy_static!{
     pub static ref OOS: Regex = Regex::new(r"[\s]OOS[\s]*:[\s]*.*:[\s]+\((.*)\)").unwrap();
+}
+
+// Require datasetname
+pub fn IS_patt(datasetname: &str) -> Regex {
+    Regex::new(&format!(r"\[{}\]\sIS[\s]*:[\s]*.*:[\s]+\((.*)\)", datasetname)).unwrap()
+}
+
+pub fn OOS_patt(datasetname: &str) -> Regex {
+    Regex::new(&format!(r"\[{}\]\sOOS[\s]*:[\s]*.*:[\s]+\((.*)\)", datasetname)).unwrap()
 }
 
 

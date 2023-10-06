@@ -23,7 +23,7 @@ pub fn insert_to_table(uri: &str, creds: &(String, String), query: &str) {
 
 pub fn check_for_existing_run_dim1(uri: &str, creds: &(String, String), num_partitions: i32, datasetname: &str) -> Vec<i32> {
     let mut conn = get_connection(uri, creds).unwrap();
-    let query = format!("select count(*) from run_specification where num_partitions0 = {} and num_partitions1 = 0 and learning_rate0 < .05 and dataset_name=\"{}\"",
+    let query = format!("select count(*) from run_specification where loss_fn = 6 and num_partitions0 = {} and num_partitions1 = 0 and dataset_name=\"{}\"",
         num_partitions.to_string(),
         datasetname);
     let r = conn.query(query).expect("Failed to select from table");
@@ -50,8 +50,8 @@ pub fn check_for_existing_run_dim3(uri: &str, creds: &(String, String), num_part
 
 pub fn format_run_specification_query(run_key: u64, cmd: &str, folder: &str, index: &str, datasetname: &str,
     loss_fn: u32, n_rows: usize, n_cols: usize, basesteps: u32, colsubsample_ratio: f32, 
-    rcsive: bool, split_ratio: f32, specs: &Vec<Vec<String>>) -> String {
-    let mut query = format!("INSERT INTO run_specification (run_key, cmd, folder, idx, dataset_name, loss_fn, n_rows, n_cols, basesteps, colsubsample_ratio, rcsive, split_ratio, num_partitions0, num_partitions1, num_partitions2, num_partitions3, num_partitions4, num_partitions5, num_partitions6, num_partitions7, num_partitions8, num_partitions9, num_steps0, num_steps1, num_steps2, num_steps3, num_steps4, num_steps5, num_steps6, num_steps7, num_steps8, num_steps9, learning_rate0, learning_rate1, learning_rate2, learning_rate3, learning_rate4, learning_rate5, learning_rate6, learning_rate7, learning_rate8, learning_rate9, max_depth0, max_depth1, max_depth2, max_depth3, max_depth4, max_depth5, max_depth6, max_depth7, max_depth8, max_depth9, min_leafsize0, min_leafsize1, min_leafsize2, min_leafsize3, min_leafsize4, min_leafsize5, min_leafsize6, min_leafsize7, min_leafsize8, min_leafsize9, min_gainsplit0, min_gainsplit1, min_gainsplit2, min_gainsplit3, min_gainsplit4, min_gainsplit5, min_gainsplit6, min_gainsplit7, min_gainsplit8, min_gainsplit9) VALUES (\"{}\", \"{}\", \"{}\", \"{}\", \"{}\", {}, {}, {}, {}, {}, {}, {}",
+    rcsive: bool, clamp_gradient: usize, upper_val: f32, lower_val: f32, split_ratio: f32, specs: &Vec<Vec<String>>) -> String {
+    let mut query = format!("INSERT INTO run_specification (run_key, cmd, folder, idx, dataset_name, loss_fn, n_rows, n_cols, basesteps, colsubsample_ratio, rcsive, clamp_gradient, upper_val, lower_val, split_ratio, num_partitions0, num_partitions1, num_partitions2, num_partitions3, num_partitions4, num_partitions5, num_partitions6, num_partitions7, num_partitions8, num_partitions9, num_steps0, num_steps1, num_steps2, num_steps3, num_steps4, num_steps5, num_steps6, num_steps7, num_steps8, num_steps9, learning_rate0, learning_rate1, learning_rate2, learning_rate3, learning_rate4, learning_rate5, learning_rate6, learning_rate7, learning_rate8, learning_rate9, active_partition_ratio0, active_partition_ratio1, active_partition_ratio2, active_partition_ratio3, active_partition_ratio4, active_partition_ratio5, active_partition_ratio6, active_partition_ratio7, active_partition_ratio8, active_partition_ratio9, max_depth0, max_depth1, max_depth2, max_depth3, max_depth4, max_depth5, max_depth6, max_depth7, max_depth8, max_depth9, min_leafsize0, min_leafsize1, min_leafsize2, min_leafsize3, min_leafsize4, min_leafsize5, min_leafsize6, min_leafsize7, min_leafsize8, min_leafsize9, min_gainsplit0, min_gainsplit1, min_gainsplit2, min_gainsplit3, min_gainsplit4, min_gainsplit5, min_gainsplit6, min_gainsplit7, min_gainsplit8, min_gainsplit9) VALUES (\"{}\", \"{}\", \"{}\", \"{}\", \"{}\", {}, {}, {}, {}, {}, {}, {}, {}, {}, {}",
         run_key.to_string(),
         cmd,
         folder,
@@ -63,6 +63,9 @@ pub fn format_run_specification_query(run_key: u64, cmd: &str, folder: &str, ind
         basesteps.to_string(),
         colsubsample_ratio.to_string(),
         rcsive.to_string(),
+        clamp_gradient.to_string(),
+        upper_val.to_string(),
+        lower_val.to_string(),        
         split_ratio.to_string());
 
     for spec in specs {
@@ -79,6 +82,34 @@ pub fn format_run_specification_query(run_key: u64, cmd: &str, folder: &str, ind
     query.push_str(")");
     query
 
+}
+
+pub fn format_insample_query(m: &model::ModelType, run_key: u64, datasetname: &str, it: i32, parsed: Vec<String>) -> String {
+    match m {
+        model::ModelType::classifier => {
+            insample_classifier_query(run_key, datasetname, it, parsed)
+        }
+        model::ModelType::regressor => {
+            insample_regressor_query(run_key, datasetname, it, parsed)
+        }
+        model::ModelType::other => {
+            "Error".to_string()
+        }
+    }
+}
+
+pub fn format_outofsample_query(m: &model::ModelType, run_key: u64, datasetname: &str, it: i32, parsed: Vec<String>) -> String {
+    match m {
+        model::ModelType::classifier => {
+            outofsample_classifier_query(run_key, datasetname, it, parsed)
+        }
+        model::ModelType::regressor => {
+            outofsample_regressor_query(run_key, datasetname, it, parsed)
+        }
+        model::ModelType::other => {
+            "Error".to_string()
+        }
+    }
 }
 
 fn insample_classifier_query(run_key: u64, datasetname: &str, it: i32, mut parsed: Vec<String>) -> String {
@@ -119,32 +150,4 @@ fn outofsample_regressor_query(run_key: u64, datasetname: &str, it: i32, mut par
     let loss = parsed.pop().unwrap().parse::<f32>().unwrap();
     format!("INSERT INTO outofsample (run_key, dataset_name, iteration, loss, r2, tau, rho) VALUES ({}, \"{}\", {}, {}, {}, {}, {})",
         run_key, datasetname, it, loss, r2, tau, rho)
-}
-
-pub fn format_insample_query(m: &model::ModelType, run_key: u64, datasetname: &str, it: i32, parsed: Vec<String>) -> String {
-    match m {
-        model::ModelType::classifier => {
-            insample_classifier_query(run_key, datasetname, it, parsed)
-        }
-        model::ModelType::regressor => {
-            insample_regressor_query(run_key, datasetname, it, parsed)
-        }
-        model::ModelType::other => {
-            "Error".to_string()
-        }
-    }
-}
-
-pub fn format_outofsample_query(m: &model::ModelType, run_key: u64, datasetname: &str, it: i32, parsed: Vec<String>) -> String {
-    match m {
-        model::ModelType::classifier => {
-            outofsample_classifier_query(run_key, datasetname, it, parsed)
-        }
-        model::ModelType::regressor => {
-            outofsample_regressor_query(run_key, datasetname, it, parsed)
-        }
-        model::ModelType::other => {
-            "Error".to_string()
-        }
-    }
 }

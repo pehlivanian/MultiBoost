@@ -584,6 +584,67 @@ SyntheticLossVar3<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXre
 // END SyntheticLossVariation3
 //////////////////////////////
 
+////////////////////
+// BEGIN PowerLoss
+////////////////////
+
+template<typename DataType>
+DataType
+PowerLoss<DataType>::gradient_(const rowvec& yhat, const rowvec& y, rowvec* grad) {
+  // Proper decomposition of \Phi \left( y,\hat{y}\right) = y\left( 1-y\hat{y}\right)^p
+  if (p_ != 1) {
+    rowvec f = exp(1.0 / ((-p_+1) * pow(y, 2))) % pow(1 - y%yhat, -p_+1);
+    rowvec g = exp(-1.0 / ((-p_+1) * pow(y, 2)));
+    *grad = -y % f % g;
+  } else {
+    rowvec f = exp( log(1 - y%yhat)/pow(y, 2));
+    *grad = -y % f;
+  }
+
+#ifdef AUTODIFF
+  ArrayXreal yhatr = LossUtils::static_cast_eigen(yhat).eval();
+  ArrayXreal yr = LossUtils::static_cast_eigen(y).eval();
+
+  return static_cast<DataType>(loss_reverse(yr, yhatr).val());
+#else
+  return static_cast<DataType>(loss_reverse_arma(y, yhat));
+#endif
+}
+
+template<typename DataType>
+void
+PowerLoss<DataType>::hessian_(const rowvec& yhat, const rowvec& y, rowvec* hess) {
+
+  if (p_ != 1) {
+    rowvec f = exp(1.0 / ((-p_+1) * pow(y, 2))) % pow(1 - y%yhat, -p_+1);
+    rowvec g = exp(-1.0 / ((-p_+1) * pow(y, 2)));
+    *hess = pow(1 - y%yhat, -p_) % f % g;
+  } else {
+    rowvec f = exp( log(1 - y%yhat)/pow(y, 2));
+    *hess = (1.0 / (1 - y%yhat)) % f;
+  }
+  
+}
+
+template<typename DataType>
+DataType
+PowerLoss<DataType>::loss_reverse_arma(const rowvec& yhat, const rowvec& y) {
+  // return 0.;
+  return sum(pow((y - yhat), 2));
+}
+
+#ifdef AUTODIFF
+template<typename DataType>
+autodiff::real
+PowerLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
+  return pow((y - yhat), 2).sum();
+}
+#endif
+
+////////////////////
+// END PowerLoss
+////////////////////
+
 /////////////////////////
 // BEGIN SyntheticRegLoss
 /////////////////////////

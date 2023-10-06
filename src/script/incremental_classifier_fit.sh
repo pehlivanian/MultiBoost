@@ -25,6 +25,7 @@ declare -f childminimumgainsplit
 declare -a num_args
 declare -a dataname
 declare -a loss_fn
+declare -f loss_power
 declare -a recursivefit
 declare -a clamp_gradient
 declare -a upper_val
@@ -78,6 +79,7 @@ while (( $# )); do
   dataname+=$1; shift
   basesteps+=$1; shift
   loss_fn+=$1; shift
+  loss_power+=${1:0}; shift
   colsubsample_ratio+=$1; shift
   recursivefit+=$1; shift
   clamp_gradient+=${1:0}; shift
@@ -112,6 +114,7 @@ echo -n $PREFIX" "
 # create context for first run
 $EXEC_CC \
 --loss ${loss_fn} \
+--lossPower ${loss_power} \
 --clamp_gradient ${clamp_gradient} \
 --upper_val ${upper_val} \
 --lower_val ${lower_val} \
@@ -144,6 +147,7 @@ echo -n $PREFIX" "
 # create context for subsequent runs
 $EXEC_CC \
 --loss ${loss_fn} \
+--lossPower ${loss_power} \
 --clamp_gradient ${clamp_gradient} \
 --upper_val ${upper_val} \
 --lower_val ${lower_val} \
