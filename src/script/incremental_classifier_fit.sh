@@ -265,6 +265,7 @@ do
   else
     # Classify OOS
     if [ $SHOW_OOS -eq 1 ]; then
+
       $EXEC_PRED_OOS \
       --indexFileName $INDEX_NAME_STEP \
       --folderName $FOLDER_STEP \

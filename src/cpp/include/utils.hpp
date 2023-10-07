@@ -8,6 +8,8 @@
 #include <cmath>
 #include <vector>
 #include <limits>
+#include <iostream>
+#include <iterator>
 #include <chrono>
 #include <memory>
 #include <type_traits>
@@ -693,6 +695,28 @@ namespace IB_utils {
   std::string writeIndex(const std::vector<std::string>&, std::string, boost::filesystem::path fldr=boost::filesystem::path{});
   void readIndex(std::string, std::vector<std::string>&, boost::filesystem::path fldr=boost::filesystem::path{});
   void mergeIndices(std::string, std::string, boost::filesystem::path fldr=boost::filesystem::path{}, bool=false);
+
+  template<typename DataType>
+  void printSubsets(std::vector<std::vector<int>>& subsets, const std::vector<DataType>& a, const std::vector<DataType>& b) {
+    std::cerr << "SUBSETS\n";
+    std::cerr << "[\n";
+    std::for_each(subsets.begin(), subsets.end(), [&a, &b](std::vector<int>& subset){
+		    std::cerr << "  [size: " << subset.size() << "] ";
+		    std::cerr << "[";
+		    std::sort(subset.begin(), subset.end());
+		    std::copy(subset.begin(), subset.end(),
+			      std::ostream_iterator<int>(std::cerr, " "));
+		    std::cerr << "] ";
+		    
+		    DataType sum_a=0., sum_b=0.;
+		    for (const int& ind : subset) {
+		      sum_a+=a[ind];
+		      sum_b+=b[ind];
+		    }
+		    std::cerr << "[avg. priority: " << sum_a/sum_b <<  " cum ratl score: " << sum_a*sum_a/sum_b << "]\n";
+		  });
+    std::cerr << "]";
+  }
 
   template<typename T>
   void 

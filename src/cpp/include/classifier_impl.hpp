@@ -46,7 +46,8 @@ template<typename DataType, typename ClassifierType, typename... Args>
 void
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::setClassifier(const mat& dataset, Row<std::size_t>& labels, Args&&... args) {
 
-  classifier_.reset(new ClassifierType(dataset, labels, std::forward<Args>(args)...));
+  classifier_ = std::make_unique<ClassifierType>(dataset, labels, std::forward<Args>(args)...);
+
 }
 
 template<typename DataType, typename ClassifierType, typename... Args>

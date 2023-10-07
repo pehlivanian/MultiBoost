@@ -13,6 +13,7 @@ template<typename DataType, typename ClassifierType>
 class ClassifierBase : public Model<DataType, ClassifierType> {
 public:
   ClassifierBase() = default;
+  ClassifierBase(const ClassifierBase&) = default;
   ClassifierBase(std::string id) : Model<DataType, ClassifierType>(id) {}
 
   virtual ~ClassifierBase() = default;
@@ -53,6 +54,7 @@ public:
     classifier_{std::move(classifier)} {}
 
   DiscreteClassifierBase() = default;
+  DiscreteClassifierBase(const DiscreteClassifierBase&) = default;
   virtual ~DiscreteClassifierBase() = default;
 
   void setClassifier(const mat&, Row<std::size_t>&, Args&&...);

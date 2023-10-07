@@ -60,6 +60,7 @@ class RandomForestClassifierBase :
 				Args...> {
 public:
   RandomForestClassifierBase() = default;
+  RandomForestClassifierBase(const RandomForestClassifierBase&) = default;
   
   RandomForestClassifierBase(const mat& dataset,
 			     rowvec& labels,
@@ -76,6 +77,7 @@ public:
   using Args = std::tuple<std::size_t, std::size_t, std::size_t>;
 
   RandomForestClassifier() = default;
+  RandomForestClassifier(const RandomForestClassifier&) = default;
 
   RandomForestClassifier(const mat& dataset,
 			 rowvec& labels,
@@ -103,6 +105,7 @@ class DecisionTreeClassifierBase :
 				Args...> {
 public:
   DecisionTreeClassifierBase() = default;
+  DecisionTreeClassifierBase(const DecisionTreeClassifierBase&) = default;
   
   DecisionTreeClassifierBase(const mat& dataset,
 			     rowvec& labels,
@@ -117,6 +120,7 @@ public:
   using Args = std::tuple<std::size_t, std::size_t, double, std::size_t>;
 
   DecisionTreeClassifier() = default;
+  DecisionTreeClassifier(const DecisionTreeClassifier&) = default;
   
   DecisionTreeClassifier(const mat& dataset,
 			 rowvec& labels,

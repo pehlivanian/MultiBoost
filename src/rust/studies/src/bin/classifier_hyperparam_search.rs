@@ -84,6 +84,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let numGrids: usize = 2;
 	let baseSteps: u32 = 100;
         let loss_fn: u32  = 6;
+        let lossPower: f32 = 1.0;
         let colsubsample_ratio: f32 = 0.85;
         let _recursivefit: bool = true;
         let clampGradient: usize = 1;
@@ -189,6 +190,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             cmd.push_str(&datasetname);                       cmd.push_str(" ");
             cmd.push_str(&baseSteps.to_string());             cmd.push_str(" ");
             cmd.push_str(&loss_fn.to_string());               cmd.push_str(" ");
+            cmd.push_str(&lossPower.to_string());	      cmd.push_str(" ");
             cmd.push_str(&colsubsample_ratio.to_string());    cmd.push_str(" ");
             cmd.push_str(&(recursivefit as i32).to_string()); cmd.push_str(" ");
             cmd.push_str(&clampGradient.to_string());         cmd.push_str(" ");
@@ -245,7 +247,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         folder: folder.to_string(), index: index.to_string()};
                     run_key = calculate_hash(&data);
                     let query = mariadbext::format_run_specification_query(run_key, &cmd, folder, index, datasetname,
-                        loss_fn, numRows, numCols, baseSteps, colsubsample_ratio, recursivefit, 
+                        loss_fn, lossPower, numRows, numCols, baseSteps, colsubsample_ratio, recursivefit, 
                         clampGradient, upperVal, lowerVal, splitRatio,
                         &specs);
                     let _r = conn.query_drop(query).expect("Failed to insert into run_specification table");

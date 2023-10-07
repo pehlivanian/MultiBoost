@@ -43,6 +43,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut conn = pool.get_conn()?;
 
     let datasetname = &args[1];
+    let datasetname_test = datasetname.replace("_train", "_test");
 
     // Dataset info
     let dataset = dataset::ClassificationDataset::new(&datasetname);
@@ -61,15 +62,16 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Scalar inputs
     let mut numGrids:		usize = childNumPartitions.len();
-    let mut numIterations:	u32   = 150;
-    let mut lossFn:		u32   = 3;
+    let mut numIterations:	u32   = 50;
+    let mut lossFn:		u32   = 12;
+    let mut lossPower:		f32   = 1.0;
     let mut colSubsampleRatio:	f32   = 1.0;
     let mut recursiveFit:	bool  = true;
     let mut clampGradient:	usize = 1;
     let mut upperVal:		f32   = 1.0;
     let mut lowerVal:		f32   = -1.0;
-    let mut runOnTestData:	usize = 0;
-    let mut splitRatio:		f32   = 0.20;
+    let mut runOnTestData:	usize = 1;
+    let mut splitRatio:		f32   = 0.0;
 
     let specs: Vec<Vec<String>> = vec![ childNumPartitions,
                                         childNumSteps,
@@ -88,24 +90,34 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     struct case {
         lossFn: u32,
+        lossPower: f32,
         clampGradient: usize,
         upperVal: f32,
         lowerVal: f32,
         childPartitionUsageRatio: Vec<f32>
     }
 
+    /*
     let cases: Vec<case> = vec![
-        case{lossFn: 3, clampGradient: 1, upperVal: 1.0, lowerVal: -1.0, childPartitionUsageRatio: vec![0.5]}, // Exp loss
-        case{lossFn: 1, clampGradient: 1, upperVal: 1.0, lowerVal: -1.0, childPartitionUsageRatio: vec![0.5]}, // Bin dev loss
-        case{lossFn: 8, clampGradient: 1, upperVal: 1.0, lowerVal: -1.0, childPartitionUsageRatio: vec![0.5]}, // Squared loss
-        case{lossFn: 6, clampGradient: 1, upperVal: 1.0, lowerVal: -1.0, childPartitionUsageRatio: vec![0.5]}, // Synth loss - cubic
-        case{lossFn: 7, clampGradient: 1, upperVal: 1.0, lowerVal: -1.0, childPartitionUsageRatio: vec![0.5]}, // Synth loss - cube root
+        case{lossFn: 3, lossPower: 1.0, clampGradient: 1, upperVal: 1.0, lowerVal: -1.0, childPartitionUsageRatio: vec![0.5]}, // Exp loss
+        case{lossFn: 1, lossPower: 1.0, clampGradient: 1, upperVal: 1.0, lowerVal: -1.0, childPartitionUsageRatio: vec![0.5]}, // Bin dev loss
+        case{lossFn: 8, lossPower: 1.0, clampGradient: 1, upperVal: 1.0, lowerVal: -1.0, childPartitionUsageRatio: vec![0.5]}, // Squared loss
+        case{lossFn: 6, lossPower: 1.0, clampGradient: 1, upperVal: 1.0, lowerVal: -1.0, childPartitionUsageRatio: vec![0.5]}, // Synth loss - cubic
+        case{lossFn: 7, lossPower: 1.0, clampGradient: 1, upperVal: 1.0, lowerVal: -1.0, childPartitionUsageRatio: vec![0.5]}, // Synth loss - cube root
         ];
+    */
+ 
+    let mut cases: Vec<case> = Vec::new();
+    for i in 0..100 {
+        let c = case{lossFn: 12, lossPower: i as f32/20., clampGradient: 1, upperVal: 1.0, lowerVal: -1.0, childPartitionUsageRatio: vec![0.5]};
+        cases.push(c);
+    }
     let mut run_keys: Vec<u64> = Vec::new();
 	
     for case in cases {
 
         lossFn = case.lossFn;
+        lossPower = case.lossPower;
         clampGradient = case.clampGradient;
         upperVal = case.upperVal;
         lowerVal = case.lowerVal;
@@ -127,6 +139,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         cmd.push_str(&datasetname);                      cmd.push_str(" ");
         cmd.push_str(&numIterations.to_string());        cmd.push_str(" ");
         cmd.push_str(&lossFn.to_string());               cmd.push_str(" ");
+	cmd.push_str(&lossPower.to_string());		 cmd.push_str(" ");
         cmd.push_str(&colSubsampleRatio.to_string());    cmd.push_str(" ");
         cmd.push_str(&(recursiveFit as i32).to_string());cmd.push_str(" ");
         cmd.push_str(&clampGradient.to_string());        cmd.push_str(" ");
@@ -177,12 +190,12 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     folder: folder.to_string(), index: index.to_string()};
                 run_key = calculate_hash(&data);
                 let query = mariadbext::format_run_specification_query(run_key, &cmd, folder, index, datasetname,
-                    lossFn, numRows, numCols, numIterations, colSubsampleRatio, recursiveFit, clampGradient,
+                    lossFn, lossPower, numRows, numCols, numIterations, colSubsampleRatio, recursiveFit, clampGradient,
                     upperVal, lowerVal, splitRatio, &specs);
                 let _r = conn.query_drop(query).expect("Failed to insert into run_specification table");
             }
-            else if model::OOS_patt(datasetname).is_match(&line) {
-                for (_,[vals]) in model::OOS_patt(datasetname).captures_iter(&line)
+            else if model::OOS_patt(&datasetname_test).is_match(&line) {
+                for (_,[vals]) in model::OOS_patt(&datasetname_test).captures_iter(&line)
                     .map(|i| i.extract()) {
     	            let parsed: Vec<String> = vals.split(", ").map(|i| i.to_string()).collect();
                     let query = mariadbext::format_outofsample_query(&model_type, run_key, datasetname, it, parsed);

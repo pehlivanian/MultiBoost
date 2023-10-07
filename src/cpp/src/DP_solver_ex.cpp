@@ -16,7 +16,7 @@ void print_subsets(std::vector<std::vector<int> >& subsets, const std::vector<do
 		    sum_a+=a[ind];
 		    sum_b+=b[ind];
 		  }
-		  std::cout << "[avg. priority: " << -1*sum_b/sum_a << "]\n";
+		  std::cout << "[avg. priority: " << sum_a/sum_b << " cum ratl score: " << sum_a*sum_a/sum_b << "]\n";
 		});
   std::cout << "]";
 }

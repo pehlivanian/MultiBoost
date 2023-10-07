@@ -49,15 +49,16 @@ pub fn check_for_existing_run_dim3(uri: &str, creds: &(String, String), num_part
 }
 
 pub fn format_run_specification_query(run_key: u64, cmd: &str, folder: &str, index: &str, datasetname: &str,
-    loss_fn: u32, n_rows: usize, n_cols: usize, basesteps: u32, colsubsample_ratio: f32, 
+    loss_fn: u32, loss_power: f32, n_rows: usize, n_cols: usize, basesteps: u32, colsubsample_ratio: f32, 
     rcsive: bool, clamp_gradient: usize, upper_val: f32, lower_val: f32, split_ratio: f32, specs: &Vec<Vec<String>>) -> String {
-    let mut query = format!("INSERT INTO run_specification (run_key, cmd, folder, idx, dataset_name, loss_fn, n_rows, n_cols, basesteps, colsubsample_ratio, rcsive, clamp_gradient, upper_val, lower_val, split_ratio, num_partitions0, num_partitions1, num_partitions2, num_partitions3, num_partitions4, num_partitions5, num_partitions6, num_partitions7, num_partitions8, num_partitions9, num_steps0, num_steps1, num_steps2, num_steps3, num_steps4, num_steps5, num_steps6, num_steps7, num_steps8, num_steps9, learning_rate0, learning_rate1, learning_rate2, learning_rate3, learning_rate4, learning_rate5, learning_rate6, learning_rate7, learning_rate8, learning_rate9, active_partition_ratio0, active_partition_ratio1, active_partition_ratio2, active_partition_ratio3, active_partition_ratio4, active_partition_ratio5, active_partition_ratio6, active_partition_ratio7, active_partition_ratio8, active_partition_ratio9, max_depth0, max_depth1, max_depth2, max_depth3, max_depth4, max_depth5, max_depth6, max_depth7, max_depth8, max_depth9, min_leafsize0, min_leafsize1, min_leafsize2, min_leafsize3, min_leafsize4, min_leafsize5, min_leafsize6, min_leafsize7, min_leafsize8, min_leafsize9, min_gainsplit0, min_gainsplit1, min_gainsplit2, min_gainsplit3, min_gainsplit4, min_gainsplit5, min_gainsplit6, min_gainsplit7, min_gainsplit8, min_gainsplit9) VALUES (\"{}\", \"{}\", \"{}\", \"{}\", \"{}\", {}, {}, {}, {}, {}, {}, {}, {}, {}, {}",
+    let mut query = format!("INSERT INTO run_specification (run_key, cmd, folder, idx, dataset_name, loss_fn, loss_power, n_rows, n_cols, basesteps, colsubsample_ratio, rcsive, clamp_gradient, upper_val, lower_val, split_ratio, num_partitions0, num_partitions1, num_partitions2, num_partitions3, num_partitions4, num_partitions5, num_partitions6, num_partitions7, num_partitions8, num_partitions9, num_steps0, num_steps1, num_steps2, num_steps3, num_steps4, num_steps5, num_steps6, num_steps7, num_steps8, num_steps9, learning_rate0, learning_rate1, learning_rate2, learning_rate3, learning_rate4, learning_rate5, learning_rate6, learning_rate7, learning_rate8, learning_rate9, active_partition_ratio0, active_partition_ratio1, active_partition_ratio2, active_partition_ratio3, active_partition_ratio4, active_partition_ratio5, active_partition_ratio6, active_partition_ratio7, active_partition_ratio8, active_partition_ratio9, max_depth0, max_depth1, max_depth2, max_depth3, max_depth4, max_depth5, max_depth6, max_depth7, max_depth8, max_depth9, min_leafsize0, min_leafsize1, min_leafsize2, min_leafsize3, min_leafsize4, min_leafsize5, min_leafsize6, min_leafsize7, min_leafsize8, min_leafsize9, min_gainsplit0, min_gainsplit1, min_gainsplit2, min_gainsplit3, min_gainsplit4, min_gainsplit5, min_gainsplit6, min_gainsplit7, min_gainsplit8, min_gainsplit9) VALUES (\"{}\", \"{}\", \"{}\", \"{}\", \"{}\", {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}",
         run_key.to_string(),
         cmd,
         folder,
         index,
         datasetname,
         loss_fn.to_string(),
+        loss_power.to_string(),
         n_rows.to_string(),
         n_cols.to_string(),
         basesteps.to_string(),
