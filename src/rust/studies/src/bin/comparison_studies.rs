@@ -52,17 +52,17 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let numCols = datasetShape.1;
 
     // Vector inputs
-    let mut childNumPartitions:		Vec<f32> = vec![500.0];
-    let mut childNumSteps:		Vec<f32> = vec![1.0];
-    let mut childLearningRate:		Vec<f32> = vec![0.01];
-    let mut childPartitionUsageRatio:	Vec<f32> = vec![0.5];
-    let mut childMaxDepth:		Vec<f32> = vec![0.0];
-    let mut childMinLeafSize:		Vec<f32> = vec![1.0];
-    let mut childMinimumGainSplit:	Vec<f32> = vec![0.0];
+    let mut childNumPartitions:		Vec<f32> = vec![300.0, 250.0, 200.0, 150.0, 100.0, 75.0, 50.0, 25.0, 10.0, 5.0, 1.0];
+    let mut childNumSteps:		Vec<f32> = vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+    let mut childLearningRate:		Vec<f32> = vec![0.0005, 0.0005, 0.0005, 0.0005, 0.0005, 0.0005, 0.0005, 0.0005, 0.0005, 0.0005, 0.0005];
+    let mut childPartitionUsageRatio:	Vec<f32> = vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+    let mut childMaxDepth:		Vec<f32> = vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+    let mut childMinLeafSize:		Vec<f32> = vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+    let mut childMinimumGainSplit:	Vec<f32> = vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 
     // Scalar inputs
     let mut numGrids:		usize = childNumPartitions.len();
-    let mut numIterations:	u32   = 50;
+    let mut numIterations:	u32   = 25;
     let mut lossFn:		u32   = 12;
     let mut lossPower:		f32   = 1.0;
     let mut colSubsampleRatio:	f32   = 1.0;
@@ -108,7 +108,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     */
  
     let mut cases: Vec<case> = Vec::new();
-    for i in 0..100 {
+    for i in 0..200 {
         let c = case{lossFn: 12, lossPower: i as f32/20., clampGradient: 1, upperVal: 1.0, lowerVal: -1.0, childPartitionUsageRatio: vec![0.5]};
         cases.push(c);
     }
@@ -146,7 +146,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         cmd.push_str(&upperVal.to_string());             cmd.push_str(" ");
         cmd.push_str(&lowerVal.to_string());		 cmd.push_str(" ");
         cmd.push_str(&runOnTestData.to_string());	 cmd.push_str(" ");
-        cmd.push_str(&splitRatio.to_string());
+        // cmd.push_str(&splitRatio.to_string());
 
 
         println!("call: {} \n", cmd);

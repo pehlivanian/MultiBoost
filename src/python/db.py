@@ -226,6 +226,60 @@ class DBExt(object):
             yaxis = joined['r2'].values
         return xaxis,yaxis
 
+    def plot_OOS_by_power(self, dataset, with_priority=True):
+        if with_priority:
+            q1 = "select A.dataset_name, A.run_key, A.err as err, A.prcsn as prcsn, A.F1 as F1, B.loss_fn, B.loss_power, B.num_partitions0, B.num_partitions1, B.num_partitions2, B.learning_rate0, B.learning_rate1, B.learning_rate2, B.num_steps0, B.num_steps1, B.num_steps2 from outofsample A join run_specification B on A.run_key=B.run_key where B.loss_fn = 12 and B.num_partitions0 > 0 and A.dataset_name = \"{}\" and B.num_partitions1 = 0 and B.basesteps = 25 and B.active_partition_ratio0 > .1 group by A.run_key order by B.loss_power".format(dataset)
+            q3 = "select A.dataset_name, A.run_key, A.err as err, A.prcsn as prcsn, A.F1 as F1, B.loss_fn, B.loss_power, B.num_partitions0, B.num_partitions1, B.num_partitions2, B.learning_rate0, B.learning_rate1, B.learning_rate2, B.num_steps0, B.num_steps1, B.num_steps2 from outofsample A join run_specification B on A.run_key=B.run_key where B.loss_fn = 12 and B.num_partitions0 > 0 and A.dataset_name = \"{}\" and B.num_partitions2 > 0 and B.num_partitions4 = 0 and B.basesteps = 25 and B.active_partition_ratio0 > .1 group by A.run_key order by B.loss_power".format(dataset)
+            q5 = "select A.dataset_name, A.run_key, A.err as err, A.prcsn as prcsn, A.F1 as F1, B.loss_fn, B.loss_power, B.num_partitions0, B.num_partitions1, B.num_partitions2, B.learning_rate0, B.learning_rate1, B.learning_rate2, B.num_steps0, B.num_steps1, B.num_steps2 from outofsample A join run_specification B on A.run_key=B.run_key where B.loss_fn = 12 and B.num_partitions0 > 0 and A.dataset_name = \"{}\" and B.num_partitions4 > 0 and B.num_partitions6 = 0 and B.basesteps = 25 and B.active_partition_ratio0 > .1 group by A.run_key order by B.loss_power".format(dataset)
+            q7 = "select A.dataset_name, A.run_key, A.err as err, A.prcsn as prcsn, A.F1 as F1, B.loss_fn, B.loss_power, B.num_partitions0, B.num_partitions1, B.num_partitions2, B.learning_rate0, B.learning_rate1, B.learning_rate2, B.num_steps0, B.num_steps1, B.num_steps2 from outofsample A join run_specification B on A.run_key=B.run_key where B.loss_fn = 12 and B.num_partitions0 > 0 and A.dataset_name = \"{}\" and B.num_partitions6 > 0 and B.num_partitions8 = 0 and B.basesteps = 25 and B.active_partition_ratio0 > .1 group by A.run_key order by B.loss_power".format(dataset)
+            q9 = "select A.dataset_name, A.run_key, A.err as err, A.prcsn as prcsn, A.F1 as F1, B.loss_fn, B.loss_power, B.num_partitions0, B.num_partitions1, B.num_partitions2, B.learning_rate0, B.learning_rate1, B.learning_rate2, B.num_steps0, B.num_steps1, B.num_steps2 from outofsample A join run_specification B on A.run_key=B.run_key where B.loss_fn = 12 and B.num_partitions0 > 0 and A.dataset_name = \"{}\" and B.num_partitions8 > 0 and B.basesteps = 25 and B.active_partition_ratio0 > .1 group by A.run_key order by B.loss_power".format(dataset)
+        else:
+            q1 = "select A.dataset_name, A.run_key, A.err as err, A.prcsn as prcsn, A.F1 as F1, B.loss_fn, B.loss_power, B.num_partitions0, B.num_partitions1, B.num_partitions2, B.learning_rate0, B.learning_rate1, B.learning_rate2, B.num_steps0, B.num_steps1, B.num_steps2 from outofsample A join run_specification B on A.run_key=B.run_key where B.loss_fn = 12 and B.num_partitions0 > 0 and A.dataset_name = \"{}\" and B.num_partitions1 = 0 and B.basesteps = 25 and B.active_partition_ratio0 < 0.05 group by A.run_key order by B.loss_power".format(dataset)
+            q3 = "select A.dataset_name, A.run_key, A.err as err, A.prcsn as prcsn, A.F1 as F1, B.loss_fn, B.loss_power, B.num_partitions0, B.num_partitions1, B.num_partitions2, B.learning_rate0, B.learning_rate1, B.learning_rate2, B.num_steps0, B.num_steps1, B.num_steps2 from outofsample A join run_specification B on A.run_key=B.run_key where B.loss_fn = 12 and B.num_partitions0 > 0 and A.dataset_name = \"{}\" and B.num_partitions2 > 0 and B.num_partitions4 = 0 and B.basesteps = 25 and B.active_partition_ratio0 < 0.05 group by A.run_key order by B.loss_power".format(dataset)
+            q5 = "select A.dataset_name, A.run_key, A.err as err, A.prcsn as prcsn, A.F1 as F1, B.loss_fn, B.loss_power, B.num_partitions0, B.num_partitions1, B.num_partitions2, B.learning_rate0, B.learning_rate1, B.learning_rate2, B.num_steps0, B.num_steps1, B.num_steps2 from outofsample A join run_specification B on A.run_key=B.run_key where B.loss_fn = 12 and B.num_partitions0 > 0 and A.dataset_name = \"{}\" and B.num_partitions4 > 0 and B.num_partitions6 = 0 and B.basesteps = 25 and B.active_partition_ratio0 < 0.05 group by A.run_key order by B.loss_power".format(dataset)
+            q7 = "select A.dataset_name, A.run_key, A.err as err, A.prcsn as prcsn, A.F1 as F1, B.loss_fn, B.loss_power, B.num_partitions0, B.num_partitions1, B.num_partitions2, B.learning_rate0, B.learning_rate1, B.learning_rate2, B.num_steps0, B.num_steps1, B.num_steps2 from outofsample A join run_specification B on A.run_key=B.run_key where B.loss_fn = 12 and B.num_partitions0 > 0 and A.dataset_name = \"{}\" and B.num_partitions6 > 0 and B.num_partitions8 = 0 and B.basesteps = 25 and B.active_partition_ratio0 < 0.05 group by A.run_key order by B.loss_power".format(dataset)
+            q9 = "select A.dataset_name, A.run_key, A.err as err, A.prcsn as prcsn, A.F1 as F1, B.loss_fn, B.loss_power, B.num_partitions0, B.num_partitions1, B.num_partitions2, B.learning_rate0, B.learning_rate1, B.learning_rate2, B.num_steps0, B.num_steps1, B.num_steps2 from outofsample A join run_specification B on A.run_key=B.run_key where B.loss_fn = 12 and B.num_partitions0 > 0 and A.dataset_name = \"{}\" and B.num_partitions8 > 0 and B.basesteps = 25 and B.active_partition_ratio0 < 0.05 group by A.run_key order by B.loss_power".format(dataset)
+        qs = [q1,q3,q5,q7,q9]
+        fig,ax = plot.subplots(2,2)
+        subind0 = [0,1]
+        subind1 = [0,1]
+        # fig.set_size_inches(9, 6)
+        # fig.subplots_adjust(left=0.075)
+        # fig.subplots_adjust(right=0.925)
+        
+        for i,q in enumerate(qs):
+            level = i*2+1
+            req = self.conn.execute(text(q))
+            df = pd.DataFrame(columns=req.keys(), data=req.fetchall())
+
+            xaxis = df[(df['loss_power'] > 0.) & (df['loss_power'] <= 5.0)]['loss_power'].values
+            yaxis = df[(df['loss_power'] > 0.) & (df['loss_power'] <= 5.0)]['err'].values
+
+            b, m, c = polyfit(xaxis, yaxis, 2)
+            opt_x = -m/2/c
+            opt_y = b+m*opt_x+c*np.power(opt_x,2)
+            fitaxis = b + m*xaxis + c*np.power(xaxis,2)
+            axis = ax[subind0[i>=2], subind1[(i%2)]]
+            DBExt._add_plot(dataset, xaxis, yaxis, fitaxis, opt_x, opt_y, level, axis)             
+
+            if (level in (7,)):
+                filename = 'recursive_{}_priority_level_{}.pdf'.format(level, dataset)
+                with PdfPages(filename) as pdf:
+                    pdf.savefig(fig)
+
+    @staticmethod
+    def _add_plot(dataset, xaxis, yaxis, fitaxis, opt_x, opt_y, level, axis):
+        axis.grid(True)
+        axis.set_xlabel('p')
+        axis.set_ylabel('Out of sample error (%)')
+        axis.set_title('Recursive[{}] OOS error (%)'.format(level))
+
+        axis.scatter(xaxis, yaxis, marker='x', label="OOS error")
+        axis.plot(xaxis, fitaxis, '-', label="quad fit", color="orange")
+        if (opt_x > 0.0) and (opt_x <= 5.0):
+            axis.plot([opt_x], [opt_y], marker='o', markersize=8, markerfacecolor="black")
+        axis.legend(loc='upper right')
+        
     def plot_OOS_fits(self, run_keys, dataset):
         xaxis = np.array([]); erraxis = np.array([]); F1axis = np.array([]); prcsnaxis = np.array([])
         for run_key in run_keys:
@@ -352,7 +406,7 @@ if __name__ == "__main__":
     # flare
     # dbext.plot_OOS_fits([3665123017970236105, 6890981365057713202, 8248659231312751020, 830653885356967330, 2823164921657540188, 7126282586633062304], "flare")
     # adult
-    dbext.plot_OOS_fits([8453587131535466825, 536224941498796699, 277025322160564859, 6160569975937583803, 4077672419385012766, 7660754858450613426], "adult")
+    # dbext.plot_OOS_fits([8453587131535466825, 536224941498796699, 277025322160564859, 6160569975937583803, 4077672419385012766, 7660754858450613426], "adult")
     
     # phoneme
     # dbext.plot_OOS_fits([10983252967684601218, 2264980010301009553], "phoneme")
@@ -374,10 +428,17 @@ if __name__ == "__main__":
     # xaxis = xaxis[[sortind]]
     # yaxis = yaxis[[sortind]]
 
-    # b, m = polyfit(xaxis[0,:], yaxis[0,:], 1)
-    # print(b, m)
+    # xaxis,yaxis = dbext.plot_OOS_by_power("income_2000_train")
+    # xaxis,yaxis = dbext.plot_OOS_by_power("phoneme_train")
+    dbext.plot_OOS_by_power("house_votes_84_train")
+
+    # b, m, c = polyfit(xaxis, yaxis, 2)
+    # print("optimal x: {}".format(-m/2/c))
+    # plot.scatter(np.array(xaxis), np.array(yaxis))
     # plot.scatter(xaxis, yaxis)
     # plot.plot(xaxis, yaxis)
-    # plot.plot(xaxis[0,:], b + m*xaxis[0,:], '-')
+    # plot.plot(xaxis, b + m*xaxis + c*np.power(xaxis,2), '-')
     # plot.show()
+
+
     
