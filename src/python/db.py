@@ -239,13 +239,19 @@ class DBExt(object):
             q5 = "select A.dataset_name, A.run_key, A.err as err, A.prcsn as prcsn, A.F1 as F1, B.loss_fn, B.loss_power, B.num_partitions0, B.num_partitions1, B.num_partitions2, B.learning_rate0, B.learning_rate1, B.learning_rate2, B.num_steps0, B.num_steps1, B.num_steps2 from outofsample A join run_specification B on A.run_key=B.run_key where B.loss_fn = 12 and B.num_partitions0 > 0 and A.dataset_name = \"{}\" and B.num_partitions4 > 0 and B.num_partitions6 = 0 and B.basesteps = 25 and B.active_partition_ratio0 < 0.05 group by A.run_key order by B.loss_power".format(dataset)
             q7 = "select A.dataset_name, A.run_key, A.err as err, A.prcsn as prcsn, A.F1 as F1, B.loss_fn, B.loss_power, B.num_partitions0, B.num_partitions1, B.num_partitions2, B.learning_rate0, B.learning_rate1, B.learning_rate2, B.num_steps0, B.num_steps1, B.num_steps2 from outofsample A join run_specification B on A.run_key=B.run_key where B.loss_fn = 12 and B.num_partitions0 > 0 and A.dataset_name = \"{}\" and B.num_partitions6 > 0 and B.num_partitions8 = 0 and B.basesteps = 25 and B.active_partition_ratio0 < 0.05 group by A.run_key order by B.loss_power".format(dataset)
             q9 = "select A.dataset_name, A.run_key, A.err as err, A.prcsn as prcsn, A.F1 as F1, B.loss_fn, B.loss_power, B.num_partitions0, B.num_partitions1, B.num_partitions2, B.learning_rate0, B.learning_rate1, B.learning_rate2, B.num_steps0, B.num_steps1, B.num_steps2 from outofsample A join run_specification B on A.run_key=B.run_key where B.loss_fn = 12 and B.num_partitions0 > 0 and A.dataset_name = \"{}\" and B.num_partitions8 > 0 and B.basesteps = 25 and B.active_partition_ratio0 < 0.05 group by A.run_key order by B.loss_power".format(dataset)
-        qs = [q1,q3,q5,q7,q9]
-        fig,ax = plot.subplots(2,2)
-        subind0 = [0,1]
-        subind1 = [0,1]
-        # fig.set_size_inches(9, 6)
-        # fig.subplots_adjust(left=0.075)
-        # fig.subplots_adjust(right=0.925)
+        qs = [q1,q3,q5,q7]
+
+        if with_priority:
+            path = 'recursive_{}_priority_level_{}.pdf'
+        else:
+            path = 'recursive_{}_level_{}.pdf'
+            
+        
+        fig,ax = plot.subplots(1,1)
+        subind0 = [0, 0, 0, 0]
+        fig.set_size_inches(9, 6)
+        fig.subplots_adjust(left=0.075)
+        fig.subplots_adjust(right=0.925)
         
         for i,q in enumerate(qs):
             level = i*2+1
@@ -259,13 +265,45 @@ class DBExt(object):
             opt_x = -m/2/c
             opt_y = b+m*opt_x+c*np.power(opt_x,2)
             fitaxis = b + m*xaxis + c*np.power(xaxis,2)
-            axis = ax[subind0[i>=2], subind1[(i%2)]]
+            axis = ax
             DBExt._add_plot(dataset, xaxis, yaxis, fitaxis, opt_x, opt_y, level, axis)             
 
-            if (level in (7,)):
-                filename = 'recursive_{}_priority_level_{}.pdf'.format(level, dataset)
+            if (True):
+                filename = path.format(i, dataset)
                 with PdfPages(filename) as pdf:
                     pdf.savefig(fig)
+                    
+                fig,ax = plot.subplots(1,1)
+                fig.set_size_inches(9, 6)
+                fig.subplots_adjust(left=0.075)
+                fig.subplots_adjust(right=0.925)
+
+
+        fig1,ax1 = plot.subplots(1,1)
+        fig.set_size_inches(9, 6)
+        fig.subplots_adjust(left=0.075)
+        fig.subplots_adjust(right=0.925)
+        
+        q = q9
+        i = 4; level = 9
+        req = self.conn.execute(text(q))
+        df = pd.DataFrame(columns=req.keys(), data=req.fetchall())
+        
+        xaxis = df[(df['loss_power'] > 0.) & (df['loss_power'] <= 5.0)]['loss_power'].values
+        yaxis = df[(df['loss_power'] > 0.) & (df['loss_power'] <= 5.0)]['err'].values
+        
+        b, m, c = polyfit(xaxis, yaxis, 2)
+        opt_x = -m/2/c
+        opt_y = b+m*opt_x+c*np.power(opt_x,2)
+        fitaxis = b + m*xaxis + c*np.power(xaxis,2)
+        axis = ax1
+        DBExt._add_plot(dataset, xaxis, yaxis, fitaxis, opt_x, opt_y, level, axis)
+
+        filename = path.format(i, dataset)
+        with PdfPages(filename) as pdf:
+            pdf.savefig(fig1)
+
+        
 
     @staticmethod
     def _add_plot(dataset, xaxis, yaxis, fitaxis, opt_x, opt_y, level, axis):
@@ -430,7 +468,9 @@ if __name__ == "__main__":
 
     # xaxis,yaxis = dbext.plot_OOS_by_power("income_2000_train")
     # xaxis,yaxis = dbext.plot_OOS_by_power("phoneme_train")
-    dbext.plot_OOS_by_power("house_votes_84_train")
+    # dbext.plot_OOS_by_power("house_votes_84_train")
+    # dbext.plot_OOS_by_power("colic_train")
+    dbext.plot_OOS_by_power("buggyCrx_train")
 
     # b, m, c = polyfit(xaxis, yaxis, 2)
     # print("optimal x: {}".format(-m/2/c))

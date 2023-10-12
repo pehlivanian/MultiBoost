@@ -52,13 +52,13 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let numCols = datasetShape.1;
 
     // Vector inputs
-    let mut childNumPartitions:		Vec<f32> = vec![300.0, 250.0, 200.0, 150.0, 100.0, 75.0, 50.0, 25.0, 10.0, 5.0, 1.0];
-    let mut childNumSteps:		Vec<f32> = vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
-    let mut childLearningRate:		Vec<f32> = vec![0.0005, 0.0005, 0.0005, 0.0005, 0.0005, 0.0005, 0.0005, 0.0005, 0.0005, 0.0005, 0.0005];
-    let mut childPartitionUsageRatio:	Vec<f32> = vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
-    let mut childMaxDepth:		Vec<f32> = vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
-    let mut childMinLeafSize:		Vec<f32> = vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
-    let mut childMinimumGainSplit:	Vec<f32> = vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+    let mut childNumPartitions:		Vec<f32> = vec![250.0, 150.0, 100.0, 50.0, 25.0, 15.0, 10.0, 5.0, 1.0];
+    let mut childNumSteps:		Vec<f32> = vec![1.00; childNumPartitions.len()];
+    let mut childLearningRate:		Vec<f32> = vec![0.001; childNumPartitions.len()];
+    let mut childPartitionUsageRatio:	Vec<f32> = vec![0.00; childNumPartitions.len()];
+    let mut childMaxDepth:		Vec<f32> = vec![0.00; childNumPartitions.len()];
+    let mut childMinLeafSize:		Vec<f32> = vec![1.00; childNumPartitions.len()];
+    let mut childMinimumGainSplit:	Vec<f32> = vec![0.00; childNumPartitions.len()];
 
     // Scalar inputs
     let mut numGrids:		usize = childNumPartitions.len();
