@@ -15,7 +15,7 @@ namespace ClassifierFileScope{
   const bool POST_EXTRAPOLATE = false;
   const bool W_CYCLE_PREFIT = true;
   const bool DIAGNOSTICS_0_ = false;
-  const bool DIAGNOSTICS_1_ = true;
+  const bool DIAGNOSTICS_1_ = false;
   const std::string DIGEST_PATH = 
     "/home/charles/src/C++/sandbox/Inductive-Boost/digest/classify";
 } // namespace ClassifierFileScope
@@ -554,7 +554,7 @@ CompositeClassifier<ClassifierType>::setRootClassifier(std::unique_ptr<Classifie
 
   rowvec labels_it=labels, prediction;
   float beta = 0.01;
-  const std::size_t FEEDBACK_ITERATIONS = 10;
+  const std::size_t FEEDBACK_ITERATIONS = 0;
   
   cls->Classify(dataset, prediction);
 
@@ -868,7 +868,7 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
   
   auto subsets0 = dp0.get_optimal_subsets_extern();
 
-  printSubsets<DataType>(subsets0, gv0, hv0, colMask);
+  // printSubsets<DataType>(subsets0, gv0, hv0, colMask);
 
   rowvec leaf_values0 = arma::zeros<rowvec>(n);
 
