@@ -1,9 +1,6 @@
 #ifndef __COMPOSITECLASSIFIER_IMPL_HPP__
 #define __COMPOSITECLASSIFIER_IMPL_HPP__
 
-using row_d = Row<double>;
-using row_t = Row<std::size_t>;
-
 using namespace PartitionSize;
 using namespace LearningRate;
 using namespace LossMeasures;
@@ -56,7 +53,8 @@ CompositeClassifier<ClassifierType>::childContext(Context& context) {
 
   auto it = std::find(childPartitionSize_.cbegin(), childPartitionSize_.cend(), partitionSize);
   auto ind = std::distance(childPartitionSize_.cbegin(), it);
-  // Must ensure that ind > 0; may happen if partition size is the same through 2 steps
+
+  // Must ensure that ind > 0; this may happen if partition size is the same through 2 steps
   ind = ind > 0 ? ind : 1;
 
   context.childPartitionSize	= std::vector<std::size_t>(childPartitionSize_.cbegin()+ind,
@@ -134,29 +132,29 @@ CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
 }
 
 template<typename ClassifierType>
-row_d
+Row<typename CompositeClassifier<ClassifierType>::DataType>
 CompositeClassifier<ClassifierType>::_constantLeaf() const {
 
-  row_d r;
+  Row<DataType> r;
   r.zeros(dataset_.n_cols);
   return r;
 }
 
 template<typename ClassifierType>
-row_d
+Row<typename CompositeClassifier<ClassifierType>::DataType>
 CompositeClassifier<ClassifierType>::_constantLeaf(double val) const {
   
-  row_d r;
+  Row<DataType> r;
   r.ones(dataset_.n_cols);
   r *= val;
   return r;
 }
 
 template<typename ClassifierType>
-row_d
+Row<typename CompositeClassifier<ClassifierType>::DataType>
 CompositeClassifier<ClassifierType>::_randomLeaf() const {
 
-  row_d r(dataset_.n_cols, arma::fill::none);
+  Row<DataType> r(dataset_.n_cols, arma::fill::none);
   std::mt19937 rng;
   // std::uniform_int_distribution<std::size_t> dist{1, numVals};
   std::uniform_real_distribution<DataType> dist{-learningRate_, learningRate_};
@@ -317,9 +315,9 @@ template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::Predict(Row<typename CompositeClassifier<ClassifierType>::IntegralLabelType>& prediction) {
 
-  row_d prediction_d = conv_to<row_d>::from(prediction);
+  Row<DataType> prediction_d = conv_to<Row<DataType>>::from(prediction);
   Predict(prediction_d);
-  prediction = conv_to<row_t>::from(prediction_d);
+  prediction = conv_to<Row<std::size_t>>::from(prediction_d);
 }
 
 
@@ -327,9 +325,9 @@ template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::Predict(Row<typename CompositeClassifier<ClassifierType>::IntegralLabelType>& prediction, const uvec& colMask) {
 
-  row_d prediction_d = conv_to<row_d>::from(prediction);
+  Row<DataType> prediction_d = conv_to<Row<DataType>>::from(prediction);
   Predict(prediction_d, colMask);
-  prediction = conv_to<row_t>::from(prediction_d);
+  prediction = conv_to<Row<std::size_t>>::from(prediction_d);
 }
 
 
@@ -337,14 +335,14 @@ template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::Predict(const mat& dataset, Row<typename CompositeClassifier<ClassifierType>::IntegralLabelType>& prediction) {
 
-  row_d prediction_d;
+  Row<DataType> prediction_d;
   Predict(dataset, prediction_d);
 
   if (symmetrized_) {
     deSymmetrize(prediction_d);
   }
 
-  prediction = conv_to<row_t>::from(prediction_d);
+  prediction = conv_to<Row<std::size_t>>::from(prediction_d);
 
 }
 
@@ -352,14 +350,14 @@ template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::Predict(mat&& dataset, Row<typename CompositeClassifier<ClassifierType>::IntegralLabelType>& prediction) {
 
-  row_d prediction_d;
+  Row<DataType> prediction_d;
   Predict(std::move(dataset), prediction_d);
 
   if (symmetrized_) {
     deSymmetrize(prediction_d);
   }
 
-  prediction = conv_to<row_t>::from(prediction_d);
+  prediction = conv_to<Row<std::size_t>>::from(prediction_d);
 }
 
 template<typename ClassifierType>
@@ -493,7 +491,7 @@ template<typename... Ts>
 void
 CompositeClassifier<ClassifierType>::setRootClassifier(std::unique_ptr<ClassifierType>& classifier,
 						       const mat& dataset,
-						       rowvec& labels,
+						       Row<CompositeClassifier<ClassifierType>::DataType>& labels,
 						       std::tuple<Ts...> const& args) {
   // mimic:
   // classifier.reset(new ClassifierType(dataset_,
@@ -508,14 +506,14 @@ CompositeClassifier<ClassifierType>::setRootClassifier(std::unique_ptr<Classifie
   };
   std::apply(_c, args);
   
-  rowvec labels_it=labels, prediction;
+  Row<DataType> labels_it=labels, prediction;
   float beta = 0.01;
   ClassifierType* cls;
   const std::size_t FEEDBACK_ITERATIONS = 5;
   
   classifier->Classify(dataset, prediction);
 
-  auto _c0 = [&cls, &dataset](rowvec& labels, Ts const&... classArgs) {
+  auto _c0 = [&cls, &dataset](Row<DataType>& labels, Ts const&... classArgs) {
   cls = new ClassifierType{dataset, labels, classArgs...};
   };
   auto _c1 = [&cls, &dataset, &labels, &_c0](Ts const&... classArgs) {
@@ -552,13 +550,13 @@ CompositeClassifier<ClassifierType>::setRootClassifier(std::unique_ptr<Classifie
   };
   std::apply(_c, args);
 
-  rowvec labels_it=labels, prediction;
+  Row<DataType> labels_it=labels, prediction;
   float beta = 0.01;
   const std::size_t FEEDBACK_ITERATIONS = 0;
   
   cls->Classify(dataset, prediction);
 
-  auto _c0 = [&cls, &dataset](rowvec& labels, Ts const&... classArgs) {
+  auto _c0 = [&cls, &dataset](Row<DataType>& labels, Ts const&... classArgs) {
     cls = std::make_unique<ClassifierType>(dataset, labels, classArgs...);
   };
   auto _c1 = [&cls, &dataset, &labels, &_c0](Ts const&... classArgs) {
@@ -588,7 +586,7 @@ void
 CompositeClassifier<ClassifierType>::createRootClassifier(std::unique_ptr<ClassifierType>& classifier,
 							  uvec rowMask, 
 							  uvec colMask, 
-							  const row_d& best_leaves) {
+							  const Row<CompositeClassifier<ClassifierType>::DataType>& best_leaves) {
 
   const typename ClassifierType::Args& rootClassifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize_+1));
   
@@ -608,7 +606,7 @@ CompositeClassifier<ClassifierType>::createRootClassifier(std::unique_ptr<Classi
     // label slice padded with zeros to match original dataset size
 
     // Zero pad labels first
-    Leaves allLeaves = zeros<row_d>(m_);
+    Leaves allLeaves = zeros<Row<DataType>>(m_);
     allLeaves(colMask) = best_leaves;
 
     setRootClassifier(classifier, dataset_, allLeaves, rootClassifierArgs);
@@ -626,9 +624,9 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     colMask_ = PartitionUtils::sortedSubsample2(m_, colRatio);
   }
 
-  row_d labels_slice = labels_.submat(zeros<uvec>(1), colMask_);
-  // row_d best_leaves;
-  std::pair<rowvec, rowvec> coeffs;
+  Row<DataType> labels_slice = labels_.submat(zeros<uvec>(1), colMask_);
+  // Row<DataType> best_leaves;
+  std::pair<Row<DataType>, Row<DataType>> coeffs;
   
   Row<DataType> prediction;
   std::unique_ptr<ClassifierType> classifier;
@@ -672,8 +670,8 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     hasInitialPrediction_ = true;
     
     if (ClassifierFileScope::DIAGNOSTICS_1_) {    
-      row_d latestPrediction_slice = latestPrediction_.submat(zeros<uvec>(1), colMask_);
-      row_d prediction_slice = prediction.submat(zeros<uvec>(1), colMask_);
+      Row<DataType> latestPrediction_slice = latestPrediction_.submat(zeros<uvec>(1), colMask_);
+      Row<DataType> prediction_slice = prediction.submat(zeros<uvec>(1), colMask_);
       float eps = std::numeric_limits<float>::epsilon();
 
       std::cerr << "[PRE-FIT ";
@@ -806,8 +804,8 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   hasInitialPrediction_ = true;
 
   if (ClassifierFileScope::DIAGNOSTICS_1_) {    
-    row_d latestPrediction_slice = latestPrediction_.submat(zeros<uvec>(1), colMask_);
-    row_d prediction_slice = prediction.submat(zeros<uvec>(1), colMask_);
+    Row<DataType> latestPrediction_slice = latestPrediction_.submat(zeros<uvec>(1), colMask_);
+    Row<DataType> prediction_slice = prediction.submat(zeros<uvec>(1), colMask_);
     float eps = std::numeric_limits<float>::epsilon();
     
     std::cerr << "[POST-FIT ";
@@ -832,8 +830,8 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
 template<typename ClassifierType>
 typename CompositeClassifier<ClassifierType>::optLeavesInfo
-CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
-							 rowvec& h,
+CompositeClassifier<ClassifierType>::computeOptimalSplit(Row<CompositeClassifier<ClassifierType>::DataType>& g,
+							 Row<CompositeClassifier<ClassifierType>::DataType>& h,
 							 std::size_t stepNum, 
 							 std::size_t partitionSize,
 							 double learningRate,
@@ -870,7 +868,7 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
 
   // printSubsets<DataType>(subsets0, gv0, hv0, colMask);
 
-  rowvec leaf_values0 = arma::zeros<rowvec>(n);
+  Row<DataType> leaf_values0 = arma::zeros<Row<DataType>>(n);
 
   if (T > 1 || risk_partitioning_objective) {
     std::size_t start_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(T*activePartitionRatio);
@@ -897,9 +895,9 @@ void
 CompositeClassifier<ClassifierType>::purge_() {
 
   dataset_ = ones<mat>(0,0);
-  labels_ = ones<Row<double>>(0);
+  labels_ = ones<Row<DataType>>(0);
   dataset_oos_ = ones<mat>(0,0);
-  labels_oos_ = ones<Row<double>>(0);
+  labels_oos_ = ones<Row<DataType>>(0);
 
 }
 
@@ -1185,34 +1183,34 @@ CompositeClassifier<ClassifierType>::Classify(const mat& dataset, Row<DataType>&
 
 
 template<typename ClassifierType>
-std::pair<rowvec, rowvec>
+std::pair<Row<typename CompositeClassifier<ClassifierType>::DataType>, Row<typename CompositeClassifier<ClassifierType>::DataType>>
 CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& labels, const uvec& colMask) {
 
-  rowvec yhat;
+  Row<DataType> yhat;
   Predict(yhat, colMask);
 
   // if (loss_ == lossFunction::PowerLoss) {
   if (false) {
     double minError = 100.;
-    rowvec minG, minH;
+    Row<DataType> minG, minH;
 
-    rowvec g1, h1;
+    Row<DataType> g1, h1;
     LossFunction<double>* lossFn1 = new PowerLoss<DataType>{1.};
     lossFn1->loss(yhat, labels, &g1, &h1, clamp_gradient_, upper_val_, lower_val_);
 
-    rowvec g2, h2;
+    Row<DataType> g2, h2;
     LossFunction<double>* lossFn2 = new PowerLoss<DataType>{2.};
     lossFn2->loss(yhat, labels, &g2, &h2, clamp_gradient_, upper_val_, lower_val_);
 
-    rowvec g3, h3;
+    Row<DataType> g3, h3;
     LossFunction<double>* lossFn3 = new PowerLoss<DataType>{3.};
     lossFn3->loss(yhat, labels, &g3, &h3, clamp_gradient_, upper_val_, lower_val_);
 
-    rowvec g4, h4;
+    Row<DataType> g4, h4;
     LossFunction<double>* lossFn4 = new PowerLoss<DataType>{4.};
     lossFn4->loss(yhat, labels, &g4, &h4, clamp_gradient_, upper_val_, lower_val_);
     
-    rowvec g5, h5;
+    Row<DataType> g5, h5;
     LossFunction<double>* lossFn5 = new PowerLoss<DataType>{5.};
     lossFn5->loss(yhat, labels, &g5, &h5, clamp_gradient_, upper_val_, lower_val_);
 
@@ -1226,7 +1224,7 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
 							    colMask_,
 							    false);
 
-    Leaves allLeaves1 = zeros<row_d>(m_);
+    Leaves allLeaves1 = zeros<Row<DataType>>(m_);
     allLeaves1(colMask_) = best_leaves1;
     Row<DataType> prediction1;
     std::unique_ptr<ClassifierType> classifier1;
@@ -1247,7 +1245,7 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
 							    colMask_,
 							    false);
 
-    Leaves allLeaves2 = zeros<row_d>(m_);
+    Leaves allLeaves2 = zeros<Row<DataType>>(m_);
     allLeaves2(colMask_) = best_leaves2;
     Row<DataType> prediction2;
     std::unique_ptr<ClassifierType> classifier2;
@@ -1270,7 +1268,7 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
 							    colMask_,
 							    false);
 
-    Leaves allLeaves3 = zeros<row_d>(m_);
+    Leaves allLeaves3 = zeros<Row<DataType>>(m_);
     allLeaves3(colMask_) = best_leaves3;
     Row<DataType> prediction3;
     std::unique_ptr<ClassifierType> classifier3;
@@ -1293,7 +1291,7 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
 							    colMask_,
 							    false);
 
-    Leaves allLeaves4 = zeros<row_d>(m_);
+    Leaves allLeaves4 = zeros<Row<DataType>>(m_);
     allLeaves4(colMask_) = best_leaves4;
     Row<DataType> prediction4;
     std::unique_ptr<ClassifierType> classifier4;
@@ -1316,7 +1314,7 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
 							    colMask_,
 							    false);
 
-    Leaves allLeaves5 = zeros<row_d>(m_);
+    Leaves allLeaves5 = zeros<Row<DataType>>(m_);
     allLeaves5(colMask_) = best_leaves5;
     Row<DataType> prediction5;
     std::unique_ptr<ClassifierType> classifier5;
@@ -1332,7 +1330,7 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
     return std::make_pair(minG, minH);
     
   } else {
-    rowvec g, h;
+    Row<DataType> g, h;
     lossFn_->loss(yhat, labels, &g, &h, clamp_gradient_, upper_val_, lower_val_);
 
     return std::make_pair(g, h);

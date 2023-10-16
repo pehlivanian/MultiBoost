@@ -8,6 +8,8 @@
 #endif
 
 namespace {
+  // Only used #ifdef PARALLEL_CALCULATION
+  // Hard-coded rather than based on hardware_concurrency
   const std::size_t NUMTHREADS = 8;
 }
 
@@ -252,11 +254,9 @@ namespace Objectives {
   ParametricContext<DataType>::compute_score(int i, int j) {
     if (risk_partitioning_objective_) {
       return compute_score_riskpart_optimized(i, j);
-      // return compute_score_riskpart_memoized(i, j);
     }
     else {
       return compute_score_multclust_optimized(i, j);
-      // return compute_score_multclust_optimized(i, j);
     }
   }
 
@@ -269,28 +269,6 @@ namespace Objectives {
     else {
       return compute_ambient_score_multclust(a, b);
     }
-  }
-
-  template<typename DataType>
-  DataType
-  ParametricContext<DataType>::compute_score_riskpart_memoized(int i, int j) {
-    if (std::isnan(cache_[i][j])) {
-      cache_[i][j] = compute_score_riskpart_optimized(i, j);
-    } else {
-      std::cout << "FOUND\n";
-    }
-    return cache_[i][j];
-  }
-
-  template<typename DataType>
-  DataType
-  ParametricContext<DataType>::compute_score_multclust_memoized(int i, int j) {
-    if (std::isnan(cache_[i][j])) {
-      cache_[i][j] = compute_score_multclust_optimized(i, j);
-    } else {
-      std::cout << "FOUND\n";
-    }
-    return cache_[i][j];
   }
 
   template<typename DataType>

@@ -25,11 +25,13 @@
 using namespace autodiff;
 #endif
 
+#include "analytic_utils.hpp"
+
 using namespace arma;
 using namespace std::placeholders;
+using namespace ANALYTIC_utils;
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
-
 
 enum class lossFunction {    MSE = 0,
 			       BinomialDeviance = 1,
@@ -48,17 +50,28 @@ enum class lossFunction {    MSE = 0,
 
 
 #ifdef AUTODIFF
+template<typename DataType>
 class LossUtils {
 public:
-  static Eigen::VectorXd static_cast_eigen(const rowvec& rhs) {
+  static std::enable_if<_is_double<DataType>::value, Eigen::VectorXd> static_cast_eigen(const arma_dvec_type& rhs) {
     Eigen::VectorXd lhs = Eigen::Map<Eigen::VectorXd>(const_cast<double*>(rhs.memptr()), rhs.n_cols);
     return lhs;
   }
   
-  static rowvec static_cast_arma(const Eigen::VectorXd& rhs) {
-    rowvec lhs = rowvec(const_cast<double*>(rhs.data()), rhs.size(), false, false);
-    return lhs;		      
-  }  
+  static std::enable_if<!_is_double<DataType>::value, Eigen::VectorXf> static_cast_eigen(const arma_fvec_type& rhs) {
+    Eigen::Vectorfd lhs = Eigen::Map<Eigen::VectorXf>(const_cast<float*>(rhs.memptr()), rhs.n_cols);
+  }
+  
+  static std::enable_if<_is_double<DataType>::value, arma_dvec_type> static_cast_arma(const Eigen::VectorXd& rhs) {
+    arma_dvec_type lhs = arma_dvec_type{const_cast<double*>(rhs.data()), rhs.size(), false, false};
+    return lhs;
+  }
+
+  static std::enable_if<!_is_double<DataType>::value, arma_fvec_type> static_cast_arma(const Eigen::VectorXf& rhs) {
+    arma_fvec_type lhs = arma_fvec_type{const_cast<float*>(rhs.data()), rhs.size(), false, false};
+    return lhs;
+  }
+  
 };
 #endif
 
@@ -81,21 +94,29 @@ namespace LossMeasures {
 
   template<typename DataType>
   class LossFunction {
+ 
   public:
-    DataType loss(const rowvec&, const rowvec&, rowvec*, rowvec*, bool=false, DataType=DataType{}, DataType=DataType{});
-    DataType loss(const rowvec& yhat, const rowvec& y) { return loss_reverse_arma(yhat, y); }
+    using vtype = typename arma_types<DataType>::vectype;
+    using mtype = typename arma_types<DataType>::mattype;
+
+    DataType loss(const vtype&, const vtype&, vtype*, vtype*, bool=false, DataType=DataType{}, DataType=DataType{});
+    DataType loss(const vtype& yhat, const vtype& y) { return loss_reverse_arma(yhat, y); }
     virtual LossFunction* create() = 0;
   private:
 #ifdef AUTODIFF
     virtual autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) = 0;
 #endif
-    virtual DataType loss_reverse_arma(const rowvec&, const rowvec&) = 0;
-    virtual DataType gradient_(const rowvec&, const rowvec&, rowvec*) = 0;
-    virtual void hessian_(const rowvec&, const rowvec&, rowvec*) = 0;
+    virtual DataType loss_reverse_arma(const vtype&, const vtype&) = 0;
+    virtual DataType gradient_(const vtype&, const vtype&, vtype*) = 0;
+    virtual void hessian_(const vtype&, const vtype&, vtype*) = 0;
   };
 
   template<typename DataType>
   class BinomialDevianceLoss : public LossFunction<DataType> {
+  private:
+    using vtype = typename LossFunction<DataType>::vtype;
+    using mtype = typename LossFunction<DataType>::mtype;
+
   public:
     BinomialDevianceLoss() = default;
     BinomialDevianceLoss<DataType>* create() override { return new BinomialDevianceLoss<DataType>(); }
@@ -103,13 +124,17 @@ namespace LossMeasures {
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
 #endif
-    DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
-    DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
-    void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+    DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType gradient_(const vtype&, const vtype&, vtype*) override;
+    void hessian_(const vtype&, const vtype&, vtype*) override;
   };
 
   template<typename DataType>
   class MSELoss : public LossFunction<DataType> {
+  private:
+    using vtype = typename LossFunction<DataType>::vtype;
+    using mtype = typename LossFunction<DataType>::mtype;
+
   public:
     MSELoss() = default;
     MSELoss<DataType>* create() override { return new MSELoss(); }
@@ -117,13 +142,17 @@ namespace LossMeasures {
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
 #endif
-    DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
-    DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
-    void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+    DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType gradient_(const vtype&, const vtype&, vtype*) override;
+    void hessian_(const vtype&, const vtype&, vtype*) override;
   };
 
   template<typename DataType>
   class ExpLoss : public LossFunction<DataType> {
+  private:
+    using vtype = typename LossFunction<DataType>::vtype;
+    using mtype = typename LossFunction<DataType>::mtype;
+
   public:
     ExpLoss() = default;
     ExpLoss<DataType>* create() override { return new ExpLoss<DataType>(); }
@@ -131,13 +160,17 @@ namespace LossMeasures {
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
 #endif
-    DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
-    DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
-    void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+    DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType gradient_(const vtype&, const vtype&, vtype*) override;
+    void hessian_(const vtype&, const vtype&, vtype*) override;
   };
 
   template<typename DataType>
   class SavageLoss : public LossFunction<DataType> {
+  private:
+    using vtype = typename LossFunction<DataType>::vtype;
+    using mtype = typename LossFunction<DataType>::mtype;
+
   public:
     SavageLoss() = default;
     SavageLoss<DataType>* create() override { return new SavageLoss<DataType>(); }
@@ -145,13 +178,17 @@ namespace LossMeasures {
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
 #endif
-    DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
-    DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
-    void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+    DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType gradient_(const vtype&, const vtype&, vtype*) override;
+    void hessian_(const vtype&, const vtype&, vtype*) override;
   };
 
   template<typename DataType>
   class ArctanLoss : public LossFunction<DataType> {
+  private:
+    using vtype = typename LossFunction<DataType>::vtype;
+    using mtype = typename LossFunction<DataType>::mtype;
+
   public:
     ArctanLoss() = default;
     ArctanLoss<DataType>* create() override { return new ArctanLoss<DataType>(); }
@@ -159,13 +196,17 @@ namespace LossMeasures {
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
 #endif
-    DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
-    DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
-    void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+    DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType gradient_(const vtype&, const vtype&, vtype*) override;
+    void hessian_(const vtype&, const vtype&, vtype*) override;
   };
 
   template<typename DataType>
   class SyntheticLoss : public LossFunction<DataType> {
+  private:
+    using vtype = typename LossFunction<DataType>::vtype;
+    using mtype = typename LossFunction<DataType>::mtype;
+
   public:
     SyntheticLoss() = default;
     SyntheticLoss<DataType>* create() override { return new SyntheticLoss<DataType>(); }
@@ -173,13 +214,17 @@ namespace LossMeasures {
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
 #endif
-    DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
-    DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
-    void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+    DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType gradient_(const vtype&, const vtype&, vtype*) override;
+    void hessian_(const vtype&, const vtype&, vtype*) override;
   };
 
   template<typename DataType>
   class SyntheticRegLoss : public LossFunction<DataType> {
+  private:
+    using vtype = typename LossFunction<DataType>::vtype;
+    using mtype = typename LossFunction<DataType>::mtype;
+
   public:
     SyntheticRegLoss() = default;
     SyntheticRegLoss<DataType>* create() override { return new SyntheticRegLoss<DataType>(); }
@@ -187,14 +232,18 @@ namespace LossMeasures {
 #ifdef AUTODIFF
     autodiff::real loss_Reverse(const ArrayXreal&, const ArrayXreal&) override;
 #endif
-    DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
-    DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
-    void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+    DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType gradient_(const vtype&, const vtype&, vtype*) override;
+    void hessian_(const vtype&, const vtype&, vtype*) override;
   };
 
 
   template<typename DataType>
   class SyntheticLossVar1 : public LossFunction<DataType> {
+  private:
+    using vtype = typename LossFunction<DataType>::vtype;
+    using mtype = typename LossFunction<DataType>::mtype;
+
   public:
     SyntheticLossVar1() = default;
     SyntheticLossVar1<DataType>* create() override { return new SyntheticLossVar1<DataType>(); }
@@ -202,13 +251,17 @@ namespace LossMeasures {
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
 #endif
-    DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
-    DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
-    void hessian_(const rowvec&, const rowvec&, rowvec*) override;  
+    DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType gradient_(const vtype&, const vtype&, vtype*) override;
+    void hessian_(const vtype&, const vtype&, vtype*) override;  
   };
 
   template<typename DataType>
   class SyntheticLossVar2 : public LossFunction<DataType> {
+  private:
+    using vtype = typename LossFunction<DataType>::vtype;
+    using mtype = typename LossFunction<DataType>::mtype;
+
   public:
     SyntheticLossVar2() = default;
     SyntheticLossVar2<DataType>* create() override { return new SyntheticLossVar2<DataType>(); }
@@ -216,13 +269,17 @@ namespace LossMeasures {
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
 #endif
-    DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
-    DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
-    void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+    DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType gradient_(const vtype&, const vtype&, vtype*) override;
+    void hessian_(const vtype&, const vtype&, vtype*) override;
   };
 
   template<typename DataType>
   class SyntheticLossVar3 : public LossFunction<DataType> {
+  private:
+    using vtype = typename LossFunction<DataType>::vtype;
+    using mtype = typename LossFunction<DataType>::mtype;
+
   public:
     SyntheticLossVar3() = default;
     SyntheticLossVar3<DataType>* create() override { return new SyntheticLossVar3<DataType>(); }
@@ -230,13 +287,17 @@ namespace LossMeasures {
 #ifdef AUTODIFF
     audodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
 #endif
-    DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
-    DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
-    void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+    DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType gradient_(const vtype&, const vtype&, vtype*) override;
+    void hessian_(const vtype&, const vtype&, vtype*) override;
   };
   
   template<typename DataType>
   class SquareLoss : public LossFunction<DataType> {
+  private:
+    using vtype = typename LossFunction<DataType>::vtype;
+    using mtype = typename LossFunction<DataType>::mtype;
+
   public:
     SquareLoss() = default;
     SquareLoss<DataType>* create() override { return new SquareLoss<DataType>(); }
@@ -244,13 +305,17 @@ namespace LossMeasures {
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
 #endif
-    DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
-    DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
-    void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+    DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType gradient_(const vtype&, const vtype&, vtype*) override;
+    void hessian_(const vtype&, const vtype&, vtype*) override;
   };
 
   template<typename DataType>
   class LogLoss : public LossFunction<DataType> {
+  private:
+    using vtype = typename LossFunction<DataType>::vtype;
+    using mtype = typename LossFunction<DataType>::mtype;
+
   public:
     LogLoss() = default;
     LogLoss<DataType>* create() override { return new LogLoss<DataType>(); }
@@ -258,13 +323,17 @@ namespace LossMeasures {
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&,, const ArrayXreal&) override;
 #endif
-    DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
-    DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
-    void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+    DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType gradient_(const vtype&, const vtype&, vtype*) override;
+    void hessian_(const vtype&, const vtype&, vtype*) override;
   };
 
   template<typename DataType>
   class PowerLoss : public LossFunction<DataType> {
+  private:
+    using vtype = typename LossFunction<DataType>::vtype;
+    using mtype = typename LossFunction<DataType>::mtype;
+
   public:
     PowerLoss(float p) : p_{p} {}
     PowerLoss<DataType>* create() override { return new PowerLoss<DataType>{0.}; }
@@ -273,9 +342,9 @@ namespace LossMeasures {
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
 #endif
-    DataType loss_reverse_arma(const rowvec&, const rowvec&) override;
-    DataType gradient_(const rowvec&, const rowvec&, rowvec*) override;
-    void hessian_(const rowvec&, const rowvec&, rowvec*) override;
+    DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType gradient_(const vtype&, const vtype&, vtype*) override;
+    void hessian_(const vtype&, const vtype&, vtype*) override;
 
     float p_;
   };

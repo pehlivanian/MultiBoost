@@ -577,14 +577,16 @@ namespace IB_utils {
   std::string writeDatasetIS(const mat&, boost::filesystem::path fldr=boost::filesystem::path{});
   std::string writeDatasetOOS(const mat&, boost::filesystem::path fldr=boost::filesystem::path{});
 
-  double err(const Row<std::size_t>&, const Row<std::size_t>&);
   double err(const Row<double>&, const Row<double>&, double=-1.);
+  double err(const Row<float>&, const Row<float>&, double=-1.);
+  double err(const Row<std::size_t>&, const Row<std::size_t>&);
 
   std::tuple<double, double, double> precision(const Row<int>&, const Row<int>&);
   std::tuple<double, double> Perlich_rank_scores(const Row<double>&, const Row<double>&);
 
   double imbalance(const Row<int>&);
   double imbalance(const Row<double>&);
+  double imbalance(const Row<float>&);
 
   template<typename CharT>
   using tstring = std::basic_string<CharT, std::char_traits<CharT>, std::allocator<CharT>>;

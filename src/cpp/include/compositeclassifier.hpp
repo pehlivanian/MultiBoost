@@ -24,15 +24,16 @@ using namespace Model_Traits;
 template<typename ClassifierType>
 class CompositeClassifier : public ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 						  typename classifier_traits<ClassifierType>::model> {
-
+  
+  
 public:  
   using DataType		= typename classifier_traits<ClassifierType>::datatype;
   using IntegralLabelType	= typename classifier_traits<ClassifierType>::integrallabeltype;
   using Classifier		= typename classifier_traits<ClassifierType>::model;
   using ClassifierList		= std::vector<std::unique_ptr<ClassifierBase<DataType, Classifier>>>;
 
-  using Leaves			= Row<double>;
-  using Prediction		= Row<double>;
+  using Leaves			= Row<DataType>;
+  using Prediction		= Row<DataType>;
   using PredictionList		= std::vector<Prediction>;
   using optLeavesInfo		= std::tuple<Leaves,
 					     std::optional<std::vector<std::vector<int>>>>;
@@ -51,7 +52,7 @@ public:
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
-    labels_{conv_to<Row<double>>::from(labels)},
+    labels_{conv_to<Row<DataType>>::from(labels)},
     hasOOSData_{false},
     hasInitialPrediction_{false},
     reuseColMask_{false},
@@ -65,7 +66,7 @@ public:
   // labels	: arma::Row<double>
   // context	: ModelContext::Context
   CompositeClassifier(const mat& dataset,
-		      const Row<double>& labels,
+		      const Row<DataType>& labels,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
@@ -93,7 +94,7 @@ public:
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
-    labels_{conv_to<Row<double>>::from(labels)},
+    labels_{conv_to<Row<DataType>>::from(labels)},
     hasOOSData_{false},
     hasInitialPrediction_{false},
     reuseColMask_{true},
@@ -109,7 +110,7 @@ public:
   // colMask		: uvec
   // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
-		      const Row<double>& labels,
+		      const Row<DataType>& labels,
 		      const uvec& colMask,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
@@ -143,9 +144,9 @@ public:
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
-    labels_{conv_to<Row<double>>::from(labels)},
+    labels_{conv_to<Row<DataType>>::from(labels)},
     dataset_oos_{dataset_oos},
-    labels_oos_{conv_to<Row<double>>::from(labels_oos)},
+    labels_oos_{conv_to<Row<DataType>>::from(labels_oos)},
     hasOOSData_{true},
     hasInitialPrediction_{false},
     reuseColMask_{false},
@@ -161,9 +162,9 @@ public:
   // labels_oos		: Row<double>
   // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
-		      const Row<double>& labels,
+		      const Row<DataType>& labels,
 		      const mat& dataset_oos,
-		      const Row<double>& labels_oos,
+		      const Row<DataType>& labels_oos,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
@@ -189,14 +190,14 @@ public:
   // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
 		      const Row<std::size_t>& labels,
-		      const Row<double>& latestPrediction,
+		      const Row<DataType>& latestPrediction,
 		      const uvec& colMask,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
-    labels_{conv_to<Row<double>>::from(labels)},
+    labels_{conv_to<Row<DataType>>::from(labels)},
     hasOOSData_{false},
     hasInitialPrediction_{true},
     reuseColMask_{true},
@@ -214,13 +215,13 @@ public:
   // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
 		      const Row<std::size_t>& labels,
-		      const Row<double>& latestPrediction,
+		      const Row<DataType>& latestPrediction,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
-    labels_{conv_to<Row<double>>::from(labels)},
+    labels_{conv_to<Row<DataType>>::from(labels)},
     hasOOSData_{false},
     hasInitialPrediction_{true},
     reuseColMask_{false},
@@ -237,8 +238,8 @@ public:
   // colMask		: uvec
   // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
-		      const Row<double>& labels,
-		      const Row<double>& latestPrediction,
+		      const Row<DataType>& labels,
+		      const Row<DataType>& latestPrediction,
 		      const uvec& colMask,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
@@ -262,8 +263,8 @@ public:
   // latestPrediction	: arma::Mat<double>
   // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
-		      const Row<double>& labels,
-		      const Row<double>& latestPrediction,
+		      const Row<DataType>& labels,
+		      const Row<DataType>& latestPrediction,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
@@ -291,16 +292,16 @@ public:
 		      const Row<std::size_t>& labels,
 		      const mat& dataset_oos,
 		      const Row<std::size_t>& labels_oos,
-		      const Row<double>& latestPrediction,
+		      const Row<DataType>& latestPrediction,
 		      const uvec& colMask,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
-    labels_{conv_to<Row<double>>::from(labels)},
+    labels_{conv_to<Row<DataType>>::from(labels)},
     dataset_oos_{dataset_oos},
-    labels_oos_{conv_to<Row<double>>::from(labels_oos)},
+    labels_oos_{conv_to<Row<DataType>>::from(labels_oos)},
     hasOOSData_{true},
     hasInitialPrediction_{true},
     reuseColMask_{true},
@@ -322,15 +323,15 @@ public:
 		      const Row<std::size_t>& labels,
 		      const mat& dataset_oos,
 		      const Row<std::size_t>& labels_oos,
-		      const Row<double>& latestPrediction,
+		      const Row<DataType>& latestPrediction,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
-    labels_{conv_to<Row<double>>::from(labels)},
+    labels_{conv_to<Row<DataType>>::from(labels)},
     dataset_oos_{dataset_oos},
-    labels_oos_{conv_to<Row<double>>::from(labels_oos)},
+    labels_oos_{conv_to<Row<DataType>>::from(labels_oos)},
     hasOOSData_{true},
     hasInitialPrediction_{true},
     reuseColMask_{false},
@@ -349,10 +350,10 @@ public:
   // colMask		: uvec
   // context		: ModelContext::Context
   CompositeClassifier(const mat& dataset,
-		      const Row<double>& labels,
+		      const Row<DataType>& labels,
 		      const mat& dataset_oos,
-		      const Row<double>& labels_oos,
-		      const Row<double>& latestPrediction,
+		      const Row<DataType>& labels_oos,
+		      const Row<DataType>& latestPrediction,
 		      const uvec& colMask,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
@@ -380,10 +381,10 @@ public:
   // latestPrediction	: arma::Mat<double>
   // context		: ClassifierContext::Context
   CompositeClassifier(const mat& dataset,
-		      const Row<double>& labels,
+		      const Row<DataType>& labels,
 		      const mat& dataset_oos,
-		      const Row<double>& labels_oos,
-		      const Row<double>& latestPrediction,
+		      const Row<DataType>& labels_oos,
+		      const Row<DataType>& latestPrediction,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
     ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
@@ -436,7 +437,7 @@ public:
   Row<DataType> getLatestPrediction() const { return latestPrediction_; }
   int getNRows() const { return n_; }
   int getNCols() const { return m_; }
-  Row<double> getLabels() const { return labels_; }
+  Row<DataType> getLabels() const { return labels_; }
   ClassifierList getClassifiers() const { return classifiers_; }
 
   std::string getIndexName() const { return indexName_; }
@@ -474,9 +475,9 @@ private:
   void childContext(Context&);
   void contextInit_(Context&&);
   void init_(Context&&);
-  Row<double> _constantLeaf() const;
-  Row<double> _constantLeaf(double) const;
-  Row<double> _randomLeaf() const;
+  Row<DataType> _constantLeaf() const;
+  Row<DataType> _constantLeaf(double) const;
+  Row<DataType> _randomLeaf() const;
   uvec subsampleRows(size_t);
   uvec subsampleCols(size_t);
   Row<DataType> uniqueCloseAndReplace(Row<DataType>&);
@@ -496,11 +497,11 @@ private:
   
   void createRootClassifier(std::unique_ptr<ClassifierType>&, 
 			    uvec, 
-			    uvec, const Row<double>&);
+			    uvec, const Row<DataType>&);
   template<typename... Ts>
   void setRootClassifier(std::unique_ptr<ClassifierType>&, 
 			 const mat&,
-			 Row<double>&,
+			 Row<DataType>&,
 			 std::tuple<Ts...> const&);
 
   std::tuple<std::size_t, std::size_t, double, double> computeChildPartitionInfo();
@@ -508,8 +509,8 @@ private:
 
   void updateClassifiers(std::unique_ptr<ClassifierBase<DataType, Classifier>>&&, Row<DataType>&);
 
-  std::pair<rowvec,rowvec> generate_coefficients(const Row<DataType>&, const uvec&);
-  optLeavesInfo computeOptimalSplit(rowvec&, rowvec&, std::size_t, std::size_t, double, double, const uvec&, bool=false);
+  std::pair<Row<DataType>,Row<DataType>> generate_coefficients(const Row<DataType>&, const uvec&);
+  optLeavesInfo computeOptimalSplit(Row<DataType>&, Row<DataType>&, std::size_t, std::size_t, double, double, const uvec&, bool=false);
 
   void setNextClassifier(const ClassifierType&);
   AllClassifierArgs allClassifierArgs(std::size_t);
@@ -517,9 +518,9 @@ private:
   int steps_;
   int baseSteps_;
   mat dataset_;
-  Row<double> labels_;
+  Row<DataType> labels_;
   mat dataset_oos_;
-  Row<double> labels_oos_;
+  Row<DataType> labels_oos_;
 
   bool hasOOSData_;
   bool hasInitialPrediction_;

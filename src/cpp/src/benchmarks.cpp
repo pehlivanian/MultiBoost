@@ -123,7 +123,7 @@ BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_float_compute_scores_parallel, fl
 BENCHMARK_TEMPLATE_DEFINE_F(ContextFixture, BM_double_create_DPSolver, double)(benchmark::State& state) {
   int n = 1<<11, T = 500;
   bool risk_partitioning_objective = true;
-  bool use_rational_optimization = true;
+  bool use_rational_optimization = false;
   bool sweep_down = false;
   double gamma = 0.;
   double reg_power=1.;

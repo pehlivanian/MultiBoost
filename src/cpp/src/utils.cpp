@@ -22,17 +22,6 @@ namespace IB_utils {
     return fileName;    
   }
 
-  double err(const Row<std::size_t>& yhat, const Row<std::size_t>& y) {
-    return accu(yhat != y) * 100. / y.n_elem;
-  }
-  
-  double err(const Row<double>& yhat, const Row<double>& y, double resolution) {
-    if (resolution < 0.)
-      resolution = 100. * std::numeric_limits<double>::epsilon();
-    uvec ind = find( abs(yhat - y) > resolution);
-    return static_cast<double>(ind.n_elem) * 100. / static_cast<double>(y.n_elem);
-  }
-
   std::tuple<double,double> Perlich_rank_scores(const Row<double>& yhat, const Row<double>& y) {
     uvec yhat_index = sort_index(yhat);
     double T=0., R=0., tau, rho;
@@ -86,6 +75,25 @@ namespace IB_utils {
     return imbalance(conv_to<Row<int>>::from(y));
   }
 
+  double imbalance(const Row<float>& y) {
+    return imbalance(conv_to<Row<int>>::from(y));
+  }
+
+  double err(const Row<double>& yhat, const Row<double>& y, double resolution) {
+    if (resolution < 0.) 
+      resolution = 100. * std::numeric_limits<double>::epsilon();
+    uvec ind = find( abs(yhat - y) > resolution);
+    return static_cast<double>(ind.n_elem) * 100. / static_cast<double>(y.n_elem);    
+  }
+
+  double err(const Row<float>& yhat, const Row<float>& y, double resolution) {
+    return err(conv_to<Row<float>>::from(yhat), conv_to<Row<float>>::from(y), resolution);
+  }
+
+  double err(const Row<std::size_t>& yhat, const Row<std::size_t>& y) {
+    return accu(yhat != y) * 100. / y.n_elem;
+  }
+  
   bool comp(std::pair<std::size_t, std::size_t>& a, std::pair<std::size_t, std::size_t>& b) {
     return a.second > b.second;
   }

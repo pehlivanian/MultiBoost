@@ -155,12 +155,13 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 ################
 # object files
 add_library(DP OBJECT DP.cpp)
+add_library(analyticutils OBJECT analytic_utils.cpp)
+add_library(utils OBJECT utils.cpp)
 add_library(loss OBJECT loss.cpp)
 add_library(pmlb OBJECT pmlb.cpp)
 add_library(gradientboostclassifier OBJECT gradientboostclassifier.cpp)
 add_library(gradientboostregressor OBJECT gradientboostregressor.cpp)
 add_library(replay OBJECT replay.cpp)
-add_library(utils OBJECT utils.cpp)
 add_library(score2 OBJECT score2.cpp)
 add_library(classifier OBJECT classifier.cpp)
 add_library(regressor OBJECT regressor.cpp)
@@ -175,6 +176,7 @@ target_link_libraries(DP PUBLIC utils score2
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 
 target_link_libraries(loss PUBLIC $<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> 
+        analyticutils
 	${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES}
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
@@ -186,7 +188,7 @@ target_link_libraries(replay PUBLIC utils threadsafequeue gradientboostclassifie
 if (Filesystem_FOUND)
   target_compile_definitions(utils PUBLIC -DCXX_FILESYSTEM_HEADER=<filesystem.hpp>)
   target_compile_definitions(utils PUBLIC -DCXX_FILESYSTEM_NAMESPACE=std::filesystem)
-  target_link_libraries(utils PUBLIC loss std::filesystem 
+  target_link_libraries(utils PUBLIC analyticutils loss std::filesystem 
 	  $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 elseif(Boost_FOUND)
   target_compile_definitions(utils PUBLIC -DCXX_FILESYSTEM_HEADER=<boost/filesystem.hpp>)

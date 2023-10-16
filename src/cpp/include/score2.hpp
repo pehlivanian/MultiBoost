@@ -18,8 +18,8 @@
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
 enum class objective_fn { Gaussian = 0, 
-			    Poisson = 1, 
-			    RationalScore = 2 };
+			  Poisson = 1, 
+			  RationalScore = 2 };
 
 struct optimizationFlagException : public std::exception {
   const char* what() const throw () {
@@ -47,18 +47,8 @@ namespace Objectives {
       partialSums_{std::vector<std::vector<DataType>>(n+1, std::vector<DataType>(n+1, 0.))},
       risk_partitioning_objective_{risk_partitioning_objective},
       use_rational_optimization_{use_rational_optimization},
-      // cache_{CacheType(n_+1, std::vector<int>(n_+1))},
       name_{name}
-
-    {	
-      if (false) {
-	cache_ = (int**)malloc(sizeof(int*)*(n_+1));
-	for (int i=0; i<n_+1; ++i) {
-	  cache_[i] = (int*)malloc(sizeof(int)*(n_+1));
-	  memset(cache_[i], -1, (n_+1)*sizeof(int));
-	}
-      }
-    }
+    {}
 
     ParametricContext() = default;
     virtual ~ParametricContext() = default;
@@ -102,9 +92,6 @@ namespace Objectives {
 
     virtual DataType compute_score_multclust_optimized(int, int)         = 0;
     virtual DataType compute_score_riskpart_optimized(int, int)		 = 0;
-
-    DataType compute_score_multclust_memoized(int, int);
-    DataType compute_score_riskpart_memoized(int, int);
 
     void compute_partial_sums();
     void compute_partial_sums_AVX256();
@@ -216,7 +203,8 @@ namespace Objectives {
     DataType compute_ambient_score_riskpart(DataType, DataType) override;
 
     // Override these only for RationalScoreContext, for 
-    // optimization purposes
+    // optimization purposes; possible because risk partitioning and
+    // multiple cluster objectives are the same.
     void compute_scores() override;
     void compute_scores_AVX256() override;
     void compute_scores_parallel() override;
