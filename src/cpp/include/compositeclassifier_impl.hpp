@@ -15,7 +15,7 @@ namespace ClassifierFileScope{
   const bool POST_EXTRAPOLATE = false;
   const bool W_CYCLE_PREFIT = true;
   const bool DIAGNOSTICS_0_ = false;
-  const bool DIAGNOSTICS_1_ = false;
+  const bool DIAGNOSTICS_1_ = true;
   const std::string DIGEST_PATH = 
     "/home/charles/src/C++/sandbox/Inductive-Boost/digest/classify";
 } // namespace ClassifierFileScope
@@ -480,12 +480,12 @@ void
 CompositeClassifier<ClassifierType>::deSymmetrize(Row<DataType>& prediction) {
 
   if (false && (loss_ == lossFunction::LogLoss)) {
-      // Normalized values were in $\left\lbrace 0,1\right\rightbrace$
-      prediction = ((0.5*sign(prediction)+0.5) - b_)/ a_;
-    }
-    else {
-      prediction = (sign(prediction) - b_)/ a_;
-    }
+    // Normalized values were in $\left\lbrace 0,1\right\rightbrace$
+    prediction = ((0.5*sign(prediction)+0.5) - b_)/ a_;
+  }
+  else {
+    prediction = (sign(prediction) - b_)/ a_;
+  }
 }
 
 template<typename ClassifierType>
@@ -501,58 +501,70 @@ CompositeClassifier<ClassifierType>::setRootClassifier(std::unique_ptr<Classifie
   // 				      std::forward<typename ClassifierType::Args>(classifierArgs)));
 
 
+  /*
   // Instantiation of ClassifierType should include fit stage; no need to call explicity
   auto _c = [&classifier, &dataset, &labels](Ts const&... classArgs) { 
-    classifier = std::make_unique<ClassifierType>(dataset, labels, classArgs...);
+  classifier = std::make_unique<ClassifierType>(dataset, labels, classArgs...);
   };
   std::apply(_c, args);
   
-  /*
-  // Instantiation of ClassifierType should include fit stage, no need to call explicitly
-  auto _c0 = [&classifier, &dataset](rowvec& labels, Ts const&... classArgs) {
-    classifier = std::make_unique<ClassifierType>(dataset, labels, classArgs...);
-  };
-  auto _c1 = [&classifier, &dataset, &labels, &_c0](Ts const&... classArgs) {
-    _c0(labels,
-	classArgs...);
-  };
-  std::apply(_c1, args);
-
-  // Apply negative feedback
   rowvec labels_it=labels, prediction;
-  float beta = 0.10;
-  ClassifierType cls;
-  const std::size_t FEEDBACK_ITERATIONS = 0;
-  
-  for (std::size_t i=0; i<FEEDBACK_ITERATIONS; ++i) {
-    classifier->Classify(dataset, prediction);
-    for (std::size_t j=0; j<10; ++j) {
-      std::cerr << j << " : " << labels(j) << " : " << prediction(j) << std::endl;
-    }
-    labels_it = labels_it - beta * prediction;
-    auto _cn = [&cls, &dataset, &labels_it, &_c0](Ts const&... classArgs) {
-      _c0(labels_it,
-	  classArgs...);
-    };
-    std::apply(_cn, args);
-  }
-  */
-
-  rowvec labels_it=labels, prediction;
-  float beta = 0.10;
+  float beta = 0.01;
   ClassifierType* cls;
-  const std::size_t FEEDBACK_ITERATIONS = 0;
+  const std::size_t FEEDBACK_ITERATIONS = 5;
   
   classifier->Classify(dataset, prediction);
 
   auto _c0 = [&cls, &dataset](rowvec& labels, Ts const&... classArgs) {
-    cls = new ClassifierType{dataset, labels, classArgs...};
+  cls = new ClassifierType{dataset, labels, classArgs...};
+  };
+  auto _c1 = [&cls, &dataset, &labels, &_c0](Ts const&... classArgs) {
+  _c0(labels,
+  classArgs...);
+  };
+  
+  for (std::size_t i=0; i<FEEDBACK_ITERATIONS; ++i) {
+  for (std::size_t j=0; j<10; ++j) {
+  std::cerr << j << " : " << labels(j) << " : " << prediction(j) << std::endl;
+  }
+  labels_it = labels_it - beta * prediction;
+  auto _cn = [&cls, &dataset, &labels_it, &_c0](Ts const&... classArgs) {
+  _c0(labels_it,
+  classArgs...);
+  };
+  std::apply(_cn, args);
+  cls->Classify(dataset, prediction);
+  }
+
+  */
+
+  /*
+  auto _cc = [&classifier, &dataset, &labels](Ts const&... classArgs) { 
+  classifier = std::make_unique<ClassifierType>(dataset, labels, classArgs...);
+  };
+  std::apply(_cc, args);
+  */
+
+  std::unique_ptr<ClassifierType> cls;
+
+  auto _c = [&cls, &dataset, &labels](Ts const&... classArgs) { 
+    cls = std::make_unique<ClassifierType>(dataset, labels, classArgs...);
+  };
+  std::apply(_c, args);
+
+  rowvec labels_it=labels, prediction;
+  float beta = 0.01;
+  const std::size_t FEEDBACK_ITERATIONS = 10;
+  
+  cls->Classify(dataset, prediction);
+
+  auto _c0 = [&cls, &dataset](rowvec& labels, Ts const&... classArgs) {
+    cls = std::make_unique<ClassifierType>(dataset, labels, classArgs...);
   };
   auto _c1 = [&cls, &dataset, &labels, &_c0](Ts const&... classArgs) {
     _c0(labels,
 	classArgs...);
   };
-
   
   for (std::size_t i=0; i<FEEDBACK_ITERATIONS; ++i) {
     for (std::size_t j=0; j<10; ++j) {
@@ -566,11 +578,9 @@ CompositeClassifier<ClassifierType>::setRootClassifier(std::unique_ptr<Classifie
     std::apply(_cn, args);
     cls->Classify(dataset, prediction);
   }
-
-  /* 
-  classifier.reset(cls);
-  */
-
+  
+  classifier = std::move(cls);
+  
 }
 
 template<typename ClassifierType>
@@ -617,7 +627,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   }
 
   row_d labels_slice = labels_.submat(zeros<uvec>(1), colMask_);
-  row_d best_leaves;
+  // row_d best_leaves;
   std::pair<rowvec, rowvec> coeffs;
   
   Row<DataType> prediction;
@@ -644,35 +654,45 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     
     coeffs = generate_coefficients(labels_slice, colMask_);
     
-    best_leaves = computeOptimalSplit(coeffs.first,
-				      coeffs.second,
-				      stepNum,
-				      partitionSize_,
-				      learningRate_,
-				      activePartitionRatio_,
-				      colMask_);
+    auto [best_leaves,subset_info] = computeOptimalSplit(coeffs.first,
+							 coeffs.second,
+							 stepNum,
+							 partitionSize_,
+							 learningRate_,
+							 activePartitionRatio_,
+							 colMask_,
+							 false);
     
     createRootClassifier(classifier, rowMask_, colMask_, best_leaves);
 
     classifier->Classify(dataset_, prediction);
+
+    updateClassifiers(std::move(classifier), prediction);
+
+    hasInitialPrediction_ = true;
     
     if (ClassifierFileScope::DIAGNOSTICS_1_) {    
-      rowvec yhat_debug;
-      Predict(yhat_debug, colMask_);
-      
+      row_d latestPrediction_slice = latestPrediction_.submat(zeros<uvec>(1), colMask_);
+      row_d prediction_slice = prediction.submat(zeros<uvec>(1), colMask_);
+      float eps = std::numeric_limits<float>::epsilon();
+
+      std::cerr << "[PRE-FIT ";
       for (std::size_t i=0; i<best_leaves.size(); ++i) {
-	std::cerr << labels_slice[i] << " : "
-		  << yhat_debug[i] << " : "
+	std::string status = "";
+	if (fabs(best_leaves[i]-prediction_slice[i]) > eps)
+	  status = "MISCLASSIFIED";
+	std::cerr << colMask_[i] << " : "
+		  << labels_slice[i] << " : "
+		  << latestPrediction_slice[i] << " :: " 
 		  << best_leaves[i] << " : "
-		  << prediction[i] << " : "
+		  << prediction_slice[i] << " :: "
 		  << coeffs.first[i] << " : " 
-		  << coeffs.second[i] << std::endl;
+		  << coeffs.second[i] << " : "
+		  << status << std::endl;
       }
+      std::cerr << "]" << std::endl;
     }
     
-    updateClassifiers(std::move(classifier), prediction);
-    
-    hasInitialPrediction_ = true;
   }
 
   //////////////////////////
@@ -768,48 +788,58 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   coeffs = generate_coefficients(labels_slice, colMask_);
   
   // Compute optimal leaf choice on unrestricted dataset
-  best_leaves = computeOptimalSplit(coeffs.first, 
-				    coeffs.second, 
-				    stepNum, 
-				    partitionSize_, 
-				    learningRate_,
-				    activePartitionRatio_,
-				    colMask_);
+  auto [best_leaves, subset_info] = computeOptimalSplit(coeffs.first, 
+							coeffs.second, 
+							stepNum, 
+							partitionSize_, 
+							learningRate_,
+							activePartitionRatio_,
+							colMask_,
+							false);
 
   createRootClassifier(classifier, rowMask_, colMask_, best_leaves);
 
   classifier->Classify(dataset_, prediction);
 
-  if (ClassifierFileScope::DIAGNOSTICS_1_) {
-    
-    rowvec yhat_debug;
-    Predict(yhat_debug, colMask_);
-    
-    for (std::size_t i=0; i<best_leaves.size(); ++i) {
-      std::cerr << labels_slice[i] << " : "
-		<< yhat_debug[i] << " : "
-		<< best_leaves[i] << " : "
-		<< prediction[i] << " : "
-		<< coeffs.first[i] << " : " 
-		<< coeffs.second[i] << std::endl;
-    }
-  }
-
   updateClassifiers(std::move(classifier), prediction);
-  
+
   hasInitialPrediction_ = true;
+
+  if (ClassifierFileScope::DIAGNOSTICS_1_) {    
+    row_d latestPrediction_slice = latestPrediction_.submat(zeros<uvec>(1), colMask_);
+    row_d prediction_slice = prediction.submat(zeros<uvec>(1), colMask_);
+    float eps = std::numeric_limits<float>::epsilon();
+    
+    std::cerr << "[POST-FIT ";
+    for (std::size_t i=0; i<best_leaves.size(); ++i) {
+      std::string status = "";
+      if (fabs(best_leaves[i]-prediction_slice[i]) > eps)
+	status = "MISCLASSIFIED";
+      std::cerr << colMask_[i] << " : "
+		<< labels_slice[i] << " : "
+		<< latestPrediction_slice[i] << " :: " 
+		<< best_leaves[i] << " : "
+		<< prediction_slice[i] << " :: "
+		<< coeffs.first[i] << " : " 
+		<< coeffs.second[i] << " : "
+		<< status << std::endl;
+
+    }
+    std::cerr << "]" << std::endl;
+  }
 
 }
 
 template<typename ClassifierType>
-typename CompositeClassifier<ClassifierType>::Leaves
+typename CompositeClassifier<ClassifierType>::optLeavesInfo
 CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
 							 rowvec& h,
 							 std::size_t stepNum, 
 							 std::size_t partitionSize,
 							 double learningRate,
 							 double activePartitionRatio,
-							 const uvec& colMask) {
+							 const uvec& colMask,
+							 bool includeSubsets) {
 
   (void)stepNum;
 
@@ -827,18 +857,18 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
   std::vector<double> hv0 = arma::conv_to<std::vector<double>>::from(h);
 
   auto dp0 = DPSolver(n, T, gv0, hv0,
-		     obj_fn,
-		     risk_partitioning_objective,
-		     use_rational_optimization,
-		     gamma,
-		     reg_power,
-		     sweep_down,
-		     find_optimal_t
-		     );
+		      obj_fn,
+		      risk_partitioning_objective,
+		      use_rational_optimization,
+		      gamma,
+		      reg_power,
+		      sweep_down,
+		      find_optimal_t
+		      );
   
   auto subsets0 = dp0.get_optimal_subsets_extern();
 
-  // printSubsets<DataType>(subsets0, gv0, hv0);
+  printSubsets<DataType>(subsets0, gv0, hv0, colMask);
 
   rowvec leaf_values0 = arma::zeros<rowvec>(n);
 
@@ -854,7 +884,11 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(rowvec& g,
     }
   }
 
-  return leaf_values0;
+  if (includeSubsets) {
+    return std::make_tuple(leaf_values0, subsets0);
+  } else {
+    return std::make_tuple(leaf_values0, std::nullopt);
+  }
     
 }
 
@@ -1183,13 +1217,14 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
     lossFn5->loss(yhat, labels, &g5, &h5, clamp_gradient_, upper_val_, lower_val_);
 
     std::cerr << "COMPUTING LEAVES1" << std::endl;
-    row_d best_leaves1 = computeOptimalSplit(g1,
-					     h1,
-					     1,
-					     partitionSize_,
-					     learningRate_,
-					     activePartitionRatio_,
-					     colMask_);
+    auto [best_leaves1, subset_info1] = computeOptimalSplit(g1,
+							    h1,
+							    1,
+							    partitionSize_,
+							    learningRate_,
+							    activePartitionRatio_,
+							    colMask_,
+							    false);
 
     Leaves allLeaves1 = zeros<row_d>(m_);
     allLeaves1(colMask_) = best_leaves1;
@@ -1203,13 +1238,14 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
     minG = g1; minH = h1;
 
     std::cerr << "COMPUTING LEAVES2" << std::endl;
-    row_d best_leaves2 = computeOptimalSplit(g2,
-					     h2,
-					     1,
-					     partitionSize_,
-					     learningRate_,
-					     activePartitionRatio_,
-					     colMask_);
+    auto [best_leaves2, subset_info2] = computeOptimalSplit(g2,
+							    h2,
+							    1,
+							    partitionSize_,
+							    learningRate_,
+							    activePartitionRatio_,
+							    colMask_,
+							    false);
 
     Leaves allLeaves2 = zeros<row_d>(m_);
     allLeaves2(colMask_) = best_leaves2;
@@ -1225,13 +1261,14 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
     }
 
     std::cerr << "COMPUTING LEAVES3" << std::endl;
-    row_d best_leaves3 = computeOptimalSplit(g3,
-					     h3,
-					     1,
-					     partitionSize_,
-					     learningRate_,
-					     activePartitionRatio_,
-					     colMask_);
+    auto [best_leaves3, subset_info3] = computeOptimalSplit(g3,
+							    h3,
+							    1,
+							    partitionSize_,
+							    learningRate_,
+							    activePartitionRatio_,
+							    colMask_,
+							    false);
 
     Leaves allLeaves3 = zeros<row_d>(m_);
     allLeaves3(colMask_) = best_leaves3;
@@ -1247,13 +1284,14 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
     }
 
     std::cerr << "COMPUTING LEAVES4" << std::endl;
-    row_d best_leaves4 = computeOptimalSplit(g4,
-					     h4,
-					     1,
-					     partitionSize_,
-					     learningRate_,
-					     activePartitionRatio_,
-					     colMask_);
+    auto [best_leaves4, subset_info4] = computeOptimalSplit(g4,
+							    h4,
+							    1,
+							    partitionSize_,
+							    learningRate_,
+							    activePartitionRatio_,
+							    colMask_,
+							    false);
 
     Leaves allLeaves4 = zeros<row_d>(m_);
     allLeaves4(colMask_) = best_leaves4;
@@ -1269,13 +1307,14 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
     }
 
     std::cerr << "COMPUTING LEAVES5" << std::endl;
-    row_d best_leaves5 = computeOptimalSplit(g5,
-					     h5,
-					     1,
-					     partitionSize_,
-					     learningRate_,
-					     activePartitionRatio_,
-					     colMask_);
+    auto [best_leaves5, subset_info5] = computeOptimalSplit(g5,
+							    h5,
+							    1,
+							    partitionSize_,
+							    learningRate_,
+							    activePartitionRatio_,
+							    colMask_,
+							    false);
 
     Leaves allLeaves5 = zeros<row_d>(m_);
     allLeaves5(colMask_) = best_leaves5;

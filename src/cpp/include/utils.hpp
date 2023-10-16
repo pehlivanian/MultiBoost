@@ -697,26 +697,61 @@ namespace IB_utils {
   void mergeIndices(std::string, std::string, boost::filesystem::path fldr=boost::filesystem::path{}, bool=false);
 
   template<typename DataType>
-  void printSubsets(std::vector<std::vector<int>>& subsets, const std::vector<DataType>& a, const std::vector<DataType>& b) {
+  void printSubsets(std::vector<std::vector<int>>& subsets, const std::vector<DataType>& a, const std::vector<DataType>& b, const uvec& colMask) {
+
+    DataType abs_stddev_max = 0.;
+
     std::cerr << "SUBSETS\n";
     std::cerr << "[\n";
-    std::for_each(subsets.begin(), subsets.end(), [&a, &b](std::vector<int>& subset){
+    std::for_each(subsets.begin(), subsets.end(), [&a, &b, &colMask, &abs_stddev_max](std::vector<int>& subset){
+		    
 		    std::cerr << "  [size: " << subset.size() << "] ";
 		    std::cerr << "[";
 		    std::sort(subset.begin(), subset.end());
-		    std::copy(subset.begin(), subset.end(),
-			      std::ostream_iterator<int>(std::cerr, " "));
+		    for (const int& ind : subset) {
+		      std::cerr << colMask[ind] << " ";
+		    }
 		    std::cerr << "] ";
 		    
-		    DataType sum_a=0., sum_b=0.;
+		    std::cerr << "[ a ";
+		    for (const int& ind : subset) {
+		      std::cerr << a[ind] << " ";
+		    }
+		    std::cerr << "]";
+		    
+		    std::cerr << "[ b ";
+		    for (const int& ind : subset) {
+		      std::cerr << b[ind] << " ";
+		    }
+		    std::cerr << "]";
+		    
+		    DataType sum_a=0., sum_b=0., ab=0., ab2=0.;
+		    std::cerr << "[a/b: ";
 		    for (const int& ind : subset) {
 		      sum_a+=a[ind];
 		      sum_b+=b[ind];
+		      ab += a[ind]/b[ind];
+		      ab2 += std::pow(a[ind]/b[ind],2);
+		      std::cerr << a[ind]/b[ind] << " ";
 		    }
-		    std::cerr << "[avg. priority: " << sum_a/sum_b <<  " cum ratl score: " << sum_a*sum_a/sum_b << "]\n";
+		    std::cerr << "]";
+		    
+		    DataType ab_mean = ab/static_cast<DataType>(subset.size());
+		    DataType ab2_mean = ab2/static_cast<DataType>(subset.size());
+		    DataType stddev = ab2_mean - std::pow(ab_mean, 2);
+		    std::cerr << "[agg priority: " << sum_a/sum_b 
+			      << " avg priority: " << ab_mean
+			      << " stddev priority: " << stddev
+			      << " cum ratl score: " << sum_a*sum_a/sum_b << "]\n"
+			      << "]";		    
+		    if (fabs(stddev) > abs_stddev_max) {
+		      abs_stddev_max = fabs(stddev);
+		    }
 		  });
-    std::cerr << "]";
+    std::cerr << "MAX STDDEV: " << abs_stddev_max << std::endl;
+
   }
+
 
   template<typename T>
   void 

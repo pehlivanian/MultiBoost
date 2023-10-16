@@ -34,6 +34,9 @@ public:
   using Leaves			= Row<double>;
   using Prediction		= Row<double>;
   using PredictionList		= std::vector<Prediction>;
+  using optLeavesInfo		= std::tuple<Leaves,
+					     std::optional<std::vector<std::vector<int>>>>;
+  
 
   CompositeClassifier() = default;
 
@@ -506,7 +509,7 @@ private:
   void updateClassifiers(std::unique_ptr<ClassifierBase<DataType, Classifier>>&&, Row<DataType>&);
 
   std::pair<rowvec,rowvec> generate_coefficients(const Row<DataType>&, const uvec&);
-  Leaves computeOptimalSplit(rowvec&, rowvec&, std::size_t, std::size_t, double, double, const uvec&);
+  optLeavesInfo computeOptimalSplit(rowvec&, rowvec&, std::size_t, std::size_t, double, double, const uvec&, bool=false);
 
   void setNextClassifier(const ClassifierType&);
   AllClassifierArgs allClassifierArgs(std::size_t);

@@ -1,5 +1,23 @@
 #!/bin/bash
 
+# Examples
+# 
+# /home/charles/src/C++/sandbox/Inductive-Boost/src/script/incremental_classifier_fit.sh 1 250 1 0.01 0.75 0 1 0 buggyCrx_train 10 12 1.56 1 1 1 1 -1 1 .2
+## SPLIT RATIO: .2
+## RUN ON TEST DATASET: 1
+## TEST OOS EACH IT: 
+## SHOW OOS: 1
+# 
+# So IS, OOS information will be shown for each iteration if $SHOW_OOS=1
+# /home/charles/src/C++/sandbox/Inductive-Boost/src/script/incremental_classifier_fit.sh 1 250 1 0.01 0.75 0 1 0 buggyCrx_train 10 12 1.56 1 1 1 1 -1 0 .2
+## SPLIT RATIO: .2
+## RUN ON TEST DATASET: 0
+## TEST OOS EACH IT: 
+## SHOW OOS: 1
+# 
+# So IS, OOS information will be shown for each iteration if $SHOW_OOS=1 and after the last
+# iteration if $SHOW_OOS -ne 1
+
 DELIM=';'
 CLASSIFIER=DecisionTreeClassifier
 PATH=/home/charles/src/C++/sandbox/Inductive-Boost/build/
@@ -195,10 +213,6 @@ arg1="${res[1]}"
 INDEX_NAME_STEP=$arg0
 FOLDER_STEP=$arg1
 
-echo ${PREFIX}" FOLDER: "${FOLDER_STEP}
-echo ${PREFIX}" INDEX: "${INDEX_NAME_STEP}
-echo ${PREFIX}" ITER: 1"
-
 /bin/mv ${CONTEXT_PATH_RUN1} ${FOLDER_STEP}
 /bin/mv ${CONTEXT_PATH_RUNS} ${FOLDER_STEP} 
 
@@ -285,7 +299,7 @@ done
 # the _train dataset, we fitted it on the proportion (1 - $SPLITRATIO)
 # above.
 
-if [ -z  $SHOW_OOS ]; then
+if [ $SHOW_OOS -ne 1 ]; then
   if [ ! -z "$runOnTestDataset" ]; then
     # We assume that ${dataname} ends with the pattern r'''_train$'''
     # and we test OOS fit on the dataset with "_test" suffix
