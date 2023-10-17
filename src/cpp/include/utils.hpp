@@ -368,11 +368,12 @@ namespace IB_utils {
       CONTEXT = 8
       };
 
+  template<typename DataType>
   class DatasetArchive {
   public:
     DatasetArchive() = default;
-    DatasetArchive(mat dataset) : dataset_{dataset} {}
-    DatasetArchive(mat&& dataset) : dataset_{std::move(dataset)} {}
+    DatasetArchive(Mat<DataType> dataset) : dataset_{dataset} {}
+    DatasetArchive(Mat<DataType>&& dataset) : dataset_{std::move(dataset)} {}
   
     template<class Archive>
     void serialize(Archive &ar) {
@@ -380,7 +381,7 @@ namespace IB_utils {
     }
 
     // public
-    mat dataset_;
+    Mat<DataType> dataset_;
   };
 
   template<typename DataType>
@@ -547,35 +548,47 @@ namespace IB_utils {
     
   template<typename DataType>
   void writePrediction(const Row<DataType>& prediction, std::string fileName, boost::filesystem::path fldr=boost::filesystem::path{}) {
-    PredictionArchive pa{prediction};
+    PredictionArchive<DataType> pa{prediction};
     dumps<PredictionArchive<DataType>, CerealIArch, CerealOArch>(pa, fileName, fldr);
   }
 
   template<typename DataType>
   std::string writePrediction(const Row<DataType>& prediction, boost::filesystem::path fldr=boost::filesystem::path{}) {
 
-    PredictionArchive pa{prediction};
+    PredictionArchive<DataType> pa{prediction};
     std::string fileName = dumps<PredictionArchive<DataType>, CerealIArch, CerealOArch>(pa, SerializedType::PREDICTION, fldr);
     return fileName;
   }
 
   template<typename DataType>
   std::string writeLabelsIS(const Row<DataType>& labels, boost::filesystem::path fldr=boost::filesystem::path{}) {
-    LabelsArchive la{labels};
+    LabelsArchive<DataType> la{labels};
     std::string fileName = dumps<LabelsArchive<DataType>, CerealIArch, CerealOArch>(la, SerializedType::LABELS_IS, fldr);
     return fileName;
   }
 
   template<typename DataType>
   std::string writeLabelsOOS(const Row<DataType>& labels, boost::filesystem::path fldr=boost::filesystem::path{}) {
-    LabelsArchive la{labels};
+    LabelsArchive<DataType> la{labels};
     std::string fileName = dumps<LabelsArchive<DataType>, CerealIArch, CerealOArch>(la, SerializedType::LABELS_OOS, fldr);
     return fileName;
   }
 
   std::string writeColMask(const uvec&, boost::filesystem::path fldr=boost::filesystem::path{});
-  std::string writeDatasetIS(const mat&, boost::filesystem::path fldr=boost::filesystem::path{});
-  std::string writeDatasetOOS(const mat&, boost::filesystem::path fldr=boost::filesystem::path{});
+
+  template<typename DataType>
+  std::string writeDatasetIS(const Mat<DataType>& dataset, boost::filesystem::path fldr=boost::filesystem::path{}) {
+    DatasetArchive<DataType> da{dataset};
+    std::string fileName = dumps<DatasetArchive<DataType>, CerealIArch, CerealOArch>(da, SerializedType::DATASET_IS, fldr);
+    return fileName;
+  }
+
+  template<typename DataType>
+  std::string writeDatasetOOS(const Mat<DataType>& dataset, boost::filesystem::path fldr=boost::filesystem::path{}) {
+    DatasetArchive<DataType> da{dataset};
+    std::string fileName = dumps<DatasetArchive<DataType>, CerealIArch, CerealOArch>(da, SerializedType::DATASET_OOS, fldr);
+    return fileName;    
+  }
 
   double err(const Row<double>&, const Row<double>&, double=-1.);
   double err(const Row<float>&, const Row<float>&, double=-1.);

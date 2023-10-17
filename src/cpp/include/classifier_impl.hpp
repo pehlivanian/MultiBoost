@@ -44,7 +44,7 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::decode(const Row<std:
 
 template<typename DataType, typename ClassifierType, typename... Args>
 void
-DiscreteClassifierBase<DataType, ClassifierType, Args...>::setClassifier(const mat& dataset, Row<std::size_t>& labels, Args&&... args) {
+DiscreteClassifierBase<DataType, ClassifierType, Args...>::setClassifier(const Mat<DataType>& dataset, Row<std::size_t>& labels, Args&&... args) {
 
   classifier_ = std::make_unique<ClassifierType>(dataset, labels, std::forward<Args>(args)...);
 
@@ -52,7 +52,7 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::setClassifier(const m
 
 template<typename DataType, typename ClassifierType, typename... Args>
 void
-DiscreteClassifierBase<DataType, ClassifierType, Args...>::Classify_(const mat& dataset, Row<DataType>& labels) {
+DiscreteClassifierBase<DataType, ClassifierType, Args...>::Classify_(const Mat<DataType>& dataset, Row<DataType>& labels) {
 
   Row<std::size_t> labels_t;
 
@@ -63,7 +63,7 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::Classify_(const mat& 
 
 template<typename DataType, typename ClassifierType, typename... Args>
 void
-DiscreteClassifierBase<DataType, ClassifierType, Args...>::Classify_(mat&& dataset, Row<DataType>& labels) {
+DiscreteClassifierBase<DataType, ClassifierType, Args...>::Classify_(Mat<DataType>&& dataset, Row<DataType>& labels) {
 
   Row<std::size_t> labels_t;
   

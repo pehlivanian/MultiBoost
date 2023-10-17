@@ -287,7 +287,7 @@ CompositeClassifier<ClassifierType>::_predict_in_loop(MatType&& dataset, Row<Dat
 
 template<typename ClassifierType>
 void
-CompositeClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
+CompositeClassifier<ClassifierType>::Predict(const Mat<DataType>& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
 
   if (serializeModel_ && indexName_.size()) {
     throw predictionAfterClearedClassifiersException();
@@ -300,7 +300,7 @@ CompositeClassifier<ClassifierType>::Predict(const mat& dataset, Row<DataType>& 
 
 template<typename ClassifierType>
 void 
-CompositeClassifier<ClassifierType>::Predict(mat&& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
+CompositeClassifier<ClassifierType>::Predict(Mat<DataType>&& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
 
   if (serializeModel_ && indexName_.size()) {
     throw predictionAfterClearedClassifiersException();
@@ -333,7 +333,7 @@ CompositeClassifier<ClassifierType>::Predict(Row<typename CompositeClassifier<Cl
 
 template<typename ClassifierType>
 void
-CompositeClassifier<ClassifierType>::Predict(const mat& dataset, Row<typename CompositeClassifier<ClassifierType>::IntegralLabelType>& prediction) {
+CompositeClassifier<ClassifierType>::Predict(const Mat<DataType>& dataset, Row<typename CompositeClassifier<ClassifierType>::IntegralLabelType>& prediction) {
 
   Row<DataType> prediction_d;
   Predict(dataset, prediction_d);
@@ -348,7 +348,7 @@ CompositeClassifier<ClassifierType>::Predict(const mat& dataset, Row<typename Co
 
 template<typename ClassifierType>
 void
-CompositeClassifier<ClassifierType>::Predict(mat&& dataset, Row<typename CompositeClassifier<ClassifierType>::IntegralLabelType>& prediction) {
+CompositeClassifier<ClassifierType>::Predict(Mat<DataType>&& dataset, Row<typename CompositeClassifier<ClassifierType>::IntegralLabelType>& prediction) {
 
   Row<DataType> prediction_d;
   Predict(std::move(dataset), prediction_d);
@@ -490,58 +490,13 @@ template<typename ClassifierType>
 template<typename... Ts>
 void
 CompositeClassifier<ClassifierType>::setRootClassifier(std::unique_ptr<ClassifierType>& classifier,
-						       const mat& dataset,
+						       const Mat<DataType>& dataset,
 						       Row<CompositeClassifier<ClassifierType>::DataType>& labels,
 						       std::tuple<Ts...> const& args) {
   // mimic:
   // classifier.reset(new ClassifierType(dataset_,
   //  				      constantLabels,
   // 				      std::forward<typename ClassifierType::Args>(classifierArgs)));
-
-
-  /*
-  // Instantiation of ClassifierType should include fit stage; no need to call explicity
-  auto _c = [&classifier, &dataset, &labels](Ts const&... classArgs) { 
-  classifier = std::make_unique<ClassifierType>(dataset, labels, classArgs...);
-  };
-  std::apply(_c, args);
-  
-  Row<DataType> labels_it=labels, prediction;
-  float beta = 0.01;
-  ClassifierType* cls;
-  const std::size_t FEEDBACK_ITERATIONS = 5;
-  
-  classifier->Classify(dataset, prediction);
-
-  auto _c0 = [&cls, &dataset](Row<DataType>& labels, Ts const&... classArgs) {
-  cls = new ClassifierType{dataset, labels, classArgs...};
-  };
-  auto _c1 = [&cls, &dataset, &labels, &_c0](Ts const&... classArgs) {
-  _c0(labels,
-  classArgs...);
-  };
-  
-  for (std::size_t i=0; i<FEEDBACK_ITERATIONS; ++i) {
-  for (std::size_t j=0; j<10; ++j) {
-  std::cerr << j << " : " << labels(j) << " : " << prediction(j) << std::endl;
-  }
-  labels_it = labels_it - beta * prediction;
-  auto _cn = [&cls, &dataset, &labels_it, &_c0](Ts const&... classArgs) {
-  _c0(labels_it,
-  classArgs...);
-  };
-  std::apply(_cn, args);
-  cls->Classify(dataset, prediction);
-  }
-
-  */
-
-  /*
-  auto _cc = [&classifier, &dataset, &labels](Ts const&... classArgs) { 
-  classifier = std::make_unique<ClassifierType>(dataset, labels, classArgs...);
-  };
-  std::apply(_cc, args);
-  */
 
   std::unique_ptr<ClassifierType> cls;
 
@@ -551,32 +506,34 @@ CompositeClassifier<ClassifierType>::setRootClassifier(std::unique_ptr<Classifie
   std::apply(_c, args);
 
   Row<DataType> labels_it=labels, prediction;
-  float beta = 0.01;
+  float beta = 0.025;
   const std::size_t FEEDBACK_ITERATIONS = 0;
-  
-  cls->Classify(dataset, prediction);
 
-  auto _c0 = [&cls, &dataset](Row<DataType>& labels, Ts const&... classArgs) {
-    cls = std::make_unique<ClassifierType>(dataset, labels, classArgs...);
-  };
-  auto _c1 = [&cls, &dataset, &labels, &_c0](Ts const&... classArgs) {
-    _c0(labels,
-	classArgs...);
-  };
-  
-  for (std::size_t i=0; i<FEEDBACK_ITERATIONS; ++i) {
-    for (std::size_t j=0; j<10; ++j) {
-      std::cerr << j << " : " << labels(j) << " : " << prediction(j) << std::endl;
-    }
-    labels_it = labels_it - beta * prediction;
-    auto _cn = [&cls, &dataset, &labels_it, &_c0](Ts const&... classArgs) {
-      _c0(labels_it,
+  if (FEEDBACK_ITERATIONS > 0) {
+    cls->Classify(dataset, prediction);
+    
+    auto _c0 = [&cls, &dataset](Row<DataType>& labels, Ts const&... classArgs) {
+      cls = std::make_unique<ClassifierType>(dataset, labels, classArgs...);
+    };
+    auto _c1 = [&cls, &dataset, &labels, &_c0](Ts const&... classArgs) {
+      _c0(labels,
 	  classArgs...);
     };
-    std::apply(_cn, args);
-    cls->Classify(dataset, prediction);
+    
+    for (std::size_t i=0; i<FEEDBACK_ITERATIONS; ++i) {
+      for (std::size_t j=0; j<10; ++j) {
+	std::cerr << j << " : " << labels(j) << " : " << prediction(j) << std::endl;
+      }
+      labels_it = labels_it - beta * prediction;
+      auto _cn = [&cls, &dataset, &labels_it, &_c0](Ts const&... classArgs) {
+	_c0(labels_it,
+	    classArgs...);
+      };
+      std::apply(_cn, args);
+      cls->Classify(dataset, prediction);
+    }
   }
-  
+
   classifier = std::move(cls);
   
 }
@@ -894,9 +851,9 @@ template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::purge_() {
 
-  dataset_ = ones<mat>(0,0);
+  dataset_ = ones<Mat<DataType>>(0,0);
   labels_ = ones<Row<DataType>>(0);
-  dataset_oos_ = ones<mat>(0,0);
+  dataset_oos_ = ones<Mat<DataType>>(0,0);
   labels_oos_ = ones<Row<DataType>>(0);
 
 }
@@ -1014,7 +971,7 @@ CompositeClassifier<ClassifierType>::computeChildModelInfo() {
 
 template<typename ClassifierType>
 void
-CompositeClassifier<ClassifierType>::Predict(std::string index, const mat& dataset, Row<DataType>& prediction, bool postSymmetrize) {
+CompositeClassifier<ClassifierType>::Predict(std::string index, const Mat<DataType>& dataset, Row<DataType>& prediction, bool postSymmetrize) {
 
   std::vector<std::string> fileNames;
   readIndex(index, fileNames, fldr_);
@@ -1025,7 +982,7 @@ CompositeClassifier<ClassifierType>::Predict(std::string index, const mat& datas
 
 template<typename ClassifierType>
 void
-CompositeClassifier<ClassifierType>::Predict(std::string index, mat&& dataset, Row<DataType>& prediction, bool postSymmetrize) {
+CompositeClassifier<ClassifierType>::Predict(std::string index, Mat<DataType>&& dataset, Row<DataType>& prediction, bool postSymmetrize) {
   
   std::vector<std::string> fileNames;
   readIndex(index, fileNames, fldr_);
@@ -1176,7 +1133,7 @@ CompositeClassifier<ClassifierType>::fit() {
 
 template<typename ClassifierType>
 void
-CompositeClassifier<ClassifierType>::Classify(const mat& dataset, Row<DataType>& labels) {
+CompositeClassifier<ClassifierType>::Classify(const Mat<DataType>& dataset, Row<DataType>& labels) {
 
   Predict(dataset, labels);
 }

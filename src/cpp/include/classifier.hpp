@@ -18,18 +18,18 @@ public:
 
   virtual ~ClassifierBase() = default;
 
-  virtual void Classify(const mat& data, Row<DataType>& pred) { Classify_(data, pred); }
-  virtual void Classify(mat&& data, Row<DataType>& pred) { Classify_(std::move(data), pred); }
+  virtual void Classify(const Mat<DataType>& data, Row<DataType>& pred) { Classify_(data, pred); }
+  virtual void Classify(Mat<DataType>&& data, Row<DataType>& pred) { Classify_(std::move(data), pred); }
 
   virtual void purge() { purge_(); }
 
 private:
   virtual void purge_() = 0;
-  virtual void Classify_(const mat&, Row<DataType>&) = 0;
-  virtual void Classify_(mat&&, Row<DataType>&) = 0;
+  virtual void Classify_(const Mat<DataType>&, Row<DataType>&) = 0;
+  virtual void Classify_(Mat<DataType>&&, Row<DataType>&) = 0;
 
-  void Project_(const mat& data, Row<DataType>& pred) override { Classify_(data, pred); }
-  void Project_(mat&& data, Row<DataType>& pred) override { Classify_(std::move(data), pred); }
+  void Project_(const Mat<DataType>& data, Row<DataType>& pred) override { Classify_(data, pred); }
+  void Project_(Mat<DataType>&& data, Row<DataType>& pred) override { Classify_(std::move(data), pred); }
   
 };
 
@@ -38,7 +38,7 @@ class DiscreteClassifierBase : public ClassifierBase<DataType, ClassifierType> {
 public:
   using LeavesMap = std::unordered_map<std::size_t, DataType>;
 
-  DiscreteClassifierBase(const mat& dataset, Row<DataType>& labels, Args&&... args) : 
+  DiscreteClassifierBase(const Mat<DataType>& dataset, Row<DataType>& labels, Args&&... args) : 
     ClassifierBase<DataType, ClassifierType>(typeid(*this).name())
   {
 
@@ -57,7 +57,7 @@ public:
   DiscreteClassifierBase(const DiscreteClassifierBase&) = default;
   virtual ~DiscreteClassifierBase() = default;
 
-  void setClassifier(const mat&, Row<std::size_t>&, Args&&...);
+  void setClassifier(const Mat<DataType>&, Row<std::size_t>&, Args&&...);
 
   template<class Archive>
   void serialize(Archive &ar) {
@@ -76,8 +76,8 @@ private:
   std::unique_ptr<ClassifierType> classifier_;
   std::tuple<Args...> args_;
 
-  void Classify_(const mat&, Row<DataType>&) override;
-  void Classify_(mat&&, Row<DataType>&) override;
+  void Classify_(const Mat<DataType>&, Row<DataType>&) override;
+  void Classify_(Mat<DataType>&&, Row<DataType>&) override;
   void purge_() override;
 
 };

@@ -45,7 +45,7 @@ public:
   // mat	: arma::Mat<double>
   // labels	: arma::Row<std::size_t> <- CONVERTED TO Row<double>
   // context	: ModelContext::Context
-  CompositeClassifier(const mat& dataset, 
+  CompositeClassifier(const Mat<DataType>& dataset, 
 		      const Row<std::size_t>& labels,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
@@ -65,7 +65,7 @@ public:
   // mat	: arma::Mat<double>
   // labels	: arma::Row<double>
   // context	: ModelContext::Context
-  CompositeClassifier(const mat& dataset,
+  CompositeClassifier(const Mat<DataType>& dataset,
 		      const Row<DataType>& labels,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
@@ -86,7 +86,7 @@ public:
   // labels		: arma::Row<std::size_t> <- CONVERTED TO Row<double>
   // colMask		: uvec
   // context		: ModelContext::Context
-  CompositeClassifier(const mat& dataset,
+  CompositeClassifier(const Mat<DataType>& dataset,
 		      const Row<std::size_t>& labels,
 		      const uvec& colMask,
 		      Context context,
@@ -109,7 +109,7 @@ public:
   // labels		: arma::Row<double>
   // colMask		: uvec
   // context		: ModelContext::Context
-  CompositeClassifier(const mat& dataset,
+  CompositeClassifier(const Mat<DataType>& dataset,
 		      const Row<DataType>& labels,
 		      const uvec& colMask,
 		      Context context,
@@ -135,9 +135,9 @@ public:
   // dataset_oos	: arma::Mat<double>
   // labels_oos		: Row<std::size_t> <- CONVERTED TO Row<double>
   // context		: ModelContext::Context
-  CompositeClassifier(const mat& dataset,
+  CompositeClassifier(const Mat<DataType>& dataset,
 		      const Row<std::size_t>& labels,
-		      const mat& dataset_oos,
+		      const Mat<DataType>& dataset_oos,
 		      const Row<std::size_t>& labels_oos,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
@@ -161,9 +161,9 @@ public:
   // dataset_oos	: arma::Mat<double>
   // labels_oos		: Row<double>
   // context		: ModelContext::Context
-  CompositeClassifier(const mat& dataset,
+  CompositeClassifier(const Mat<DataType>& dataset,
 		      const Row<DataType>& labels,
-		      const mat& dataset_oos,
+		      const Mat<DataType>& dataset_oos,
 		      const Row<DataType>& labels_oos,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
@@ -188,7 +188,7 @@ public:
   // labels_oos		: Row<double>
   // colMask		: uvec
   // context		: ModelContext::Context
-  CompositeClassifier(const mat& dataset,
+  CompositeClassifier(const Mat<DataType>& dataset,
 		      const Row<std::size_t>& labels,
 		      const Row<DataType>& latestPrediction,
 		      const uvec& colMask,
@@ -213,7 +213,7 @@ public:
   // labels		: arma::Row<std::size_t> <- CONVERTED TO Row<double>
   // latestPrediction	: arma::Mat<double>
   // context		: ModelContext::Context
-  CompositeClassifier(const mat& dataset,
+  CompositeClassifier(const Mat<DataType>& dataset,
 		      const Row<std::size_t>& labels,
 		      const Row<DataType>& latestPrediction,
 		      Context context,
@@ -237,7 +237,7 @@ public:
   // latestPrediction	: arma::Mat<double>
   // colMask		: uvec
   // context		: ModelContext::Context
-  CompositeClassifier(const mat& dataset,
+  CompositeClassifier(const Mat<DataType>& dataset,
 		      const Row<DataType>& labels,
 		      const Row<DataType>& latestPrediction,
 		      const uvec& colMask,
@@ -262,7 +262,7 @@ public:
   // labels		: arma::Row<double>
   // latestPrediction	: arma::Mat<double>
   // context		: ModelContext::Context
-  CompositeClassifier(const mat& dataset,
+  CompositeClassifier(const Mat<DataType>& dataset,
 		      const Row<DataType>& labels,
 		      const Row<DataType>& latestPrediction,
 		      Context context,
@@ -288,9 +288,9 @@ public:
   // latestPrediction	: arma::Mat<double>
   // colMask		: uvec
   // context		: ModelContext::Context
-  CompositeClassifier(const mat& dataset,
+  CompositeClassifier(const Mat<DataType>& dataset,
 		      const Row<std::size_t>& labels,
-		      const mat& dataset_oos,
+		      const Mat<DataType>& dataset_oos,
 		      const Row<std::size_t>& labels_oos,
 		      const Row<DataType>& latestPrediction,
 		      const uvec& colMask,
@@ -319,9 +319,9 @@ public:
   // labels_oos		: Row<std::size_t> <- CONVERTED TO Row<double>
   // latestPrediction	: arma::Mat<double>
   // context		: ModelContext::Context
-  CompositeClassifier(const mat& dataset,
+  CompositeClassifier(const Mat<DataType>& dataset,
 		      const Row<std::size_t>& labels,
-		      const mat& dataset_oos,
+		      const Mat<DataType>& dataset_oos,
 		      const Row<std::size_t>& labels_oos,
 		      const Row<DataType>& latestPrediction,
 		      Context context,
@@ -349,9 +349,9 @@ public:
   // latestPrediction	: arma::Mat<double>
   // colMask		: uvec
   // context		: ModelContext::Context
-  CompositeClassifier(const mat& dataset,
+  CompositeClassifier(const Mat<DataType>& dataset,
 		      const Row<DataType>& labels,
-		      const mat& dataset_oos,
+		      const Mat<DataType>& dataset_oos,
 		      const Row<DataType>& labels_oos,
 		      const Row<DataType>& latestPrediction,
 		      const uvec& colMask,
@@ -380,9 +380,9 @@ public:
   // labels_oos		: Row<double>
   // latestPrediction	: arma::Mat<double>
   // context		: ClassifierContext::Context
-  CompositeClassifier(const mat& dataset,
+  CompositeClassifier(const Mat<DataType>& dataset,
 		      const Row<DataType>& labels,
-		      const mat& dataset_oos,
+		      const Mat<DataType>& dataset_oos,
 		      const Row<DataType>& labels_oos,
 		      const Row<DataType>& latestPrediction,
 		      Context context,
@@ -404,7 +404,7 @@ public:
 
   virtual void fit();
 
-  virtual void Classify(const mat&, Row<DataType>&) override;
+  virtual void Classify(const Mat<DataType>&, Row<DataType>&) override;
 
  // 4 Predict methods
   // predict on member dataset; use latestPrediction_
@@ -412,19 +412,19 @@ public:
   // predict on subset of dataset defined by uvec; sum step prediction vectors
   virtual void Predict(Row<DataType>&, const uvec&);
   // predict OOS, loop through and call Classify_ on individual classifiers, sum
-  virtual void Predict(const mat&, Row<DataType>&, bool=false);
-  virtual void Predict(mat&&, Row<DataType>&, bool=false);
+  virtual void Predict(const Mat<DataType>&, Row<DataType>&, bool=false);
+  virtual void Predict(Mat<DataType>&&, Row<DataType>&, bool=false);
 
   // 3 overloaded versions of above based based on label datatype
   virtual void Predict(Row<IntegralLabelType>&);
   virtual void Predict(Row<IntegralLabelType>&, const uvec&);
-  virtual void Predict(const mat&, Row<IntegralLabelType>&);
-  virtual void Predict(mat&&, Row<IntegralLabelType>&);
+  virtual void Predict(const Mat<DataType>&, Row<IntegralLabelType>&);
+  virtual void Predict(Mat<DataType>&&, Row<IntegralLabelType>&);
 
   // 2 overloaded versions for archive classifier
   virtual void Predict(std::string, Row<DataType>&, bool=false);
-  virtual void Predict(std::string, const mat&, Row<DataType>&, bool=false);
-  virtual void Predict(std::string, mat&&, Row<DataType>&, bool=false);
+  virtual void Predict(std::string, const Mat<DataType>&, Row<DataType>&, bool=false);
+  virtual void Predict(std::string, Mat<DataType>&&, Row<DataType>&, bool=false);
 
   template<typename MatType>
   void _predict_in_loop(MatType&&, Row<DataType>&, bool=false);
@@ -486,10 +486,10 @@ private:
 
   void fit_step(std::size_t);
 
-  void Classify_(const mat& dataset, Row<DataType>& prediction) override { 
+  void Classify_(const Mat<DataType>& dataset, Row<DataType>& prediction) override { 
     Predict(dataset, prediction); 
   }
-  void Classify_(mat&& dataset, Row<DataType>& prediction) override {
+  void Classify_(Mat<DataType>&& dataset, Row<DataType>& prediction) override {
     Predict(std::move(dataset), prediction);
   }
 
@@ -500,7 +500,7 @@ private:
 			    uvec, const Row<DataType>&);
   template<typename... Ts>
   void setRootClassifier(std::unique_ptr<ClassifierType>&, 
-			 const mat&,
+			 const Mat<DataType>&,
 			 Row<DataType>&,
 			 std::tuple<Ts...> const&);
 
@@ -517,9 +517,9 @@ private:
 
   int steps_;
   int baseSteps_;
-  mat dataset_;
+  Mat<DataType> dataset_;
   Row<DataType> labels_;
-  mat dataset_oos_;
+  Mat<DataType> dataset_oos_;
   Row<DataType> labels_oos_;
 
   bool hasOOSData_;

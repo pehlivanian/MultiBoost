@@ -22,7 +22,7 @@ Replay<DataType, ClassifierType>::ClassifyStep(std::string classifierFileName,
   std::unique_ptr<C> classifier = std::make_unique<C>();
   read(*classifier, classifierFileName, folderName);
 
-  mat dataset;
+  Mat<DataType> dataset;
   read(dataset, datasetFileName, folderName);
 
   classifier->Predict(dataset, prediction, ignoreSymmetrization);
@@ -45,7 +45,7 @@ Replay<DataType, RegressorType>::PredictStep(std::string regressorFileName,
   std::unique_ptr<R> regressor = std::make_unique<R>();
   read(*regressor, regressorFileName, folderName);
 
-  mat dataset;
+  Mat<DataType> dataset;
   read(dataset, datasetFileName, folderName);
 
   regressor->Predict(dataset, prediction);
@@ -93,7 +93,7 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
 
   int n_rows, n_cols;
   int n_rows_is, n_cols_is;
-  mat dataset, dataset_oos;
+  Mat<DataType> dataset, dataset_oos;
   Row<DataType> labels, predictionStep;
   int classifierNum = 0;
   std::string datasetFileName, datasetOOSFileName;
@@ -373,7 +373,7 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
 
   int n_rows, n_cols;
   int n_rows_is, n_cols_is;
-  mat dataset, dataset_oos;
+  Mat<DataType> dataset, dataset_oos;
   Row<DataType> labels, predictionStep;
   int regressorNum = 0;
   std::string datasetFileName, datasetOOSFileName;
@@ -620,7 +620,7 @@ Replay<DataType, ClassifierType>::Classify(std::string indexName,
 template<typename DataType, typename ClassifierType>
 void
 Replay<DataType, ClassifierType>::Classify(std::string indexName,
-					   const mat& dataset,
+					   const Mat<DataType>& dataset,
 					   Row<DataType>& prediction,
 					   boost::filesystem::path fldr,
 					   bool deSymmetrize) {
@@ -656,7 +656,7 @@ Replay<DataType, ClassifierType>::Classify(std::string indexName,
 template<typename DataType, typename RegressorType>
 void
 Replay<DataType, RegressorType>::Predict(std::string indexName,
-					 const mat& dataset,
+					 const Mat<DataType>& dataset,
 					 Row<DataType>& prediction,
 					 boost::filesystem::path fldr) {
   std::vector<std::string> fileNames;

@@ -10,18 +10,6 @@ namespace IB_utils {
     
   }
 
-  std::string writeDatasetIS(const mat& dataset, boost::filesystem::path fldr) {
-    DatasetArchive da{dataset};
-    std::string fileName = dumps<DatasetArchive, CerealIArch, CerealOArch>(da, SerializedType::DATASET_IS, fldr);
-    return fileName;
-  }
-
-  std::string writeDatasetOOS(const mat& dataset, boost::filesystem::path fldr) {
-    DatasetArchive da{dataset};
-    std::string fileName = dumps<DatasetArchive, CerealIArch, CerealOArch>(da, SerializedType::DATASET_OOS, fldr);
-    return fileName;    
-  }
-
   std::tuple<double,double> Perlich_rank_scores(const Row<double>& yhat, const Row<double>& y) {
     uvec yhat_index = sort_index(yhat);
     double T=0., R=0., tau, rho;

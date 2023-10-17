@@ -67,8 +67,8 @@ public:
   //
   // For predicting OOS on given test dataset /
   /////////////////////////////////////////////
-  static void Classify(std::string, const mat&, Row<DataType>&, boost::filesystem::path=boost::filesystem::path{}, bool=false);
-  static void Predict(std::string, const mat&, Row<DataType>&, boost::filesystem::path=boost::filesystem::path{});
+  static void Classify(std::string, const Mat<DataType>&, Row<DataType>&, boost::filesystem::path=boost::filesystem::path{}, bool=false);
+  static void Predict(std::string, const Mat<DataType>&, Row<DataType>&, boost::filesystem::path=boost::filesystem::path{});
   /////////////////////////////////////////////
 
   // 

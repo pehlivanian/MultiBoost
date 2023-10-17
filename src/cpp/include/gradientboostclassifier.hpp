@@ -72,7 +72,7 @@ public:
   // mat	: arma::Mat<double>
   // labels	: arma::Row<std::size_t> <- CONVERTED TO Row<double>
   // context	: ClassifierContext::Context
-  GradientBoostClassifier(const mat& dataset, 
+  GradientBoostClassifier(const Mat<typename CompositeClassifier<ClassifierType>::DataType>& dataset, 
 			  const Row<std::size_t>& labels,
 			  Context context,
 			  const std::string& folderName=std::string{}) :
@@ -82,7 +82,7 @@ public:
   // mat	: arma::Mat<double>
   // labels	: arma::Row<double>
   // context	: ClassifierContext::Context
-  GradientBoostClassifier(const mat& dataset,
+  GradientBoostClassifier(const Mat<typename CompositeClassifier<ClassifierType>::DataType>& dataset,
 			  const Row<double>& labels,
 			  Context context,
 			  const std::string& folderName=std::string{}) :
@@ -94,9 +94,9 @@ public:
   // dataset_oos	: arma::Mat<double>
   // labels_oos		: Row<std::size_t> <- CONVERTED TO Row<double>
   // context		: ClassifierContext::Context
-  GradientBoostClassifier(const mat& dataset,
+  GradientBoostClassifier(const Mat<typename CompositeClassifier<ClassifierType>::DataType>& dataset,
 			  const Row<std::size_t>& labels,
-			  const mat& dataset_oos,
+			  const Mat<typename CompositeClassifier<ClassifierType>::DataType>& dataset_oos,
 			  const Row<std::size_t>& labels_oos,
 			  Context context,
 			  const std::string& folderName=std::string{}) :
@@ -108,9 +108,9 @@ public:
   // dataset_oos	: arma::Mat<double>
   // labels_oos		: Row<double>
   // context		: ClassifierContext::Context
-  GradientBoostClassifier(const mat& dataset,
+  GradientBoostClassifier(const Mat<typename CompositeClassifier<ClassifierType>::DataType>& dataset,
 			  const Row<double>& labels,
-			  const mat& dataset_oos,
+			  const Mat<typename CompositeClassifier<ClassifierType>::DataType>& dataset_oos,
 			  const Row<double>& labels_oos,
 			  Context context,
 			  const std::string& folderName=std::string{}) :
@@ -123,7 +123,7 @@ public:
   // labels_oos		: Row<double>
   // colMask		: uvec
   // context		: ClassifierContext::Context
-  GradientBoostClassifier(const mat& dataset,
+  GradientBoostClassifier(const Mat<typename CompositeClassifier<ClassifierType>::DataType>& dataset,
 			  const Row<std::size_t>& labels,
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
@@ -136,7 +136,7 @@ public:
   // labels		: arma::Row<std::size_t> <- CONVERTED TO Row<double>
   // latestPrediction	: arma::Mat<double>
   // context		: ClassifierContext::Context
-  GradientBoostClassifier(const mat& dataset,
+  GradientBoostClassifier(const Mat<typename CompositeClassifier<ClassifierType>::DataType>& dataset,
 			  const Row<std::size_t>& labels,
 			  const Row<double>& latestPrediction,
 			  Context context,
@@ -149,7 +149,7 @@ public:
   // latestPrediction	: arma::Mat<double>
   // colMask		: uvec
   // context		: ClassifierContext::Context
-  GradientBoostClassifier(const mat& dataset,
+  GradientBoostClassifier(const Mat<typename CompositeClassifier<ClassifierType>::DataType>& dataset,
 			  const Row<double>& labels,
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
@@ -162,7 +162,7 @@ public:
   // labels		: arma::Row<double>
   // latestPrediction	: arma::Mat<double>
   // context		: ClassifierContext::Context
-  GradientBoostClassifier(const mat& dataset,
+  GradientBoostClassifier(const Mat<typename CompositeClassifier<ClassifierType>::DataType>& dataset,
 			  const Row<double>& labels,
 			  const Row<double>& latestPrediction,
 			  Context context,
@@ -177,9 +177,9 @@ public:
   // latestPrediction	: arma::Mat<double>
   // colMask		: uvec
   // context		: ClassifierContext::Context
-  GradientBoostClassifier(const mat& dataset,
+  GradientBoostClassifier(const Mat<typename CompositeClassifier<ClassifierType>::DataType>& dataset,
 			  const Row<std::size_t>& labels,
-			  const mat& dataset_oos,
+			  const Mat<typename CompositeClassifier<ClassifierType>::DataType>& dataset_oos,
 			  const Row<std::size_t>& labels_oos,
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
@@ -194,9 +194,9 @@ public:
   // labels_oos		: Row<std::size_t> <- CONVERTED TO Row<double>
   // latestPrediction	: arma::Mat<double>
   // context		: ClassifierContext::Context
-  GradientBoostClassifier(const mat& dataset,
+  GradientBoostClassifier(const Mat<typename CompositeClassifier<ClassifierType>::DataType>& dataset,
 			  const Row<std::size_t>& labels,
-			  const mat& dataset_oos,
+			  const Mat<typename CompositeClassifier<ClassifierType>::DataType>& dataset_oos,
 			  const Row<std::size_t>& labels_oos,
 			  const Row<double>& latestPrediction,
 			  Context context,
@@ -211,9 +211,9 @@ public:
   // latestPrediction	: arma::Mat<double>
   // colMask		: uvec
   // context		: ClassifierContext::Context
-  GradientBoostClassifier(const mat& dataset,
+  GradientBoostClassifier(const Mat<typename CompositeClassifier<ClassifierType>::DataType>& dataset,
 			  const Row<double>& labels,
-			  const mat& dataset_oos,
+			  const Mat<typename CompositeClassifier<ClassifierType>::DataType>& dataset_oos,
 			  const Row<double>& labels_oos,
 			  const Row<double>& latestPrediction,
 			  const uvec& colMask,
@@ -228,9 +228,9 @@ public:
   // labels_oos		: Row<double>
   // latestPrediction	: arma::Mat<double>
   // context		: ClassifierContext::Context
-  GradientBoostClassifier(const mat& dataset,
+  GradientBoostClassifier(const Mat<typename CompositeClassifier<ClassifierType>::DataType>& dataset,
 			  const Row<double>& labels,
-			  const mat& dataset_oos,
+			  const Mat<typename CompositeClassifier<ClassifierType>::DataType>& dataset_oos,
 			  const Row<double>& labels_oos,
 			  const Row<double>& latestPrediction,
 			  Context context,

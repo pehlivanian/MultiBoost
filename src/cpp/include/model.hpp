@@ -34,7 +34,7 @@ public:
   Model() = default;
   Model(std::string id) : id_{id} {}
 
-  void Project(const mat& data, Row<DataType>& projection) { 
+  void Project(const Mat<DataType>& data, Row<DataType>& projection) { 
     Project_(data, projection); 
   }
 
@@ -48,8 +48,8 @@ public:
 private:
   std::string id_;
 
-  virtual void Project_(const mat&, Row<DataType>&) = 0;
-  virtual void Project_(mat&&, Row<DataType>&) = 0;
+  virtual void Project_(const Mat<DataType>&, Row<DataType>&) = 0;
+  virtual void Project_(Mat<DataType>&&, Row<DataType>&) = 0;
 };
 
 namespace Model_Traits {
