@@ -33,7 +33,7 @@ using namespace ANALYTIC_utils;
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
-enum class lossFunction {    MSE = 0,
+enum class lossFunction {      MSE = 0,
 			       BinomialDeviance = 1,
 			       Savage = 2,
 			       Exp = 3,

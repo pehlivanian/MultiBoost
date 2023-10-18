@@ -531,7 +531,7 @@ private:
   std::vector<std::string> fileNames_;
 
   lossFunction loss_;
-  LossFunction<double>* lossFn_;
+  LossFunction<DataType>* lossFn_;
 
   float lossPower_ = -1.;
 

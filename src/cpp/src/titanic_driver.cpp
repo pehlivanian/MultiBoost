@@ -1,5 +1,9 @@
 #include "titanic_driver.hpp"
 
+namespace {
+  using DataType = Model_Traits::classifier_traits<DecisionTreeClassifier>::datatype;
+}
+
 using namespace ModelContext;
 using namespace PartitionSize;
 using namespace StepSize;
@@ -17,9 +21,9 @@ auto main() -> int {
   using namespace LossMeasures;
   using namespace IB_utils;
 
-  Mat<double> trainDataset, testDataset;
+  Mat<DataType> trainDataset, testDataset;
   Row<std::size_t> trainLabels, testLabels;
-  Row<double> testPrediction;
+  Row<DataType> testPrediction;
 
   if (!data::Load("/home/charles/Data/titanic_train_X.csv", trainDataset))
     throw std::runtime_error("Could not load file");
@@ -72,7 +76,7 @@ auto main() -> int {
   if (!data::Load("/home/charles/Data/titanic_test_y.csv", testLabels))
     throw std::runtime_error("Could not load file");
 
-  Replay<double, DecisionTreeClassifier>::Classify(indexName, testDataset, testPrediction);
+  Replay<DataType, DecisionTreeClassifier>::Classify(indexName, testDataset, testPrediction);
   
   std::cout << "HERE" << std::endl;
 

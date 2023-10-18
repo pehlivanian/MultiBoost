@@ -84,8 +84,8 @@ public:
   static optRV PredictStepwise(std::string, Row<DataType>&, Row<DataType>&, bool=false, bool=false, boost::filesystem::path=boost::filesystem::path{});
 
   // Helpers for incremental trainers
-  static void ClassifyStep(std::string, std::string, Row<double>&, bool=false, boost::filesystem::path=boost::filesystem::path{});
-  static void PredictStep(std::string, std::string, Row<double>&, boost::filesystem::path=boost::filesystem::path{});
+  static void ClassifyStep(std::string, std::string, Row<DataType>&, bool=false, boost::filesystem::path=boost::filesystem::path{});
+  static void PredictStep(std::string, std::string, Row<DataType>&, boost::filesystem::path=boost::filesystem::path{});
 
   // Helpers for incremental trainers
   static void ClassifyStep(std::string, std::string, std::string, bool=false, boost::filesystem::path=boost::filesystem::path{});

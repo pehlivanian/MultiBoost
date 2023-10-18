@@ -1,5 +1,9 @@
 #include "replay_classify_stepwise.hpp"
 
+namespace {
+  using DataType = Model_Traits::classifier_traits<DecisionTreeClassifier>::datatype;
+}
+
 using namespace boost::program_options;
 
 auto main(int argc, char **argv) -> int {
@@ -35,12 +39,12 @@ auto main(int argc, char **argv) -> int {
     std::cerr << desc << std::endl;
   }
 
-  Row<double> prediction;
-  Replay<double, DecisionTreeClassifier>::ClassifyStep(classifierFileName,
-						       datasetFileName,
-						       outFileName,
-						       false,
-						       folderName);
-
+  Row<DataType> prediction;
+  Replay<DataType, DecisionTreeClassifier>::ClassifyStep(classifierFileName,
+							 datasetFileName,
+							 outFileName,
+							 false,
+							 folderName);
+  
   return 0;
 }

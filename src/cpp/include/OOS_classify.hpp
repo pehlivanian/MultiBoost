@@ -13,6 +13,7 @@
 #include <boost/filesystem.hpp>
 
 #include "utils.hpp"
+#include "classifiers.hpp"
 #include "gradientboostclassifier.hpp"
 
 using namespace arma;

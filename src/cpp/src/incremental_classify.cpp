@@ -1,5 +1,9 @@
 #include "incremental_classify.hpp"
 
+namespace {
+  using DataType = Model_Traits::classifier_traits<DecisionTreeClassifier>::datatype;
+}
+
 using namespace arma;
 using namespace mlpack;
 using namespace mlpack::tree;
@@ -27,7 +31,7 @@ auto main(int argc, char **argv) -> int {
   bool warmStart = false;
   bool mergeIndexFiles = false;
   double splitRatio = .2;
-  Row<double> prediction;
+  Row<DataType> prediction;
 
   Context context;
 
@@ -72,7 +76,7 @@ auto main(int argc, char **argv) -> int {
   std::string XPath = absPath + dataName + "_X.csv";
   std::string yPath = absPath + dataName + "_y.csv";
 
-  Mat<double> dataset, trainDataset, testDataset;
+  Mat<DataType> dataset, trainDataset, testDataset;
   Row<std::size_t> labels, trainLabels, testLabels;
   Row<std::size_t> trainPrediction, testPrediction;
 

@@ -1,5 +1,9 @@
 #include "single_class_pmlb_driver.hpp"
 
+namespace {
+  using DataType = Model_Traits::classifier_traits<DecisionTreeClassifier>::datatype;
+}
+
 using namespace arma;
 using namespace mlpack;
 using namespace mlpack::tree;
@@ -13,7 +17,8 @@ using namespace IB_utils;
 
 auto main() -> int {
 
-  Mat<double> dataset, trainDataset, testDataset;
+  Mat<DataType> dataset, trainDataset, testDataset;
+  // Mat<double> dataset, trainDataset, testDataset;
   Row<std::size_t> labels, trainLabels, testLabels;
   Row<std::size_t> trainPrediction, testPrediction;
 

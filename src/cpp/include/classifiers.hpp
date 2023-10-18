@@ -31,6 +31,9 @@ using namespace mlpack::tree;
 using namespace mlpack::data;
 using namespace mlpack::util;
 
+class DecisionTreeClassifier;
+class RandomForestClassifier;
+
 namespace Model_Traits {
 
   using AllClassifierArgs = std::tuple<std::size_t,	// (0) numClasses
@@ -43,6 +46,13 @@ namespace Model_Traits {
     using RandomForestClassifierType = RandomForest<>;
     using DecisionTreeClassifierType = DecisionTree<>;
 
+    // [==========--===========]
+    // [============--=========]
+    // [==============--=======]
+    // Possible options
+    // [==========--===========]
+    // [========--=============]
+    // [======--===============]
     // using DecisionTreeClassifierType = DecisionTree<GiniGain, BestBinaryNumericSplit>;
     // using DecisionTreeClassifierType = DecisionTree<GiniGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
     // using DecisionTreeClassifierType = DecisionTreeRegressor<MADGain>;
@@ -51,100 +61,6 @@ namespace Model_Traits {
     // using DecisionTreeClassifierType = DecisionTreeRegressor<InformationGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
   
   };
-} // namespace Model_Traits
-
-template<typename... Args>
-class RandomForestClassifierBase : 
-  public DiscreteClassifierBase<double,
-				Model_Traits::ClassifierTypes::RandomForestClassifierType,
-				Args...> {
-public:
-  RandomForestClassifierBase() = default;
-  RandomForestClassifierBase(const RandomForestClassifierBase&) = default;
-  
-  RandomForestClassifierBase(const mat& dataset,
-			     rowvec& labels,
-			     Args&&... args) :
-    DiscreteClassifierBase<double, Model_Traits::ClassifierTypes::RandomForestClassifierType, Args...>(dataset, labels, std::forward<Args>(args)...) {}
-  
-};
-
-class RandomForestClassifier : 
-    public RandomForestClassifierBase<std::size_t, std::size_t, std::size_t> {
-
-public:
-
-  using Args = std::tuple<std::size_t, std::size_t, std::size_t>;
-
-  RandomForestClassifier() = default;
-  RandomForestClassifier(const RandomForestClassifier&) = default;
-
-  RandomForestClassifier(const mat& dataset,
-			 rowvec& labels,
-			 std::size_t numClasses=1,
-			 std::size_t numTrees=10,
-			 std::size_t minLeafSize=2) :
-    RandomForestClassifierBase<std::size_t, std::size_t, std::size_t>(dataset, 
-								      labels, 
-								      std::move(numClasses),
-								      std::move(numTrees),
-								      std::move(minLeafSize)) {}
-
-  static Args _args(const Model_Traits::AllClassifierArgs& p) {
-    return std::make_tuple(std::get<0>(p),	// numClasses
-			   std::get<3>(p),	// numTrees
-			   std::get<1>(p));	// minLeafSize
-  }
-
-};
-
-template<typename... Args>
-class DecisionTreeClassifierBase : 
-  public DiscreteClassifierBase<double,
-				Model_Traits::ClassifierTypes::DecisionTreeClassifierType,
-				Args...> {
-public:
-  DecisionTreeClassifierBase() = default;
-  DecisionTreeClassifierBase(const DecisionTreeClassifierBase&) = default;
-  
-  DecisionTreeClassifierBase(const mat& dataset,
-			     rowvec& labels,
-			     Args&&... args) :
-    DiscreteClassifierBase<double, Model_Traits::ClassifierTypes::DecisionTreeClassifierType, Args...>(dataset, labels, std::forward<Args>(args)...) {}
-};
-
-class DecisionTreeClassifier : 
-  public DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t> {
-
-public:
-  using Args = std::tuple<std::size_t, std::size_t, double, std::size_t>;
-
-  DecisionTreeClassifier() = default;
-  DecisionTreeClassifier(const DecisionTreeClassifier&) = default;
-  
-  DecisionTreeClassifier(const mat& dataset,
-			 rowvec& labels,
-			 std::size_t numClasses,
-			 std::size_t minLeafSize,
-			 double minGainSplit,
-			 std::size_t maxDepth) :
-    DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t>(dataset,
-									      labels,
-									      std::move(numClasses),
-									      std::move(minLeafSize),
-									      std::move(minGainSplit),
-									      std::move(maxDepth))
-  {}
-  
-  static Args _args(const Model_Traits::AllClassifierArgs& p) {
-    return std::make_tuple(std::get<0>(p),	// numClasses
-			   std::get<1>(p),	// minLeafSize
-			   std::get<2>(p),	// minGainSplit
-			   std::get<4>(p));	// maxDepth
-  }
-};
-
-namespace Model_Traits {
 
   template<typename T>
   struct classifier_traits {
@@ -171,6 +87,109 @@ namespace Model_Traits {
   };
 } // namespace Model_Traits
 
+template<typename... Args>
+class RandomForestClassifierBase : 
+  public DiscreteClassifierBase<Model_Traits::classifier_traits<RandomForestClassifier>::datatype,
+				Model_Traits::ClassifierTypes::RandomForestClassifierType,
+				Args...> {
+public:
+  using DataType = Model_Traits::classifier_traits<RandomForestClassifier>::datatype;
+  using ClassifierType = Model_Traits::ClassifierTypes::RandomForestClassifierType;
+
+  RandomForestClassifierBase() = default;
+  RandomForestClassifierBase(const RandomForestClassifierBase&) = default;
+  
+  RandomForestClassifierBase(const Mat<DataType>& dataset,
+			     Row<DataType>& labels,
+			     Args&&... args) :
+    DiscreteClassifierBase<DataType, 
+			   ClassifierType, 
+			   Args...>(dataset, labels, std::forward<Args>(args)...) {}
+  
+};
+
+class RandomForestClassifier : 
+    public RandomForestClassifierBase<std::size_t, std::size_t, std::size_t> {
+
+public:
+
+  using Args = std::tuple<std::size_t, std::size_t, std::size_t>;
+  using DataType = Model_Traits::classifier_traits<RandomForestClassifier>::datatype;
+
+  RandomForestClassifier() = default;
+  RandomForestClassifier(const RandomForestClassifier&) = default;
+
+  RandomForestClassifier(const Mat<DataType>& dataset,
+			 Row<DataType>& labels,
+			 std::size_t numClasses=1,
+			 std::size_t numTrees=10,
+			 std::size_t minLeafSize=2) :
+    RandomForestClassifierBase<std::size_t, std::size_t, std::size_t>(dataset, 
+								      labels, 
+								      std::move(numClasses),
+								      std::move(numTrees),
+								      std::move(minLeafSize)) {}
+
+  static Args _args(const Model_Traits::AllClassifierArgs& p) {
+    return std::make_tuple(std::get<0>(p),	// numClasses
+			   std::get<3>(p),	// numTrees
+			   std::get<1>(p));	// minLeafSize
+  }
+
+};
+
+template<typename... Args>
+class DecisionTreeClassifierBase : 
+  public DiscreteClassifierBase<Model_Traits::classifier_traits<DecisionTreeClassifier>::datatype,
+				Model_Traits::ClassifierTypes::DecisionTreeClassifierType,
+				Args...> {
+public:
+
+  using DataType = Model_Traits::classifier_traits<DecisionTreeClassifier>::datatype;
+  using ClassifierType = Model_Traits::ClassifierTypes::DecisionTreeClassifierType;
+
+  DecisionTreeClassifierBase() = default;
+  DecisionTreeClassifierBase(const DecisionTreeClassifierBase&) = default;
+  
+  DecisionTreeClassifierBase(const Mat<DataType>& dataset,
+			     Row<DataType>& labels,
+			     Args&&... args) :
+    DiscreteClassifierBase<DataType, 
+			   ClassifierType, 
+			   Args...>(dataset, labels, std::forward<Args>(args)...) {}
+};
+
+class DecisionTreeClassifier : 
+  public DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t> {
+
+public:
+  using Args = std::tuple<std::size_t, std::size_t, double, std::size_t>;
+  using DataType = Model_Traits::classifier_traits<DecisionTreeClassifier>::datatype;
+
+  DecisionTreeClassifier() = default;
+  DecisionTreeClassifier(const DecisionTreeClassifier&) = default;
+  
+  DecisionTreeClassifier(const Mat<DataType>& dataset,
+			 Row<DataType>& labels,
+			 std::size_t numClasses,
+			 std::size_t minLeafSize,
+			 double minGainSplit,
+			 std::size_t maxDepth) :
+    DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t>(dataset,
+									      labels,
+									      std::move(numClasses),
+									      std::move(minLeafSize),
+									      std::move(minGainSplit),
+									      std::move(maxDepth))
+  {}
+  
+  static Args _args(const Model_Traits::AllClassifierArgs& p) {
+    return std::make_tuple(std::get<0>(p),	// numClasses
+			   std::get<1>(p),	// minLeafSize
+			   std::get<2>(p),	// minGainSplit
+			   std::get<4>(p));	// maxDepth
+  }
+};
 
 ////////////////////////////////////////////////////////
 // CEREAL DEFINITIONS, REGISTRATIONS, OVERLOADS, ETC. //

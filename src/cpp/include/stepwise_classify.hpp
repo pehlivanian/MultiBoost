@@ -8,6 +8,7 @@
 #include <boost/program_options.hpp>
 
 #include "utils.hpp"
+#include "classifiers.hpp"
 #include "gradientboostclassifier.hpp"
 #include "replay.hpp"
 

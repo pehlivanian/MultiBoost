@@ -75,7 +75,7 @@ namespace IB_utils {
   }
 
   double err(const Row<float>& yhat, const Row<float>& y, double resolution) {
-    return err(conv_to<Row<float>>::from(yhat), conv_to<Row<float>>::from(y), resolution);
+    return err(conv_to<Row<double>>::from(yhat), conv_to<Row<double>>::from(y), resolution);
   }
 
   double err(const Row<std::size_t>& yhat, const Row<std::size_t>& y) {

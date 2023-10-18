@@ -12,7 +12,7 @@ template<typename DataType, typename ClassifierType>
 void
 Replay<DataType, ClassifierType>::ClassifyStep(std::string classifierFileName,
 					       std::string datasetFileName,
-					       Row<double>& prediction,
+					       Row<DataType>& prediction,
 					       bool deSymmetrize,
 					       boost::filesystem::path folderName) {
   bool ignoreSymmetrization = true;
@@ -38,7 +38,7 @@ template<typename DataType, typename RegressorType>
 void
 Replay<DataType, RegressorType>::PredictStep(std::string regressorFileName,
 					     std::string datasetFileName,
-					     Row<double>& prediction,
+					     Row<DataType>& prediction,
 					     boost::filesystem::path folderName) {
   
   using R = GradientBoostRegressor<RegressorType>;
@@ -140,7 +140,7 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
       if (tokens[0] == "CLS") {
 	classifierFileName = strJoin(tokens, '_', 1);
 	
-	auto task = [&results_queue, classifierFileName, datasetOOSFileName, folderName](Row<double>& prediction){
+	auto task = [&results_queue, classifierFileName, datasetOOSFileName, folderName](Row<DataType>& prediction){
 	  ClassifyStep(classifierFileName,
 		       datasetOOSFileName,
 		       prediction,
@@ -150,7 +150,7 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
 	  return 0;
 	};
 
-	Row<double> prediction;
+	Row<DataType> prediction;
 	futures.push_back(DefaultThreadPool::submitJob_n<3>(task, std::ref(prediction)));
 	
 	classifierNum++;
@@ -164,7 +164,7 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
     }
     
     while (!results_queue.empty()) {
-      Row<double> predictionStep;
+      Row<DataType> predictionStep;
       results_queue.waitPop(predictionStep);
       prediction += predictionStep;
     }
@@ -408,7 +408,7 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
   // Next pass - generate prediction
   if (distribute) {
 
-    ThreadsafeQueue<Row<double>> results_queue;
+    ThreadsafeQueue<Row<DataType>> results_queue;
     std::vector<ThreadPool::TaskFuture<int>> futures;
     
     for (auto &fileName : fileNames) {
@@ -416,7 +416,7 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
       if (tokens[0] == "REG") {
 	regressorFileName = strJoin(tokens, '_', 1);
 	
-	auto task = [&results_queue, regressorFileName, datasetOOSFileName, folderName](Row<double>& prediction){
+	auto task = [&results_queue, regressorFileName, datasetOOSFileName, folderName](Row<DataType>& prediction){
 	  PredictStep(regressorFileName,
 		      datasetOOSFileName,
 		      prediction,
@@ -425,7 +425,7 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
 	  return 0;
 	};
 
-	Row<double> prediction;
+	Row<DataType> prediction;
 	futures.push_back(DefaultThreadPool::submitJob_n<3>(task, std::ref(prediction)));
 	
 	regressorNum++;
@@ -439,7 +439,7 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
     }
     
     while (!results_queue.empty()) {
-      Row<double> predictionStep;
+      Row<DataType> predictionStep;
       results_queue.waitPop(predictionStep);
       prediction += predictionStep;
     }
@@ -506,7 +506,7 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
     prediction_is = zeros<Row<DataType>>(n_cols_is);
 
     for (auto &fileName : predictionFileNamesIS) {
-      Row<double> predictionStep_is;
+      Row<DataType> predictionStep_is;
       read(predictionStep_is, fileName, folderName);
       prediction_is += predictionStep_is;
     }

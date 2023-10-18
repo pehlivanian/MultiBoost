@@ -12,19 +12,28 @@
 #include "utils.hpp"
 #include "score2.hpp"
 #include "DP.hpp"
+#include "classifiers.hpp"
 #include "gradientboostclassifier.hpp"
 #include "gradientboostregressor.hpp"
 #include "replay.hpp"
+
+namespace {
+  using DataType = Model_Traits::classifier_traits<DecisionTreeClassifier>::datatype;
+}
 
 using namespace IB_utils;
 using namespace ModelContext;
 using namespace ClassifierTypes;
 using namespace RegressorTypes;
 
-using dataset_t = Mat<double>;
-using dataset_d = Mat<double>;
+using dataset_t = Mat<DataType>;
+using dataset_d = Mat<DataType>;
+using dataset_regress_t = Mat<double>;
+using dataset_regress_d = Mat<double>;
 using labels_t = Row<std::size_t>;
-using labels_d = Row<double>;
+using labels_d = Row<DataType>;
+using labels_regress_t = Row<double>;
+using labels_regress_d = Row<double>;
 
 class DPSolverTestFixture : public ::testing::TestWithParam<objective_fn> {
 };
@@ -174,7 +183,7 @@ void loadClassifierDatasets(dataset_t& dataset, labels_t& labels) {
     throw std::runtime_error("Could not load file");
 }
 
-void loadRegressorDatasets(dataset_t& dataset, labels_d& labels) {
+void loadRegressorDatasets(dataset_regress_t& dataset, labels_regress_d& labels) {
   if (!data::Load("/home/charles/Data/Regression/1193_BNG_lowbwt_X.csv", dataset))
     throw std::runtime_error("Could not load file");
   if (!data::Load("/home/charles/Data/Regression/1193_BNG_lowbwt_y.csv", labels))
@@ -785,7 +794,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
     classifier.fit();
 
     // Predict IS with live classifier fails due to serialization...
-    Row<double> liveTrainPrediction;
+    Row<DataType> liveTrainPrediction;
     EXPECT_THROW(classifier.Predict(trainDataset, liveTrainPrediction),
 		 predictionAfterClearedClassifiersException );
 
@@ -797,14 +806,14 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
     boost::filesystem::path fldr = classifier.getFldr();
 
     // Use replay to predict IS based on archive classifier
-    Row<double> archiveTrainPrediction;
-    Replay<double, DecisionTreeClassifier>::Classify(indexName, trainDataset, archiveTrainPrediction, fldr);
+    Row<DataType> archiveTrainPrediction;
+    Replay<DataType, DecisionTreeClassifier>::Classify(indexName, trainDataset, archiveTrainPrediction, fldr);
 
     for (std::size_t i=0; i<liveTrainPrediction.n_elem; ++i)
       ASSERT_LE(fabs(liveTrainPrediction[i]-archiveTrainPrediction[i]), eps);
 
     // Predict OOS with live classifier
-    Row<double> liveTestPrediction;
+    Row<DataType> liveTestPrediction;
     context.serializeModel = false;
     context.serializePrediction = false;
     secondClassifier = T(trainDataset, trainLabels, context);
@@ -812,8 +821,8 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
     secondClassifier.Predict(testDataset, liveTestPrediction);
 
     // Use replay to predict OOS based on archive classifier
-    Row<double> archiveTestPrediction;
-    Replay<double, DecisionTreeClassifier>::Classify(indexName, testDataset, archiveTestPrediction, fldr, true);
+    Row<DataType> archiveTestPrediction;
+    Replay<DataType, DecisionTreeClassifier>::Classify(indexName, testDataset, archiveTestPrediction, fldr, true);
 
     for (std::size_t i=0; i<liveTestPrediction.size(); ++i) {
       ASSERT_LE(fabs(liveTestPrediction[i]-archiveTestPrediction[i]), eps);
@@ -870,11 +879,11 @@ TEST(GradientBoostClassifierTest, TestInSamplePredictionMatchesLatestPrediction)
     classifier.fit();
 
     // IS prediction - live classifier
-    Row<double> liveTrainPrediction;
+    Row<DataType> liveTrainPrediction;
     classifier.Predict(liveTrainPrediction);
     
     // IS lastestPrediction_ - archive classifier
-    Row<double> latestPrediction = classifier.getLatestPrediction();
+    Row<DataType> latestPrediction = classifier.getLatestPrediction();
 
     for (std::size_t i=0; i<liveTrainPrediction.n_elem; ++i)
       ASSERT_LE(fabs(liveTrainPrediction[i]-latestPrediction[i]), eps);
@@ -933,7 +942,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveRoundTrips) {
     fileName = strJoin(tokens, '_', 1);
     classifier.read(newClassifier, fileName);
 
-    Row<double> trainPrediction, trainNewPrediction, testPrediction, testNewPrediction;
+    Row<DataType> trainPrediction, trainNewPrediction, testPrediction, testNewPrediction;
     classifier.Predict(testDataset, testPrediction);
     classifier.Predict(trainDataset, trainPrediction);
     newClassifier.Predict(testDataset, testNewPrediction);
@@ -1069,7 +1078,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips)
 
     classifier.read(newClassifier, fileName);
 
-    Row<double> trainPrediction, trainNewPrediction, testPrediction, testNewPrediction;
+    Row<DataType> trainPrediction, trainNewPrediction, testPrediction, testNewPrediction;
     classifier.Predict(testDataset, testPrediction);
     classifier.Predict(trainDataset, trainPrediction);
     newClassifier.Predict(testDataset, testNewPrediction);
@@ -1281,22 +1290,22 @@ TEST(GradientBoostClassifierTest, TestWritePrediction) {
     classifier.fit();
 
     // Predict IS with live classifier fails due to serialization...
-    Row<double> liveTrainPrediction;
+    Row<DataType> liveTrainPrediction;
     EXPECT_THROW(classifier.Predict(trainDataset, liveTrainPrediction), predictionAfterClearedClassifiersException );
 
     // Use latestPrediction_ instead
     classifier.Predict(liveTrainPrediction);
     
     // Use replay to predict IS based on archive classifier
-    Row<double> archiveTrainPrediction1, archiveTrainPrediction2;
+    Row<DataType> archiveTrainPrediction1, archiveTrainPrediction2;
     std::string indexName = classifier.getIndexName();
     boost::filesystem::path fldr = classifier.getFldr();
 
     // Method 1
-    Replay<double, DecisionTreeClassifier>::Classify(indexName, trainDataset, archiveTrainPrediction1, fldr);
+    Replay<DataType, DecisionTreeClassifier>::Classify(indexName, trainDataset, archiveTrainPrediction1, fldr);
 
     // Method 2
-    Replay<double, DecisionTreeClassifier>::Classify(indexName, archiveTrainPrediction2, fldr);
+    Replay<DataType, DecisionTreeClassifier>::Classify(indexName, archiveTrainPrediction2, fldr);
 
     for (std::size_t i=0; i<liveTrainPrediction.n_elem; ++i) {
       ASSERT_LE(fabs(liveTrainPrediction[i]-archiveTrainPrediction1[i]), eps);
@@ -1310,8 +1319,8 @@ TEST(GradientBoostClassifierTest, TestWritePrediction) {
 TEST(GradientBoostRegressorTest, TestPredictionRoundTrip) {
 
   std::vector<bool> trials = {false};
-  dataset_d dataset, trainDataset, testDataset;
-  labels_d labels, trainLabels, testLabels;
+  dataset_regress_d dataset, trainDataset, testDataset;
+  labels_regress_d labels, trainLabels, testLabels;
 
   loadRegressorDatasets(dataset, labels);
   data::Split(dataset,
@@ -1442,7 +1451,7 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
 
     double eps = std::numeric_limits<double>::epsilon();
 
-    Row<double> prediction, archivePrediction, newPrediction, secondPrediction;
+    Row<DataType> prediction, archivePrediction, newPrediction, secondPrediction;
 
     // Fit classifier
     T classifier;
@@ -1500,8 +1509,8 @@ TEST(GradientBoostRegressorTest, TestChildSerializationRoundTrips) {
   double minimumGainSplit = 0.;
   std::size_t maxDepth = 10;
 
-  dataset_d dataset, trainDataset, testDataset;
-  labels_d labels, trainLabels, testLabels;
+  dataset_regress_d dataset, trainDataset, testDataset;
+  labels_regress_d labels, trainLabels, testLabels;
 
   loadRegressorDatasets(dataset, labels);
   data::Split(dataset, 
@@ -1558,8 +1567,8 @@ TEST(GradientBoostRegressorTest, TestInSamplePredictionMatchesLatestPrediction) 
 
   std::vector<bool> trials = {false, true};
 
-  dataset_d dataset, trainDataset, testDataset;
-  labels_d labels, trainLabels, testLabels;
+  dataset_regress_d dataset, trainDataset, testDataset;
+  labels_regress_d labels, trainLabels, testLabels;
 
   loadRegressorDatasets(dataset, labels);
   data::Split(dataset,
@@ -1617,8 +1626,8 @@ TEST(GradientBoostRegressorTest, TestInSamplePredictionMatchesLatestPrediction) 
 TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
   
   std::vector<bool> trials = {true, false};
-  dataset_d dataset, trainDataset, testDataset;
-  labels_d labels, trainLabels, testLabels;
+  dataset_regress_d dataset, trainDataset, testDataset;
+  labels_regress_d labels, trainLabels, testLabels;
 
   loadRegressorDatasets(dataset, labels);
 
@@ -1712,8 +1721,8 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorNonRecursiveRoundTrips) {
   int numTrials = 1;
   std::vector<bool> trials(numTrials);
   
-  dataset_d dataset, trainDataset, testDataset;
-  labels_d labels, trainLabels, testLabels;
+  dataset_regress_d dataset, trainDataset, testDataset;
+  labels_regress_d labels, trainLabels, testLabels;
 
   loadRegressorDatasets(dataset, labels);
   data::Split(dataset, 

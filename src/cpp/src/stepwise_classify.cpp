@@ -1,5 +1,9 @@
 #include "stepwise_classify.hpp"
 
+namespace {
+  using DataType = Model_Traits::classifier_traits<DecisionTreeClassifier>::datatype;
+}
+
 using namespace boost::program_options;
 
 auto main(int argc, char **argv) -> int {
@@ -33,7 +37,7 @@ auto main(int argc, char **argv) -> int {
     std::cerr << desc << std::endl;
   }
 
-  Row<double> prediction_oos, labels_oos;
+  Row<DataType> prediction_oos, labels_oos;
   const auto [error_OOS,
 	      precision_OOS,
 	      recall_OOS,
@@ -43,7 +47,7 @@ auto main(int argc, char **argv) -> int {
 	      precision_IS,
 	      recall_IS,
 	      F1_IS,
-	      imbalance_IS] = Replay<double, DecisionTreeClassifier>::ClassifyStepwise(indexFileName, 
+	      imbalance_IS] = Replay<DataType, DecisionTreeClassifier>::ClassifyStepwise(indexFileName, 
 										   prediction_oos, 
 										   labels_oos, 
 										   true, 

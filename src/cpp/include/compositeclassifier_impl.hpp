@@ -427,7 +427,7 @@ CompositeClassifier<ClassifierType>::symmetrizeLabels(Row<DataType>& labels) {
 
   if (uniqueVals.n_cols == 1) {
     a_ = 1.; b_ = 1.;
-    labels = ones<Row<double>>(labels.n_elem);
+    labels = ones<Row<DataType>>(labels.n_elem);
   } else if (uniqueVals.size() == 2) {
     double m = *std::min_element(uniqueVals.cbegin(), uniqueVals.cend());
     double M = *std::max_element(uniqueVals.cbegin(), uniqueVals.cend());
@@ -1146,152 +1146,10 @@ CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& 
   Row<DataType> yhat;
   Predict(yhat, colMask);
 
-  // if (loss_ == lossFunction::PowerLoss) {
-  if (false) {
-    double minError = 100.;
-    Row<DataType> minG, minH;
-
-    Row<DataType> g1, h1;
-    LossFunction<double>* lossFn1 = new PowerLoss<DataType>{1.};
-    lossFn1->loss(yhat, labels, &g1, &h1, clamp_gradient_, upper_val_, lower_val_);
-
-    Row<DataType> g2, h2;
-    LossFunction<double>* lossFn2 = new PowerLoss<DataType>{2.};
-    lossFn2->loss(yhat, labels, &g2, &h2, clamp_gradient_, upper_val_, lower_val_);
-
-    Row<DataType> g3, h3;
-    LossFunction<double>* lossFn3 = new PowerLoss<DataType>{3.};
-    lossFn3->loss(yhat, labels, &g3, &h3, clamp_gradient_, upper_val_, lower_val_);
-
-    Row<DataType> g4, h4;
-    LossFunction<double>* lossFn4 = new PowerLoss<DataType>{4.};
-    lossFn4->loss(yhat, labels, &g4, &h4, clamp_gradient_, upper_val_, lower_val_);
-    
-    Row<DataType> g5, h5;
-    LossFunction<double>* lossFn5 = new PowerLoss<DataType>{5.};
-    lossFn5->loss(yhat, labels, &g5, &h5, clamp_gradient_, upper_val_, lower_val_);
-
-    std::cerr << "COMPUTING LEAVES1" << std::endl;
-    auto [best_leaves1, subset_info1] = computeOptimalSplit(g1,
-							    h1,
-							    1,
-							    partitionSize_,
-							    learningRate_,
-							    activePartitionRatio_,
-							    colMask_,
-							    false);
-
-    Leaves allLeaves1 = zeros<Row<DataType>>(m_);
-    allLeaves1(colMask_) = best_leaves1;
-    Row<DataType> prediction1;
-    std::unique_ptr<ClassifierType> classifier1;
-    createRootClassifier(classifier1, rowMask_, colMask_, best_leaves1);  
-    classifier1->Classify(dataset_, prediction1);
-
-    double error1 = err(prediction1, allLeaves1);
-    minError = error1;
-    minG = g1; minH = h1;
-
-    std::cerr << "COMPUTING LEAVES2" << std::endl;
-    auto [best_leaves2, subset_info2] = computeOptimalSplit(g2,
-							    h2,
-							    1,
-							    partitionSize_,
-							    learningRate_,
-							    activePartitionRatio_,
-							    colMask_,
-							    false);
-
-    Leaves allLeaves2 = zeros<Row<DataType>>(m_);
-    allLeaves2(colMask_) = best_leaves2;
-    Row<DataType> prediction2;
-    std::unique_ptr<ClassifierType> classifier2;
-    createRootClassifier(classifier2, rowMask_, colMask_, best_leaves2);  
-    classifier2->Classify(dataset_, prediction2);
-
-    double error2 = err(prediction2, allLeaves2);
-    if (error2 < minError) {
-      minG = g2;
-      minH = h2;
-    }
-
-    std::cerr << "COMPUTING LEAVES3" << std::endl;
-    auto [best_leaves3, subset_info3] = computeOptimalSplit(g3,
-							    h3,
-							    1,
-							    partitionSize_,
-							    learningRate_,
-							    activePartitionRatio_,
-							    colMask_,
-							    false);
-
-    Leaves allLeaves3 = zeros<Row<DataType>>(m_);
-    allLeaves3(colMask_) = best_leaves3;
-    Row<DataType> prediction3;
-    std::unique_ptr<ClassifierType> classifier3;
-    createRootClassifier(classifier3, rowMask_, colMask_, best_leaves3);  
-    classifier3->Classify(dataset_, prediction3);
-
-    double error3 = err(prediction3, allLeaves3);
-    if (error3 < minError) {
-      minG = g3;
-      minH = h3;
-    }
-
-    std::cerr << "COMPUTING LEAVES4" << std::endl;
-    auto [best_leaves4, subset_info4] = computeOptimalSplit(g4,
-							    h4,
-							    1,
-							    partitionSize_,
-							    learningRate_,
-							    activePartitionRatio_,
-							    colMask_,
-							    false);
-
-    Leaves allLeaves4 = zeros<Row<DataType>>(m_);
-    allLeaves4(colMask_) = best_leaves4;
-    Row<DataType> prediction4;
-    std::unique_ptr<ClassifierType> classifier4;
-    createRootClassifier(classifier4, rowMask_, colMask_, best_leaves4);  
-    classifier4->Classify(dataset_, prediction4);
-
-    double error4 = err(prediction4, allLeaves4);
-    if (error4 < minError) {
-      minG = g4;
-      minH = h4;
-    }
-
-    std::cerr << "COMPUTING LEAVES5" << std::endl;
-    auto [best_leaves5, subset_info5] = computeOptimalSplit(g5,
-							    h5,
-							    1,
-							    partitionSize_,
-							    learningRate_,
-							    activePartitionRatio_,
-							    colMask_,
-							    false);
-
-    Leaves allLeaves5 = zeros<Row<DataType>>(m_);
-    allLeaves5(colMask_) = best_leaves5;
-    Row<DataType> prediction5;
-    std::unique_ptr<ClassifierType> classifier5;
-    createRootClassifier(classifier5, rowMask_, colMask_, best_leaves5);  
-    classifier5->Classify(dataset_, prediction5);
-
-    double error5 = err(prediction5, allLeaves5);
-    if (error5 < minError) {
-      minG = g5;
-      minH = h5;
-    }
-    
-    return std::make_pair(minG, minH);
-    
-  } else {
-    Row<DataType> g, h;
-    lossFn_->loss(yhat, labels, &g, &h, clamp_gradient_, upper_val_, lower_val_);
-
-    return std::make_pair(g, h);
-  }
+  Row<DataType> g, h;
+  lossFn_->loss(yhat, labels, &g, &h, clamp_gradient_, upper_val_, lower_val_);
+  
+  return std::make_pair(g, h);
 
 }
 

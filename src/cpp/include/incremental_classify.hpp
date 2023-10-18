@@ -14,6 +14,7 @@
 #include <mlpack/core.hpp>
 
 #include "gradientboostclassifier.hpp"
+#include "classifiers.hpp"
 #include "utils.hpp"
 
 

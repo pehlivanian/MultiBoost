@@ -1,8 +1,12 @@
 #include "OOS_classify.hpp"
 
+namespace {
+  using DataType = Model_Traits::classifier_traits<DecisionTreeClassifier>::datatype;
+}
+
 using namespace boost::program_options;
 
-void desymmetrize(Row<double>& prediction, double a, double b) {
+void desymmetrize(Row<DataType>& prediction, double a, double b) {
   
   prediction = (sign(prediction) - b)/ a;
 
@@ -44,17 +48,17 @@ auto main(int argc, char **argv) -> int {
   std::string XPath = absPath + dataName + "_X.csv";
   std::string yPath = absPath + dataName + "_y.csv";
 
-  Mat<double> dataset;
-  Row<double> labels;
-  Row<double> prediction, predictionStep;
+  Mat<DataType> dataset;
+  Row<DataType> labels;
+  Row<DataType> prediction, predictionStep;
 
   if (!data::Load(XPath, dataset))
     throw std::runtime_error("Could not load file");
   if (!data::Load(yPath, labels))
     throw std::runtime_error("Could not load file");
 
-  prediction = zeros<Row<double>>(dataset.n_cols);
-  predictionStep = zeros<Row<double>>(dataset.n_cols);
+  prediction = zeros<Row<DataType>>(dataset.n_cols);
+  predictionStep = zeros<Row<DataType>>(dataset.n_cols);
 
   // Deserialize archived classifier
   boost::filesystem::path fldr{folderName};

@@ -17,6 +17,7 @@
 
 #include "pmlb.hpp"
 #include "loss.hpp"
+#include "classifiers.hpp"
 #include "gradientboostclassifier.hpp"
 #include "utils.hpp"
 #include "replay.hpp"
