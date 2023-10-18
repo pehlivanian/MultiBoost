@@ -8,6 +8,11 @@
 #include <limits>
 #include <cmath>
 #include <memory>
+#include <regex>
+
+#include <boost/filesystem.hpp>
+#include <boost/process.hpp>
+#include <boost/process/child.hpp>
 
 #include "utils.hpp"
 #include "score2.hpp"
@@ -20,6 +25,8 @@
 namespace {
   using DataType = Model_Traits::classifier_traits<DecisionTreeClassifier>::datatype;
 }
+
+using namespace boost::process;
 
 using namespace IB_utils;
 using namespace ModelContext;
@@ -46,6 +53,18 @@ INSTANTIATE_TEST_SUITE_P(DPSolverTests,
 					   objective_fn::RationalScore
 					   )
 			 );
+
+
+std::vector<std::string> tokenize(const std::string& s, const char* c) {
+  std::vector<std::string> r;
+
+  std::regex ws_re(c);
+  std::copy(std::sregex_token_iterator(s.begin(), s.end(), ws_re, -1),
+	    std::sregex_token_iterator{},
+	    std::back_inserter(r));
+
+  return r;
+}
 
 void sort_by_priority(std::vector<float>& a, std::vector<float>& b) {
   std::vector<int> ind(a.size());
@@ -1973,6 +1992,67 @@ TEST(GradientBoostRegressorTest, TestOutofSampleFit) {
       ASSERT_EQ(labels[i], prediction[i]);
     }
   }
+  
+}
+
+TEST(GradientBoostClassifierTest, TestIncrementalClassifierScript) {
+  // use folder to determine pwd
+  boost::filesystem::path folder{"../data/"};
+  
+  ipstream pipe_stream;
+  char dataset_name_train[50] = "buggyCrx_train";
+  char dataset_name_test[50] = "buggyCrx_test";
+  char abs_path[100] = "/home/charles/src/C++/sandbox/Inductive-Boost/";
+
+  char rg_ex[50];
+  char cmd[200];
+  sprintf(rg_ex, "\\[%s\\]\\sOOS[\\s]*:[\\s]*.*:[\\s]+\\((.*)\\)", dataset_name_test);
+  sprintf(cmd, "%ssrc/script/incremental_classifier_fit.sh 1 250 1 0.1 0.75 0 1 0 %s 20 12 2.15 1 1 1 1 -1 1", abs_path, dataset_name_train);
+  
+  std::array<float, 21> errors = {39.4737, 23.6842, 18.9474, 16.3158, 15.7895, 
+				  16.3158, 14.7368, 13.1579, 14.2105, 13.6842, 
+				  13.6842, 13.6842, 13.6842, 13.6842, 13.6842, 
+				  14.2105, 14.2105, 14.2105, 14.2105, 14.2105, 
+				  14.2105};
+  std::array<float, 21> precision = {0.697674, 0.790909, 0.841121, 0.867925, 0.87619, 
+				     0.875, 0.878505, 0.888889, 0.886792, 0.895238, 
+				     0.895238, 0.895238, 0.895238, 0.895238, 0.895238, 
+				     0.886792, 0.886792, 0.886792, 0.886792, 0.886792, 
+				     0.886792};
+  std::array<float, 21> recall = {0.550459, 0.798165, 0.825688, 0.844037, 0.844037, 
+				  0.834862, 0.862385, 0.880734, 0.862385, 0.862385, 
+				  0.862385, 0.862385, 0.862385, 0.862385, 0.862385, 
+				  0.862385, 0.862385, 0.862385, 0.862385, 0.862385, 
+				  0.862385};
+  std::array<float, 21> F1 = {0.615385, 0.794521, 0.833333, 0.855814, 0.859813, 
+			      0.85446, 0.87037, 0.884793, 0.874419, 0.878505, 
+			      0.878505, 0.878505, 0.878505, 0.878505, 0.878505, 
+			      0.874419, 0.874419, 0.874419, 0.874419, 0.874419, 
+			      0.874419};
+  float imbalance = 0.979058;
+
+  std::string cmd_str{cmd};
+  child c(cmd_str, std_out > pipe_stream);
+
+  std::regex ws_re{rg_ex};
+  std::smatch sm;
+  std::string line;
+  std::size_t cnt=0;
+  while (pipe_stream && std::getline(pipe_stream, line) && !line.empty()) {
+    if (std::regex_match(line, ws_re)) {
+      std::regex_match(line.cbegin(), line.cend(), sm, ws_re);
+      std::vector<std::string> res = tokenize(sm[1], ", ");
+      ASSERT_EQ(std::stof(res[0]), errors[cnt]);
+      ASSERT_EQ(std::stof(res[1]), precision[cnt]);
+      ASSERT_EQ(std::stof(res[2]), recall[cnt]);
+      ASSERT_EQ(std::stof(res[3]), F1[cnt++]);
+      ASSERT_EQ(std::stof(res[4]), imbalance);
+    }
+  }
+
+  c.wait();
+    
+  ASSERT_EQ(1, 1);
   
 }
 

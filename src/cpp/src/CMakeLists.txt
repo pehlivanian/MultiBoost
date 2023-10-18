@@ -108,7 +108,7 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-# find_package(Filesystem)
+# find_package(Filesystmem)
 if (NOT Filesystem_FOUND)
   find_package(Boost COMPONENTS filesystem)
 endif()
