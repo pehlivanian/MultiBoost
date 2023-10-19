@@ -52,7 +52,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let numCols = datasetShape.1;
 
     // Vector inputs
-    let mut childNumPartitions:		Vec<f32> = vec![250.0, 150.0, 100.0, 50.0, 25.0, 15.0, 10.0, 5.0, 1.0];
+    let mut childNumPartitions:		Vec<f32> = vec![1000.0, 100.0];
     let mut childNumSteps:		Vec<f32> = vec![1.00; childNumPartitions.len()];
     let mut childLearningRate:		Vec<f32> = vec![0.001; childNumPartitions.len()];
     let mut childPartitionUsageRatio:	Vec<f32> = vec![0.00; childNumPartitions.len()];
@@ -62,7 +62,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Scalar inputs
     let mut numGrids:		usize = childNumPartitions.len();
-    let mut numIterations:	u32   = 25;
+    let mut numIterations:	u32   = 50;
     let mut lossFn:		u32   = 12;
     let mut lossPower:		f32   = 1.0;
     let mut colSubsampleRatio:	f32   = 1.0;

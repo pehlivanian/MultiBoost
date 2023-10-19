@@ -114,7 +114,8 @@ MODEL_TYPE = "Classifier"
 # dataset_name = "income_2000"
 # dataset_name = "house_votes_84"
 # dataset_name = "colic"
-dataset_name = "buggyCrx"
+# dataset_name = "buggyCrx"
+dataset_name = "ring"
 
 # X = pd.read_csv("/home/charles/Data/income_train_X.csv")
 # y = pd.read_csv("/home/charles/Data/income_train_y.csv")
@@ -122,7 +123,7 @@ X,y = pmlb.fetch_data(dataset_name, return_X_y=True)
 # X_train, X_test, y_train, y_test = train_test_split(X, y)
 # X = X_train; y = y_train
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=190)
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=44, train_size=2000, test_size=1000)
 
 
 if MODEL_TYPE in ("Regression", ):
