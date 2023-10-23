@@ -99,8 +99,8 @@ CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
   activePartitionRatio_		= context.childActivePartitionRatio[0];
 
   minLeafSize_			= context.childMinLeafSize[0];
-  minimumGainSplit_		= context.childMinimumGainSplit[0];
   maxDepth_			= context.childMaxDepth[0];
+  minimumGainSplit_		= context.childMinimumGainSplit[0];
   
   baseSteps_			= context.baseSteps;
   symmetrized_			= context.symmetrizeLabels;
@@ -156,7 +156,6 @@ CompositeClassifier<ClassifierType>::_randomLeaf() const {
 
   Row<DataType> r(dataset_.n_cols, arma::fill::none);
   std::mt19937 rng;
-  // std::uniform_int_distribution<std::size_t> dist{1, numVals};
   std::uniform_real_distribution<DataType> dist{-learningRate_, learningRate_};
   r.imbue([&](){ return dist(rng);});
   return r;
@@ -165,7 +164,8 @@ CompositeClassifier<ClassifierType>::_randomLeaf() const {
 
 template<typename ClassifierType>
 void
-CompositeClassifier<ClassifierType>::updateClassifiers(std::unique_ptr<ClassifierBase<DataType, Classifier>>&& classifier,
+CompositeClassifier<ClassifierType>::updateClassifiers(std::unique_ptr<ClassifierBase<DataType, 
+						       Classifier>>&& classifier,
 						       Row<DataType>& prediction) {
 
   latestPrediction_ += prediction;
@@ -493,11 +493,6 @@ CompositeClassifier<ClassifierType>::setRootClassifier(std::unique_ptr<Classifie
 						       const Mat<DataType>& dataset,
 						       Row<CompositeClassifier<ClassifierType>::DataType>& labels,
 						       std::tuple<Ts...> const& args) {
-  // mimic:
-  // classifier.reset(new ClassifierType(dataset_,
-  //  				      constantLabels,
-  // 				      std::forward<typename ClassifierType::Args>(classifierArgs)));
-
   std::unique_ptr<ClassifierType> cls;
 
   auto _c = [&cls, &dataset, &labels](Ts const&... classArgs) { 
@@ -582,7 +577,6 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   }
 
   Row<DataType> labels_slice = labels_.submat(zeros<uvec>(1), colMask_);
-  // Row<DataType> best_leaves;
   std::pair<Row<DataType>, Row<DataType>> coeffs;
   
   Row<DataType> prediction;
@@ -808,8 +802,8 @@ CompositeClassifier<ClassifierType>::computeOptimalSplit(Row<CompositeClassifier
   double reg_power					= 1.;
   bool find_optimal_t					= false;
 
-  std::vector<double> gv0 = arma::conv_to<std::vector<double>>::from(g);
-  std::vector<double> hv0 = arma::conv_to<std::vector<double>>::from(h);
+  std::vector<DataType> gv0 = arma::conv_to<std::vector<DataType>>::from(g);
+  std::vector<DataType> hv0 = arma::conv_to<std::vector<DataType>>::from(h);
 
   auto dp0 = DPSolver(n, T, gv0, hv0,
 		      obj_fn,

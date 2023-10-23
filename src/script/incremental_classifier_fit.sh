@@ -213,6 +213,10 @@ arg1="${res[1]}"
 INDEX_NAME_STEP=$arg0
 FOLDER_STEP=$arg1
 
+echo ${PREFIX}" FOLDER: "${FOLDER_STEP}
+echo ${PREFIX}" INDEX: "${INDEX_NAME_STEP}
+echo ${PREFIX}" ITER 1"
+
 /bin/mv ${CONTEXT_PATH_RUN1} ${FOLDER_STEP}
 /bin/mv ${CONTEXT_PATH_RUNS} ${FOLDER_STEP} 
 

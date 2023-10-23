@@ -433,7 +433,7 @@ public:
   void _predict_in_loop_archive(std::vector<std::string>&, MatType&&, Row<DataType>&, bool=false);
 
 
-  mat getDataset() const { return dataset_; }
+  Mat<DataType> getDataset() const { return dataset_; }
   Row<DataType> getLatestPrediction() const { return latestPrediction_; }
   int getNRows() const { return n_; }
   int getNCols() const { return m_; }
@@ -497,7 +497,8 @@ private:
   
   void createRootClassifier(std::unique_ptr<ClassifierType>&, 
 			    uvec, 
-			    uvec, const Row<DataType>&);
+			    uvec, 
+			    const Row<DataType>&);
   template<typename... Ts>
   void setRootClassifier(std::unique_ptr<ClassifierType>&, 
 			 const Mat<DataType>&,
@@ -563,7 +564,7 @@ private:
 
   ClassifierList classifiers_;
   PredictionList predictions_;
-
+ 
   std::mt19937 mersenne_engine_{std::random_device{}()};
   std::default_random_engine default_engine_;
   std::uniform_int_distribution<std::size_t> partitionDist_;

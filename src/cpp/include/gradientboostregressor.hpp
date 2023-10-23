@@ -28,8 +28,8 @@ public:
   // mat	: arma::Mat<double>
   // labels	: arma::Row<double>
   // context	: ModelContext::Context
-  GradientBoostRegressor(const mat& dataset,
-			 const Row<double>& labels,
+  GradientBoostRegressor(const Mat<typename CompositeRegressor<RegressorType>::DataType>& dataset,
+			 const Row<typename CompositeRegressor<RegressorType>::DataType>& labels,
 			 Context context,
 			 const std::string& folderName=std::string{}) :
     CompositeRegressor<RegressorType>(dataset, labels, context, folderName) {}
@@ -40,10 +40,10 @@ public:
   // dataset_oos	: arma::Mat<double>
   // labels_oos		: arma::Row<std::double>
   // context		: ModelContext::Context
-  GradientBoostRegressor(const mat& dataset,
-			 const Row<double>& labels,
-			 const mat& dataset_oos,
-			 const Row<double> labels_oos,
+  GradientBoostRegressor(const Mat<typename CompositeRegressor<RegressorType>::DataType>& dataset,
+			 const Row<typename CompositeRegressor<RegressorType>::DataType>& labels,
+			 const Mat<typename CompositeRegressor<RegressorType>::DataType>& dataset_oos,
+			 const Row<typename CompositeRegressor<RegressorType>::DataType> labels_oos,
 			 Context context,
 			 const std::string& folderName=std::string{}) :
     CompositeRegressor<RegressorType>(dataset, labels, dataset_oos, labels_oos, context, folderName) {}
@@ -55,9 +55,9 @@ public:
   // latestPrediction	: arma::Mat<double>
   // colMask		: uvec
   // context		: ModelContext::Context
-  GradientBoostRegressor(const mat& dataset,
-			 const Row<double>& labels,
-			 const Row<double>& latestPrediction,
+  GradientBoostRegressor(const Mat<typename CompositeRegressor<RegressorType>::DataType>& dataset,
+			 const Row<typename CompositeRegressor<RegressorType>::DataType>& labels,
+			 const Row<typename CompositeRegressor<RegressorType>::DataType>& latestPrediction,
 			 const uvec& colMask,
 			 Context context,
 			 const std::string& folderName=std::string{}) :
@@ -68,9 +68,9 @@ public:
   // labels		: arma::Row<double>
   // latestPrediction	: arma::Mat<double>
   // context		: ModelContext::Context
-  GradientBoostRegressor(const mat& dataset,
-			 const Row<double>& labels,
-			 const Row<double>& latestPrediction,
+  GradientBoostRegressor(const Mat<typename CompositeRegressor<RegressorType>::DataType>& dataset,
+			 const Row<typename CompositeRegressor<RegressorType>::DataType>& labels,
+			 const Row<typename CompositeRegressor<RegressorType>::DataType>& latestPrediction,
 			 Context context,
 			 const std::string& folderName=std::string{}) :
     CompositeRegressor<RegressorType>(dataset, labels, latestPrediction, context, folderName) {}
@@ -84,11 +84,11 @@ public:
   // latestPrediction	: arma::Mat<double>
   // colMask		: uvec
   // context		: ModelContext::Context
-  GradientBoostRegressor(const mat& dataset,
-			 const Row<double>& labels,
-			 const mat& dataset_oos,
-			 const Row<double>& labels_oos,
-			 const Row<double>& latestPrediction,
+  GradientBoostRegressor(const Mat<typename CompositeRegressor<RegressorType>::DataType>& dataset,
+			 const Row<typename CompositeRegressor<RegressorType>::DataType>& labels,
+			 const Mat<typename CompositeRegressor<RegressorType>::DataType>& dataset_oos,
+			 const Row<typename CompositeRegressor<RegressorType>::DataType>& labels_oos,
+			 const Row<typename CompositeRegressor<RegressorType>::DataType>& latestPrediction,
 			 const uvec& colMask,
 			 Context context,
 			 const std::string& folderName=std::string{}) :
@@ -101,11 +101,11 @@ public:
   // labels_oos		: Row<double>
   // latestPrediction	: arma::Mat<double>
   // context		: ModelContext::Context
-  GradientBoostRegressor(const mat& dataset,
-			 const Row<double>& labels,
-			 const mat& dataset_oos,
-			 const Row<double>& labels_oos,
-			 const Row<double>& latestPrediction,
+  GradientBoostRegressor(const Mat<typename CompositeRegressor<RegressorType>::DataType>& dataset,
+			 const Row<typename CompositeRegressor<RegressorType>::DataType>& labels,
+			 const Mat<typename CompositeRegressor<RegressorType>::DataType>& dataset_oos,
+			 const Row<typename CompositeRegressor<RegressorType>::DataType>& labels_oos,
+			 const Row<typename CompositeRegressor<RegressorType>::DataType>& latestPrediction,
 			 Context context,
 			 const std::string& folderName=std::string{}) :
     CompositeRegressor<RegressorType>(dataset, labels, dataset_oos, labels_oos, latestPrediction, context, folderName) {}
@@ -120,9 +120,13 @@ using CompositeRegressorDTRR = CompositeRegressor<DecisionTreeRegressorRegressor
 using GradientBoostRegressorDTRR = GradientBoostRegressor<DecisionTreeRegressorRegressor>;
 
 CEREAL_REGISTER_TYPE(GradientBoostRegressorDTRR);
+
 CEREAL_REGISTER_TYPE(CompositeRegressorDTRR);
 
-CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTRR, CompositeRegressorDTRR);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTRR, GradientBoostRegressorDTRR);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTRRD, CompositeRegressorDTRR);
+// CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTRRF, CompositeRegressorDTRR);
+
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTRRD, GradientBoostRegressorDTRR);
+// CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTRRF, GradientBoostRegressorDTRR);
 
 #endif

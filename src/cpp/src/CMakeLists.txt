@@ -69,7 +69,7 @@ option(BUILD_REPLAY_CLASSIFY_STEPWISE "Build replay stepwise classifier" ON)
 option(BUILD_REPLAY_PREDICT_STEPWISE "Build replay stepwise regressor" ON)
 
 # build titanic example
-option(BUILD_TITANIC "Build titanic ex" ON)
+option(BUILD_TITANIC "Build titanic ex" OFF)
 
 # build multiclass pmlb driver
 option(BUILD_MULTICLASS "Build multiclass inductive boost classifier" OFF)

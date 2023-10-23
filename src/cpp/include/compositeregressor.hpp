@@ -31,9 +31,11 @@ public:
   using Regressor = typename regressor_traits<RegressorType>::model;
   using RegressorList = std::vector<std::unique_ptr<RegressorBase<DataType, Regressor>>>;
   
-  using Leaves = Row<double>;
-  using Prediction = Row<double>;
+  using Leaves = Row<DataType>;
+  using Prediction = Row<DataType>;
   using PredictionList = std::vector<Prediction>;
+  using optLeavesInfo = std::tuple<Leaves,
+				   std::optional<std::vector<std::vector<int>>>>;
 
   CompositeRegressor() = default;
 
@@ -41,8 +43,8 @@ public:
   // mat	: arma::Mat<double>
   // labels	: arma::Row<double>
   // context	: ModelContext::Context
-  CompositeRegressor(const mat& dataset,
-		     const Row<double>& labels,
+  CompositeRegressor(const Mat<DataType>& dataset,
+		     const Row<DataType>& labels,
 		     Context context,
 		     const std::string& folderName=std::string{}) :
     RegressorBase<typename regressor_traits<RegressorType>::datatype,
@@ -63,10 +65,10 @@ public:
   // dataset_oos	: arma::Mat<double>
   // labels_oos		: arma::Row<std::double>
   // context		: ModelContext::Context
-  CompositeRegressor(const mat& dataset,
-		     const Row<double>& labels,
-		     const mat& dataset_oos,
-		     const Row<double> labels_oos,
+  CompositeRegressor(const Mat<DataType>& dataset,
+		     const Row<DataType>& labels,
+		     const Mat<DataType>& dataset_oos,
+		     const Row<DataType> labels_oos,
 		     Context context,
 		     const std::string& folderName=std::string{}) :
     RegressorBase<typename regressor_traits<RegressorType>::datatype,
@@ -84,8 +86,8 @@ public:
   }
   
   // 2a
-  CompositeRegressor(const mat& dataset,
-		     const Row<double>& labels,
+  CompositeRegressor(const Mat<DataType>& dataset,
+		     const Row<DataType>& labels,
 		     const uvec& colMask,
 		     Context context,
 		     const std::string& folderName=std::string{}) :
@@ -108,9 +110,9 @@ public:
   // latestPrediction	: arma::Mat<double>
   // colMask		: uvec
   // context		: ModelContext::Context
-  CompositeRegressor(const mat& dataset,
-		     const Row<double>& labels,
-		     const Row<double>& latestPrediction,
+  CompositeRegressor(const Mat<DataType>& dataset,
+		     const Row<DataType>& labels,
+		     const Row<DataType>& latestPrediction,
 		     const uvec& colMask,
 		     Context context,
 		     const std::string& folderName=std::string{}) :
@@ -133,9 +135,9 @@ public:
   // labels		: arma::Row<double>
   // latestPrediction	: arma::Mat<double>
   // context		: ModelContext::Context
-  CompositeRegressor(const mat& dataset,
-		     const Row<double>& labels,
-		     const Row<double>& latestPrediction,
+  CompositeRegressor(const Mat<DataType>& dataset,
+		     const Row<DataType>& labels,
+		     const Row<DataType>& latestPrediction,
 		     Context context,
 		     const std::string& folderName=std::string{}) :
     RegressorBase<typename regressor_traits<RegressorType>::datatype,
@@ -160,11 +162,11 @@ public:
   // latestPrediction	: arma::Mat<double>
   // colMask		: uvec
   // context		: ModelContext::Context
-  CompositeRegressor(const mat& dataset,
-		     const Row<double>& labels,
-		     const mat& dataset_oos,
-		     const Row<double>& labels_oos,
-		     const Row<double>& latestPrediction,
+  CompositeRegressor(const Mat<DataType>& dataset,
+		     const Row<DataType>& labels,
+		     const Mat<DataType>& dataset_oos,
+		     const Row<DataType>& labels_oos,
+		     const Row<DataType>& latestPrediction,
 		     const uvec& colMask,
 		     Context context,
 		     const std::string& folderName=std::string{}) :
@@ -191,11 +193,11 @@ public:
   // labels_oos		: Row<double>
   // latestPrediction	: arma::Mat<double>
   // context		: ModelContext::Context
-  CompositeRegressor(const mat& dataset,
-		     const Row<double>& labels,
-		     const mat& dataset_oos,
-		     const Row<double>& labels_oos,
-		     const Row<double>& latestPrediction,
+  CompositeRegressor(const Mat<DataType>& dataset,
+		     const Row<DataType>& labels,
+		     const Mat<DataType>& dataset_oos,
+		     const Row<DataType>& labels_oos,
+		     const Row<DataType>& latestPrediction,
 		     Context context,
 		     const std::string& folderName=std::string{}) :
     RegressorBase<typename regressor_traits<RegressorType>::datatype,
@@ -221,13 +223,13 @@ public:
   // predict on subset of dataset defined by uvec; sum step prediction vectors
   virtual void Predict(Row<DataType>&, const uvec&);
   // predict OOS, loop through and call Predict_ on individual regressors, sum
-  virtual void Predict(const mat&, Row<DataType>&) override;
-  virtual void Predict(mat&&, Row<DataType>&) override;
+  virtual void Predict(const Mat<DataType>&, Row<DataType>&);
+  virtual void Predict(Mat<DataType>&&, Row<DataType>&);
   
   // 2 overloaded versions for archive regressor
   virtual void Predict(std::string, Row<DataType>&);
-  virtual void Predict(std::string, const mat&, Row<DataType>&);
-  virtual void Predict(std::string, mat&&, Row<DataType>&);
+  virtual void Predict(std::string, const Mat<DataType>&, Row<DataType>&);
+  virtual void Predict(std::string, Mat<DataType>&&, Row<DataType>&);
 
   template<typename MatType>
   void _predict_in_loop(MatType&&, Row<DataType>&);
@@ -235,11 +237,11 @@ public:
   template<typename MatType>
   void _predict_in_loop_archive(std::vector<std::string>&, MatType&&, Row<DataType>&);
   
-  mat getDataset() const { return dataset_; }
+  Mat<DataType> getDataset() const { return dataset_; }
   Row<DataType> getLatestPrediction() const { return latestPrediction_; }
   int getNRows() const { return n_; }
   int getNCols() const { return m_; }
-  Row<double> getLabels() const { return labels_; }
+  Row<DataType> getLabels() const { return labels_; }
   RegressorList getRegressors() const { return regressors_; }
 
   std::string getIndexName() const { return indexName_; }
@@ -274,45 +276,53 @@ private:
   void childContext(Context&);
   void contextInit_(Context&&);
   void init_(Context&&);
-  Row<double> _constantLeaf() const;
-  Row<double> _constantLeaf(double) const;
-  Row<double> _randomLeaf() const;
+  Row<DataType> _constantLeaf() const;
+  Row<DataType> _constantLeaf(double) const;
+  Row<DataType> _randomLeaf() const;
   uvec subsampleRows(size_t);
   uvec subsampleCols(size_t);
   void fit_step(std::size_t);
   
-  void Predict_(const mat& dataset, Row<DataType>& prediction) override { 
+  void Predict_(const Mat<DataType>& dataset, Row<DataType>& prediction) override { 
     Predict(dataset, prediction);
   }
-  void Predict_(mat&& dataset, Row<DataType>& prediction) override {
+  void Predict_(Mat<DataType>&& dataset, Row<DataType>& prediction) override {
     Predict(std::move(dataset), prediction);
   }
 
   void purge_() override;
   
   template<typename... Ts>
-  void createRegressor(std::unique_ptr<RegressorType>&, 
-		       const mat&,
-		       rowvec&,
-		       std::tuple<Ts...> const&);
+  void setRootRegressor(std::unique_ptr<RegressorType>&,
+			const Mat<DataType>&,
+			Row<DataType>&,
+			std::tuple<Ts...> const&);
 
-  std::tuple<std::size_t, std::size_t, double> computeChildPartitionInfo();
+
+
+  template<typename... Ts>
+  void createRootRegressor(std::unique_ptr<RegressorType>&, 
+			   uvec,
+			   uvec,
+			   const Row<DataType>&);
+
+  std::tuple<std::size_t, std::size_t, double, double> computeChildPartitionInfo();
   std::tuple<std::size_t, std::size_t, double> computeChildModelInfo();
 
   void updateRegressors(std::unique_ptr<RegressorBase<DataType, Regressor>>&&, Row<DataType>&);
 
-  std::pair<rowvec,rowvec> generate_coefficients(const Row<DataType>&, const uvec&);
-  Leaves computeOptimalSplit(rowvec&, rowvec&, std::size_t, std::size_t, double, const uvec&);
+  std::pair<Row<DataType>,Row<DataType>> generate_coefficients(const Row<DataType>&, const uvec&);
+  optLeavesInfo computeOptimalSplit(Row<DataType>&, Row<DataType>&, std::size_t, std::size_t, double, double, const uvec&, bool=false);
 
   void setNextRegressor(const RegressorType&);
   AllRegressorArgs allRegressorArgs();
 
   int steps_;
   int baseSteps_;
-  mat dataset_;
-  Row<double> labels_;
-  mat dataset_oos_;
-  Row<double> labels_oos_;
+  Mat<DataType> dataset_;
+  Row<DataType> labels_;
+  Mat<DataType> dataset_oos_;
+  Row<DataType> labels_oos_;
 
   bool hasOOSData_;
   bool hasInitialPrediction_;
@@ -323,17 +333,20 @@ private:
   std::vector<std::string> fileNames_;
 
   lossFunction loss_;
-  LossFunction<double>* lossFn_;
+  LossFunction<DataType>* lossFn_;
+
+  float lossPower_ = -1.;
+
+  bool clamp_gradient_;
+  double upper_val_, lower_val_;
   
   double learningRate_;
-
-  PartitionSize::PartitionSizeMethod partitionSizeMethod_;
-  LearningRate::LearningRateMethod learningRateMethod_;
-  StepSize::StepSizeMethod stepSizeMethod_;
+  double activePartitionRatio_;
 
   double row_subsample_ratio_;
   double col_subsample_ratio_;
 
+  uvec rowMask_;
   uvec colMask_;
   std::string folderName_;
 
@@ -367,6 +380,7 @@ private:
   std::vector<std::size_t> childPartitionSize_;
   std::vector<std::size_t> childNumSteps_;
   std::vector<double> childLearningRate_;
+  std::vector<double> childActivePartitionRatio_;
   
   std::vector<std::size_t> childNumTrees_;
   std::vector<std::size_t> childMaxDepth_;

@@ -55,7 +55,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut childNumPartitions:		Vec<f32> = vec![1000.0, 100.0];
     let mut childNumSteps:		Vec<f32> = vec![1.00; childNumPartitions.len()];
     let mut childLearningRate:		Vec<f32> = vec![0.001; childNumPartitions.len()];
-    let mut childPartitionUsageRatio:	Vec<f32> = vec![0.00; childNumPartitions.len()];
+    let mut childPartitionUsageRatio:	Vec<f32> = vec![0.50; childNumPartitions.len()];
     let mut childMaxDepth:		Vec<f32> = vec![0.00; childNumPartitions.len()];
     let mut childMinLeafSize:		Vec<f32> = vec![1.00; childNumPartitions.len()];
     let mut childMinimumGainSplit:	Vec<f32> = vec![0.00; childNumPartitions.len()];
@@ -122,6 +122,10 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         upperVal = case.upperVal;
         lowerVal = case.lowerVal;
 
+	if lossPower < 0.7 {
+            continue;
+        }
+
         let mut cmd: String = "".to_string();
         cmd.push_str(&base_path);
         cmd.push_str(&proc);
@@ -146,7 +150,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         cmd.push_str(&upperVal.to_string());             cmd.push_str(" ");
         cmd.push_str(&lowerVal.to_string());		 cmd.push_str(" ");
         cmd.push_str(&runOnTestData.to_string());	 cmd.push_str(" ");
-        // cmd.push_str(&splitRatio.to_string());
+        cmd.push_str(&splitRatio.to_string());
 
 
         println!("call: {} \n", cmd);

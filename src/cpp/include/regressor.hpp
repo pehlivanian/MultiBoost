@@ -17,24 +17,24 @@ public:
 
   virtual ~RegressorBase() = default;
 
-  virtual void Predict(const mat& data, Row<DataType>& pred) { Predict_(data, pred); }
-  virtual void Predict(mat&& data, Row<DataType>& pred) { Predict_(data, pred); }
+  virtual void Predict(const Mat<DataType>& data, Row<DataType>& pred) { Predict_(data, pred); }
+  virtual void Predict(Mat<DataType>&& data, Row<DataType>& pred) { Predict_(data, pred); }
 
   virtual void purge() { purge_(); }
 
 private:
   virtual void purge_() = 0;
-  virtual void Predict_(const mat&, Row<DataType>&) = 0;
-  virtual void Predict_(mat&&, Row<DataType>&) = 0;
+  virtual void Predict_(const Mat<DataType>&, Row<DataType>&) = 0;
+  virtual void Predict_(Mat<DataType>&&, Row<DataType>&) = 0;
 
-  void Project_(const mat& data, Row<DataType>& pred) override { Predict_(data, pred); }
-  void Project_(mat&& data, Row<DataType>& pred) override { Predict_(std::move(data), pred); }
+  void Project_(const Mat<DataType>& data, Row<DataType>& pred) override { Predict_(data, pred); }
+  void Project_(Mat<DataType>&& data, Row<DataType>& pred) override { Predict_(std::move(data), pred); }
 };
 
 template<typename DataType, typename RegressorType, typename... Args>
 class ContinuousRegressorBase : public RegressorBase<DataType, RegressorType> {
 public:  
-  ContinuousRegressorBase(const mat& dataset, Row<DataType>& labels, Args&&... args) : 
+  ContinuousRegressorBase(const Mat<DataType>& dataset, Row<DataType>& labels, Args&&... args) : 
     RegressorBase<DataType, RegressorType>(typeid(*this).name()) 
   {
 
@@ -47,21 +47,21 @@ public:
 
   virtual ~ContinuousRegressorBase() = default;
   
-  void setRegressor(const mat&, Row<DataType>&, Args&&...);
+  void setRegressor(const Mat<DataType>&, Row<DataType>&, Args&&...);
 
   template<class Archive>
   void serialize(Archive &ar) {
     ar(cereal::base_class<RegressorBase<DataType, RegressorType>>(this), CEREAL_NVP(regressor_));
     // Don't serialize args_
-    ar(cereal::base_class<RegressorBase<DataType, RegressorType>>(this), CEREAL_NVP(args_));
+    // ar(cereal::base_class<RegressorBase<DataType, RegressorType>>(this), CEREAL_NVP(args_));
   }
 
 private:
   std::unique_ptr<RegressorType> regressor_;
   std::tuple<Args...> args_;
 
-  void Predict_(const mat&, Row<DataType>&) override;
-  void Predict_(mat&& mat, Row<DataType>&) override;
+  void Predict_(const Mat<DataType>&, Row<DataType>&) override;
+  void Predict_(Mat<DataType>&&, Row<DataType>&) override;
 
   void purge_() override {};
 

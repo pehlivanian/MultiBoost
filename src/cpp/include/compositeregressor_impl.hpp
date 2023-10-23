@@ -3,8 +3,6 @@
 
 #define DEBUG() __debug dd{__FILE__, __FUNCTION__, __LINE__};
 
-using row_d = Row<double>;
-
 using namespace PartitionSize;
 using namespace LearningRate;
 using namespace LossMeasures;
@@ -14,6 +12,7 @@ using namespace IB_utils;
 
 namespace RegressorFileScope {
   const bool POST_EXTRAPOLATE = true;
+  const bool W_CYCLE_PREFIT = true;
   const bool DIAGNOSTICS_0_ = true;
   const bool DIAGNOSTICS_1_ = false;
   const bool TIMER = true;
@@ -25,10 +24,19 @@ template<typename RegressorType>
 void
 CompositeRegressor<RegressorType>::childContext(Context& context) {
 
-  auto [partitionSize, stepSize, learningRate] = computeChildPartitionInfo();
-  auto [maxDepth, minLeafSize, minimumGainSplit] = computeChildModelInfo();
+  auto [partitionSize, 
+	stepSize, 
+	learningRate, 
+	activePartitionRatio] = computeChildPartitionInfo();
+  auto [maxDepth, 
+	minLeafSize, 
+	minimumGainSplit] = computeChildModelInfo();
 
   context.loss			= loss_;
+  context.lossPower		= lossPower_;
+  context.clamp_gradient	= clamp_gradient_;
+  context.upper_val		= upper_val_;
+  context.lower_val		= lower_val_;
   context.baseSteps		= baseSteps_;
   context.symmetrizeLabels	= false;
   context.removeRedundantLabels	= false;
@@ -40,14 +48,12 @@ CompositeRegressor<RegressorType>::childContext(Context& context) {
   context.partitionSize		= partitionSize;
   context.steps			= stepSize;
   context.learningRate		= learningRate;
+  context.activePartitionRatio	= activePartitionRatio;
 
-  context.stepSizeMethod	= stepSizeMethod_;
-  context.partitionSizeMethod	= partitionSizeMethod_;
-  context.learningRateMethod	= learningRateMethod_;    
-  
   auto it = std::find(childPartitionSize_.cbegin(), childPartitionSize_.cend(), partitionSize);
   auto ind = std::distance(childPartitionSize_.cbegin(), it);
-  // Must ensure that ind > 0; may happen if partition size is the same through 2 steps
+
+  // Must ensure that ind > 0; this may happen if partition size is the same through 2 steps
   ind = ind > 0 ? ind : 1;
 
   context.childPartitionSize	= std::vector<std::size_t>(childPartitionSize_.cbegin()+ind,
@@ -56,6 +62,8 @@ CompositeRegressor<RegressorType>::childContext(Context& context) {
 							   childNumSteps_.cend());
   context.childLearningRate	= std::vector<double>(childLearningRate_.cbegin()+ind,
 						      childLearningRate_.cend());
+  context.childActivePartitionRatio = std::vector<double>(childActivePartitionRatio_.cbegin()+ind,
+							  childActivePartitionRatio_.cend());
 
   // Model args
   context.childMinLeafSize	= std::vector<std::size_t>(childMinLeafSize_.cbegin()+ind,
@@ -84,30 +92,35 @@ void
 CompositeRegressor<RegressorType>::contextInit_(Context&& context) {
 
   loss_				= context.loss;
+  lossPower_			= context.lossPower;
+  clamp_gradient_		= context.clamp_gradient;
+  upper_val_			= context.upper_val;
+  lower_val_			= context.lower_val;
 
   partitionSize_		= context.childPartitionSize[0];
   steps_			= context.childNumSteps[0];
   learningRate_			= context.childLearningRate[0];
+  activePartitionRatio_		= context.childActivePartitionRatio[0];
 
   minLeafSize_			= context.childMinLeafSize[0];
   maxDepth_			= context.childMaxDepth[0];
   minimumGainSplit_		= context.childMinimumGainSplit[0];
-
-  childPartitionSize_		= context.childPartitionSize;
-  childNumSteps_		= context.childNumSteps;
-  childLearningRate_		= context.childLearningRate;
-  childMinLeafSize_		= context.childMinLeafSize;
-  childMaxDepth_		= context.childMaxDepth;
-  childMinimumGainSplit_	= context.childMinimumGainSplit;
 
   baseSteps_			= context.baseSteps;
   quietRun_			= context.quietRun;
   row_subsample_ratio_		= context.rowSubsampleRatio;
   col_subsample_ratio_		= context.colSubsampleRatio;
   recursiveFit_			= context.recursiveFit;
-  partitionSizeMethod_		= context.partitionSizeMethod;
-  learningRateMethod_		= context.learningRateMethod;
-  stepSizeMethod_		= context.stepSizeMethod;
+
+  childPartitionSize_		= context.childPartitionSize;
+  childNumSteps_		= context.childNumSteps;
+  childLearningRate_		= context.childLearningRate;
+  childActivePartitionRatio_	= context.childActivePartitionRatio;
+
+  childMinLeafSize_		= context.childMinLeafSize;
+  childMaxDepth_		= context.childMaxDepth;
+  childMinimumGainSplit_	= context.childMinimumGainSplit;
+
   serializeModel_		= context.serializeModel;
   serializePrediction_		= context.serializePrediction;
   serializeColMask_		= context.serializeColMask;
@@ -120,28 +133,28 @@ CompositeRegressor<RegressorType>::contextInit_(Context&& context) {
 }
 
 template<typename RegressorType>
-row_d
+Row<typename CompositeRegressor<RegressorType>::DataType>
 CompositeRegressor<RegressorType>::_constantLeaf() const {
 
-  row_d r;
+  Row<DataType> r;
   r.zeros(dataset_.n_cols);
   return r;
 }
 
 template<typename RegressorType>
-row_d
+Row<typename CompositeRegressor<RegressorType>::DataType>
 CompositeRegressor<RegressorType>::_constantLeaf(double val) const {
-  row_d r;
+  Row<DataType> r;
   r.ones(dataset_.n_cols);
   r *= val;
   return r;
 }
 
 template<typename RegressorType>
-row_d
+Row<typename CompositeRegressor<RegressorType>::DataType>
 CompositeRegressor<RegressorType>::_randomLeaf() const {
 
-  row_d r(dataset_.n_cols, arma::fill::none);
+  Row<DataType> r(dataset_.n_cols, arma::fill::none);
   std::mt19937 rng;
   std::uniform_real_distribution<DataType> dist{-learningRate_, learningRate_};
   r.imbue([&](){ return dist(rng);});
@@ -150,34 +163,93 @@ CompositeRegressor<RegressorType>::_randomLeaf() const {
 }
 
 template<typename RegressorType>
-template<typename... Ts>
 void
-CompositeRegressor<RegressorType>::createRegressor(std::unique_ptr<RegressorType>& regressor,
-						   const mat& dataset,
-						   rowvec& labels,
-						   std::tuple<Ts...> const& args) {
-  // mimic:
-  // regressor.reset(new RegressorType(dataset_,
-  //  				      constantLabels,
-  // 				      std::forward<typename RegressorType::Args>(regressorArgs)));
-
-  // Instantiation of RegressorType should include fit stage; look at profile results
-  auto _c = [&regressor, &dataset, &labels](Ts const&... classArgs) { 
-    regressor.reset(new RegressorType(dataset,
-				      labels,
-				      classArgs...)
-		    );
-  };
-  std::apply(_c, args);
-}
-
-template<typename RegressorType>
-void
-CompositeRegressor<RegressorType>::updateRegressors(std::unique_ptr<RegressorBase<DataType, Regressor>>&& regressor,
+CompositeRegressor<RegressorType>::updateRegressors(std::unique_ptr<RegressorBase<DataType, 
+						    Regressor>>&& regressor,
 						    Row<DataType>& prediction) {
   latestPrediction_ += prediction;
   regressor->purge();
   regressors_.push_back(std::move(regressor));
+}
+
+
+template<typename RegressorType>
+template<typename... Ts>
+void
+CompositeRegressor<RegressorType>::setRootRegressor(std::unique_ptr<RegressorType>& regressor,
+						    const Mat<DataType>& dataset,
+						    Row<DataType>& labels,
+						    std::tuple<Ts...> const& args) {
+  std::unique_ptr<RegressorType> reg;
+  
+  auto _c = [&reg, &dataset, &labels](Ts const&... classArgs) {
+    reg = std::make_unique<RegressorType>(dataset, labels, classArgs...);
+  };
+  std::apply(_c, args);
+
+  Row<DataType> labels_it=labels, prediction;
+  float beta = 0.025;
+  const std::size_t FEEDBACK_ITERATIONS = 0;
+
+  if (FEEDBACK_ITERATIONS > 0) {
+    reg->Predict(dataset, prediction);
+    
+    auto _c0 = [&reg, &dataset](Row<DataType>& labels, Ts const&... classArgs) {
+      reg = std::make_unique<RegressorType>(dataset, labels, classArgs...);
+    };
+    auto _c1 = [&reg, &dataset, &labels, &_c0](Ts const&... classArgs) {
+      _c0(labels,
+	  classArgs...);
+    };
+    
+    for (std::size_t i=0; i<FEEDBACK_ITERATIONS; ++i) {
+      for (std::size_t j=0; j<10; ++j) {
+	std::cerr << j << " : " << labels(j) << " : " << prediction(j) << std::endl;
+      }
+      labels_it = labels_it - beta * prediction;
+      auto _cn = [&reg, &dataset, &labels_it, &_c0](Ts const&... classArgs) {
+	_c0(labels_it,
+	    classArgs...);
+      };
+      std::apply(_cn, args);
+      reg->Predict(dataset, prediction);
+    }
+  }
+
+  regressor = std::move(reg);
+  
+}
+
+template<typename RegressorType>
+template<typename... Ts>
+void
+CompositeRegressor<RegressorType>::createRootRegressor(std::unique_ptr<RegressorType>& regressor,
+						       uvec rowMask,
+						       uvec colMask,
+						       const Row<DataType>& best_leaves) {
+
+  const typename RegressorType::Args& rootRegressorArgs = RegressorType::_args(allRegressorArgs());
+
+  if (RegressorFileScope::POST_EXTRAPOLATE) {
+    // Fit regressor on {dataset_slice, best_leaves}, both subsets of the original data
+    // There will be no post-padding of zeros as that is not defined for OOS prediction, we
+    // just use the regressor below to predict on the larger dataset for this step's
+    // prediction
+
+    auto dataset_slice = dataset_.submat(rowMask, colMask);
+    Leaves allLeaves = best_leaves;
+    
+    setRootRegressor(regressor, dataset_slice, allLeaves, rootRegressorArgs);
+
+  } else {
+    // Fit regressor on {dataset, padded best_leaves}
+
+    // Zero pad labels first
+    Leaves allLeaves = zeros<Row<DataType>>(m_);
+    allLeaves(colMask) = best_leaves;
+
+    setRootRegressor(regressor, dataset_, allLeaves, rootRegressorArgs);
+  }
 }
 
 template<typename RegressorType>
@@ -224,6 +296,9 @@ CompositeRegressor<RegressorType>::init_(Context&& context) {
   n_ = dataset_.n_rows; 
   m_ = dataset_.n_cols;
 
+  // Initialize rowMask
+  rowMask_ = linspace<uvec>(0, -1+n_, n_);
+
   // Initialize rng  
   std::size_t a=1, b=std::max(1, static_cast<int>(m_ * col_subsample_ratio_));
   partitionDist_ = std::uniform_int_distribution<std::size_t>(a, b);
@@ -234,7 +309,7 @@ CompositeRegressor<RegressorType>::init_(Context&& context) {
   }
 
   // set loss function
-  lossFn_ = lossMap<DataType>[loss_];
+  lossFn_ = createLoss<DataType>(loss_, lossPower_);
 
   // ensure this is a leaf regressor for lowest-level call
   if (childPartitionSize_.size() <= 1) {   
@@ -274,7 +349,7 @@ CompositeRegressor<RegressorType>::_predict_in_loop(MatType&& dataset, Row<DataT
 }
 template<typename RegressorType>
 void
-CompositeRegressor<RegressorType>::Predict(const mat& dataset, Row<DataType>& prediction) {
+CompositeRegressor<RegressorType>::Predict(const Mat<DataType>& dataset, Row<DataType>& prediction) {
 
   if (serializeModel_ && indexName_.size()) {
     throw predictionAfterClearedClassifiersException();
@@ -286,7 +361,7 @@ CompositeRegressor<RegressorType>::Predict(const mat& dataset, Row<DataType>& pr
 
 template<typename RegressorType>
 void
-CompositeRegressor<RegressorType>::Predict(mat&& dataset, Row<DataType>& prediction) {
+CompositeRegressor<RegressorType>::Predict(Mat<DataType>&& dataset, Row<DataType>& prediction) {
   
   if (serializeModel_ && indexName_.size()) {
     throw predictionAfterClearedClassifiersException();
@@ -323,31 +398,86 @@ CompositeRegressor<RegressorType>::subsampleCols(size_t numCols) {
 template<typename RegressorType>
 void
 CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
+  // Implementation of W-cycle
 
   if (!reuseColMask_) {
     int colRatio = static_cast<size_t>(m_ * col_subsample_ratio_);
-    // Equivalent, second a little faster, see benchmarks
-    // colMask_ = subsampleCols(colRatio);
     colMask_ = PartitionUtils::sortedSubsample2(m_, colRatio);
   }
 
-  row_d labels_slice = labels_.submat(zeros<uvec>(1), colMask_);
+  Row<DataType> labels_slice = labels_.submat(zeros<uvec>(1), colMask_);
+  std::pair<Row<DataType>, Row<DataType>> coeffs;
 
-  Leaves allLeaves = zeros<row_d>(m_), best_leaves;
-
-  Row<DataType> prediction, prediction_slice;
+  Row<DataType> prediction;
   std::unique_ptr<RegressorType> regressor;
+
+  if (!hasInitialPrediction_) {
+    latestPrediction_ = _constantLeaf(mean(labels_slice));
+  }
+
+
+  if (RegressorFileScope::W_CYCLE_PREFIT) {
+    
+    if (RegressorFileScope::DIAGNOSTICS_0_ || RegressorFileScope::DIAGNOSTICS_1_) {
+      std::cerr << fit_prefix(depth_);
+      std::cerr << "[*]PRE-FITTING COMPOSITE REGRESSOR FOR (PARTITIONSIZE, STEPNUM): ("
+		<< partitionSize_ << ", "
+		<< stepNum << " of "
+		<< steps_ << ")"
+		<< std::endl;
+
+    }
+    
+    coeffs = generate_coefficients(labels_slice, colMask_);
+
+    auto [best_leaves,subset_info] = computeOptimalSplit(coeffs.first, 
+							 coeffs.second, 
+							 stepNum, 
+							 partitionSize_, 
+							 learningRate_,
+							 activePartitionRatio_,
+							 colMask_,
+							 false);
+    
+    createRootRegressor(regressor, rowMask_, colMask_, best_leaves);
+    
+    regressor->Predict(dataset_, prediction);
+    
+    updateRegressors(std::move(regressor), prediction);
+    
+    hasInitialPrediction_ = true;
+    
+    if (RegressorFileScope::DIAGNOSTICS_1_) {    
+      Row<DataType> latestPrediction_slice = latestPrediction_.submat(zeros<uvec>(1), colMask_);
+      Row<DataType> prediction_slice = prediction.submat(zeros<uvec>(1), colMask_);
+      float eps = std::numeric_limits<float>::epsilon();
+      
+      std::cerr << "[PRE-FIT ";
+      for (std::size_t i=0; i<best_leaves.size(); ++i) {
+	std::string status = "";
+	if (fabs(best_leaves[i]-prediction_slice[i]) > eps)
+	  status = "MISPREDICTEDED";
+	std::cerr << colMask_[i] << " : "
+		  << labels_slice[i] << " : "
+		  << latestPrediction_slice[i] << " :: " 
+		  << best_leaves[i] << " : "
+		  << prediction_slice[i] << " :: "
+		  << coeffs.first[i] << " : " 
+		  << coeffs.second[i] << " : "
+		  << status << std::endl;
+      }
+      std::cerr << "]" << std::endl;
+    }
+  }
 
   //////////////////////////
   // BEGIN RECURSIVE STEP //
   //////////////////////////
   if (recursiveFit_ && (childPartitionSize_.size() > 1)) {
-    auto [subPartitionSize, subStepSize, subLearningRate] = 
-      computeChildPartitionInfo();
 
     if (RegressorFileScope::DIAGNOSTICS_1_ || RegressorFileScope::DIAGNOSTICS_0_) {
       std::cerr << fit_prefix(depth_);
-      std::cerr << "FITTING COMPOSITE REGRESSOR FOR (PARTITIONSIZE, STEPNUM): ("
+      std::cerr << "[-]FITTING COMPOSITE REGRESSOR FOR (PARTITIONSIZE, STEPNUM): ("
 		<< partitionSize_ << ", "
 		<< stepNum << " of "
 		<< steps_ << ")"
@@ -413,10 +543,10 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
   // If we are in recursive mode and partitionSize <= 2, fall through
   // to this case for the leaf regressor
 
-  if (RegressorFileScope::DIAGNOSTICS_0_) {
+  if (RegressorFileScope::DIAGNOSTICS_0_ || RegressorFileScope::DIAGNOSTICS_1_) {
 
     std::cerr << fit_prefix(depth_);
-    std::cerr << "[*]FITTING LEAF REGRESSOR FOR (PARTITIONSIZE, STEPNUM): ("
+    std::cerr << "[*]POST-FITTING LEAF REGRESSOR FOR (PARTITIONSIZE, STEPNUM): ("
 	      << partitionSize_ << ", "
 	      << stepNum << " of "
 	      << steps_ << ")"
@@ -428,116 +558,85 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
   }
 
   // Generate coefficients g, h
-  std::pair<rowvec, rowvec> coeffs = generate_coefficients(labels_slice, colMask_);
+  coeffs = generate_coefficients(labels_slice, colMask_);
 
   // Compute optimal leaf choice on unrestricted dataset
-  best_leaves = computeOptimalSplit(coeffs.first, 
-				    coeffs.second, 
-				    stepNum, 
-				    partitionSize_, 
-				    learningRate_,
-				    colMask_);
-    
-  if (RegressorFileScope::POST_EXTRAPOLATE) {
-    // Fit regressor on {dataset_slice, best_leaves}, both subsets of the original data
-    // There will be no post-padding of zeros as that is not defined for OOS prediction, we
-    // just use the regressor below to predict on the larger dataset for this step's
-    // prediction
-    uvec rowMask = linspace<uvec>(0, -1+n_, n_);
-    auto dataset_slice = dataset_.submat(rowMask, colMask_);
-    
-    const typename RegressorType::Args& rootRegressorArgs = RegressorType::_args(allRegressorArgs());
-    {
-      // auto timer_ = __timer{"createRegressor"};
+  auto [best_leaves, subset_info] = computeOptimalSplit(coeffs.first, 
+							coeffs.second, 
+							stepNum, 
+							partitionSize_, 
+							learningRate_,
+							activePartitionRatio_,
+							colMask_,
+							false);
 
-      createRegressor(regressor, dataset_slice, best_leaves, rootRegressorArgs);
-    }
-
-  } else {
-    // Fit regressor on {dataset, padded best_leaves}
-    // Zero pad labels first
-    allLeaves(colMask_) = best_leaves;
-
-    const typename RegressorType::Args& rootRegressorArgs = RegressorType::_args(allRegressorArgs());
-    {
-      // auto timer_ = __timer{"createRegressor"};
-
-      createRegressor(regressor, dataset_, allLeaves, rootRegressorArgs);
-    }
-    
-  }
-
-  {
-    // auto timer_ = __timer{"regressor Project"};
-
-    regressor->Project(dataset_, prediction);
-  }
-
-  if (RegressorFileScope::DIAGNOSTICS_1_) {
-    
-    std::cerr << fit_prefix(depth_);
-    std::cerr << "FITTING LEAF REGRESSOR FOR (PARTITIONSIZE, STEPNUM): ("
-	      << partitionSize_ << ", "
-	      << stepNum << " of "
-	      << steps_ << ")"
-	      << std::endl;
-    
-    rowvec yhat_debug;
-    {
-      // auto timer_ = __timer{"regressor Predict"};
-
-      Predict(yhat_debug, colMask_);
-    }
-    
-    for (std::size_t i=0; i<best_leaves.size(); ++i) {
-      std::cerr << labels_slice[i] << " : "
-		<< yhat_debug[i] << " : "
-		<< best_leaves[i] << " : "
-		<< prediction[i] << " : "
-		<< coeffs.first[i] << " : " 
-		<< coeffs.second[i] << std::endl;
-    }
-  }
-
+  createRootRegressor(regressor, rowMask_, colMask_, best_leaves);
+  
+  regressor->Predict(dataset_, prediction);
+  
   updateRegressors(std::move(regressor), prediction);
 
   hasInitialPrediction_ = true;
 
+  if (RegressorFileScope::DIAGNOSTICS_1_) {    
+    Row<DataType> latestPrediction_slice = latestPrediction_.submat(zeros<uvec>(1), colMask_);
+    Row<DataType> prediction_slice = prediction.submat(zeros<uvec>(1), colMask_);
+    float eps = std::numeric_limits<float>::epsilon();
+    
+    std::cerr << "[POST-FIT ";
+    for (std::size_t i=0; i<best_leaves.size(); ++i) {
+      std::string status = "";
+      if (fabs(best_leaves[i]-prediction_slice[i]) > eps)
+	status = "MISPREDICTEDED";
+      std::cerr << colMask_[i] << " : "
+		<< labels_slice[i] << " : "
+		<< latestPrediction_slice[i] << " :: " 
+		<< best_leaves[i] << " : "
+		<< prediction_slice[i] << " :: "
+		<< coeffs.first[i] << " : " 
+		<< coeffs.second[i] << " : "
+		<< status << std::endl;
+
+    }
+    std::cerr << "]" << std::endl;
+  }
+
 }
 
 template<typename RegressorType>
-typename CompositeRegressor<RegressorType>::Leaves
-CompositeRegressor<RegressorType>::computeOptimalSplit(rowvec& g,
-						       rowvec& h,
+typename CompositeRegressor<RegressorType>::optLeavesInfo
+CompositeRegressor<RegressorType>::computeOptimalSplit(Row<DataType>& g,
+						       Row<DataType>& h,
 						       std::size_t stepNum, 
 						       std::size_t partitionSize,
 						       double learningRate,
-						       const uvec& colMask) {
+						       double activePartitionRatio,
+						       const uvec& colMask,
+						       bool includeSubsets) {
 
 
   (void)stepNum;
 
-  // We should implement several methods here
-  std::vector<double> gv = arma::conv_to<std::vector<double>>::from(g);
-  std::vector<double> hv = arma::conv_to<std::vector<double>>::from(h);
-
   int n = colMask.n_rows, T = partitionSize;
-  constexpr bool risk_partitioning_objective	= false;
-  constexpr bool use_rational_optimization	= true;
-  constexpr bool sweep_down			= false;
-  constexpr double gamma			= 0.;
-  constexpr double reg_power			= 1.;
-  constexpr bool find_optimal_t			= false;
+  objective_fn obj_fn				= objective_fn::RationalScore;
+  bool risk_partitioning_objective		= false;
+  bool use_rational_optimization		= true;
+  bool sweep_down				= false;
+  double gamma					= 0.;
+  double reg_power				= 1.;
+  bool find_optimal_t				= false;
+    
+  std::vector<DataType> gv = arma::conv_to<std::vector<DataType>>::from(g);
+  std::vector<DataType> hv = arma::conv_to<std::vector<DataType>>::from(h);
 
-  // std::cout << "PARTITION SIZE: " << T << std::endl;
 
-  DPSolver<double> dp;
+  DPSolver<DataType> dp;
 
   {
     // This is the expensive call; DPSolver scales as ~ n^2*T
     // auto timer_ = __timer{"DPSolver instantiation"};
 
-    dp = DPSolver(n, T, std::move(gv), std::move(hv),
+    dp = DPSolver(n, T, gv, hv,
 		  objective_fn::RationalScore,
 		  risk_partitioning_objective,
 		  use_rational_optimization,
@@ -550,13 +649,15 @@ CompositeRegressor<RegressorType>::computeOptimalSplit(rowvec& g,
 
   auto subsets = dp.get_optimal_subsets_extern();
 
-  rowvec leaf_values = arma::zeros<rowvec>(n);
+  // printSubsets<DataType>(subsets0, gv, hv, colMask);
+
+  Row<DataType> leaf_values = arma::zeros<Row<DataType>>(n);
 
   {
     // auto timer_ = __timer{"DPSolver set leaves"};
 
     if (T > 1 || risk_partitioning_objective) {
-      std::size_t start_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(T/2);
+      std::size_t start_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(T*activePartitionRatio);
 
       for (std::size_t i=start_ind; i<subsets.size(); ++i) {
 	uvec ind = arma::conv_to<uvec>::from(subsets[i]);
@@ -568,7 +669,11 @@ CompositeRegressor<RegressorType>::computeOptimalSplit(rowvec& g,
     }
   }
 
-  return leaf_values;
+  if (includeSubsets) {
+    return std::make_tuple(leaf_values, subsets);
+  } else {
+    return std::make_tuple(leaf_values, std::nullopt);
+  }
     
 }
 
@@ -576,15 +681,11 @@ template<typename RegressorType>
 void
 CompositeRegressor<RegressorType>::purge_() {
 
-  dataset_ = ones<mat>(0,0);
-  labels_ = ones<Row<double>>(0);
-  dataset_oos_ = ones<mat>(0,0);
-  labels_oos_ = ones<Row<double>>(0);
+  dataset_ = ones<Mat<DataType>>(0,0);
+  labels_ = ones<Row<DataType>>(0);
+  dataset_oos_ = ones<Mat<DataType>>(0,0);
+  labels_oos_ = ones<Row<DataType>>(0);
 
-  // dataset_.clear();
-  // labels_.clear();
-  // dataset_oos_.clear();
-  // labels_oos_.clear();
 }
 
 template<typename RegressorType>
@@ -675,7 +776,7 @@ CompositeRegressor<RegressorType>::_predict_in_loop_archive(std::vector<std::str
 
 template<typename RegressorType>
 void
-CompositeRegressor<RegressorType>::Predict(std::string index, const mat& dataset, Row<DataType>& prediction) {
+CompositeRegressor<RegressorType>::Predict(std::string index, const Mat<DataType>& dataset, Row<DataType>& prediction) {
 
   std::vector<std::string> fileNames;
   readIndex(index, fileNames, fldr_);
@@ -686,7 +787,7 @@ CompositeRegressor<RegressorType>::Predict(std::string index, const mat& dataset
 
 template<typename RegressorType>
 void
-CompositeRegressor<RegressorType>::Predict(std::string index, mat&& dataset, Row<DataType>& prediction) {
+CompositeRegressor<RegressorType>::Predict(std::string index, Mat<DataType>&& dataset, Row<DataType>& prediction) {
 
   std::vector<std::string> fileNames;
   readIndex(index, fileNames, fldr_);
@@ -843,12 +944,13 @@ CompositeRegressor<RegressorType>::fit() {
 }
 
 template<typename RegressorType>
-std::tuple<std::size_t, std::size_t, double>
+std::tuple<std::size_t, std::size_t, double, double>
 CompositeRegressor<RegressorType>::computeChildPartitionInfo() {
 
   return std::make_tuple(childPartitionSize_[1],
 			 childNumSteps_[1],
-			 childLearningRate_[1]);
+			 childLearningRate_[1],
+			 childActivePartitionRatio_[1]);
 
 }
 
@@ -862,13 +964,13 @@ CompositeRegressor<RegressorType>::computeChildModelInfo() {
 }
 
 template<typename RegressorType>
-std::pair<rowvec, rowvec>
+std::pair<Row<typename CompositeRegressor<RegressorType>::DataType>, Row<typename CompositeRegressor<RegressorType>::DataType>>
 CompositeRegressor<RegressorType>::generate_coefficients(const Row<DataType>& labels, const uvec& colMask) {
 
-  rowvec yhat;
+  Row<DataType> yhat;
   Predict(yhat, colMask);
 
-  rowvec g, h;
+  Row<DataType> g, h;
   lossFn_->loss(yhat, labels, &g, &h);
 
   return std::make_pair(g, h);
