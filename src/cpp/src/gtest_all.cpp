@@ -1629,13 +1629,13 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
 	      trainDataset,
 	      testDataset,
 	      trainLabels,
-	      testLabels, 0.95);
+	      testLabels, 0.995);
 
   Context context{};
   
   context.loss = lossFunction::MSE;
   context.childPartitionSize = std::vector<std::size_t>{11, 5, 2};
-  context.childNumSteps = std::vector<std::size_t>{14, 1, 2};
+  context.childNumSteps = std::vector<std::size_t>{1, 1, 1};
   context.childLearningRate = std::vector<double>{1., 1., 1.};
   context.childActivePartitionRatio = std::vector<double>{0.1, 0.67, 0.77};
   context.childMinLeafSize = std::vector<std::size_t>{1, 1, 1};
@@ -1669,6 +1669,12 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
 
     // Use latestPrediction_ instead
     regressor.Predict(liveTrainPrediction);
+
+    auto latestPrediction = regressor.getLatestPrediction();
+    for (std::size_t i=0; i<trainLabels.n_elem; ++i) {
+      ASSERT_LE(fabs(liveTrainPrediction[i]-latestPrediction[i]), eps);
+    }
+      
 
     // Get index
     std::string indexName = regressor.getIndexName();

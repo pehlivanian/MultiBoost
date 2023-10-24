@@ -167,6 +167,13 @@ void
 CompositeRegressor<RegressorType>::updateRegressors(std::unique_ptr<RegressorBase<DataType, 
 						    Regressor>>&& regressor,
 						    Row<DataType>& prediction) {
+
+  if (true) {
+    std::cout << "steps_: " << steps_ << " : partitionSize_ : " << partitionSize_ << std::endl;
+    for (std::size_t i=0;i<10;++i) 
+      std::cout << i << " : " << prediction[i] << "\n";
+  }
+
   latestPrediction_ += prediction;
   regressor->purge();
   regressors_.push_back(std::move(regressor));
@@ -340,10 +347,12 @@ void
 CompositeRegressor<RegressorType>::_predict_in_loop(MatType&& dataset, Row<DataType>& prediction) {
   prediction = zeros<Row<DataType>>(dataset.n_cols);
 
+  std::size_t count=0;
   for (const auto& regressor : regressors_) {
     Row<DataType> predictionStep;
     regressor->Predict(std::forward<MatType>(dataset), predictionStep);
     prediction += predictionStep;    
+    count+=1;
   }  
 
 }

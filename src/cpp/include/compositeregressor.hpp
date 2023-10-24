@@ -366,7 +366,7 @@ private:
   std::mt19937 mersenne_engine_{std::random_device{}()};
   std::default_random_engine default_engine_;
   std::uniform_int_distribution<std::size_t> partitionDist_;
-  // call by partitionDist_(default_engine_)
+  // call: partitionDist_(default_engine_)
 
   bool quietRun_;
 
