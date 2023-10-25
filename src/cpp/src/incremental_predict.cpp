@@ -87,16 +87,16 @@ auto main(int argc, char **argv) -> int {
 	      trainLabels, 
 	      testLabels, 
 	      splitRatio);
-  // std::cerr << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
-  // 	    << trainDataset.n_rows << ")" << std::endl;
-  // std::cerr << "TEST DATASET:  (" << testDataset.n_cols << " x " 
-  //	    << testDataset.n_rows << ")" << std::endl;
+  std::cerr << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
+  	    << trainDataset.n_rows << ")" << std::endl;
+  std::cerr << "TEST DATASET:  (" << testDataset.n_cols << " x " 
+	    << testDataset.n_rows << ")" << std::endl;
   
   // Create regressor
   // Get prediction if warmStart
   using regressor = GradientBoostRegressor<DecisionTreeRegressorRegressor>;
-  using CPtr = std::unique_ptr<regressor>;
-  CPtr c;
+  using RPtr = std::unique_ptr<regressor>;
+  RPtr c;
 
   if (warmStart) {
     readPrediction(indexName, prediction, folderName);

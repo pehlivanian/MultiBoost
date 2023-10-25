@@ -312,8 +312,23 @@ CompositeRegressor<RegressorType>::init_(Context&& context) {
 
   // Set latestPrediction to 0 if not passed
   if (!hasInitialPrediction_) {
+    /*
+      latestPrediction_ = _constantLeaf(0.0);
+      using D = typename regressor_traits<ConstantTreeRegressorRegressor>::datatype;
+      using R = typename regressor_traits<ConstantTreeRegressorRegressor>::model;
+      using RB = RegressorBase<D, R>;
+      
+      Row<DataType> prediction = zeros<Row<DataType>>(m_);
+      
+      std::unique_ptr<RB> regressor = std::make_unique<RB>(dataset_,
+      labels_,
+      0.);
+      updateRegressors(std::move(regressor), prediction);
+    */
+    
     latestPrediction_ = _constantLeaf(0.0);
-  }
+    
+    }
 
   // set loss function
   lossFn_ = createLoss<DataType>(loss_, lossPower_);

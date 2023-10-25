@@ -24,6 +24,7 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/access.hpp>
 
+#include "constantclassifier.hpp"
 #include "classifier.hpp"
 
 using namespace mlpack;
@@ -33,6 +34,7 @@ using namespace mlpack::util;
 
 class DecisionTreeClassifier;
 class RandomForestClassifier;
+class ConstantTreeClassifier;
 
 namespace Model_Traits {
 
@@ -45,6 +47,7 @@ namespace Model_Traits {
   namespace ClassifierTypes {
     using RandomForestClassifierType = RandomForest<>;
     using DecisionTreeClassifierType = DecisionTree<>;
+    using ConstantTreeClassifierType = ConstantTree;
 
     // [==========--===========]
     // [============--=========]
@@ -85,31 +88,40 @@ namespace Model_Traits {
     using model = ClassifierTypes::RandomForestClassifierType;
     using modelArgs = std::tuple<std::size_t, std::size_t, std::size_t>;
   };
+
+  template<>
+  struct classifier_traits<ConstantTreeClassifier> {
+    using datatype = double;
+    using integrallabeltype = std::size_t;
+    using model = ClassifierTypes::ConstantTreeClassifierType;
+    using modelArgs = std::tuple<double>;
+  };
+
 } // namespace Model_Traits
 
-template<typename... Args>
-class RandomForestClassifierBase : 
-  public DiscreteClassifierBase<Model_Traits::classifier_traits<RandomForestClassifier>::datatype,
-				Model_Traits::ClassifierTypes::RandomForestClassifierType,
-				Args...> {
-public:
-  using DataType = Model_Traits::classifier_traits<RandomForestClassifier>::datatype;
-  using ClassifierType = Model_Traits::ClassifierTypes::RandomForestClassifierType;
+  template<typename... Args>
+  class RandomForestClassifierBase : 
+    public DiscreteClassifierBase<Model_Traits::classifier_traits<RandomForestClassifier>::datatype,
+				  Model_Traits::ClassifierTypes::RandomForestClassifierType,
+				  Args...> {
+  public:
+    using DataType = Model_Traits::classifier_traits<RandomForestClassifier>::datatype;
+    using ClassifierType = Model_Traits::ClassifierTypes::RandomForestClassifierType;
 
-  RandomForestClassifierBase() = default;
-  RandomForestClassifierBase(const RandomForestClassifierBase&) = default;
+    RandomForestClassifierBase() = default;
+    RandomForestClassifierBase(const RandomForestClassifierBase&) = default;
   
-  RandomForestClassifierBase(const Mat<DataType>& dataset,
-			     Row<DataType>& labels,
-			     Args&&... args) :
-    DiscreteClassifierBase<DataType, 
-			   ClassifierType, 
-			   Args...>(dataset, labels, std::forward<Args>(args)...) {}
+    RandomForestClassifierBase(const Mat<DataType>& dataset,
+			       Row<DataType>& labels,
+			       Args&&... args) :
+      DiscreteClassifierBase<DataType, 
+			     ClassifierType, 
+			     Args...>(dataset, labels, std::forward<Args>(args)...) {}
   
-};
+  };
 
 class RandomForestClassifier : 
-    public RandomForestClassifierBase<std::size_t, std::size_t, std::size_t> {
+  public RandomForestClassifierBase<std::size_t, std::size_t, std::size_t> {
 
 public:
 
@@ -191,6 +203,46 @@ public:
   }
 };
 
+template<typename... Args>
+class ConstantTreeClassifierBase :
+  public DiscreteClassifierBase<Model_Traits::classifier_traits<ConstantTreeClassifier>::datatype,
+				Model_Traits::ClassifierTypes::ConstantTreeClassifierType,
+				Args...> {
+public:
+  using DataType = Model_Traits::classifier_traits<ConstantTreeClassifier>::datatype;
+  using ClassifierType = Model_Traits::ClassifierTypes::ConstantTreeClassifierType;
+  
+  ConstantTreeClassifierBase() = default;
+  ConstantTreeClassifierBase(const ConstantTreeClassifierBase&) = default;
+
+  ConstantTreeClassifierBase(const Mat<DataType>& dataset,
+			     Row<DataType>& labels,
+			     Args&&... args) :
+    DiscreteClassifierBase<DataType,
+			   ClassifierType,
+			   Args...>(dataset, labels, std::forward<Args>(args)...) {}
+};
+  
+class ConstantTreeClassifier :
+  public ConstantTreeClassifierBase<std::size_t> {
+public:
+  using Args = std::tuple<std::size_t>;
+  using DataType = Model_Traits::classifier_traits<ConstantTreeClassifier>::datatype;
+    
+  ConstantTreeClassifier() = default;
+  ConstantTreeClassifier(const ConstantTreeClassifier&) = default;
+    
+  ConstantTreeClassifier(const Mat<DataType>& dataset,
+			 Row<DataType>& labels,
+			 std::size_t leafValue) :
+    ConstantTreeClassifierBase<std::size_t>(dataset,
+					    labels,
+					    std::move(leafValue))
+  {}
+  
+};
+
+
 ////////////////////////////////////////////////////////
 // CEREAL DEFINITIONS, REGISTRATIONS, OVERLOADS, ETC. //
 ////////////////////////////////////////////////////////
@@ -199,28 +251,28 @@ using DTCB = DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::s
 using RFCB = RandomForestClassifierBase<std::size_t, std::size_t, std::size_t>;
 
 using DiscreteClassifierBaseDTCD = DiscreteClassifierBase<double, 
-							 Model_Traits::ClassifierTypes::DecisionTreeClassifierType,
-							 std::size_t,
-							 std::size_t,
-							 double,
-							 std::size_t>;
+							  Model_Traits::ClassifierTypes::DecisionTreeClassifierType,
+							  std::size_t,
+							  std::size_t,
+							  double,
+							  std::size_t>;
 using DiscreteClassifierBaseDTCF = DiscreteClassifierBase<float, 
-							 Model_Traits::ClassifierTypes::DecisionTreeClassifierType,
-							 std::size_t,
-							 std::size_t,
-							 double,
-							 std::size_t>;
+							  Model_Traits::ClassifierTypes::DecisionTreeClassifierType,
+							  std::size_t,
+							  std::size_t,
+							  double,
+							  std::size_t>;
 
 using DiscreteClassifierBaseRFCD = DiscreteClassifierBase<double,
-							 Model_Traits::ClassifierTypes::RandomForestClassifierType,
-							 std::size_t,
-							 std::size_t,
-							 std::size_t>;
+							  Model_Traits::ClassifierTypes::RandomForestClassifierType,
+							  std::size_t,
+							  std::size_t,
+							  std::size_t>;
 using DiscreteClassifierBaseRFCF = DiscreteClassifierBase<float,
-							 Model_Traits::ClassifierTypes::RandomForestClassifierType,
-							 std::size_t,
-							 std::size_t,
-							 std::size_t>;
+							  Model_Traits::ClassifierTypes::RandomForestClassifierType,
+							  std::size_t,
+							  std::size_t,
+							  std::size_t>;
 
 using ClassifierBaseDTCD = ClassifierBase<double, Model_Traits::ClassifierTypes::DecisionTreeClassifierType>;
 using ClassifierBaseDTCF = ClassifierBase<float,  Model_Traits::ClassifierTypes::DecisionTreeClassifierType>;

@@ -11,6 +11,7 @@
 #include <mlpack/methods/decision_tree/multiple_random_dimension_select.hpp>
 #include <mlpack/methods/random_forest/random_forest.hpp>
 
+#include "constantregressor.hpp"
 #include "regressor.hpp"
 
 using namespace mlpack;
@@ -19,6 +20,7 @@ using namespace mlpack::data;
 using namespace mlpack::util;
 
 class DecisionTreeRegressorRegressor;
+class ConstantTreeRegressorRegressor;
 
 namespace Model_Traits {
 
@@ -30,6 +32,7 @@ namespace Model_Traits {
 
     // XXX
     using DecisionTreeRegressorRegressorType = DecisionTreeRegressor<MADGain>;
+    using ConstantTreeRegressorRegressorType = ConstantTreeRegressor;
 
     // [==========--===========]
     // [============--=========]
@@ -65,6 +68,14 @@ namespace Model_Traits {
     using integrallabeltype = std::size_t;
     using model = RegressorTypes::DecisionTreeRegressorRegressorType;
     using modelArgs = std::tuple<std::size_t, double, std::size_t>;
+  };
+
+  template<>
+  struct regressor_traits<ConstantTreeRegressorRegressor> {
+    using datatype = double;
+    using integrallabeltype = std::size_t;
+    using model = RegressorTypes::ConstantTreeRegressorRegressorType;
+    using modelArgs = std::tuple<double>;
   };
 
 } // namespace Model_Traits
@@ -117,6 +128,46 @@ public:
   }
 
 };
+
+template<typename... Args>
+class ConstantTreeRegressorRegressorBase :
+  public ContinuousRegressorBase<Model_Traits::regressor_traits<ConstantTreeRegressorRegressor>::datatype,
+				 Model_Traits::RegressorTypes::ConstantTreeRegressorRegressorType,
+				 Args...> {
+public:
+  using DataType = Model_Traits::regressor_traits<ConstantTreeRegressorRegressor>::datatype;
+  using RegressorType = Model_Traits::RegressorTypes::ConstantTreeRegressorRegressorType;
+
+  ConstantTreeRegressorRegressorBase() = default;
+  ConstantTreeRegressorRegressorBase(const ConstantTreeRegressorRegressorBase&) = default;
+  
+  ConstantTreeRegressorRegressorBase(const Mat<DataType>& dataset,
+			    Row<DataType>& labels,
+			    Args&&... args) :
+    ContinuousRegressorBase<DataType,
+			    RegressorType,
+			    Args...>(dataset, labels, std::forward<Args>(args)...) {}
+};
+
+class ConstantTreeRegressorRegressor :
+  public ConstantTreeRegressorRegressorBase<double> {
+public:
+  using Args = std::tuple<double>;
+  using DataType = Model_Traits::regressor_traits<ConstantTreeRegressorRegressor>::datatype;
+  
+  ConstantTreeRegressorRegressor() = default;
+  ConstantTreeRegressorRegressor(ConstantTreeRegressorRegressor&) = default;
+
+  ConstantTreeRegressorRegressor(const Mat<DataType>& dataset,
+				 Row<DataType>& labels,
+				 double leafValue) :
+    ConstantTreeRegressorRegressorBase<double>(dataset,
+					       labels,
+					       std::move(leafValue))
+  {}
+
+};
+
 
 using DTRRB = DecisionTreeRegressorRegressorBase<std::size_t, double, std::size_t>;
 
