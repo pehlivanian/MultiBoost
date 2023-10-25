@@ -168,12 +168,6 @@ CompositeRegressor<RegressorType>::updateRegressors(std::unique_ptr<RegressorBas
 						    Regressor>>&& regressor,
 						    Row<DataType>& prediction) {
 
-  if (true) {
-    std::cout << "steps_: " << steps_ << " : partitionSize_ : " << partitionSize_ << std::endl;
-    for (std::size_t i=0;i<10;++i) 
-      std::cout << i << " : " << prediction[i] << "\n";
-  }
-
   latestPrediction_ += prediction;
   regressor->purge();
   regressors_.push_back(std::move(regressor));
@@ -436,7 +430,9 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
   std::unique_ptr<RegressorType> regressor;
 
   if (!hasInitialPrediction_) {
-    latestPrediction_ = _constantLeaf(mean(labels_slice));
+    // XXX
+    // latestPrediction_ = _constantLeaf(mean(labels_slice));
+    latestPrediction_ = _constantLeaf(0.0);
   }
 
 

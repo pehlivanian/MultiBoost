@@ -1,35 +1,44 @@
 #!/bin/bash
 
 DELIM=';'
-REGRESSOR=DecisionTreeRegressorRegressor
+CLASSIFIER=DecisionTreeClassifier
 PATH=/home/charles/src/C++/sandbox/Inductive-Boost/build/
+
+SHOW_OOS=0
 
 # Context creation
 EXEC_CC=${PATH}createContext
 
-# Incremental IS regressor fit
+# Incremental IS classifier fit
 EXEC_INC=${PATH}incremental_predict
 
-# Predict OOS for diagnostics
+# Classify OOS for diagnostics
 EXEC_PRED_OOS=${PATH}stepwise_predict
 
 declare -i childpartitionsize
 declare -i childnumsteps
 declare -f childlearningrate
+declare -f childactivepartitionratio
 declare -i childmaxdepth
 declare -i childminleafsize
 declare -f childminimumgainsplit
 declare -a num_args
 declare -a dataname
 declare -a loss_fn
+declare -f loss_power
 declare -a recursivefit
+declare -a clamp_gradient
+declare -a upper_val
+declare -a lower_val
 declare -a runOnTestDataset
 
 dataname=""
 basesteps=""
 colsubsample_ratio=""
+split_ratio=""
 
 while (( $# )); do
+
   num_args=$1; shift
 
   counter=0
@@ -45,6 +54,11 @@ while (( $# )); do
   counter=0
   while (( counter++ < ${num_args} )); do
     childlearningrate[${#childlearningrate[@]}]=$1; shift
+  done
+
+  counter=0
+  while (( counter++ < ${num_args} )); do
+    childactivepartitionratio[${#childactivepartitionratio[@]}]=$1; shift
   done
 
   counter=0
@@ -65,11 +79,27 @@ while (( $# )); do
   dataname+=$1; shift
   basesteps+=$1; shift
   loss_fn+=$1; shift
+  loss_power+=${1:0}; shift
   colsubsample_ratio+=$1; shift
   recursivefit+=$1; shift
+  clamp_gradient+=${1:0}; shift
+  upper_val+=${1:0}; shift
+  lower_val+=${1:0}; shift
   runOnTestDataset+=${1:0}; shift
+  split_ratio+=$1; shift
 
 done
+
+if [ -z "$clamp_gradient" ]; then
+  clamp_gradient=0
+  upper_val=0
+  lower_val=0
+fi
+
+if [ -z "$split_ratio" ]; then
+  split_ratio=0
+  test_OOS_each_it=1
+fi
 
 STEPS=1
 SPLITRATIO=0.2
@@ -80,15 +110,24 @@ CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCrosserge.cxt
 ((ITERS=$basesteps / $STEPS))
 PREFIX="["${dataname}"]"
 
+((ITERS=$basesteps / $STEPS))
+PREFIX="["${dataname}"]"
+
+echo -n $PREFIX" "
 # create context for first run
 $EXEC_CC \
 --loss ${loss_fn} \
---partitionRatio .25 \
+--lossPower ${loss_power} \
+--clamp_gradient ${clamp_gradient} \
+--upper_val ${upper_val} \
+--lower_val ${lower_val} \
 --childPartitionSize ${childpartitionsize[@]} \
 --childNumSteps ${childnumsteps[@]} \
 --childLearningRate ${childlearningrate[@]} \
+--childActivePartitionRatio ${childactivepartitionratio[@]} \
+--partitionRatio .25 \
 --baseSteps ${basesteps} \
---symmetrizeLabels false \
+--symmetrizeLabels true \
 --removeRedundantLabels false \
 --quietRun true \
 --rowSubsampleRatio 1. \
@@ -105,18 +144,23 @@ $EXEC_CC \
 --childMaxDepth ${childmaxdepth[@]} \
 --childMinimumGainSplit ${childminimumgainsplit[@]} \
 --serializationWindow 10 \
---depth 0 \
 --fileName $CONTEXT_PATH_RUN1
 
+echo -n $PREFIX" "
 # create context for subsequent runs
 $EXEC_CC \
 --loss ${loss_fn} \
---partitionRatio .25 \
+--lossPower ${loss_power} \
+--clamp_gradient ${clamp_gradient} \
+--upper_val ${upper_val} \
+--lower_val ${lower_val} \
 --childPartitionSize ${childpartitionsize[@]} \
 --childNumSteps ${childnumsteps[@]} \
 --childLearningRate ${childlearningrate[@]} \
+--childActivePartitionRatio ${childactivepartitionratio[@]} \
+--partitionRatio .25 \
 --baseSteps ${basesteps} \
---symmetrizeLabels false \
+--symmetrizeLabels true \
 --removeRedundantLabels false \
 --quietRun true \
 --rowSubsampleRatio 1. \
@@ -133,7 +177,6 @@ $EXEC_CC \
 --childMaxDepth ${childmaxdepth[@]} \
 --childMinimumGainSplit ${childminimumgainsplit[@]} \
 --serializationWindow 10 \
---depth 0 \
 --fileName $CONTEXT_PATH_RUNS
 
 # First run
@@ -163,22 +206,39 @@ echo ${PREFIX}" ITER: 1"
 
 ((n=n+1))
 
-# Predict OOS
-$EXEC_PRED_OOS \
---indexFileName $INDEX_NAME_STEP \
---folderName $FOLDER_STEP \
---prefixStr $PREFIX
+if [ ! -z "$test_OOS_each_it" ]; then
+
+  testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
+  testdataname=${testdataname}"_test"
+
+  EXEC_TEST_OOS=${PATH}OOS_classify
+  PREFIX="["${testdataname}"]"
+
+  $EXEC_TEST_OOS \
+  --dataName ${testdataname} \
+  --indexName $INDEX_NAME_STEP \
+  --folderName $FOLDER_STEP \
+  --prefixStr $PREFIX  
+else
+  # Classify OOS
+  if [ $SHOW_OOS -eq 1 ]; then
+    $EXEC_PRED_OOS \
+    --indexFileName $INDEX_NAME_STEP \
+    --folderName $FOLDER_STEP \
+    --prefixStr $PREFIX
+  fi
+fi
 
 # Subsequent runs
 for (( ; ; ));
 do
-  if [ $n -ge $ITERS ]; then
+  if [ $n -gt $ITERS ]; then
     break
   fi
 
   # Fit step
   INDEX_NAME_STEP=$($EXEC_INC \
-  --contextFileName ${FOLDER_STEP}/$CONTEXT_PATH_RUNS \
+  --contextFileName ${FOLDER_STEP}/${CONTEXT_PATH_RUNS} \
   --dataName ${dataname} \
   --splitRatio $SPLITRATIO \
   --quietRun true \
@@ -189,11 +249,30 @@ do
 
   echo ${PREFIX}" ITER: ${n}"
 
-  # Predict OOS
-  $EXEC_PRED_OOS \
-  --indexFileName $INDEX_NAME_STEP \
-  --folderName $FOLDER_STEP \
-  --prefixStr $PREFIX
+  if [ ! -z "$test_OOS_each_it" ]; then
+
+    testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
+    testdataname=${testdataname}"_test"
+
+    EXEC_TEST_OOS=${PATH}OOS_classify
+    PREFIX="["${testdataname}"]"
+
+    $EXEC_TEST_OOS \
+    --dataName ${testdataname} \
+    --indexName $INDEX_NAME_STEP \
+    --folderName $FOLDER_STEP \
+    --prefixStr $PREFIX  
+
+  else
+    # Classify OOS
+    if [ $SHOW_OOS -eq 1 ]; then
+
+      $EXEC_PRED_OOS \
+      --indexFileName $INDEX_NAME_STEP \
+      --folderName $FOLDER_STEP \
+      --prefixStr $PREFIX
+    fi
+  fi
 
   ((n=n+1))
 done
@@ -207,19 +286,22 @@ done
 # the _train dataset, we fitted it on the proportion (1 - $SPLITRATIO)
 # above.
 
-if [ ! -z "$runOnTestDataset" ]; then
-  # We assume that ${dataname} ends with the pattern r'''_train$'''
-  # and we test OOS fit on the dataset with "_test" suffix
+if [ $SHOW_OOS -ne 1 ]; then
+  if [ ! -z "$runOnTestDataset" ]; then
+    # We assume that ${dataname} ends with the pattern r'''_train$'''
+    # and we test OOS fit on the dataset with "_test" suffix
 
-  testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
-  testdataname=${testdataname}"_test"
+    testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
+    testdataname=${testdataname}"_test"
 
-  EXEC_TEST_OOS=${PATH}OOS_predict
-  PREFIX="["${testdataname}"]"
+    EXEC_TEST_OOS=${PATH}OOS_classify
+    PREFIX="["${testdataname}"]"
 
-  $EXEC_TEST_OOS \
-  --dataName ${testdataname} \
-  --indexName $INDEX_NAME_STEP \
-  --folderName $FOLDER_STEP \
-  --prefixStr $PREFIX
+    $EXEC_TEST_OOS \
+    --dataName ${testdataname} \
+    --indexName $INDEX_NAME_STEP \
+    --folderName $FOLDER_STEP \
+    --prefixStr $PREFIX
+  fi
 fi
+

@@ -10,11 +10,11 @@
 using namespace arma;
 
 template<typename DataType, typename ClassifierType>
-class ClassifierBase : public Model<DataType, ClassifierType> {
+class ClassifierBase : public Model<DataType> {
 public:
   ClassifierBase() = default;
   ClassifierBase(const ClassifierBase&) = default;
-  ClassifierBase(std::string id) : Model<DataType, ClassifierType>(id) {}
+  ClassifierBase(std::string id) : Model<DataType>(id) {}
 
   virtual ~ClassifierBase() = default;
 

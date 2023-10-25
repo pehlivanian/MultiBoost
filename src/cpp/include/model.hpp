@@ -28,7 +28,7 @@ void print_vector(Row row) {
 template void print_matrix<arma::mat>(arma::mat matrix);
 template void print_vector<arma::rowvec>(arma::rowvec row);
 
-template<typename DataType, typename ModelType>
+template<typename DataType>
 class Model {
 public:
   Model() = default;

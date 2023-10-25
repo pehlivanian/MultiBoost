@@ -42,7 +42,6 @@ using labels_d = Row<DataType>;
 using labels_regress_t = Row<double>;
 using labels_regress_d = Row<double>;
 
-/*
 class DPSolverTestFixture : public ::testing::TestWithParam<objective_fn> {
 };
 
@@ -54,7 +53,6 @@ INSTANTIATE_TEST_SUITE_P(DPSolverTests,
 					   objective_fn::RationalScore
 					   )
 			 );
-*/
 
 std::vector<std::string> tokenize(const std::string& s, const char* c) {
   std::vector<std::string> r;
@@ -217,7 +215,6 @@ void exec(std::string cmd) {
   pclose(pipe);
 }
 
-/*
 TEST(DPSolverTest, TestUnsortedIndWorksAsARMAIndexer) {
   
   int n = 500;
@@ -1614,7 +1611,6 @@ TEST(GradientBoostRegressorTest, TestInSamplePredictionMatchesLatestPrediction) 
   }
   
 }
-*/
 
 TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
   
@@ -1712,7 +1708,6 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
   
 }
 
-/*
 TEST(GradientBoostRegressorTest, TestAggregateRegressorNonRecursiveRoundTrips) {
   
   int numTrials = 1;
@@ -2024,7 +2019,6 @@ TEST(GradientBoostClassifierTest, TestIncrementalClassifierScript) {
   ASSERT_EQ(1, 1);
   
 }
-*/
 
 auto main(int argc, char **argv) -> int {
   testing::InitGoogleTest(&argc, argv);

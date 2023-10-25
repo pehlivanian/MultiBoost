@@ -19,8 +19,7 @@ using namespace ModelContext;
 using namespace Model_Traits;
 
 template<typename ModelType>
-class CompositeModel : public Model<typename model_traits<ModelType>::datatype,
-				    typename model_traits<ModelType>::model> {
+class CompositeModel : public Model<typename model_traits<ModelType>::datatype> {
 
 public:
   using DataType		= typename model_traits<ModelType>::datatype;

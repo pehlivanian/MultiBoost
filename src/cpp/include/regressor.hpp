@@ -10,10 +10,10 @@
 using namespace arma;
 
 template<typename DataType, typename RegressorType>
-class RegressorBase : public Model<DataType, RegressorType> {
+class RegressorBase : public Model<DataType> {
 public:
   RegressorBase() = default;
-  RegressorBase(std::string id) : Model<DataType, RegressorType>(id) {}
+  RegressorBase(std::string id) : Model<DataType>(id) {}
 
   virtual ~RegressorBase() = default;
 

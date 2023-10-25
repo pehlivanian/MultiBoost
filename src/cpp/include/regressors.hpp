@@ -185,8 +185,8 @@ using ContinuousRegressorBaseDTRRBD = ContinuousRegressorBase<double,
 using RegressorBaseDTRRD = RegressorBase<double, Model_Traits::RegressorTypes::DecisionTreeRegressorRegressorType>;
 // using RegressorBaseDTRRF = RegressorBase<float,  Model_Traits::RegressorTypes::DecisionTreeRegressorRegressorType>;
 							     
-using ModelDTRRD = Model<double, Model_Traits::RegressorTypes::DecisionTreeRegressorRegressorType>;
-// using ModelDTRRF = Model<float,  Model_Traits::RegressorTypes::DecisionTreeRegressorRegressorType>;
+using ModelD = Model<double>;
+// using ModelF = Model<float>;
 
 CEREAL_REGISTER_TYPE(RegressorBaseDTRRD);
 // CEREAL_REGISTER_TYPE(RegressorBaseDTRRF);
@@ -198,20 +198,21 @@ CEREAL_REGISTER_TYPE(DTRRB);
 
 CEREAL_REGISTER_TYPE(DecisionTreeRegressorRegressor);
 
-CEREAL_REGISTER_TYPE(ModelDTRRD);
-// CEREAL_REGISTER_TYPE(ModelDTRRF);
+// Redefinition
+// CEREAL_REGISTER_TYPE(ModelD);
+// CEREAL_REGISTER_TYPE(ModelF);
 
-CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTRRD, DecisionTreeRegressorRegressor);
-// CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTRRF, DecisionTreeRegressorRegressor);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, DecisionTreeRegressorRegressor);
+// CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, DecisionTreeRegressorRegressor);
 
-CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTRRD, DTRRB);
-// CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTRRF, DTRRB);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, DTRRB);
+// CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, DTRRB);
 
-CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTRRD, ContinuousRegressorBaseDTRRBD);
-// CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTRRF, ContinuousRegressorBaseDTRRBF);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, ContinuousRegressorBaseDTRRBD);
+// CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, ContinuousRegressorBaseDTRRBF);
 
-CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTRRD, RegressorBaseDTRRD)
-// CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelDTRRF, RegressorBaseDTRRF);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, RegressorBaseDTRRD)
+// CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, RegressorBaseDTRRF);
 
 CEREAL_REGISTER_POLYMORPHIC_RELATION(RegressorBaseDTRRD, DecisionTreeRegressorRegressor);
 // CEREAL_REGISTER_POLYMORPHIC_RELATION(RegressorBaseDTRRF, DecisionTreeRegressorRegressor);
