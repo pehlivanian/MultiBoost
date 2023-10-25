@@ -19,7 +19,6 @@
 # iteration if $SHOW_OOS -ne 1
 
 DELIM=';'
-CLASSIFIER=DecisionTreeClassifier
 PATH=/home/charles/src/C++/sandbox/Inductive-Boost/build/
 
 SHOW_OOS=0
@@ -197,8 +196,6 @@ $EXEC_CC \
 # First run
 n=1
 
-# echo ${n}" STEPWISE CLASSIFY :: "${DETAILS}
-
 STEP_INFO=$($EXEC_INC \
 --contextFileName $CONTEXT_PATH_RUN1 \
 --dataName ${dataname} \
@@ -263,7 +260,6 @@ do
   --indexName $INDEX_NAME_STEP \
   --folderName $FOLDER_STEP)
 
-  # echo ${n}" : STEPWISE CLASSIFY :: "${INDEX_NAME_STEP}" "${DETAILS}
   echo ${PREFIX}" ITER: ${n}"
 
   if [ ! -z "$test_OOS_each_it" ]; then

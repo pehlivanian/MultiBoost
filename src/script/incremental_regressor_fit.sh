@@ -1,7 +1,6 @@
 #!/bin/bash
 
 DELIM=';'
-CLASSIFIER=DecisionTreeClassifier
 PATH=/home/charles/src/C++/sandbox/Inductive-Boost/build/
 
 SHOW_OOS=0
@@ -9,10 +8,10 @@ SHOW_OOS=0
 # Context creation
 EXEC_CC=${PATH}createContext
 
-# Incremental IS classifier fit
+# Incremental IS regressor fit
 EXEC_INC=${PATH}incremental_predict
 
-# Classify OOS for diagnostics
+# Predict OOS for diagnostics
 EXEC_PRED_OOS=${PATH}stepwise_predict
 
 declare -i childpartitionsize
@@ -211,7 +210,7 @@ if [ ! -z "$test_OOS_each_it" ]; then
   testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
   testdataname=${testdataname}"_test"
 
-  EXEC_TEST_OOS=${PATH}OOS_classify
+  EXEC_TEST_OOS=${PATH}OOS_predict
   PREFIX="["${testdataname}"]"
 
   $EXEC_TEST_OOS \
@@ -220,7 +219,7 @@ if [ ! -z "$test_OOS_each_it" ]; then
   --folderName $FOLDER_STEP \
   --prefixStr $PREFIX  
 else
-  # Classify OOS
+  # Predict OOS
   if [ $SHOW_OOS -eq 1 ]; then
     $EXEC_PRED_OOS \
     --indexFileName $INDEX_NAME_STEP \
@@ -254,7 +253,7 @@ do
     testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
     testdataname=${testdataname}"_test"
 
-    EXEC_TEST_OOS=${PATH}OOS_classify
+    EXEC_TEST_OOS=${PATH}OOS_predict
     PREFIX="["${testdataname}"]"
 
     $EXEC_TEST_OOS \
@@ -264,7 +263,7 @@ do
     --prefixStr $PREFIX  
 
   else
-    # Classify OOS
+    # Predict OOS
     if [ $SHOW_OOS -eq 1 ]; then
 
       $EXEC_PRED_OOS \
@@ -294,7 +293,7 @@ if [ $SHOW_OOS -ne 1 ]; then
     testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
     testdataname=${testdataname}"_test"
 
-    EXEC_TEST_OOS=${PATH}OOS_classify
+    EXEC_TEST_OOS=${PATH}OOS_predict
     PREFIX="["${testdataname}"]"
 
     $EXEC_TEST_OOS \
