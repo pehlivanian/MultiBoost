@@ -11,7 +11,7 @@ using namespace IB_utils;
 namespace ClassifierFileScope{
   const bool POST_EXTRAPOLATE = false;
   const bool W_CYCLE_PREFIT = true;
-  const bool DIAGNOSTICS_0_ = true;
+  const bool DIAGNOSTICS_0_ = false;
   const bool DIAGNOSTICS_1_ = false;
   const std::string DIGEST_PATH = 
     "/home/charles/src/C++/sandbox/Inductive-Boost/digest/classify";
@@ -583,11 +583,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   std::unique_ptr<ClassifierType> classifier;
 
   if (!hasInitialPrediction_) {
-    if (false && (loss_ == lossFunction::LogLoss)) {
-      latestPrediction_ = _constantLeaf(mean(labels_slice));
-    } else {
-      latestPrediction_ = _constantLeaf(0.0);
-    }
+    latestPrediction_ = _constantLeaf(0.0);
   }
 
   if (ClassifierFileScope::W_CYCLE_PREFIT) {

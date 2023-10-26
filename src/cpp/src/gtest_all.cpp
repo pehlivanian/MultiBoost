@@ -1959,6 +1959,41 @@ TEST(GradientBoostRegressorTest, TestOutofSampleFit) {
   
 }
 
+TEST(GradientBoostRegressorTest, TestIncrementalRegressorScript) {
+  // use folder to determine pwd
+  boost::filesystem::path folder("../data/");
+
+  ipstream pipe_stream;
+  char dataset_name_train[50] = "Regression/606_fri_c2_1000_10_train";
+  char dataset_name_test[50] = "Regression/606_fri_c2_1000_10_test";
+  char abs_path[100] = "/home/charles/src/C++/sandbox/Inductive-Boost/";
+
+  char rg_ex[50];
+  char cmd[200];
+  sprintf(rg_ex, "\\[%s\\]\\sOOS[\\s]*:[\\s]*.*:[\\s]+\\((.*)\\)", dataset_name_test);
+  sprintf(cmd, "%ssrc/script/incremental_regressor_fit.sh 2 10 10 1 1 0.01 0.01 0.5 0.5 0 0 1 1 0 0 %s 10 9 1 1 1 1 -1 1 .2", abs_path, dataset_name_train);
+
+  std::array<float, 11> rsquared = {0.049931, 0.0965676,  0.143236, 0.186815, 0.224494, 0.263735, 0.30052, 0.331941,
+				    0.36164, 0.386788, 0.386788};
+
+  std::string cmd_str{cmd};
+  child c(cmd_str, std_out > pipe_stream);
+
+  std::regex ws_re{rg_ex};
+  std::smatch sm;
+  std::string line;
+  std::size_t cnt=0;
+  while (pipe_stream && std::getline(pipe_stream, line) && !line.empty()) {
+    if (std::regex_match(line, ws_re)) {
+      std::regex_match(line.cbegin(), line.cend(), sm, ws_re);
+      std::vector<std::string> res = tokenize(sm[1], ", ");
+      ASSERT_EQ(std::stof(res[0]), rsquared[cnt]);
+      cnt+=1;
+    }
+  }
+  
+}
+
 TEST(GradientBoostClassifierTest, TestIncrementalClassifierScript) {
   // use folder to determine pwd
   boost::filesystem::path folder{"../data/"};
