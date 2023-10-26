@@ -308,8 +308,8 @@ CompositeRegressor<RegressorType>::init_(Context&& context) {
   if (!hasInitialPrediction_) {
     /*
       latestPrediction_ = _constantLeaf(0.0);
-      using D = typename regressor_traits<ConstantTreeRegressorRegressor>::datatype;
-      using R = typename regressor_traits<ConstantTreeRegressorRegressor>::model;
+      using D = typename model_traits<ConstantTreeRegressorRegressor>::datatype;
+      using R = typename model_traits<ConstantTreeRegressorRegressor>::model;
       using RB = RegressorBase<D, R>;
       
       Row<DataType> prediction = zeros<Row<DataType>>(m_);

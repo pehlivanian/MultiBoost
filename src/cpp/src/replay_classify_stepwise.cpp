@@ -1,7 +1,7 @@
 #include "replay_classify_stepwise.hpp"
 
 namespace {
-  using DataType = Model_Traits::classifier_traits<DecisionTreeClassifier>::datatype;
+  using DataType = Model_Traits::model_traits<DecisionTreeClassifier>::datatype;
 }
 
 using namespace boost::program_options;

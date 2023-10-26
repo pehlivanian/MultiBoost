@@ -3,90 +3,16 @@
 
 #include <utility>
 
-#include <mlpack/core.hpp>
-#include <mlpack/methods/decision_tree/decision_tree_regressor.hpp>
-#include <mlpack/methods/decision_tree/information_gain.hpp>
-#include <mlpack/methods/decision_tree/gini_gain.hpp>
-#include <mlpack/methods/decision_tree/random_dimension_select.hpp>
-#include <mlpack/methods/decision_tree/multiple_random_dimension_select.hpp>
-#include <mlpack/methods/random_forest/random_forest.hpp>
-
-#include "constantregressor.hpp"
+#include "model_traits.hpp"
 #include "regressor.hpp"
-
-using namespace mlpack;
-using namespace mlpack::tree;
-using namespace mlpack::data;
-using namespace mlpack::util;
-
-class DecisionTreeRegressorRegressor;
-class ConstantTreeRegressorRegressor;
-
-namespace Model_Traits {
-
-  using AllRegressorArgs = std::tuple<std::size_t,	// (0) minLeafSize
-				      double,		// (1) minGainSplit
-				      std::size_t>;	// (2) maxDepth
-  
-  namespace RegressorTypes {
-
-    // XXX
-    using DecisionTreeRegressorRegressorType = DecisionTreeRegressor<MADGain>;
-    using ConstantTreeRegressorRegressorType = ConstantTreeRegressor;
-
-    // [==========--===========]
-    // [============--=========]
-    // [==============--=======]
-    // Possible options
-    // [==========--===========]
-    // [========--=============]
-    // [======--===============]
-    // using DecisionTreeRegressorRegressorType  = DecisionTreeRegressor<MADGain, BestBinaryNumericSplit>;
-    // using DecisionTreeRegressorRegressorType = DecisionTreeRegressor<>;
-    // using DecisionTreeRegressorRegressorType = DecisionTreeRegressor<MSEGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
-    // using DecisionTreeRegressorRegressorType = DecisionTreeRegressor<InformationGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
-    // using DecisionTreeRegressorRegressorType = DecisionTreeRegressor<MADGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
-  
-  };
-
-  template<>
-  struct is_classifier<DecisionTreeRegressorRegressor> {
-    bool operator()() { return false; }
-  };
-
-  template<typename RegressorType>
-  struct regressor_traits {
-    using datatype = double;
-    using integrallabeltype = std::size_t;
-    using model = RegressorTypes::DecisionTreeRegressorRegressorType;
-    using modelArgs = std::tuple<std::size_t, double, std::size_t>;
-  };
-  
-  template<>
-  struct regressor_traits<DecisionTreeRegressorRegressor> {
-    using datatype = double;
-    using integrallabeltype = std::size_t;
-    using model = RegressorTypes::DecisionTreeRegressorRegressorType;
-    using modelArgs = std::tuple<std::size_t, double, std::size_t>;
-  };
-
-  template<>
-  struct regressor_traits<ConstantTreeRegressorRegressor> {
-    using datatype = double;
-    using integrallabeltype = std::size_t;
-    using model = RegressorTypes::ConstantTreeRegressorRegressorType;
-    using modelArgs = std::tuple<double>;
-  };
-
-} // namespace Model_Traits
 
 template<typename... Args>
 class DecisionTreeRegressorRegressorBase : 
-  public ContinuousRegressorBase<Model_Traits::regressor_traits<DecisionTreeRegressorRegressor>::datatype,
+  public ContinuousRegressorBase<Model_Traits::model_traits<DecisionTreeRegressorRegressor>::datatype,
 				 Model_Traits::RegressorTypes::DecisionTreeRegressorRegressorType,
 				 Args...> {
 public:
-  using DataType = Model_Traits::regressor_traits<DecisionTreeRegressorRegressor>::datatype;
+  using DataType = Model_Traits::model_traits<DecisionTreeRegressorRegressor>::datatype;
   using RegressorType = Model_Traits::RegressorTypes::DecisionTreeRegressorRegressorType;
 
   DecisionTreeRegressorRegressorBase() = default;
@@ -106,7 +32,7 @@ class DecisionTreeRegressorRegressor :
 public:
 
   using Args = std::tuple<std::size_t, double, std::size_t>;
-  using DataType = Model_Traits::regressor_traits<DecisionTreeRegressorRegressor>::datatype;
+  using DataType = Model_Traits::model_traits<DecisionTreeRegressorRegressor>::datatype;
 
   DecisionTreeRegressorRegressor() = default;
   DecisionTreeRegressorRegressor(const Mat<DataType>& dataset,
@@ -131,11 +57,11 @@ public:
 
 template<typename... Args>
 class ConstantTreeRegressorRegressorBase :
-  public ContinuousRegressorBase<Model_Traits::regressor_traits<ConstantTreeRegressorRegressor>::datatype,
+  public ContinuousRegressorBase<Model_Traits::model_traits<ConstantTreeRegressorRegressor>::datatype,
 				 Model_Traits::RegressorTypes::ConstantTreeRegressorRegressorType,
 				 Args...> {
 public:
-  using DataType = Model_Traits::regressor_traits<ConstantTreeRegressorRegressor>::datatype;
+  using DataType = Model_Traits::model_traits<ConstantTreeRegressorRegressor>::datatype;
   using RegressorType = Model_Traits::RegressorTypes::ConstantTreeRegressorRegressorType;
 
   ConstantTreeRegressorRegressorBase() = default;
@@ -153,7 +79,7 @@ class ConstantTreeRegressorRegressor :
   public ConstantTreeRegressorRegressorBase<double> {
 public:
   using Args = std::tuple<double>;
-  using DataType = Model_Traits::regressor_traits<ConstantTreeRegressorRegressor>::datatype;
+  using DataType = Model_Traits::model_traits<ConstantTreeRegressorRegressor>::datatype;
   
   ConstantTreeRegressorRegressor() = default;
   ConstantTreeRegressorRegressor(ConstantTreeRegressorRegressor&) = default;

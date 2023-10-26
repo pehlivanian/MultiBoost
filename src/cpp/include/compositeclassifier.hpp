@@ -22,13 +22,13 @@ using namespace ModelContext;
 using namespace Model_Traits;
 
 template<typename ClassifierType>
-class CompositeClassifier : public ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
-						  typename classifier_traits<ClassifierType>::model> {
+class CompositeClassifier : public ClassifierBase<typename model_traits<ClassifierType>::datatype,
+						  typename model_traits<ClassifierType>::model> {
   
 public:  
-  using DataType		= typename classifier_traits<ClassifierType>::datatype;
-  using IntegralLabelType	= typename classifier_traits<ClassifierType>::integrallabeltype;
-  using Classifier		= typename classifier_traits<ClassifierType>::model;
+  using DataType		= typename model_traits<ClassifierType>::datatype;
+  using IntegralLabelType	= typename model_traits<ClassifierType>::integrallabeltype;
+  using Classifier		= typename model_traits<ClassifierType>::model;
   using ClassifierList		= std::vector<std::unique_ptr<ClassifierBase<DataType, Classifier>>>;
 
   using Leaves			= Row<DataType>;
@@ -48,8 +48,8 @@ public:
 		      const Row<std::size_t>& labels,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
-		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<DataType>>::from(labels)},
     hasOOSData_{false},
@@ -68,8 +68,8 @@ public:
 		      const Row<DataType>& labels,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
-		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     hasOOSData_{false},
@@ -90,8 +90,8 @@ public:
 		      const uvec& colMask,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
-		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<DataType>>::from(labels)},
     hasOOSData_{false},
@@ -113,8 +113,8 @@ public:
 		      const uvec& colMask,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
-		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     hasOOSData_{false},
@@ -140,8 +140,8 @@ public:
 		      const Row<std::size_t>& labels_oos,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
-		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<DataType>>::from(labels)},
     dataset_oos_{dataset_oos},
@@ -166,8 +166,8 @@ public:
 		      const Row<DataType>& labels_oos,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
-		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     dataset_oos_{dataset_oos},
@@ -193,8 +193,8 @@ public:
 		      const uvec& colMask,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
-		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<DataType>>::from(labels)},
     hasOOSData_{false},
@@ -217,8 +217,8 @@ public:
 		      const Row<DataType>& latestPrediction,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
-		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<DataType>>::from(labels)},
     hasOOSData_{false},
@@ -242,8 +242,8 @@ public:
 		      const uvec& colMask,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
-		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     hasOOSData_{false},
@@ -266,8 +266,8 @@ public:
 		      const Row<DataType>& latestPrediction,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
-		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     hasOOSData_{false},
@@ -295,8 +295,8 @@ public:
 		      const uvec& colMask,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
-		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<DataType>>::from(labels)},
     dataset_oos_{dataset_oos},
@@ -325,8 +325,8 @@ public:
 		      const Row<DataType>& latestPrediction,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
-		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{conv_to<Row<DataType>>::from(labels)},
     dataset_oos_{dataset_oos},
@@ -356,8 +356,8 @@ public:
 		      const uvec& colMask,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
-		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     dataset_oos_{dataset_oos},
@@ -386,8 +386,8 @@ public:
 		      const Row<DataType>& latestPrediction,
 		      Context context,
 		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
-		   typename classifier_traits<ClassifierType>::model>(typeid(*this).name()),
+    ClassifierBase<typename model_traits<ClassifierType>::datatype,
+		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     dataset_oos_{dataset_oos},

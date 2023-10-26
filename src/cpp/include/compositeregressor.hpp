@@ -24,11 +24,11 @@ using namespace ModelContext;
 using namespace Model_Traits;
 
 template<typename RegressorType>
-class CompositeRegressor : public RegressorBase<typename regressor_traits<RegressorType>::datatype,
-						typename regressor_traits<RegressorType>::model> {
+class CompositeRegressor : public RegressorBase<typename model_traits<RegressorType>::datatype,
+						typename model_traits<RegressorType>::model> {
 public:
-  using DataType = typename regressor_traits<RegressorType>::datatype;
-  using Regressor = typename regressor_traits<RegressorType>::model;
+  using DataType = typename model_traits<RegressorType>::datatype;
+  using Regressor = typename model_traits<RegressorType>::model;
   using RegressorList = std::vector<std::unique_ptr<RegressorBase<DataType, Regressor>>>;
   
   using Leaves = Row<DataType>;
@@ -47,8 +47,8 @@ public:
 		     const Row<DataType>& labels,
 		     Context context,
 		     const std::string& folderName=std::string{}) :
-    RegressorBase<typename regressor_traits<RegressorType>::datatype,
-		  typename regressor_traits<RegressorType>::model>(typeid(*this).name()),
+    RegressorBase<typename model_traits<RegressorType>::datatype,
+		  typename model_traits<RegressorType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     hasOOSData_{false},
@@ -71,8 +71,8 @@ public:
 		     const Row<DataType> labels_oos,
 		     Context context,
 		     const std::string& folderName=std::string{}) :
-    RegressorBase<typename regressor_traits<RegressorType>::datatype,
-		  typename regressor_traits<RegressorType>::model>(typeid(*this).name()),
+    RegressorBase<typename model_traits<RegressorType>::datatype,
+		  typename model_traits<RegressorType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     dataset_oos_{dataset_oos},
@@ -91,8 +91,8 @@ public:
 		     const uvec& colMask,
 		     Context context,
 		     const std::string& folderName=std::string{}) :
-    RegressorBase<typename regressor_traits<RegressorType>::datatype,
-		  typename regressor_traits<RegressorType>::model>(typeid(*this).name()),    
+    RegressorBase<typename model_traits<RegressorType>::datatype,
+		  typename model_traits<RegressorType>::model>(typeid(*this).name()),    
     dataset_{dataset},
     labels_{labels},
     hasOOSData_{false},
@@ -116,8 +116,8 @@ public:
 		     const uvec& colMask,
 		     Context context,
 		     const std::string& folderName=std::string{}) :
-    RegressorBase<typename regressor_traits<RegressorType>::datatype,
-		  typename regressor_traits<RegressorType>::model>(typeid(*this).name()),
+    RegressorBase<typename model_traits<RegressorType>::datatype,
+		  typename model_traits<RegressorType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     hasOOSData_{false},
@@ -140,8 +140,8 @@ public:
 		     const Row<DataType>& latestPrediction,
 		     Context context,
 		     const std::string& folderName=std::string{}) :
-    RegressorBase<typename regressor_traits<RegressorType>::datatype,
-		  typename regressor_traits<RegressorType>::model>(typeid(*this).name()),
+    RegressorBase<typename model_traits<RegressorType>::datatype,
+		  typename model_traits<RegressorType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     hasOOSData_{false},
@@ -170,8 +170,8 @@ public:
 		     const uvec& colMask,
 		     Context context,
 		     const std::string& folderName=std::string{}) :
-    RegressorBase<typename regressor_traits<RegressorType>::datatype,
-		  typename regressor_traits<RegressorType>::model>(typeid(*this).name()),
+    RegressorBase<typename model_traits<RegressorType>::datatype,
+		  typename model_traits<RegressorType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     dataset_oos_{dataset_oos},
@@ -200,8 +200,8 @@ public:
 		     const Row<DataType>& latestPrediction,
 		     Context context,
 		     const std::string& folderName=std::string{}) :
-    RegressorBase<typename regressor_traits<RegressorType>::datatype,
-		  typename regressor_traits<RegressorType>::model>(typeid(*this).name()),
+    RegressorBase<typename model_traits<RegressorType>::datatype,
+		  typename model_traits<RegressorType>::model>(typeid(*this).name()),
     dataset_{dataset},
     labels_{labels},
     dataset_oos_{dataset_oos},

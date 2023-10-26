@@ -52,12 +52,4 @@ private:
   virtual void Project_(Mat<DataType>&&, Row<DataType>&) = 0;
 };
 
-namespace Model_Traits {
-  template<typename ModelType>
-  struct is_classifier {
-    bool operator()() { return true; }
-  };
-
-}// namespace Model_Traits
-
 #endif

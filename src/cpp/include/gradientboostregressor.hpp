@@ -14,7 +14,10 @@
 
 #include <mlpack/core.hpp>
 
+#include "regressor.hpp"
+#include "regressors.hpp"
 #include "compositeregressor.hpp"
+#include "model_traits.hpp"
 
 using namespace arma;
 
