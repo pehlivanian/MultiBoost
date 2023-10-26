@@ -25,7 +25,6 @@ template<typename ClassifierType>
 class CompositeClassifier : public ClassifierBase<typename classifier_traits<ClassifierType>::datatype,
 						  typename classifier_traits<ClassifierType>::model> {
   
-  
 public:  
   using DataType		= typename classifier_traits<ClassifierType>::datatype;
   using IntegralLabelType	= typename classifier_traits<ClassifierType>::integrallabeltype;

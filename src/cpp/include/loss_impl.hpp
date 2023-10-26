@@ -31,7 +31,6 @@ LossFunction<DataType>::loss(const vtype& yhat, const vtype& y, vtype* grad, vty
 
     if (clamp_gradient) {
       // Clamp gradient, leave hessian as is
-      // Only relevant for {-1,1}-classifier
       for (std::size_t i=0; i<grad->n_elem; ++i) {
 	if ((y[i] > 0 && yhat[i] > upper_val) || (y[i] < 0 && yhat[i] < lower_val)) {
 	  (*grad)[i] = 0.;
@@ -65,15 +64,14 @@ SquareLoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* grad) 
 template<typename DataType>
 void
 SquareLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
-  (void)yhat;
+  UNUSED(yhat);
   *hess = 2 * pow(y, 2);
 }
 
 template<typename DataType>
 DataType
 SquareLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
-  // return 0.;
-  return sum(pow(1 -  y % yhat, 2));
+  return 0.;
 }
 
 #ifdef AUTODIFF
@@ -106,7 +104,7 @@ MSELoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* grad) {
 template<typename DataType>
 void
 MSELoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
-  (void)yhat;
+  UNUSED(yhat);
   vtype f(y.n_cols, arma::fill::ones);
   *hess = 2 * f;
 }
@@ -114,8 +112,7 @@ MSELoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
 template<typename DataType>
 DataType
 MSELoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
-  // return 0.;
-  return sum(pow((y - yhat), 2));
+  return 0.;
 }
 
 #ifdef AUTODIFF
@@ -165,8 +162,7 @@ BinomialDevianceLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtyp
 template<typename DataType>
 DataType
 BinomialDevianceLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
-  // return 0.;
-  return sum(log(1 + exp(-y % yhat)));
+  return 0.;
 }
 
 #ifdef AUTODIFF
@@ -208,8 +204,7 @@ ExpLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype *hess) {
 template<typename DataType>
 DataType
 ExpLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
-  // return 0.;
-  return sum(exp(-y % yhat));
+  return 0.;
 }
 
 #ifdef AUTODIFF
@@ -254,8 +249,7 @@ SavageLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
 template<typename DataType>
 DataType
 SavageLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
-  // return 0.;
-  return sum(1 / pow(1 + exp(2* y % yhat), 2));
+  return 0.;
 }
 
 
@@ -301,8 +295,7 @@ ArctanLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
 template<typename DataType>
 DataType
 ArctanLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
-  // return 0.;
-  return sum(pow(atan(y - yhat), 2));
+  return 0.;
 }
 
 #ifdef AUTODIFF
@@ -340,7 +333,7 @@ template<typename DataType>
 void
 SyntheticLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
 
-  (void)yhat;
+  UNUSED(yhat);
 
   // OLD
   vtype f(y.n_cols, arma::fill::ones);
@@ -355,8 +348,7 @@ SyntheticLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess
 template<typename DataType>
 DataType
 SyntheticLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
-  // return 0.;
-  return sum(pow((y - yhat), 2));
+  return 0.;
 }
 
 #ifdef AUTODIFF
@@ -428,7 +420,7 @@ SyntheticLossVar1<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* 
   vtype g = exp(0.5 * (1/pow(y, 2)));
   *hess = (y % f % g)/pow(y-yhat,3);
   
-  // (void)yhat;
+  // UNUSED(yhat);
 
   // vtype f(y.n_cols, arma::fill::ones);
   // *hess = f;
@@ -437,8 +429,7 @@ SyntheticLossVar1<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* 
 template<typename DataType>
 DataType
 SyntheticLossVar1<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
-  // return 0.;
-  return sum(pow((y - yhat), 2));
+  return 0.;
 }
 
 #ifdef AUTODIFF
@@ -517,8 +508,7 @@ SyntheticLossVar2<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* 
 template<typename DataType>
 DataType
 SyntheticLossVar2<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
-  // return 0.;
-  return sum(pow((y - yhat), 2));
+  return 0.;
 }
 
 #ifdef AUTODIFF
@@ -568,8 +558,7 @@ SyntheticLossVar3<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* 
 template<typename DataType>
 DataType
 SyntheticLossVar3<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
-  // return 0.;
-  return sum(pow((y - yhat), 2));
+  return 0.;
 }
 
 #ifdef AUTODIFF
@@ -629,8 +618,7 @@ PowerLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
 template<typename DataType>
 DataType
 PowerLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
-  // return 0.;
-  return sum(pow((y - yhat), 2));
+  return 0.;
 }
 
 #ifdef AUTODIFF
@@ -670,7 +658,7 @@ SyntheticRegLoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* 
 template<typename DataType>
 void
 SyntheticRegLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
-  (void)yhat;
+  UNUSED(yhat);
 
   vtype f(y.n_cols, arma::fill::ones);
   *hess = 2 * f;
@@ -680,8 +668,7 @@ SyntheticRegLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* h
 template<typename DataType>
 DataType
 SyntheticRegLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
-  // return 0.;
-  return sum(pow((y - yhat), 2));
+  return 0.;
 }
 
 #ifdef AUTODIFF
@@ -736,11 +723,13 @@ DataType
 LogLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
   return 0.;
 
-  vtype yhat_norm = 0.5 * yhat + 0.5;
-  vtype y_norm = 0.5 * y + 0.5;
-
-  vtype log_odds = log(yhat_norm / (1 - yhat_norm));
-  return -1 * sum(y_norm % log_odds - log(1 + exp(log_odds)));
+  /*
+    vtype yhat_norm = 0.5 * yhat + 0.5;
+    vtype y_norm = 0.5 * y + 0.5;
+    
+    vtype log_odds = log(yhat_norm / (1 - yhat_norm));
+    return -1 * sum(y_norm % log_odds - log(1 + exp(log_odds)));
+  */
 
 }
 

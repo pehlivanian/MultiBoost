@@ -71,7 +71,7 @@ public:
     arma_fvec_type lhs = arma_fvec_type{const_cast<float*>(rhs.data()), rhs.size(), false, false};
     return lhs;
   }
-  
+
 };
 #endif
 

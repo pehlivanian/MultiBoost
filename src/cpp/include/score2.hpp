@@ -177,8 +177,8 @@ namespace Objectives {
   class RationalScoreContext : public ParametricContext<DataType> {
     // This class doesn't correspond to any regular exponential family,
     // it is used to define ambient functions on the partition polytope
-    // for targeted applications - quadratic approximations to loss, for
-    // XGBoost, e.g.
+    // for targeted applications - quadratic approximations to loss for
+    // Gradient Boosting, e.g.
   public:
     RationalScoreContext(const std::vector<DataType>& a,
 			 const std::vector<DataType>& b,
