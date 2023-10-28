@@ -38,6 +38,8 @@ public:
     Project_(data, projection); 
   }
 
+  void purge() { purge_(); }
+
   std::string get_id() const { return id_; }
 
   template<class Archive>
@@ -50,6 +52,7 @@ private:
 
   virtual void Project_(const Mat<DataType>&, Row<DataType>&) = 0;
   virtual void Project_(Mat<DataType>&&, Row<DataType>&) = 0;
+  virtual void purge_() = 0;
 };
 
 #endif

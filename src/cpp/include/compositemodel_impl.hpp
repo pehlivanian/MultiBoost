@@ -1,0 +1,4 @@
+#ifndef __COMPOSITEMODEL_IMPL_HPP__
+#define __COMPOSITEMODEL_IMPL_HPP__
+
+#endif

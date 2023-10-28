@@ -145,15 +145,15 @@ public:
 class ConstantTreeClassifier :
   public ConstantTreeClassifierBase<std::size_t> {
 public:
-  using Args = std::tuple<std::size_t>;
+  using Args = std::tuple<double>;
   using DataType = Model_Traits::model_traits<ConstantTreeClassifier>::datatype;
     
   ConstantTreeClassifier() = default;
   ConstantTreeClassifier(const ConstantTreeClassifier&) = default;
-    
+
   ConstantTreeClassifier(const Mat<DataType>& dataset,
 			 Row<DataType>& labels,
-			 std::size_t leafValue) :
+			 double leafValue) :
     ConstantTreeClassifierBase<std::size_t>(dataset,
 					    labels,
 					    std::move(leafValue))

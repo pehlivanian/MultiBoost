@@ -13,6 +13,8 @@
 #include "utils.hpp"
 #include "DP.hpp"
 #include "score2.hpp"
+#include "compositemodel.hpp"
+#include "constantclassifier.hpp"
 #include "classifier.hpp"
 #include "model_traits.hpp"
 
@@ -29,7 +31,7 @@ public:
   using DataType		= typename model_traits<ClassifierType>::datatype;
   using IntegralLabelType	= typename model_traits<ClassifierType>::integrallabeltype;
   using Classifier		= typename model_traits<ClassifierType>::model;
-  using ClassifierList		= std::vector<std::unique_ptr<ClassifierBase<DataType, Classifier>>>;
+  using ClassifierList		= typename std::vector<std::unique_ptr<Model<DataType>>>;
 
   using Leaves			= Row<DataType>;
   using Prediction		= Row<DataType>;
@@ -507,7 +509,7 @@ private:
   std::tuple<std::size_t, std::size_t, double, double> computeChildPartitionInfo();
   std::tuple<std::size_t, std::size_t, double> computeChildModelInfo();
 
-  void updateClassifiers(std::unique_ptr<ClassifierBase<DataType, Classifier>>&&, Row<DataType>&);
+  void updateClassifiers(std::unique_ptr<Model<DataType>>&&, Row<DataType>&);
 
   std::pair<Row<DataType>,Row<DataType>> generate_coefficients(const Row<DataType>&, const uvec&);
   optLeavesInfo computeOptimalSplit(Row<DataType>&, Row<DataType>&, std::size_t, std::size_t, double, double, const uvec&, bool=false);

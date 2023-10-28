@@ -164,8 +164,7 @@ CompositeClassifier<ClassifierType>::_randomLeaf() const {
 
 template<typename ClassifierType>
 void
-CompositeClassifier<ClassifierType>::updateClassifiers(std::unique_ptr<ClassifierBase<DataType, 
-						       Classifier>>&& classifier,
+CompositeClassifier<ClassifierType>::updateClassifiers(std::unique_ptr<Model<DataType>>&& classifier,
 						       Row<DataType>& prediction) {
 
   latestPrediction_ += prediction;
@@ -237,6 +236,9 @@ CompositeClassifier<ClassifierType>::init_(Context&& context) {
 
   // Set latestPrediction to 0 if not passed
   if (!hasInitialPrediction_) {
+    // double leafValue = 0.0;
+    // using DCB = DiscreteClassifierBase<DataType, ConstantTreeClassifier, DataType>;
+    // auto classifier = DCB{dataset_, labels_, std::move(leafValue)};
     latestPrediction_ = _constantLeaf(0.0);
   }
 
@@ -275,7 +277,7 @@ CompositeClassifier<ClassifierType>::_predict_in_loop(MatType&& dataset, Row<Dat
 
   for (const auto& classifier : classifiers_) {
     Row<DataType> predictionStep;
-    classifier->Classify(dataset, predictionStep);
+    classifier->Project(dataset, predictionStep);
     prediction += predictionStep;    
   }  
 

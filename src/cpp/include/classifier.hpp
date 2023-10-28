@@ -21,7 +21,7 @@ public:
   virtual void Classify(const Mat<DataType>& data, Row<DataType>& pred) { Classify_(data, pred); }
   virtual void Classify(Mat<DataType>&& data, Row<DataType>& pred) { Classify_(std::move(data), pred); }
 
-  virtual void purge() { purge_(); }
+  void purge() { purge_(); }
 
 private:
   virtual void purge_() = 0;
