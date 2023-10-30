@@ -234,11 +234,7 @@ CompositeClassifier<ClassifierType>::init_(Context&& context) {
     auto uniqueVals = uniqueCloseAndReplace(labels_);
   }
 
-  // Set latestPrediction to 0 if not passed
   if (!hasInitialPrediction_) {
-    // double leafValue = 0.0;
-    // using DCB = DiscreteClassifierBase<DataType, ConstantTreeClassifier, DataType>;
-    // auto classifier = DCB{dataset_, labels_, std::move(leafValue)};
     latestPrediction_ = _constantLeaf(0.0);
   }
 
@@ -585,7 +581,18 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   std::unique_ptr<ClassifierType> classifier;
 
   if (!hasInitialPrediction_) {
+
     latestPrediction_ = _constantLeaf(0.0);
+
+    std::unique_ptr<ConstantTreeClassifier> cls_;    
+    Row<DataType> constantLeaf = ones<Row<DataType>>(labels_.n_elem);
+    constantLeaf.fill(mean(labels_slice));
+
+    cls_ = std::make_unique<ConstantTreeClassifier>(dataset_, constantLeaf, 0, 0);
+
+    updateClassifiers(std::move(cls_), constantLeaf);
+
+    // latestPrediction_ = _constantLeaf(0.0);
   }
 
   if (ClassifierFileScope::W_CYCLE_PREFIT) {

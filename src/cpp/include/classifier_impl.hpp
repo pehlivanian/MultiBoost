@@ -46,6 +46,10 @@ template<typename DataType, typename ClassifierType, typename... Args>
 void
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::setClassifier(const Mat<DataType>& dataset, Row<std::size_t>& labels, Args&&... args) {
 
+  // Implicit 
+  // void fit(const Mat<DataType>&, Row<std::size_t>&) 
+  // called on ClasifierType
+
   classifier_ = std::make_unique<ClassifierType>(dataset, labels, std::forward<Args>(args)...);
 
 }
@@ -55,6 +59,10 @@ void
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::Classify_(const Mat<DataType>& dataset, Row<DataType>& labels) {
 
   Row<std::size_t> labels_t;
+
+  // Implicit 
+  // void Classify(const Mat<DataType>&, Row<std::size_t>&) called 
+  // called on ClassifierType
 
   classifier_->Classify(dataset, labels_t);
   decode(labels_t, labels);

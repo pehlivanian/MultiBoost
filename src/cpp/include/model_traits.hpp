@@ -27,62 +27,62 @@ using namespace mlpack::util;
 namespace Model_Traits {
     
   using AllClassifierArgs = std::tuple<std::size_t,	// (0) numClasses
-  std::size_t,	// (1) minLeafSize
-  double,	// (2) minGainSplit
-  std::size_t,	// (3) numTrees
-  std::size_t>;	// (4) maxDepth
+				       std::size_t,	// (1) minLeafSize
+				       double,		// (2) minGainSplit
+				       std::size_t,	// (3) numTrees
+				       std::size_t>;	// (4) maxDepth
 
   namespace ClassifierTypes {
-  using RandomForestClassifierType = RandomForest<>;
-  using DecisionTreeClassifierType = DecisionTree<>;
-  using ConstantTreeClassifierType = ConstantTree;
+    using RandomForestClassifierType = RandomForest<>;
+    using DecisionTreeClassifierType = DecisionTree<>;
+    using ConstantTreeClassifierType = ConstantTree;
 
-  // [==========--===========]
-  // [============--=========]
-  // [==============--=======]
-  // Possible options
-  // [==========--===========]
-  // [========--=============]
-  // [======--===============]
-  // using DecisionTreeClassifierType = DecisionTree<GiniGain, BestBinaryNumericSplit>;
-  // using DecisionTreeClassifierType = DecisionTree<GiniGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
-  // using DecisionTreeClassifierType = DecisionTreeRegressor<MADGain>;
-  // using DecisionTreeClassifierType = DecisionTreeRegressor<>;
-  // using DecisionTreeClassifierType = DecisionTreeRegressor<MSEGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
-  // using DecisionTreeClassifierType = DecisionTreeRegressor<InformationGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
+    // [==========--===========]
+    // [============--=========]
+    // [==============--=======]
+    // Possible options
+    // [==========--===========]
+    // [========--=============]
+    // [======--===============]
+    // using DecisionTreeClassifierType = DecisionTree<GiniGain, BestBinaryNumericSplit>;
+    // using DecisionTreeClassifierType = DecisionTree<GiniGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
+    // using DecisionTreeClassifierType = DecisionTreeRegressor<MADGain>;
+    // using DecisionTreeClassifierType = DecisionTreeRegressor<>;
+    // using DecisionTreeClassifierType = DecisionTreeRegressor<MSEGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
+    // using DecisionTreeClassifierType = DecisionTreeRegressor<InformationGain, BestBinaryNumericSplit, AllCategoricalSplit, AllDimensionSelect, true>;
   
   };
 
   template<typename T>
   struct model_traits {
-  using datatype = double;
-  using integrallabeltype = std::size_t;
-  using model = ClassifierTypes::DecisionTreeClassifierType;
-  using modelArgs = std::tuple<std::size_t, std::size_t, double, std::size_t>;
+    using datatype = double;
+    using integrallabeltype = std::size_t;
+    using model = ClassifierTypes::DecisionTreeClassifierType;
+    using modelArgs = std::tuple<std::size_t, std::size_t, double, std::size_t>;
   };
 
   template<>
   struct model_traits<DecisionTreeClassifier> {
-  using datatype = double;
-  using integrallabeltype = std::size_t;
-  using model = ClassifierTypes::DecisionTreeClassifierType;
-  using modelArgs = std::tuple<std::size_t, std::size_t, double, std::size_t>;
+    using datatype = double;
+    using integrallabeltype = std::size_t;
+    using model = ClassifierTypes::DecisionTreeClassifierType;
+    using modelArgs = std::tuple<std::size_t, std::size_t, double, std::size_t>;
   };
 
   template<>
   struct model_traits<RandomForestClassifier> {
-  using datatype = double;
-  using integrallabeltype = std::size_t;
-  using model = ClassifierTypes::RandomForestClassifierType;
-  using modelArgs = std::tuple<std::size_t, std::size_t, std::size_t>;
+    using datatype = double;
+    using integrallabeltype = std::size_t;
+    using model = ClassifierTypes::RandomForestClassifierType;
+    using modelArgs = std::tuple<std::size_t, std::size_t, std::size_t>;
   };
 
   template<>
   struct model_traits<ConstantTreeClassifier> {
-  using datatype = double;
-  using integrallabeltype = std::size_t;
-  using model = ClassifierTypes::ConstantTreeClassifierType;
-  using modelArgs = std::tuple<double>;
+    using datatype = double;
+    using integrallabeltype = std::size_t;
+    using model = ClassifierTypes::ConstantTreeClassifierType;
+    using modelArgs = std::tuple<std::size_t, std::size_t>;
   };
 
   using AllRegressorArgs = std::tuple<std::size_t,	// (0) minLeafSize

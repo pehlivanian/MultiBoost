@@ -761,7 +761,6 @@ TEST(DPSolverTest, TestBaselines ) {
   }
 }
 
-
 TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
   
   std::vector<bool> trials = {false, true};

@@ -143,9 +143,8 @@ public:
 };
   
 class ConstantTreeClassifier :
-  public ConstantTreeClassifierBase<std::size_t> {
+  public ConstantTreeClassifierBase<std::size_t, std::size_t> {
 public:
-  using Args = std::tuple<double>;
   using DataType = Model_Traits::model_traits<ConstantTreeClassifier>::datatype;
     
   ConstantTreeClassifier() = default;
@@ -153,12 +152,13 @@ public:
 
   ConstantTreeClassifier(const Mat<DataType>& dataset,
 			 Row<DataType>& labels,
-			 double leafValue) :
-    ConstantTreeClassifierBase<std::size_t>(dataset,
-					    labels,
-					    std::move(leafValue))
+			 std::size_t thresh,
+			 std::size_t defaultValue) :
+    ConstantTreeClassifierBase<std::size_t, std::size_t>(dataset,
+							 labels,
+							 std::move(thresh),
+							 std::move(defaultValue))
   {}
-  
 };
 
 
@@ -168,6 +168,7 @@ public:
 
 using DTCB = DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t>;
 using RFCB = RandomForestClassifierBase<std::size_t, std::size_t, std::size_t>;
+using CTCB = ConstantTreeClassifierBase<std::size_t, std::size_t>;
 
 using DiscreteClassifierBaseDTCD = DiscreteClassifierBase<double, 
 							  Model_Traits::ClassifierTypes::DecisionTreeClassifierType,
@@ -175,6 +176,7 @@ using DiscreteClassifierBaseDTCD = DiscreteClassifierBase<double,
 							  std::size_t,
 							  double,
 							  std::size_t>;
+
 using DiscreteClassifierBaseDTCF = DiscreteClassifierBase<float, 
 							  Model_Traits::ClassifierTypes::DecisionTreeClassifierType,
 							  std::size_t,
@@ -187,9 +189,20 @@ using DiscreteClassifierBaseRFCD = DiscreteClassifierBase<double,
 							  std::size_t,
 							  std::size_t,
 							  std::size_t>;
+
 using DiscreteClassifierBaseRFCF = DiscreteClassifierBase<float,
 							  Model_Traits::ClassifierTypes::RandomForestClassifierType,
 							  std::size_t,
+							  std::size_t,
+							  std::size_t>;
+
+using DiscreteClassifierBaseCTCD = DiscreteClassifierBase<double,
+							  Model_Traits::ClassifierTypes::ConstantTreeClassifierType,
+							  std::size_t,
+							  std::size_t>;
+
+using DiscreteClassifierBaseCTCF = DiscreteClassifierBase<float,
+							  Model_Traits::ClassifierTypes::ConstantTreeClassifierType,
 							  std::size_t,
 							  std::size_t>;
 
@@ -197,7 +210,8 @@ using ClassifierBaseDTCD = ClassifierBase<double, Model_Traits::ClassifierTypes:
 using ClassifierBaseDTCF = ClassifierBase<float,  Model_Traits::ClassifierTypes::DecisionTreeClassifierType>;
 using ClassifierBaseRFCD = ClassifierBase<double, Model_Traits::ClassifierTypes::RandomForestClassifierType>;
 using ClassifierBaseRFCF = ClassifierBase<float,  Model_Traits::ClassifierTypes::RandomForestClassifierType>;
-
+using ClassifierBaseCTCD = ClassifierBase<double, Model_Traits::ClassifierTypes::ConstantTreeClassifierType>;
+using ClassifierBaseCTCF = ClassifierBase<float,  Model_Traits::ClassifierTypes::ConstantTreeClassifierType>;
 
 using ModelD = Model<double>;
 using ModelF = Model<float>;
@@ -206,17 +220,23 @@ CEREAL_REGISTER_TYPE(ClassifierBaseDTCD);
 CEREAL_REGISTER_TYPE(ClassifierBaseDTCF);
 CEREAL_REGISTER_TYPE(ClassifierBaseRFCD);
 CEREAL_REGISTER_TYPE(ClassifierBaseRFCF);
+CEREAL_REGISTER_TYPE(ClassifierBaseCTCD);
+CEREAL_REGISTER_TYPE(ClassifierBaseCTCF);
 
 CEREAL_REGISTER_TYPE(DiscreteClassifierBaseDTCD);
 CEREAL_REGISTER_TYPE(DiscreteClassifierBaseDTCF);
 CEREAL_REGISTER_TYPE(DiscreteClassifierBaseRFCD);
 CEREAL_REGISTER_TYPE(DiscreteClassifierBaseRFCF);
+CEREAL_REGISTER_TYPE(DiscreteClassifierBaseCTCD);
+CEREAL_REGISTER_TYPE(DiscreteClassifierBaseCTCF);
 
 CEREAL_REGISTER_TYPE(DTCB);
 CEREAL_REGISTER_TYPE(RFCB);
+CEREAL_REGISTER_TYPE(CTCB);
 
 CEREAL_REGISTER_TYPE(DecisionTreeClassifier);
 CEREAL_REGISTER_TYPE(RandomForestClassifier);
+CEREAL_REGISTER_TYPE(ConstantTreeClassifier);
 
 CEREAL_REGISTER_TYPE(ModelD);
 CEREAL_REGISTER_TYPE(ModelF);
@@ -225,25 +245,35 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, DecisionTreeClassifier);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, DecisionTreeClassifier);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, RandomForestClassifier);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, RandomForestClassifier);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, ConstantTreeClassifier);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, ConstantTreeClassifier);
 
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, DTCB);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, DTCB);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, RFCB);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, RFCB);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, CTCB);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, CTCB);
 
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, DiscreteClassifierBaseDTCD);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, DiscreteClassifierBaseDTCF);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, DiscreteClassifierBaseRFCD);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, DiscreteClassifierBaseRFCF);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, DiscreteClassifierBaseCTCD);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, DiscreteClassifierBaseCTCF);
 
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, ClassifierBaseDTCD);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, ClassifierBaseDTCF);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, ClassifierBaseRFCD);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, ClassifierBaseRFCF);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, ClassifierBaseCTCD);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, ClassifierBaseCTCF);
 
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseDTCD, DecisionTreeClassifier);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseDTCF, DecisionTreeClassifier);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseRFCD, RandomForestClassifier);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseRFCF, RandomForestClassifier);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseRFCD, ConstantTreeClassifier);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ClassifierBaseRFCF, ConstantTreeClassifier);
 
 #endif
