@@ -363,7 +363,7 @@ CompositeClassifier<ClassifierType>::subsampleRows(size_t numRows) {
   // Necessary? unittest fail without sort
   // uvec r = sort(randperm(n_, numRows));
   // uvec r = randperm(n_, numRows);
-  uvec r = PartitionUtils::sortedSubsample2(n_, numRows);
+  uvec r = PartitionUtils::sortedSubsample(n_, numRows);
   return r;
 }
 
@@ -375,7 +375,7 @@ CompositeClassifier<ClassifierType>::subsampleCols(size_t numCols) {
   // Necessary? unittest fail without sort
   // uvec r = sort(randperm(m_, numCols));
   // uvec r = randperm(m_, numCols);
-  uvec r = PartitionUtils::sortedSubsample2(n_, numCols);
+  uvec r = PartitionUtils::sortedSubsample(n_, numCols);
   return r;
 }
 
@@ -1131,8 +1131,7 @@ CompositeClassifier<ClassifierType>::Classify(const Mat<DataType>& dataset, Row<
 
 
 template<typename ClassifierType>
-std::pair<Row<typename CompositeClassifier<ClassifierType>::DataType>, Row<typename CompositeClassifier<ClassifierType>::DataType>>
-CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& labels, const uvec& colMask) {
+auto CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& labels, const uvec& colMask) -> std::pair<Row<DataType>, Row<DataType>> {
 
   Row<DataType> yhat;
   Predict(yhat, colMask);

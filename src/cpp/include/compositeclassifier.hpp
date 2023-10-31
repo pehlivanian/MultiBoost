@@ -409,7 +409,7 @@ public:
 
   virtual void Classify(const Mat<DataType>&, Row<DataType>&) override;
 
- // 4 Predict methods
+  // 4 Predict methods
   // predict on member dataset; use latestPrediction_
   virtual void Predict(Row<DataType>&);
   // predict on subset of dataset defined by uvec; sum step prediction vectors
@@ -513,7 +513,7 @@ private:
 
   void updateClassifiers(std::unique_ptr<Model<DataType>>&&, Row<DataType>&);
 
-  std::pair<Row<DataType>,Row<DataType>> generate_coefficients(const Row<DataType>&, const uvec&);
+  auto generate_coefficients(const Row<DataType>&, const uvec&) -> std::pair<Row<DataType>, Row<DataType>>;
   auto computeOptimalSplit(Row<DataType>&, Row<DataType>&, std::size_t, std::size_t, double, double, const uvec&, bool=false) -> optLeavesInfo;
 
   void setNextClassifier(const ClassifierType&);
