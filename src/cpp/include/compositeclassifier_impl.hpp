@@ -132,8 +132,7 @@ CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
 }
 
 template<typename ClassifierType>
-Row<typename CompositeClassifier<ClassifierType>::DataType>
-CompositeClassifier<ClassifierType>::_constantLeaf() const {
+auto CompositeClassifier<ClassifierType>::_constantLeaf() -> Row<DataType> const {
 
   Row<DataType> r;
   r.zeros(dataset_.n_cols);
@@ -141,8 +140,7 @@ CompositeClassifier<ClassifierType>::_constantLeaf() const {
 }
 
 template<typename ClassifierType>
-Row<typename CompositeClassifier<ClassifierType>::DataType>
-CompositeClassifier<ClassifierType>::_constantLeaf(double val) const {
+auto CompositeClassifier<ClassifierType>::_constantLeaf(double val) -> Row<DataType> const {
   
   Row<DataType> r;
   r.ones(dataset_.n_cols);
@@ -151,8 +149,7 @@ CompositeClassifier<ClassifierType>::_constantLeaf(double val) const {
 }
 
 template<typename ClassifierType>
-Row<typename CompositeClassifier<ClassifierType>::DataType>
-CompositeClassifier<ClassifierType>::_randomLeaf() const {
+auto CompositeClassifier<ClassifierType>::_randomLeaf() -> Row<DataType>const {
 
   Row<DataType> r(dataset_.n_cols, arma::fill::none);
   std::mt19937 rng;
@@ -383,8 +380,7 @@ CompositeClassifier<ClassifierType>::subsampleCols(size_t numCols) {
 }
 
 template<typename ClassifierType>
-Row<typename CompositeClassifier<ClassifierType>::DataType>
-CompositeClassifier<ClassifierType>::uniqueCloseAndReplace(Row<DataType>& labels) {
+auto CompositeClassifier<ClassifierType>::uniqueCloseAndReplace(Row<DataType>& labels) -> Row<DataType> {
 
   Row<DataType> uniqueVals = unique(labels);
   double eps = static_cast<double>(std::numeric_limits<float>::epsilon());
@@ -592,7 +588,6 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
     updateClassifiers(std::move(cls_), constantLeaf);
 
-    // latestPrediction_ = _constantLeaf(0.0);
   }
 
   if (ClassifierFileScope::W_CYCLE_PREFIT) {
@@ -785,15 +780,14 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 }
 
 template<typename ClassifierType>
-typename CompositeClassifier<ClassifierType>::optLeavesInfo
-CompositeClassifier<ClassifierType>::computeOptimalSplit(Row<CompositeClassifier<ClassifierType>::DataType>& g,
+auto CompositeClassifier<ClassifierType>::computeOptimalSplit(Row<CompositeClassifier<ClassifierType>::DataType>& g,
 							 Row<CompositeClassifier<ClassifierType>::DataType>& h,
 							 std::size_t stepNum, 
 							 std::size_t partitionSize,
 							 double learningRate,
 							 double activePartitionRatio,
 							 const uvec& colMask,
-							 bool includeSubsets) {
+							 bool includeSubsets) -> optLeavesInfo {
 
   (void)stepNum;
 
@@ -950,8 +944,7 @@ CompositeClassifier<ClassifierType>::_predict_in_loop_archive(std::vector<std::s
 }
 
 template<typename ClassifierType>
-std::tuple<std::size_t, std::size_t, double, double>
-CompositeClassifier<ClassifierType>::computeChildPartitionInfo() {
+auto CompositeClassifier<ClassifierType>::computeChildPartitionInfo() -> childPartitionInfo {
 
   return std::make_tuple(childPartitionSize_[1],
 			 childNumSteps_[1],
@@ -961,8 +954,7 @@ CompositeClassifier<ClassifierType>::computeChildPartitionInfo() {
 }
 
 template<typename ClassifierType>
-std::tuple<std::size_t, std::size_t, double>
-CompositeClassifier<ClassifierType>::computeChildModelInfo() {
+auto CompositeClassifier<ClassifierType>::computeChildModelInfo() -> childModelInfo {
   return std::make_tuple(childMaxDepth_[1],
 			 childMinLeafSize_[1],
 			 childMinimumGainSplit_[1]);

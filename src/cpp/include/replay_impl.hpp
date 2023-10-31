@@ -254,17 +254,19 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
     << mean(prediction.elem(posInd_OOS)) << ")" << std::endl;    
   */
 
-  for (int i=0; i<15; ++i) {
+  /*
+    for (int i=0; i<15; ++i) {
     std::cout << "OOS: (y_hat, raw y): ("
-	      << prediction[i] << ", "
-	      << labels_oos[i] << ")" << std::endl;
-  }
-  
-  for (int i=0; i<15; ++i) {
+    << prediction[i] << ", "
+    << labels_oos[i] << ")" << std::endl;
+    }
+    
+    for (int i=0; i<15; ++i) {
     std::cout << "IS: (labels_hat, raw labels): ("
-	      << prediction_is[i] << ", "
-	      << labels[i] << ")" << std::endl;
-  }
+    << prediction_is[i] << ", "
+    << labels[i] << ")" << std::endl;
+    }
+  */
 
   
   if (deSymmetrize) {

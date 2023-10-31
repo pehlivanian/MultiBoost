@@ -9,6 +9,7 @@
 ## SHOW OOS: 1
 # 
 # So IS, OOS information will be shown for each iteration if $SHOW_OOS=1
+# 
 # /home/charles/src/C++/sandbox/Inductive-Boost/src/script/incremental_classifier_fit.sh 1 250 1 0.01 0.75 0 1 0 buggyCrx_train 10 12 1.56 1 1 1 1 -1 0 .2
 ## SPLIT RATIO: .2
 ## RUN ON TEST DATASET: 0
@@ -109,17 +110,17 @@ done
 
 if [ -z "$clamp_gradient" ]; then
   clamp_gradient=0
-  upper_val=0
-  lower_val=0
+  upper_val=1000
+  lower_val=-1000
 fi
 
 if [ -z "$split_ratio" ]; then
   split_ratio=0
   test_OOS_each_it=1
+  SHOW_OOS=0
 fi
 
 STEPS=1
-SPLITRATIO=${split_ratio}
 
 CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCreifissa.cxt
 CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCreifissa.cxt
@@ -199,7 +200,7 @@ n=1
 STEP_INFO=$($EXEC_INC \
 --contextFileName $CONTEXT_PATH_RUN1 \
 --dataName ${dataname} \
---splitRatio $SPLITRATIO \
+--splitRatio ${split_ratio} \
 --mergeIndexFiles false \
 --warmStart false)
 
@@ -253,7 +254,7 @@ do
   INDEX_NAME_STEP=$($EXEC_INC \
   --contextFileName ${FOLDER_STEP}/${CONTEXT_PATH_RUNS} \
   --dataName ${dataname} \
-  --splitRatio $SPLITRATIO \
+  --splitRatio ${split_ratio} \
   --quietRun true \
   --mergeIndexFiles true \
   --warmStart true \
@@ -296,7 +297,7 @@ done
 # we test the above fitted archived regressor.
 
 # Note: The proper procedure would be to fit a model on all of
-# the _train dataset, we fitted it on the proportion (1 - $SPLITRATIO)
+# the _train dataset, we fitted it on the proportion (1 - $split_ratio)
 # above.
 
 if [ $SHOW_OOS -ne 1 ]; then

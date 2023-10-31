@@ -38,6 +38,8 @@ public:
   using PredictionList		= std::vector<Prediction>;
   using optLeavesInfo		= std::tuple<Leaves,
 					     std::optional<std::vector<std::vector<int>>>>;
+  using childModelInfo		= std::tuple<std::size_t, std::size_t, double>;
+  using childPartitionInfo	= std::tuple<std::size_t, std::size_t, double, double>;
   
 
   CompositeClassifier() = default;
@@ -476,12 +478,12 @@ private:
   void childContext(Context&);
   void contextInit_(Context&&);
   void init_(Context&&);
-  Row<DataType> _constantLeaf() const;
-  Row<DataType> _constantLeaf(double) const;
-  Row<DataType> _randomLeaf() const;
+  auto _constantLeaf() -> Row<DataType> const;
+  auto _constantLeaf(double) -> Row<DataType> const;
+  auto _randomLeaf() -> Row<DataType> const;
   uvec subsampleRows(size_t);
   uvec subsampleCols(size_t);
-  Row<DataType> uniqueCloseAndReplace(Row<DataType>&);
+  auto uniqueCloseAndReplace(Row<DataType>&) -> Row<DataType>;
   void symmetrize(Row<DataType>&);
   void deSymmetrize(Row<DataType>&);
 
@@ -506,13 +508,13 @@ private:
 			 Row<DataType>&,
 			 std::tuple<Ts...> const&);
 
-  std::tuple<std::size_t, std::size_t, double, double> computeChildPartitionInfo();
-  std::tuple<std::size_t, std::size_t, double> computeChildModelInfo();
+  auto computeChildPartitionInfo() -> childPartitionInfo;
+  auto computeChildModelInfo() -> childModelInfo;
 
   void updateClassifiers(std::unique_ptr<Model<DataType>>&&, Row<DataType>&);
 
   std::pair<Row<DataType>,Row<DataType>> generate_coefficients(const Row<DataType>&, const uvec&);
-  optLeavesInfo computeOptimalSplit(Row<DataType>&, Row<DataType>&, std::size_t, std::size_t, double, double, const uvec&, bool=false);
+  auto computeOptimalSplit(Row<DataType>&, Row<DataType>&, std::size_t, std::size_t, double, double, const uvec&, bool=false) -> optLeavesInfo;
 
   void setNextClassifier(const ClassifierType&);
   AllClassifierArgs allClassifierArgs(std::size_t);
