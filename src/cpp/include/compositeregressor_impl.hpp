@@ -164,10 +164,9 @@ CompositeRegressor<RegressorType>::_randomLeaf() const {
 
 template<typename RegressorType>
 void
-CompositeRegressor<RegressorType>::updateRegressors(std::unique_ptr<RegressorBase<DataType, 
-						    Regressor>>&& regressor,
+CompositeRegressor<RegressorType>::updateRegressors(std::unique_ptr<Model<DataType>>&& regressor,
 						    Row<DataType>& prediction) {
-
+  
   latestPrediction_ += prediction;
   regressor->purge();
   regressors_.push_back(std::move(regressor));
@@ -306,24 +305,9 @@ CompositeRegressor<RegressorType>::init_(Context&& context) {
 
   // Set latestPrediction to 0 if not passed
   if (!hasInitialPrediction_) {
-    /*
-      latestPrediction_ = _constantLeaf(0.0);
-      using D = typename model_traits<ConstantTreeRegressorRegressor>::datatype;
-      using R = typename model_traits<ConstantTreeRegressorRegressor>::model;
-      using RB = RegressorBase<D, R>;
-      
-      Row<DataType> prediction = zeros<Row<DataType>>(m_);
-      
-      std::unique_ptr<RB> regressor = std::make_unique<RB>(dataset_,
-      labels_,
-      0.);
-      updateRegressors(std::move(regressor), prediction);
-    */
-    
     latestPrediction_ = _constantLeaf(0.0);
-    
-    }
-
+  }
+  
   // set loss function
   lossFn_ = createLoss<DataType>(loss_, lossPower_);
 
@@ -359,7 +343,7 @@ CompositeRegressor<RegressorType>::_predict_in_loop(MatType&& dataset, Row<DataT
   std::size_t count=0;
   for (const auto& regressor : regressors_) {
     Row<DataType> predictionStep;
-    regressor->Predict(std::forward<MatType>(dataset), predictionStep);
+    regressor->Project(std::forward<MatType>(dataset), predictionStep);
     prediction += predictionStep;    
     count+=1;
   }  
@@ -430,9 +414,17 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
   std::unique_ptr<RegressorType> regressor;
 
   if (!hasInitialPrediction_) {
-    // XXX
-    // latestPrediction_ = _constantLeaf(mean(labels_slice));
+    
     latestPrediction_ = _constantLeaf(0.0);
+
+    std::unique_ptr<ConstantTreeRegressorRegressor> reg_;
+    Row<DataType> constantLeaf = ones<Row<DataType>>(labels_.n_elem);
+    constantLeaf.fill(mean(labels_slice));
+
+    reg_ = std::make_unique<ConstantTreeRegressorRegressor>(dataset_, constantLeaf);
+
+    updateRegressors(std::move(reg_), constantLeaf);
+
   }
 
 

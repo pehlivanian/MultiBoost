@@ -101,7 +101,6 @@ if [ -z "$split_ratio" ]; then
 fi
 
 STEPS=1
-SPLITRATIO=0.2
 
 CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCrosserge.cxt
 CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCrosserge.cxt
@@ -184,7 +183,7 @@ n=1
 STEP_INFO=$($EXEC_INC \
 --contextFileName $CONTEXT_PATH_RUN1 \
 --dataName ${dataname} \
---splitRatio $SPLITRATIO \
+--splitRatio ${split_ratio} \
 --mergeIndexFiles false \
 --warmStart false)
 
@@ -239,7 +238,7 @@ do
   INDEX_NAME_STEP=$($EXEC_INC \
   --contextFileName ${FOLDER_STEP}/${CONTEXT_PATH_RUNS} \
   --dataName ${dataname} \
-  --splitRatio $SPLITRATIO \
+  --splitRatio ${split_ratio} \
   --quietRun true \
   --mergeIndexFiles true \
   --warmStart true \
@@ -282,7 +281,7 @@ done
 # we test the above fitted archived regressor.
 
 # Note: The proper procedure would be to fit a model on all of
-# the _train dataset, we fitted it on the proportion (1 - $SPLITRATIO)
+# the _train dataset, we fitted it on the proportion (1 - ${split_ratio})
 # above.
 
 if [ $SHOW_OOS -ne 1 ]; then

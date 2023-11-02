@@ -13,7 +13,6 @@
 #include "utils.hpp"
 #include "DP.hpp"
 #include "score2.hpp"
-#include "compositemodel.hpp"
 #include "constantclassifier.hpp"
 #include "classifier.hpp"
 #include "model_traits.hpp"

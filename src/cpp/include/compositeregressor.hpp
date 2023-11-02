@@ -15,6 +15,7 @@
 #include "utils.hpp"
 #include "DP.hpp"
 #include "score2.hpp"
+#include "constantregressor.hpp"
 #include "regressor.hpp"
 #include "model_traits.hpp"
 
@@ -29,7 +30,8 @@ class CompositeRegressor : public RegressorBase<typename model_traits<RegressorT
 public:
   using DataType = typename model_traits<RegressorType>::datatype;
   using Regressor = typename model_traits<RegressorType>::model;
-  using RegressorList = std::vector<std::unique_ptr<RegressorBase<DataType, Regressor>>>;
+  using RegressorList = std::vector<std::unique_ptr<Model<DataType>>>;
+  // using RegressorList = std::vector<std::unique_ptr<RegressorBase<DataType, Regressor>>>;
   
   using Leaves = Row<DataType>;
   using Prediction = Row<DataType>;
@@ -309,7 +311,7 @@ private:
   std::tuple<std::size_t, std::size_t, double, double> computeChildPartitionInfo();
   std::tuple<std::size_t, std::size_t, double> computeChildModelInfo();
 
-  void updateRegressors(std::unique_ptr<RegressorBase<DataType, Regressor>>&&, Row<DataType>&);
+  void updateRegressors(std::unique_ptr<Model<DataType>>&&, Row<DataType>&);
 
   std::pair<Row<DataType>,Row<DataType>> generate_coefficients(const Row<DataType>&, const uvec&);
   optLeavesInfo computeOptimalSplit(Row<DataType>&, Row<DataType>&, std::size_t, std::size_t, double, double, const uvec&, bool=false);

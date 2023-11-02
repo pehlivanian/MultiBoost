@@ -1971,9 +1971,9 @@ TEST(GradientBoostRegressorTest, TestIncrementalRegressorScript) {
   char cmd[200];
   sprintf(rg_ex, "\\[%s\\]\\sOOS[\\s]*:[\\s]*.*:[\\s]+\\((.*)\\)", dataset_name_test);
   sprintf(cmd, "%ssrc/script/incremental_regressor_fit.sh 2 10 10 1 1 0.01 0.01 0.5 0.5 0 0 1 1 0 0 %s 10 9 1 1 1 1 -1 1 .2", abs_path, dataset_name_train);
-
-  std::array<float, 11> rsquared = {0.049931, 0.0965676,  0.143236, 0.186815, 0.224494, 0.263735, 0.30052, 0.331941,
-				    0.36164, 0.386788, 0.386788};
+  std::array<float, 11> rsquared = {0.0480815, 0.0960826, 0.144362, 0.188377, 0.226854, 
+				    0.264141, 0.30017, 0.331818, 0.354249, 0.378633, 
+				    0.378633};
 
   std::string cmd_str{cmd};
   child c(cmd_str, std_out > pipe_stream);
@@ -1982,6 +1982,7 @@ TEST(GradientBoostRegressorTest, TestIncrementalRegressorScript) {
   std::smatch sm;
   std::string line;
   std::size_t cnt=0;
+
   while (pipe_stream && std::getline(pipe_stream, line) && !line.empty()) {
     if (std::regex_match(line, ws_re)) {
       std::regex_match(line.cbegin(), line.cend(), sm, ws_re);

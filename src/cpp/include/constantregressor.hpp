@@ -11,34 +11,40 @@ public:
   ConstantTreeRegressor(ConstantTreeRegressor&) = default;
 
   ConstantTreeRegressor(const Mat<double>& dataset,
-			Row<double>& labels,
-			double leafValue) : leafValue_{leafValue} {}
-
-  ConstantTreeRegressor(Mat<double>&& dataset,
-			Row<double>& labels,
-			double leafValue) : leafValue_{leafValue} {}
+			Row<double>& labels)
+  { init_(labels); }
 
   ConstantTreeRegressor(const Mat<float>& dataset,
-			Row<float>& labels,
-			double leafValue) : leafValue_{leafValue} {}
+			Row<float>& labels)
+  { init_(labels); }
 
-  ConstantTreeRegressor(Mat<float>&& dataset,
-			Row<float>& labels,
-			double leafValue) : leafValue_{leafValue} {}
+  ConstantTreeRegressor(double leafValue) : leafValue_{leafValue}
+  {}
 
-  void Predict(const Mat<double>& dataset,
-	       Row<double>& prediction) {
+  void Predict(const Mat<double>& dataset, Row<double>& prediction) {
     prediction = ones<Row<double>>(dataset.n_cols);
     prediction.fill(leafValue_);
   }
 
-  void Predict(const Mat<float>& dataset,
-	       Row<float>& prediction) {
+  void Predict(const Mat<float>& dataset, Row<float>& prediction) {
     prediction = ones<Row<float>>(dataset.n_cols);
     prediction.fill(leafValue_);
   }
 
+  template<class Archive>
+  void serialize(Archive &ar) {
+    ar(leafValue_);
+  }
+
 private:
+
+  template<typename F>
+  void init_(Row<F>& labels) {
+    Row<F> uniqueVals = unique(labels);
+    assert(uniqueVals.n_cols == 1);
+    leafValue_ = static_cast<double>(uniqueVals[0]);
+  }
+
   double leafValue_;
 };
 
