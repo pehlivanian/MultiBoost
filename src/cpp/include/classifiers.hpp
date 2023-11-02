@@ -143,7 +143,7 @@ public:
 };
   
 class ConstantTreeClassifier :
-  public ConstantTreeClassifierBase<std::size_t, std::size_t> {
+  public ConstantTreeClassifierBase<> {
 public:
   using DataType = Model_Traits::model_traits<ConstantTreeClassifier>::datatype;
     
@@ -151,14 +151,11 @@ public:
   ConstantTreeClassifier(const ConstantTreeClassifier&) = default;
 
   ConstantTreeClassifier(const Mat<DataType>& dataset,
-			 Row<DataType>& labels,
-			 std::size_t thresh,
-			 std::size_t defaultValue) :
-    ConstantTreeClassifierBase<std::size_t, std::size_t>(dataset,
-							 labels,
-							 std::move(thresh),
-							 std::move(defaultValue))
+			 Row<DataType>& labels) :
+    ConstantTreeClassifierBase<>(dataset,
+				 labels)
   {}
+
 };
 
 
@@ -168,7 +165,7 @@ public:
 
 using DTCB = DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t>;
 using RFCB = RandomForestClassifierBase<std::size_t, std::size_t, std::size_t>;
-using CTCB = ConstantTreeClassifierBase<std::size_t, std::size_t>;
+using CTCB = ConstantTreeClassifierBase<>;
 
 using DiscreteClassifierBaseDTCD = DiscreteClassifierBase<double, 
 							  Model_Traits::ClassifierTypes::DecisionTreeClassifierType,
@@ -197,14 +194,10 @@ using DiscreteClassifierBaseRFCF = DiscreteClassifierBase<float,
 							  std::size_t>;
 
 using DiscreteClassifierBaseCTCD = DiscreteClassifierBase<double,
-							  Model_Traits::ClassifierTypes::ConstantTreeClassifierType,
-							  std::size_t,
-							  std::size_t>;
+							  Model_Traits::ClassifierTypes::ConstantTreeClassifierType>;
 
 using DiscreteClassifierBaseCTCF = DiscreteClassifierBase<float,
-							  Model_Traits::ClassifierTypes::ConstantTreeClassifierType,
-							  std::size_t,
-							  std::size_t>;
+							  Model_Traits::ClassifierTypes::ConstantTreeClassifierType>;
 
 using ClassifierBaseDTCD = ClassifierBase<double, Model_Traits::ClassifierTypes::DecisionTreeClassifierType>;
 using ClassifierBaseDTCF = ClassifierBase<float,  Model_Traits::ClassifierTypes::DecisionTreeClassifierType>;

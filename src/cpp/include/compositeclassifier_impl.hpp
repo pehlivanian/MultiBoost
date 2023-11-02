@@ -584,7 +584,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     Row<DataType> constantLeaf = ones<Row<DataType>>(labels_.n_elem);
     constantLeaf.fill(mean(labels_slice));
 
-    cls_ = std::make_unique<ConstantTreeClassifier>(dataset_, constantLeaf, 0, 0);
+    cls_ = std::make_unique<ConstantTreeClassifier>(dataset_, constantLeaf);
 
     updateClassifiers(std::move(cls_), constantLeaf);
 
