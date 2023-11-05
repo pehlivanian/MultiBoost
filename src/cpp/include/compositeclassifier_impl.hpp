@@ -504,17 +504,13 @@ CompositeClassifier<ClassifierType>::setRootClassifier(std::unique_ptr<Classifie
     auto _c0 = [&cls, &dataset](Row<DataType>& labels, Ts const&... classArgs) {
       cls = std::make_unique<ClassifierType>(dataset, labels, classArgs...);
     };
-    auto _c1 = [&cls, &dataset, &labels, &_c0](Ts const&... classArgs) {
-      _c0(labels,
-	  classArgs...);
-    };
     
     for (std::size_t i=0; i<FEEDBACK_ITERATIONS; ++i) {
       for (std::size_t j=0; j<10; ++j) {
 	std::cerr << j << " : " << labels(j) << " : " << prediction(j) << std::endl;
       }
       labels_it = labels_it - beta * prediction;
-      auto _cn = [&cls, &dataset, &labels_it, &_c0](Ts const&... classArgs) {
+      auto _cn = [&labels_it, &_c0](Ts const&... classArgs) {
 	_c0(labels_it,
 	    classArgs...);
       };

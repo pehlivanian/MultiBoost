@@ -133,8 +133,7 @@ CompositeRegressor<RegressorType>::contextInit_(Context&& context) {
 }
 
 template<typename RegressorType>
-Row<typename CompositeRegressor<RegressorType>::DataType>
-CompositeRegressor<RegressorType>::_constantLeaf() const {
+auto CompositeRegressor<RegressorType>::_constantLeaf() -> Row<DataType> const {
 
   Row<DataType> r;
   r.zeros(dataset_.n_cols);
@@ -142,8 +141,7 @@ CompositeRegressor<RegressorType>::_constantLeaf() const {
 }
 
 template<typename RegressorType>
-Row<typename CompositeRegressor<RegressorType>::DataType>
-CompositeRegressor<RegressorType>::_constantLeaf(double val) const {
+auto CompositeRegressor<RegressorType>::_constantLeaf(double val) -> Row<DataType> const {
   Row<DataType> r;
   r.ones(dataset_.n_cols);
   r *= val;
@@ -151,8 +149,7 @@ CompositeRegressor<RegressorType>::_constantLeaf(double val) const {
 }
 
 template<typename RegressorType>
-Row<typename CompositeRegressor<RegressorType>::DataType>
-CompositeRegressor<RegressorType>::_randomLeaf() const {
+auto CompositeRegressor<RegressorType>::_randomLeaf() -> Row<DataType> const {
 
   Row<DataType> r(dataset_.n_cols, arma::fill::none);
   std::mt19937 rng;
@@ -197,17 +194,13 @@ CompositeRegressor<RegressorType>::setRootRegressor(std::unique_ptr<RegressorTyp
     auto _c0 = [&reg, &dataset](Row<DataType>& labels, Ts const&... classArgs) {
       reg = std::make_unique<RegressorType>(dataset, labels, classArgs...);
     };
-    auto _c1 = [&reg, &dataset, &labels, &_c0](Ts const&... classArgs) {
-      _c0(labels,
-	  classArgs...);
-    };
     
     for (std::size_t i=0; i<FEEDBACK_ITERATIONS; ++i) {
       for (std::size_t j=0; j<10; ++j) {
 	std::cerr << j << " : " << labels(j) << " : " << prediction(j) << std::endl;
       }
       labels_it = labels_it - beta * prediction;
-      auto _cn = [&reg, &dataset, &labels_it, &_c0](Ts const&... classArgs) {
+      auto _cn = [&labels_it, &_c0](Ts const&... classArgs) {
 	_c0(labels_it,
 	    classArgs...);
       };
@@ -616,21 +609,19 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
 }
 
 template<typename RegressorType>
-typename CompositeRegressor<RegressorType>::optLeavesInfo
-CompositeRegressor<RegressorType>::computeOptimalSplit(Row<DataType>& g,
-						       Row<DataType>& h,
-						       std::size_t stepNum, 
-						       std::size_t partitionSize,
-						       double learningRate,
-						       double activePartitionRatio,
-						       const uvec& colMask,
-						       bool includeSubsets) {
+auto CompositeRegressor<RegressorType>::computeOptimalSplit(Row<DataType>& g,
+							    Row<DataType>& h,
+							    std::size_t stepNum, 
+							    std::size_t partitionSize,
+							    double learningRate,
+							    double activePartitionRatio,
+							    const uvec& colMask,
+							    bool includeSubsets) -> optLeavesInfo {
 
 
   (void)stepNum;
 
   int n = colMask.n_rows, T = partitionSize;
-  objective_fn obj_fn				= objective_fn::RationalScore;
   bool risk_partitioning_objective		= false;
   bool use_rational_optimization		= true;
   bool sweep_down				= false;
@@ -976,8 +967,7 @@ CompositeRegressor<RegressorType>::computeChildModelInfo() {
 }
 
 template<typename RegressorType>
-std::pair<Row<typename CompositeRegressor<RegressorType>::DataType>, Row<typename CompositeRegressor<RegressorType>::DataType>>
-CompositeRegressor<RegressorType>::generate_coefficients(const Row<DataType>& labels, const uvec& colMask) {
+auto CompositeRegressor<RegressorType>::generate_coefficients(const Row<DataType>& labels, const uvec& colMask) -> std::pair<Row<DataType>, Row<DataType>> {
 
   Row<DataType> yhat;
   Predict(yhat, colMask);

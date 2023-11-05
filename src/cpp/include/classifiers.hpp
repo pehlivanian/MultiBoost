@@ -28,7 +28,6 @@ public:
   using ClassifierType = Model_Traits::ClassifierTypes::RandomForestClassifierType;
 
   RandomForestClassifierBase() = default;
-  RandomForestClassifierBase(const RandomForestClassifierBase&) = default;
   
   RandomForestClassifierBase(const Mat<DataType>& dataset,
 			     Row<DataType>& labels,
@@ -48,7 +47,6 @@ public:
   using DataType = Model_Traits::model_traits<RandomForestClassifier>::datatype;
 
   RandomForestClassifier() = default;
-  RandomForestClassifier(const RandomForestClassifier&) = default;
 
   RandomForestClassifier(const Mat<DataType>& dataset,
 			 Row<DataType>& labels,
@@ -80,7 +78,6 @@ public:
   using ClassifierType = Model_Traits::ClassifierTypes::DecisionTreeClassifierType;
 
   DecisionTreeClassifierBase() = default;
-  DecisionTreeClassifierBase(const DecisionTreeClassifierBase&) = default;
   
   DecisionTreeClassifierBase(const Mat<DataType>& dataset,
 			     Row<DataType>& labels,
@@ -98,7 +95,6 @@ public:
   using DataType = Model_Traits::model_traits<DecisionTreeClassifier>::datatype;
 
   DecisionTreeClassifier() = default;
-  DecisionTreeClassifier(const DecisionTreeClassifier&) = default;
   
   DecisionTreeClassifier(const Mat<DataType>& dataset,
 			 Row<DataType>& labels,
@@ -132,7 +128,6 @@ public:
   using ClassifierType = Model_Traits::ClassifierTypes::ConstantTreeClassifierType;
   
   ConstantTreeClassifierBase() = default;
-  ConstantTreeClassifierBase(const ConstantTreeClassifierBase&) = default;
 
   ConstantTreeClassifierBase(const Mat<DataType>& dataset,
 			     Row<DataType>& labels,
@@ -148,7 +143,6 @@ public:
   using DataType = Model_Traits::model_traits<ConstantTreeClassifier>::datatype;
     
   ConstantTreeClassifier() = default;
-  ConstantTreeClassifier(const ConstantTreeClassifier&) = default;
 
   ConstantTreeClassifier(const Mat<DataType>& dataset,
 			 Row<DataType>& labels) :

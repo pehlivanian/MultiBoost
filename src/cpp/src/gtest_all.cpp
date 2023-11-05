@@ -1,3 +1,5 @@
+#define UNUSED(expr) do { (void)(expr); } while (0)
+
 #include <gtest/gtest.h>
 
 #include <vector>
@@ -324,7 +326,9 @@ TEST(DPSolverTest, TestRationalScoreContextComputeScoreMethods) {
   for (auto &el : b)
     el = distb(gen);
 
-  for (auto _ : trials) {
+  for (auto trial : trials) {
+    UNUSED(trial);
+
     RationalScoreContext<float>* context_serial   = new RationalScoreContext<float>{a, b, n, false, true };
     // RationalScoreContext<float>* context_AVX      = new RationalScoreContext<float>{a, b, n, false, true };
     RationalScoreContext<float>* context_parallel = new RationalScoreContext<float>{a, b, n, false, true };
@@ -390,8 +394,8 @@ TEST(DPSolverTest, TestCachedScoresMatchExternalScores) {
     auto partialSums_serial = std::vector<std::vector<float>>(n, std::vector<float>(n, 0.));
 
     // Based on cached a_sums_, b_sums_ from above    
-    for (int i=0; i<n; ++i) {
-      for (int j=i; j<n; ++j) {
+    for (std::size_t i=0; i<n; ++i) {
+      for (std::size_t j=i; j<n; ++j) {
 	partialSums_serial[i][j] = context_serial->__compute_score__(i, j);
       }
     }
@@ -405,8 +409,8 @@ TEST(DPSolverTest, TestCachedScoresMatchExternalScores) {
     auto partialSums_AVX = std::vector<std::vector<float>>(n, std::vector<float>(n, 0.));    
 
     // Based on cached a_sums_, b_sums_ from above
-    for(int i=0; i<n; ++i) {
-      for (int j=0; j<=i; ++j) {
+    for(std::size_t i=0; i<n; ++i) {
+      for (std::size_t j=0; j<=i; ++j) {
 	partialSums_AVX[j][i] = context_AVX->__compute_score__(i, j);
       }
     }
@@ -420,8 +424,8 @@ TEST(DPSolverTest, TestCachedScoresMatchExternalScores) {
     auto partialSums_parallel = std::vector<std::vector<float>>(n, std::vector<float>(n, 0.));
 
     // Based on cached a_sums_, b_sums_ from above
-    for (int i=0; i<n; ++i) {
-      for (int j=i; j<n; ++j) {
+    for (std::size_t i=0; i<n; ++i) {
+      for (std::size_t j=i; j<n; ++j) {
 	partialSums_parallel[i][j] = context_parallel->__compute_score__(i, j);
       }
     }
@@ -668,8 +672,8 @@ TEST(DPSolverTest, TestParallelScoresMatchSerialScores) {
 
     auto partialSums_serial = std::vector<std::vector<float>>(n, std::vector<float>(n, 0.));
     
-    for (int i=0; i<n; ++i) {
-      for (int j=i; j<n; ++j) {
+    for (std::size_t i=0; i<n; ++i) {
+      for (std::size_t j=i; j<n; ++j) {
 	partialSums_serial[i][j] = context->__compute_score__(i, j);
       }
     }
@@ -682,8 +686,8 @@ TEST(DPSolverTest, TestParallelScoresMatchSerialScores) {
     
     auto partialSums_parallel = std::vector<std::vector<float>>(n, std::vector<float>(n, 0.));
 
-    for (int i=0; i<n; ++i) {
-      for (int j=i; j<n; ++j) {
+    for (std::size_t i=0; i<n; ++i) {
+      for (std::size_t j=i; j<n; ++j) {
 	partialSums_parallel[i][j] = context->__compute_score__(i, j);
       }
     }
@@ -1971,10 +1975,10 @@ TEST(GradientBoostRegressorTest, TestIncrementalRegressorScript) {
   char cmd[200];
   sprintf(rg_ex, "\\[%s\\]\\sOOS[\\s]*:[\\s]*.*:[\\s]+\\((.*)\\)", dataset_name_test);
   sprintf(cmd, "%ssrc/script/incremental_regressor_fit.sh 2 10 10 1 1 0.01 0.01 0.5 0.5 0 0 1 1 0 0 %s 10 9 1 1 1 1 -1 1 .2", abs_path, dataset_name_train);
-  std::array<float, 11> rsquared = {0.0480815, 0.0960826, 0.144362, 0.188377, 0.226854, 
-				    0.264141, 0.30017, 0.331818, 0.354249, 0.378633, 
-				    0.378633};
 
+  std::array<float, 11> rsquared = {0.0494059, 0.100179, 0.147325, 0.191885, 0.235369, 
+				    0.277301, 0.313569, 0.347098, 0.379328, 0.410435, 
+				    0.410435};
   std::string cmd_str{cmd};
   child c(cmd_str, std_out > pipe_stream);
 
@@ -1991,7 +1995,7 @@ TEST(GradientBoostRegressorTest, TestIncrementalRegressorScript) {
       cnt+=1;
     }
   }
-  
+
 }
 
 TEST(GradientBoostClassifierTest, TestIncrementalClassifierScript) {

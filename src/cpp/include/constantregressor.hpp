@@ -1,6 +1,7 @@
 #ifndef __CONSTANTREGRESSOR_HPP__
 #define __CONSTANTREGRESSOR_HPP__
 
+#define UNUSED(expr) do { (void)(expr); } while (0)
 #include <mlpack/core.hpp>
 
 using namespace arma;
@@ -12,11 +13,11 @@ public:
 
   ConstantTreeRegressor(const Mat<double>& dataset,
 			Row<double>& labels)
-  { init_(labels); }
+  { UNUSED(dataset); init_(labels); }
 
   ConstantTreeRegressor(const Mat<float>& dataset,
 			Row<float>& labels)
-  { init_(labels); }
+  { UNUSED(dataset); init_(labels); }
 
   ConstantTreeRegressor(double leafValue) : leafValue_{leafValue}
   {}

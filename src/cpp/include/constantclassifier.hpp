@@ -1,6 +1,8 @@
 #ifndef __CONSTANTCLASSIFIER_HPP__
 #define __CONSTANTCLASSIFIER_HPP__
 
+#define UNUSED(expr) do { (void)(expr); } while (0)
+
 #include <mlpack/core.hpp>
 
 using namespace arma;
@@ -12,11 +14,11 @@ public:
 
   ConstantTree(const Mat<double>& dataset,
 	       Row<std::size_t>& labels)
-  { init_(labels); }
+  { UNUSED(dataset); init_(labels); }
 
   ConstantTree(const Mat<float>& dataset,
 	       Row<std::size_t>& labels)
-  { init_(labels); }
+  { UNUSED(dataset); init_(labels); }
 
   ConstantTree(Row<std::size_t>& labels)
   { init_(labels); }

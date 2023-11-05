@@ -225,8 +225,8 @@ public:
   // predict on subset of dataset defined by uvec; sum step prediction vectors
   virtual void Predict(Row<DataType>&, const uvec&);
   // predict OOS, loop through and call Predict_ on individual regressors, sum
-  virtual void Predict(const Mat<DataType>&, Row<DataType>&);
-  virtual void Predict(Mat<DataType>&&, Row<DataType>&);
+  virtual void Predict(const Mat<DataType>&, Row<DataType>&) override;
+  virtual void Predict(Mat<DataType>&&, Row<DataType>&) override;
   
   // 2 overloaded versions for archive regressor
   virtual void Predict(std::string, Row<DataType>&);
@@ -278,9 +278,9 @@ private:
   void childContext(Context&);
   void contextInit_(Context&&);
   void init_(Context&&);
-  Row<DataType> _constantLeaf() const;
-  Row<DataType> _constantLeaf(double) const;
-  Row<DataType> _randomLeaf() const;
+  auto _constantLeaf() -> Row<DataType> const;
+  auto _constantLeaf(double) -> Row<DataType> const;
+  auto _randomLeaf() -> Row<DataType> const;
   uvec subsampleRows(size_t);
   uvec subsampleCols(size_t);
   void fit_step(std::size_t);
@@ -313,8 +313,8 @@ private:
 
   void updateRegressors(std::unique_ptr<Model<DataType>>&&, Row<DataType>&);
 
-  std::pair<Row<DataType>,Row<DataType>> generate_coefficients(const Row<DataType>&, const uvec&);
-  optLeavesInfo computeOptimalSplit(Row<DataType>&, Row<DataType>&, std::size_t, std::size_t, double, double, const uvec&, bool=false);
+  auto generate_coefficients(const Row<DataType>&, const uvec&) -> std::pair<Row<DataType>,Row<DataType>>;
+  auto computeOptimalSplit(Row<DataType>&, Row<DataType>&, std::size_t, std::size_t, double, double, const uvec&, bool=false) -> optLeavesInfo;
 
   void setNextRegressor(const RegressorType&);
   AllRegressorArgs allRegressorArgs();

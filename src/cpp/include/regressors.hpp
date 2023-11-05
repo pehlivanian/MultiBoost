@@ -65,7 +65,6 @@ public:
   using RegressorType = Model_Traits::RegressorTypes::ConstantTreeRegressorRegressorType;
 
   ConstantTreeRegressorRegressorBase() = default;
-  ConstantTreeRegressorRegressorBase(const ConstantTreeRegressorRegressorBase&) = default;
   
   ConstantTreeRegressorRegressorBase(const Mat<DataType>& dataset,
 			    Row<DataType>& labels,
@@ -82,7 +81,6 @@ public:
   using DataType = Model_Traits::model_traits<ConstantTreeRegressorRegressor>::datatype;
 
   ConstantTreeRegressorRegressor() = default;
-  ConstantTreeRegressorRegressor(ConstantTreeRegressorRegressor&) = default;
 
   ConstantTreeRegressorRegressor(const Mat<DataType>& dataset,
 				 Row<DataType>& labels) :

@@ -76,8 +76,8 @@ namespace Objectives {
     a_sums_ = vvec{n_+1, std::vector<DataType>(n_+1,0.)};
     b_sums_ = vvec{n_+1, std::vector<DataType>(n_+1,0.)};
 
-    for (int i=0; i<n_; ++i) {
-      for (int j=i+1; j<=n_; ++j) {
+    for (std::size_t i=0; i<n_; ++i) {
+      for (std::size_t j=i+1; j<=n_; ++j) {
 	a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
 	b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
       }
@@ -93,8 +93,8 @@ namespace Objectives {
     b_sums_ = vvec{n_+1, std::vector<DataType>(n_+1,0.)};
     
     DataType r_[8];
-    for (int j=1; j<n_+1; ++j) {
-      int unroll = (j/4)*4, i=0;
+    for (std::size_t j=1; j<n_+1; ++j) {
+      std::size_t unroll = (j/4)*4, i=0;
       for (; i<unroll; i+=4) {
 	__m256 v1 = _mm256_set_ps(a_sums_[j-1][i], a_sums_[j-1][i+1], a_sums_[j-1][i+2], a_sums_[j-1][i+3],
 				  b_sums_[j-1][i], b_sums_[j-1][i+1], b_sums_[j-1][i+2], b_sums_[j-1][i+3]); 
@@ -129,17 +129,17 @@ namespace Objectives {
 
     const int numThreads = std::min(n_-2, NUMTHREADS);
 
-    auto task_ab_block = [this](int ind1, int ind2) {
-      for (int i=ind1; i<ind2; ++i) {
-	for (int j=i+1; j<=n_; ++j) {
+    auto task_ab_block = [this](std::size_t ind1, std::size_t ind2) {
+      for (std::size_t i=ind1; i<ind2; ++i) {
+	for (std::size_t j=i+1; j<=n_; ++j) {
 	  a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
 	  b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
 	}
       }
     };
 
-    int blockSize = static_cast<DataType>(n_)/static_cast<DataType>(numThreads);
-    int startOfBlock = 0, endOfBlock = startOfBlock + blockSize;
+    std::size_t blockSize = static_cast<DataType>(n_)/static_cast<DataType>(numThreads);
+    std::size_t startOfBlock = 0, endOfBlock = startOfBlock + blockSize;
   
     std::vector<std::thread> threads;
 
@@ -162,8 +162,8 @@ namespace Objectives {
     a_sums_ = vvec{n_+1, std::vector<DataType>(n_+1,0.)};
     b_sums_ = vvec{n_+1, std::vector<DataType>(n_+1,0.)};
   
-    for (int i=0; i<n_; ++i) {
-      for (int j=i+1; j<=n_; ++j) {
+    for (std::size_t i=0; i<n_; ++i) {
+      for (std::size_t j=i+1; j<=n_; ++j) {
 	a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
 	b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
 	partialSums_[i][j] = compute_score(i, j);
@@ -180,8 +180,8 @@ namespace Objectives {
     b_sums_ = vvec{n_+1, std::vector<DataType>(n_+1,0.)};
 
     DataType r_[8];
-    for (int j=1; j<n_+1; ++j) {
-      int unroll = (j/4)*4, i=0;
+    for (std::size_t j=1; j<n_+1; ++j) {
+      std::size_t unroll = (j/4)*4, i=0;
       for (; i<unroll; i+=4) {
 	__m256 v1 = _mm256_set_ps(a_sums_[j-1][i], a_sums_[j-1][i+1], a_sums_[j-1][i+2], a_sums_[j-1][i+3],
 				  b_sums_[j-1][i], b_sums_[j-1][i+1], b_sums_[j-1][i+2], b_sums_[j-1][i+3]); 
@@ -223,9 +223,9 @@ namespace Objectives {
 
     const int numThreads = std::min(n_-2, NUMTHREADS);
 
-    auto task_ab_block = [this](int ind1, int ind2) {
-      for (int i=ind1; i<ind2; ++i) {
-	for (int j=i+1; j<=n_; ++j) {
+    auto task_ab_block = [this](std::size_t ind1, std::size_t ind2) {
+      for (std::size_t i=ind1; i<ind2; ++i) {
+	for (std::size_t j=i+1; j<=n_; ++j) {
 	  a_sums_[i][j] = a_sums_[i][j-1] + a_[j-1];
 	  b_sums_[i][j] = b_sums_[i][j-1] + b_[j-1];
 	  partialSums_[i][j] = compute_score(i, j);
@@ -233,8 +233,8 @@ namespace Objectives {
       }
     };
 
-    int blockSize = static_cast<DataType>(n_)/static_cast<DataType>(numThreads);
-    int startOfBlock = 0, endOfBlock = startOfBlock + blockSize;
+    std::size_t blockSize = static_cast<DataType>(n_)/static_cast<DataType>(numThreads);
+    std::size_t startOfBlock = 0, endOfBlock = startOfBlock + blockSize;
   
     std::vector<std::thread> threads;
 
@@ -442,9 +442,9 @@ namespace Objectives {
 
     std::size_t n_ = ParametricContext<DataType>::n_;
 
-    for (int i=0; i<n_; ++i) {
+    for (std::size_t i=0; i<n_; ++i) {
       DataType a_sum=0., b_sum=0.;
-      for (int j=i+1; j<=n_; ++j) {
+      for (std::size_t j=i+1; j<=n_; ++j) {
 	a_sum += ParametricContext<DataType>::a_[j-1];
 	b_sum += ParametricContext<DataType>::b_[j-1];
 	ParametricContext<DataType>::partialSums_[i][j] = a_sum * a_sum / b_sum;
@@ -467,8 +467,8 @@ namespace Objectives {
     vvec partialSums_ = std::move(ParametricContext<DataType>::partialSums_);
 
     DataType r_[8];
-    for (int j=1; j<n_+1; ++j) {
-      int unroll = (j/4)*4, i=0;
+    for (std::size_t j=1; j<n_+1; ++j) {
+      std::size_t unroll = (j/4)*4, i=0;
       for (; i<unroll; i+=4) {
 	__m256 v1 = _mm256_set_ps(a_sums_[j-1][i], a_sums_[j-1][i+1], a_sums_[j-1][i+2], a_sums_[j-1][i+3],
 				  b_sums_[j-1][i], b_sums_[j-1][i+1], b_sums_[j-1][i+2], b_sums_[j-1][i+3]); 
@@ -510,10 +510,10 @@ namespace Objectives {
     std::size_t n_ = ParametricContext<DataType>::n_;
     const std::size_t numThreads = std::min(n_-2, NUMTHREADS);
 
-    auto task_ab_block = [this, n_](int ind1, int ind2) {
-      for (int i=ind1; i<ind2; ++i) {
+    auto task_ab_block = [this, n_](std::size_t ind1, std::size_t ind2) {
+      for (std::size_t i=ind1; i<ind2; ++i) {
 	DataType a_sum=0., b_sum=0.;
-	for (int j=i+1; j<=n_; ++j) {
+	for (std::size_t j=i+1; j<=n_; ++j) {
 	  a_sum += ParametricContext<DataType>::a_[j-1];
 	  b_sum += ParametricContext<DataType>::b_[j-1];
 	  ParametricContext<DataType>::partialSums_[i][j] = a_sum * a_sum / b_sum;
@@ -521,8 +521,8 @@ namespace Objectives {
       }
     };
 
-    int blockSize = static_cast<DataType>(n_)/static_cast<DataType>(numThreads);
-    int startOfBlock = 0, endOfBlock = startOfBlock + blockSize;
+    std::size_t blockSize = static_cast<DataType>(n_)/static_cast<DataType>(numThreads);
+    std::size_t startOfBlock = 0, endOfBlock = startOfBlock + blockSize;
   
     std::vector<std::thread> threads;
 

@@ -71,6 +71,8 @@ SquareLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
 template<typename DataType>
 DataType
 SquareLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
+  UNUSED(yhat);
+  UNUSED(y);
   return 0.;
 }
 
@@ -112,6 +114,8 @@ MSELoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
 template<typename DataType>
 DataType
 MSELoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
+  UNUSED(yhat);
+  UNUSED(y);
   return 0.;
 }
 
@@ -162,6 +166,8 @@ BinomialDevianceLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtyp
 template<typename DataType>
 DataType
 BinomialDevianceLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
+  UNUSED(yhat);
+  UNUSED(y);
   return 0.;
 }
 
@@ -204,6 +210,8 @@ ExpLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype *hess) {
 template<typename DataType>
 DataType
 ExpLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
+  UNUSED(yhat);
+  UNUSED(y);
   return 0.;
 }
 
@@ -249,6 +257,8 @@ SavageLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
 template<typename DataType>
 DataType
 SavageLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
+  UNUSED(yhat);
+  UNUSED(y);
   return 0.;
 }
 
@@ -295,6 +305,8 @@ ArctanLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
 template<typename DataType>
 DataType
 ArctanLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
+  UNUSED(yhat);
+  UNUSED(y);
   return 0.;
 }
 
@@ -348,6 +360,8 @@ SyntheticLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess
 template<typename DataType>
 DataType
 SyntheticLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
+  UNUSED(yhat);
+  UNUSED(y);
   return 0.;
 }
 
@@ -429,6 +443,8 @@ SyntheticLossVar1<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* 
 template<typename DataType>
 DataType
 SyntheticLossVar1<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
+  UNUSED(yhat);
+  UNUSED(y);
   return 0.;
 }
 
@@ -508,6 +524,8 @@ SyntheticLossVar2<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* 
 template<typename DataType>
 DataType
 SyntheticLossVar2<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
+  UNUSED(yhat);
+  UNUSED(y);
   return 0.;
 }
 
@@ -558,6 +576,8 @@ SyntheticLossVar3<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* 
 template<typename DataType>
 DataType
 SyntheticLossVar3<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
+  UNUSED(yhat);
+  UNUSED(y);
   return 0.;
 }
 
@@ -618,6 +638,8 @@ PowerLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
 template<typename DataType>
 DataType
 PowerLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
+  UNUSED(yhat);
+  UNUSED(y);
   return 0.;
 }
 
@@ -668,6 +690,8 @@ SyntheticRegLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* h
 template<typename DataType>
 DataType
 SyntheticRegLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
+  UNUSED(yhat);
+  UNUSED(y);
   return 0.;
 }
 
@@ -714,13 +738,15 @@ LogLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
   // We maintain the consistency by assuming $y \in \left\brace -1, 1\right\rbrace$
   // here, and do a pre-transformation
   
-  vtype yhat_norm = 0.5 * yhat + 0.5;
+  vtype yhat_norm = 0.5 * yhat + 0.5 + y + y;
   *hess = yhat_norm % (1 - yhat_norm);
 }
 
 template<typename DataType>
 DataType
 LogLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
+  UNUSED(yhat);
+  UNUSED(y);
   return 0.;
 
   /*

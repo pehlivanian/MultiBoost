@@ -20,10 +20,7 @@ public:
   virtual void Predict(const Mat<DataType>& data, Row<DataType>& pred) { Predict_(data, pred); }
   virtual void Predict(Mat<DataType>&& data, Row<DataType>& pred) { Predict_(data, pred); }
 
-  void purge() { purge_(); }
-
 private:
-  virtual void purge_() = 0;
   virtual void Predict_(const Mat<DataType>&, Row<DataType>&) = 0;
   virtual void Predict_(Mat<DataType>&&, Row<DataType>&) = 0;
 

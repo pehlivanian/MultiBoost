@@ -1,5 +1,5 @@
 #ifndef __ANALYTIC_UTILS_HPP__
-#define __ANALTYIC_UTILS_HPP__
+#define __ANALYTIC_UTILS_HPP__
 
 #include <mlpack/core.hpp>
 
