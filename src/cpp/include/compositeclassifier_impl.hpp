@@ -13,6 +13,7 @@ namespace ClassifierFileScope{
   const bool W_CYCLE_PREFIT = true;
   const bool DIAGNOSTICS_0_ = false;
   const bool DIAGNOSTICS_1_ = false;
+  const bool SUBSET_DIAGNOSTICS = true;
   const std::string DIGEST_PATH = 
     "/home/charles/src/C++/sandbox/Inductive-Boost/digest/classify";
 } // namespace ClassifierFileScope
@@ -153,7 +154,7 @@ auto CompositeClassifier<ClassifierType>::_randomLeaf() -> Row<DataType>const {
 
   Row<DataType> r(dataset_.n_cols, arma::fill::none);
   std::mt19937 rng;
-  std::uniform_real_distribution<DataType> dist{-learningRate_, learningRate_};
+  std::uniform_real_distribution<DataType> dist{-1., 1.};
   r.imbue([&](){ return dist(rng);});
   return r;
 
@@ -599,14 +600,13 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     
     coeffs = generate_coefficients(labels_slice, colMask_);
     
-    auto [best_leaves,subset_info] = computeOptimalSplit(coeffs.first,
-							 coeffs.second,
-							 stepNum,
-							 partitionSize_,
-							 learningRate_,
-							 activePartitionRatio_,
-							 colMask_,
-							 false);
+    auto [subset_info, best_leaves] = computeOptimalSplit(coeffs.first,
+							  coeffs.second,
+							  stepNum,
+							  partitionSize_,
+							  learningRate_,
+							  activePartitionRatio_,
+							  ClassifierFileScope::SUBSET_DIAGNOSTICS);
     
     createRootClassifier(classifier, rowMask_, colMask_, best_leaves);
 
@@ -616,6 +616,16 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
     hasInitialPrediction_ = true;
     
+    if (ClassifierFileScope::SUBSET_DIAGNOSTICS) {
+      std::vector<DataType> gv0 = arma::conv_to<std::vector<DataType>>::from(coeffs.first);
+      std::vector<DataType> hv0 = arma::conv_to<std::vector<DataType>>::from(coeffs.second);
+      std::vector<DataType> preds = arma::conv_to<std::vector<DataType>>::from(prediction);
+      std::vector<DataType> yv0 = arma::conv_to<std::vector<DataType>>::from(labels_);
+      std::vector<DataType> yhatv0 = arma::conv_to<std::vector<DataType>>::from(latestPrediction_);   
+      std::vector<DataType> best_leavesv0 = arma::conv_to<std::vector<DataType>>::from(best_leaves);
+      printSubsets<DataType>(subset_info.value(), best_leavesv0, preds, gv0, hv0, yv0, yhatv0, colMask_);
+    }
+
     if (ClassifierFileScope::DIAGNOSTICS_1_) {    
       Row<DataType> latestPrediction_slice = latestPrediction_.submat(zeros<uvec>(1), colMask_);
       Row<DataType> prediction_slice = prediction.submat(zeros<uvec>(1), colMask_);
@@ -733,14 +743,13 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   coeffs = generate_coefficients(labels_slice, colMask_);
   
   // Compute optimal leaf choice on unrestricted dataset
-  auto [best_leaves, subset_info] = computeOptimalSplit(coeffs.first, 
+  auto [subset_info, best_leaves] = computeOptimalSplit(coeffs.first, 
 							coeffs.second, 
 							stepNum, 
 							partitionSize_, 
 							learningRate_,
 							activePartitionRatio_,
-							colMask_,
-							false);
+							ClassifierFileScope::SUBSET_DIAGNOSTICS);
 
   createRootClassifier(classifier, rowMask_, colMask_, best_leaves);
 
@@ -749,6 +758,17 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   updateClassifiers(std::move(classifier), prediction);
 
   hasInitialPrediction_ = true;
+
+  if (ClassifierFileScope::SUBSET_DIAGNOSTICS) {
+    std::vector<DataType> gv0 = arma::conv_to<std::vector<DataType>>::from(coeffs.first);
+    std::vector<DataType> hv0 = arma::conv_to<std::vector<DataType>>::from(coeffs.second);
+    std::vector<DataType> preds = arma::conv_to<std::vector<DataType>>::from(prediction);
+    std::vector<DataType> yv0 = arma::conv_to<std::vector<DataType>>::from(labels_);
+    std::vector<DataType> yhatv0 = arma::conv_to<std::vector<DataType>>::from(latestPrediction_);   
+    std::vector<DataType> best_leavesv0 = arma::conv_to<std::vector<DataType>>::from(best_leaves);
+    printSubsets<DataType>(subset_info.value(), best_leavesv0, preds, gv0, hv0, yv0, yhatv0, colMask_);
+  }
+
 
   if (ClassifierFileScope::DIAGNOSTICS_1_) {    
     Row<DataType> latestPrediction_slice = latestPrediction_.submat(zeros<uvec>(1), colMask_);
@@ -777,18 +797,17 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
 template<typename ClassifierType>
 auto CompositeClassifier<ClassifierType>::computeOptimalSplit(Row<CompositeClassifier<ClassifierType>::DataType>& g,
-							 Row<CompositeClassifier<ClassifierType>::DataType>& h,
-							 std::size_t stepNum, 
-							 std::size_t partitionSize,
-							 double learningRate,
-							 double activePartitionRatio,
-							 const uvec& colMask,
-							 bool includeSubsets) -> optLeavesInfo {
+							      Row<CompositeClassifier<ClassifierType>::DataType>& h,
+							      std::size_t stepNum, 
+							      std::size_t partitionSize,
+							      double learningRate,
+							      double activePartitionRatio,
+							      bool includeSubsets) -> optLeavesInfo {
 
   (void)stepNum;
 
   // We should implement several methods here or in generateCoefficients
-  int n = colMask.n_rows, T = partitionSize;
+  int n = g.n_cols, T = partitionSize;
   objective_fn obj_fn					= objective_fn::RationalScore;
   bool risk_partitioning_objective			= false;
   bool use_rational_optimization			= true;
@@ -812,8 +831,6 @@ auto CompositeClassifier<ClassifierType>::computeOptimalSplit(Row<CompositeClass
   
   auto subsets0 = dp0.get_optimal_subsets_extern();
 
-  // printSubsets<DataType>(subsets0, gv0, hv0, colMask);
-
   Row<DataType> leaf_values0 = arma::zeros<Row<DataType>>(n);
 
   if (T > 1 || risk_partitioning_objective) {
@@ -828,10 +845,10 @@ auto CompositeClassifier<ClassifierType>::computeOptimalSplit(Row<CompositeClass
     }
   }
 
-  if (includeSubsets) {
-    return std::make_tuple(leaf_values0, subsets0);
+  if (includeSubsets) {    
+    return std::make_tuple(subsets0, leaf_values0);
   } else {
-    return std::make_tuple(leaf_values0, std::nullopt);
+    return std::make_tuple(std::nullopt, leaf_values0);
   }
     
 }

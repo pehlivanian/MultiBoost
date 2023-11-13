@@ -90,7 +90,8 @@ from pmlb import classification_dataset_names, regression_dataset_names
 from sklearn.model_selection import train_test_split
 
 ROOT_DATA = "/home/charles/Data/"
-MODEL_TYPE = "Classifier"
+# MODEL_TYPE = "Classification"
+MODEL_TYPE = "Regression"
 
 # dataset_name = "606_fri_c2_1000_10"
 # dataset_name = "529_pollen"
@@ -98,6 +99,9 @@ MODEL_TYPE = "Classifier"
 # dataset_name = "1199_BNG_echoMonths"
 # dataset_name = "1030_ERA"
 # dataset_name = "564_fried"
+# dataset_name = "1193_BNG_lowbwt"
+# dataset_name = "1201_BNG_breastTumor"
+dataset_name = "1203_BNG_pwLinear"
 
 # dataset_name = "spambase"
 # dataset_name = "backache"
@@ -115,7 +119,7 @@ MODEL_TYPE = "Classifier"
 # dataset_name = "house_votes_84"
 # dataset_name = "colic"
 # dataset_name = "buggyCrx"
-dataset_name = "ring"
+# dataset_name = "ring"
 
 # X = pd.read_csv("/home/charles/Data/income_train_X.csv")
 # y = pd.read_csv("/home/charles/Data/income_train_y.csv")
@@ -123,7 +127,7 @@ X,y = pmlb.fetch_data(dataset_name, return_X_y=True)
 # X_train, X_test, y_train, y_test = train_test_split(X, y)
 # X = X_train; y = y_train
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=44, train_size=2000, test_size=1000)
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=44, train_size=800, test_size=200)
 
 
 if MODEL_TYPE in ("Regression", ):

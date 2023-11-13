@@ -35,8 +35,8 @@ public:
   using Leaves			= Row<DataType>;
   using Prediction		= Row<DataType>;
   using PredictionList		= std::vector<Prediction>;
-  using optLeavesInfo		= std::tuple<Leaves,
-					     std::optional<std::vector<std::vector<int>>>>;
+  using optLeavesInfo		= std::tuple<std::optional<std::vector<std::vector<int>>>,
+					     Leaves>;
   using childModelInfo		= std::tuple<std::size_t, std::size_t, double>;
   using childPartitionInfo	= std::tuple<std::size_t, std::size_t, double, double>;
   
@@ -513,7 +513,7 @@ private:
   void updateClassifiers(std::unique_ptr<Model<DataType>>&&, Row<DataType>&);
 
   auto generate_coefficients(const Row<DataType>&, const uvec&) -> std::pair<Row<DataType>, Row<DataType>>;
-  auto computeOptimalSplit(Row<DataType>&, Row<DataType>&, std::size_t, std::size_t, double, double, const uvec&, bool=false) -> optLeavesInfo;
+  auto computeOptimalSplit(Row<DataType>&, Row<DataType>&, std::size_t, std::size_t, double, double, bool=false) -> optLeavesInfo;
 
   void setNextClassifier(const ClassifierType&);
   AllClassifierArgs allClassifierArgs(std::size_t);

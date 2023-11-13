@@ -712,13 +712,43 @@ namespace IB_utils {
   void mergeIndices(std::string, std::string, boost::filesystem::path fldr=boost::filesystem::path{}, bool=false);
 
   template<typename DataType>
-  void printSubsets(std::vector<std::vector<int>>& subsets, const std::vector<DataType>& a, const std::vector<DataType>& b, const uvec& colMask) {
+  std::vector<DataType> sort_not_in_place(std::vector<DataType> v) {
+    std::sort(v.begin(), v.end());
+    return v;
+  }
+
+  template<typename DataType>
+  void printSubsets(std::vector<std::vector<int>>& subsets, 
+		    const std::vector<DataType>& targets,
+		    const std::vector<DataType>& preds,
+		    const std::vector<DataType>& a, 
+		    const std::vector<DataType>& b, 
+		    const std::vector<DataType>& y,
+		    const std::vector<DataType>& yhat,
+		    const uvec& colMask) {
 
     DataType abs_stddev_max = 0.;
 
+    std::vector<DataType> sorted_targets = sort_not_in_place(targets);
+    std::vector<DataType> sorted_preds = sort_not_in_place(preds);
+    
+    auto it = std::unique(sorted_targets.begin(), sorted_targets.end());
+    sorted_targets.resize(std::distance(sorted_targets.begin(), it));
+    
+    it = std::unique(sorted_preds.begin(), sorted_preds.end());
+    sorted_preds.resize(std::distance(sorted_preds.begin(), it));
+
+    std::cerr << "[ Unique targets: ";
+    std::copy(sorted_targets.begin(), sorted_targets.end(), std::ostream_iterator<DataType>(std::cerr, " "));
+    std::cerr << "]";
+
+    std::cerr << "[ Unique preds: ";
+    std::copy(sorted_preds.begin(), sorted_preds.end(), std::ostream_iterator<DataType>(std::cerr, " "));
+    std::cerr << "]\n";
+
     std::cerr << "SUBSETS\n";
     std::cerr << "[\n";
-    std::for_each(subsets.begin(), subsets.end(), [&a, &b, &colMask, &abs_stddev_max](std::vector<int>& subset){
+    std::for_each(subsets.begin(), subsets.end(), [&targets, &preds, &y, &yhat, &a, &b, &colMask, &abs_stddev_max](std::vector<int>& subset){
 		    
 		    std::cerr << "  [size: " << subset.size() << "] ";
 		    std::cerr << "[";
@@ -737,6 +767,30 @@ namespace IB_utils {
 		    std::cerr << "[ b ";
 		    for (const int& ind : subset) {
 		      std::cerr << b[ind] << " ";
+		    }
+		    std::cerr << "]";
+
+		    std::cerr << "[ targets ";
+		    for (const int& ind : subset) {
+		      std::cerr << targets[ind] << " ";
+		    }
+		    std::cerr << "]";
+
+		    std::cerr << "[ preds ";
+		    for (const int& ind : subset) {
+		      std::cerr << preds[ind] << " ";
+		    }
+		    std::cerr << "]";
+
+		    std::cerr << "[ y ";
+		    for (const int& ind : subset) {
+		      std::cerr << y[colMask[ind]] << " ";
+		    }
+		    std::cerr << "]";
+
+		    std::cerr << "[ yhat ";
+		    for (const int& ind : subset) {
+		      std::cerr << yhat[colMask[ind]] << " ";
 		    }
 		    std::cerr << "]";
 		    

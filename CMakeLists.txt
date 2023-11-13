@@ -5,7 +5,7 @@ project(InductiveBoost)
 # Supress all warnings - to eliminate clutter when debugging compile errors
 # add_definitions(-w)
 
-set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 include(GNUInstallDirs)
 
