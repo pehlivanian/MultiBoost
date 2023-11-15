@@ -37,18 +37,19 @@ public:
 
   DiscreteClassifierBase(const Mat<DataType>& dataset, Row<DataType>& labels, Args&&... args) : 
     ClassifierBase<DataType, ClassifierType>(typeid(*this).name())
-  {
+  { init_(dataset, labels, false, std::forward<Args>(args)...); }
 
-    labels_t_ = Row<std::size_t>(labels.n_cols);
-    encode(labels, labels_t_);
-    setClassifier(dataset, labels_t_, std::forward<Args>(args)...);
-    args_ = std::tuple<Args...>(args...);
-    
+  DiscreteClassifierBase(const Mat<DataType>& dataset, Row<DataType>& labels, Row<DataType>& weights, Args&&... args) : 
+    ClassifierBase<DataType, ClassifierType>(typeid(*this).name())
+  { weights_ = weights;
+    init_(dataset, labels, false, std::forward<Args>(args)...); 
   }
 
   DiscreteClassifierBase(const LeavesMap& leavesMap, std::unique_ptr<ClassifierType> classifier) : 
     leavesMap_{leavesMap},
     classifier_{std::move(classifier)} {}
+
+  void init_(const Mat<DataType>&, Row<DataType>&, bool, Args&&...);
 
   DiscreteClassifierBase() = default;
   DiscreteClassifierBase(const DiscreteClassifierBase&) = default;
@@ -65,10 +66,11 @@ public:
   }
 
 private:
-  void encode(const Row<DataType>&, Row<std::size_t>&); 
+  void encode(const Row<DataType>&, Row<std::size_t>&, bool); 
   void decode(const Row<std::size_t>&, Row<DataType>&);
 
   Row<std::size_t> labels_t_;
+  Row<DataType> weights_;
   LeavesMap leavesMap_;
   std::unique_ptr<ClassifierType> classifier_;
   std::tuple<Args...> args_;

@@ -2,8 +2,17 @@
 #define __CLASSIFIER_IMPL_HPP__
 
 template<typename DataType, typename ClassifierType, typename... Args>
+void
+DiscreteClassifierBase<DataType, ClassifierType, Args...>::init_(const Mat<DataType>& dataset, Row<DataType>& labels, bool useWeights, Args&&... args) {
+  labels_t_ = Row<std::size_t>(labels.n_cols);
+  encode(labels, labels_t_, useWeights);
+  setClassifier(dataset, labels_t_, std::forward<Args>(args)...);
+  args_ = std::tuple<Args...>(args...);
+}
+
+template<typename DataType, typename ClassifierType, typename... Args>
 void 
-DiscreteClassifierBase<DataType, ClassifierType, Args...>::encode(const Row<DataType>& labels_d, Row<std::size_t>& labels_t) {
+DiscreteClassifierBase<DataType, ClassifierType, Args...>::encode(const Row<DataType>& labels_d, Row<std::size_t>& labels_t, bool useWeights) {
 
   Row<DataType> uniqueVals = sort(unique(labels_d));    
 
@@ -13,6 +22,10 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::encode(const Row<Data
     std::size_t equiv = std::distance(it, uniqueVals.end()) - 1;
 
     labels_t.elem(ind).fill(equiv);
+    if (useWeights) {
+      DataType weightEquiv = weights_[ind[0]];
+      weights_.elem(ind).fill(weightEquiv);
+    }
     leavesMap_.insert(std::make_pair(static_cast<std::size_t>(equiv), (*it)));
 
   }

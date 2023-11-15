@@ -39,7 +39,7 @@ def _dataset(dataset_name):
 def _create_synthetic_disc_data(dim=2):
     dataset_name = "synthetic"
     ROOT_DATA = "/home/charles/Data/"
-    METHOD = ['spherical', 'eggholder'][1]
+    METHOD = ['spherical', 'eggholder'][0]
 
     if METHOD in ('spherical',):
         coord = np.arange(-np.sqrt(np.pi), np.sqrt(np.pi), .1)

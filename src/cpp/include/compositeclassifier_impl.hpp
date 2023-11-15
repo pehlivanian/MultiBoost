@@ -11,6 +11,8 @@ using namespace IB_utils;
 namespace ClassifierFileScope{
   const bool POST_EXTRAPOLATE = false;
   const bool W_CYCLE_PREFIT = true;
+  const bool NEW_COLMASK_FOR_CHILD = true;
+  const bool USE_WEIGHTS = false;
   const bool DIAGNOSTICS_0_ = false;
   const bool DIAGNOSTICS_1_ = false;
   const bool SUBSET_DIAGNOSTICS = true;
@@ -664,6 +666,14 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 		<< std::endl;      
     }
 
+    uvec colMask;
+    if (ClassifierFileScope::NEW_COLMASK_FOR_CHILD) {
+      int colRatio = static_cast<size_t>(m_ * col_subsample_ratio_);
+      colMask = PartitionUtils::sortedSubsample2(m_, colRatio);
+    } else {
+      colMask = colMask_;
+    }
+
     Context context{};      
     childContext(context);
 
@@ -676,12 +686,12 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
       classifier.reset(new CompositeClassifier<ClassifierType>(dataset_, 
 							       labels_, 
 							       latestPrediction_, 
-							       colMask_, 
+							       colMask, 
 							       context));
     } else {
       classifier.reset(new CompositeClassifier<ClassifierType>(dataset_,
 							       labels_,
-							       colMask_,
+							       colMask,
 							       context));
     }
 
