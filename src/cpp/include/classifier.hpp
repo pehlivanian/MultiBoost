@@ -42,7 +42,7 @@ public:
   DiscreteClassifierBase(const Mat<DataType>& dataset, Row<DataType>& labels, Row<DataType>& weights, Args&&... args) : 
     ClassifierBase<DataType, ClassifierType>(typeid(*this).name())
   { weights_ = weights;
-    init_(dataset, labels, false, std::forward<Args>(args)...); 
+    init_(dataset, labels, true, std::forward<Args>(args)...); 
   }
 
   DiscreteClassifierBase(const LeavesMap& leavesMap, std::unique_ptr<ClassifierType> classifier) : 
@@ -55,11 +55,14 @@ public:
   DiscreteClassifierBase(const DiscreteClassifierBase&) = default;
   virtual ~DiscreteClassifierBase() = default;
 
-  void setClassifier(const Mat<DataType>&, Row<std::size_t>&, Args&&...);
+  void setClassifier(const Mat<DataType>&, Row<std::size_t>&, bool, Args&&...);
+  Row<DataType> getWeights() const { return weights_; }
+  void setWeights(const Row<DataType>& weights) { weights_ = weights; }
 
   template<class Archive>
   void serialize(Archive &ar) {
     ar(cereal::base_class<ClassifierBase<DataType, ClassifierType>>(this), CEREAL_NVP(leavesMap_));
+    ar(cereal::base_class<ClassifierBase<DataType, ClassifierType>>(this), CEREAL_NVP(weights_));
     ar(cereal::base_class<ClassifierBase<DataType, ClassifierType>>(this), CEREAL_NVP(classifier_));
     // Don't serialize args_
     // ar(cereal::base_class<ClassifierBase<DataType, ClassifierType>>(this), CEREAL_NVP(args_));

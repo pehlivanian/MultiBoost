@@ -93,12 +93,12 @@ auto main(int argc, char **argv) -> int {
 	      testLabels, 
 	      splitRatio);
 
-  /*
+  if (!warmStart) {
     std::cerr << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
-    << trainDataset.n_rows << ")" << std::endl;
+	      << trainDataset.n_rows << ")" << std::endl;
     std::cerr << "TEST DATASET:  (" << testDataset.n_cols << " x " 
-    << testDataset.n_rows << ")" << std::endl;
-  */
+	      << testDataset.n_rows << ")" << std::endl;
+  }
   
   // Create classifier
   // Get prediction if warmStart

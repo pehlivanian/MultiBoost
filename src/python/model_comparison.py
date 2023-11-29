@@ -49,12 +49,12 @@ def _create_synthetic_disc_data(dim=2):
             for j in range(n):
                 arg = coord[i]*coord[i] + coord[j]+coord[i]; label = 0.
                 label += (1./1.)*np.cos(arg)
-                label -= (2./1.)*np.cos(2*arg)
+                label -= (21./1.)*np.cos(2*arg)
                 label += (1./1.)*np.cos(4*arg)
-                label -= (4./1.)*np.cos(8*arg)
+                label -= (11./1.)*np.cos(8*arg)
                 label += (1./1.)*np.cos(16*arg)
                 label -= (8./1.)*np.cos(32*arg)
-                label += (1./1.)*np.cos(64*arg)
+                label += (14./1.)*np.cos(64*arg)
                 data[j+i*n] = np.array([coord[i], coord[j], label])
                 data[j+i*n,2] = data[j+i*n,2] < 0.5
     elif METHOD in ('eggholder',):

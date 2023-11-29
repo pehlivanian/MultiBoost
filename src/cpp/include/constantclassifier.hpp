@@ -23,6 +23,16 @@ public:
   ConstantTree(Row<std::size_t>& labels)
   { init_(labels); }
 
+  ConstantTree(const Mat<double>& dataset,
+	       Row<std::size_t>& labels,
+	       const Row<double>& weights)
+  { UNUSED(dataset); UNUSED(weights); init_(labels); }
+
+  ConstantTree(const Mat<float>& dataset,
+	       Row<std::size_t>& labels,
+	       const Row<float>& weights)
+  { UNUSED(dataset); UNUSED(weights); init_(labels); }
+
   ConstantTree(std::size_t leafValue) : leafValue_{leafValue} 
   {}
 

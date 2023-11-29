@@ -1,6 +1,8 @@
 #ifndef __CLASSIFIERS_HPP__
 #define __CLASSIFIERS_HPP__
 
+#define UNUSED(expr) do { (void)(expr); } while (0)
+
 #include <utility>
 #include <tuple>
 
@@ -35,6 +37,14 @@ public:
     DiscreteClassifierBase<DataType, 
 			   ClassifierType, 
 			   Args...>(dataset, labels, std::forward<Args>(args)...) {}
+
+  RandomForestClassifierBase(const Mat<DataType>& dataset,
+			     Row<DataType>& labels,
+			     Row<DataType>& weights,
+			     Args&&... args) :
+    DiscreteClassifierBase<DataType, 
+			   ClassifierType, 
+			   Args...>(dataset, labels, weights, std::forward<Args>(args)...) {}
   
 };
 
@@ -55,6 +65,19 @@ public:
 			 std::size_t minLeafSize=2) :
     RandomForestClassifierBase<std::size_t, std::size_t, std::size_t>(dataset, 
 								      labels, 
+								      std::move(numClasses),
+								      std::move(numTrees),
+								      std::move(minLeafSize)) {}
+  
+  RandomForestClassifier(const Mat<DataType>& dataset,
+			 Row<DataType>& labels,
+			 Row<DataType>& weights,
+			 std::size_t numClasses=1,
+			 std::size_t numTrees=10,
+			 std::size_t minLeafSize=2) :
+    RandomForestClassifierBase<std::size_t, std::size_t, std::size_t>(dataset,
+								      labels,
+								      weights,
 								      std::move(numClasses),
 								      std::move(numTrees),
 								      std::move(minLeafSize)) {}
@@ -85,6 +108,14 @@ public:
     DiscreteClassifierBase<DataType, 
 			   ClassifierType, 
 			   Args...>(dataset, labels, std::forward<Args>(args)...) {}
+
+  DecisionTreeClassifierBase(const Mat<DataType>& dataset,
+			     Row<DataType>& labels,
+			     Row<DataType>& weights,
+			     Args&&... args) :
+    DiscreteClassifierBase<DataType, 
+			   ClassifierType, 
+			   Args...>(dataset, labels, weights, std::forward<Args>(args)...) {}
 };
 
 class DecisionTreeClassifier : 
@@ -104,6 +135,22 @@ public:
 			 std::size_t maxDepth) :
     DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t>(dataset,
 									      labels,
+									      std::move(numClasses),
+									      std::move(minLeafSize),
+									      std::move(minGainSplit),
+									      std::move(maxDepth))
+  {}
+
+  DecisionTreeClassifier(const Mat<DataType>& dataset,
+			 Row<DataType>& labels,
+			 Row<DataType>& weights,
+			 std::size_t numClasses,
+			 std::size_t minLeafSize,
+			 double minGainSplit,
+			 std::size_t maxDepth) :
+    DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t>(dataset,
+									      labels,
+									      weights,
 									      std::move(numClasses),
 									      std::move(minLeafSize),
 									      std::move(minGainSplit),
@@ -135,6 +182,14 @@ public:
     DiscreteClassifierBase<DataType,
 			   ClassifierType,
 			   Args...>(dataset, labels, std::forward<Args>(args)...) {}
+  
+  ConstantTreeClassifierBase(const Mat<DataType>& dataset,
+			     Row<DataType>& labels,
+			     Row<DataType>& weights,
+			     Args&&... args) :
+    DiscreteClassifierBase<DataType,
+			   ClassifierType,
+			   Args...>(dataset, labels, weights, std::forward<Args>(args)...) {}
 };
   
 class ConstantTreeClassifier :
@@ -148,6 +203,14 @@ public:
 			 Row<DataType>& labels) :
     ConstantTreeClassifierBase<>(dataset,
 				 labels)
+  {}
+  
+  ConstantTreeClassifier(const Mat<DataType>& dataset,
+			 Row<DataType>& labels,
+			 Row<DataType>& weights) :
+    ConstantTreeClassifierBase<>(dataset,
+				 labels,
+				 weights)
   {}
 
 };

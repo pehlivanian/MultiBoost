@@ -455,6 +455,7 @@ public:
   std::string writeDataset();
   std::string writeDatasetOOS();
   std::string writeLabels();
+  std::string writeWeights();
   std::string writeLabelsOOS();
   std::string writePrediction();
   std::string writeColMask();
@@ -497,10 +498,15 @@ private:
 
   void purge_() override;
   
-  void createRootClassifier(std::unique_ptr<ClassifierType>&, 
-			    uvec, 
-			    uvec, 
-			    const Row<DataType>&);
+  void createRootClassifier(std::unique_ptr<ClassifierType>&, const Row<DataType>&);
+
+  template<typename... Ts>
+  void setRootClassifier(std::unique_ptr<ClassifierType>&,
+			 const Mat<DataType>&,
+			 Row<DataType>&,
+			 Row<DataType>&,
+			 std::tuple<Ts...> const&);
+
   template<typename... Ts>
   void setRootClassifier(std::unique_ptr<ClassifierType>&, 
 			 const Mat<DataType>&,
@@ -512,6 +518,7 @@ private:
 
   void updateClassifiers(std::unique_ptr<Model<DataType>>&&, Row<DataType>&);
 
+  void setWeights();
   auto generate_coefficients(const Row<DataType>&, const uvec&) -> std::pair<Row<DataType>, Row<DataType>>;
   auto computeOptimalSplit(Row<DataType>&, Row<DataType>&, std::size_t, std::size_t, double, double, bool=false) -> optLeavesInfo;
 
@@ -522,6 +529,7 @@ private:
   int baseSteps_;
   Mat<DataType> dataset_;
   Row<DataType> labels_;
+  Row<DataType> weights_;
   Mat<DataType> dataset_oos_;
   Row<DataType> labels_oos_;
 
@@ -572,6 +580,7 @@ private:
   std::uniform_int_distribution<std::size_t> partitionDist_;
   // call by partitionDist_(default_engine_)
 
+  bool useWeights_;
   bool symmetrized_;
   bool removeRedundantLabels_;
   bool quietRun_;

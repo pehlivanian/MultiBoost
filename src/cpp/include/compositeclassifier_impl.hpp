@@ -15,7 +15,7 @@ namespace ClassifierFileScope{
   const bool USE_WEIGHTS = false;
   const bool DIAGNOSTICS_0_ = false;
   const bool DIAGNOSTICS_1_ = false;
-  const bool SUBSET_DIAGNOSTICS = true;
+  const bool SUBSET_DIAGNOSTICS = false;
   const std::string DIGEST_PATH = 
     "/home/charles/src/C++/sandbox/Inductive-Boost/digest/classify";
 } // namespace ClassifierFileScope
@@ -195,6 +195,9 @@ CompositeClassifier<ClassifierType>::init_(Context&& context) {
   std::string contextFilename = "_Context_0.cxt";
   writeBinary<Context>(contextFilename, context, fldr_);
 
+  // Set weights
+  weights_ = ones<Row<DataType>>(labels_.n_cols);
+
   // Serialize dataset, labels first
   if (serializeDataset_) {
     std::string path;
@@ -211,6 +214,9 @@ CompositeClassifier<ClassifierType>::init_(Context&& context) {
     path = writeLabelsOOS();
     fileNames_.push_back(path);
   }
+
+  // Experimental for now
+  useWeights_ = ClassifierFileScope::USE_WEIGHTS;
 
   // Note these are flipped
   n_ = dataset_.n_rows; 
@@ -484,6 +490,37 @@ CompositeClassifier<ClassifierType>::deSymmetrize(Row<DataType>& prediction) {
 }
 
 template<typename ClassifierType>
+void
+CompositeClassifier<ClassifierType>::setWeights() {
+  ;
+}
+
+template<typename ClassifierType>
+template<typename... Ts>
+void
+CompositeClassifier<ClassifierType>::setRootClassifier(std::unique_ptr<ClassifierType>& classifier,
+						       const Mat<DataType>& dataset,
+						       Row<CompositeClassifier<ClassifierType>::DataType>& labels,
+						       Row<CompositeClassifier<ClassifierType>::DataType>& weights,
+						       std::tuple<Ts...> const& args) {
+
+  // The calling convention for mlpack classifiers with weight specification:
+  // cls{dataset, labels, numClasses, weights, args...)
+  // We must remake the tuple in this case
+  std::unique_ptr<ClassifierType> cls;
+
+  auto _c = [&cls, &dataset, &labels, &weights](Ts const&... classArgs) {
+    cls = std::make_unique<ClassifierType>(dataset, labels, weights, classArgs...);
+  };
+  std::apply(_c, args);
+
+  // Feedback 
+  // ...
+
+  classifier = std::move(cls);
+}
+
+template<typename ClassifierType>
 template<typename... Ts>
 void
 CompositeClassifier<ClassifierType>::setRootClassifier(std::unique_ptr<ClassifierType>& classifier,
@@ -529,8 +566,6 @@ CompositeClassifier<ClassifierType>::setRootClassifier(std::unique_ptr<Classifie
 template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::createRootClassifier(std::unique_ptr<ClassifierType>& classifier,
-							  uvec rowMask, 
-							  uvec colMask, 
 							  const Row<CompositeClassifier<ClassifierType>::DataType>& best_leaves) {
 
   const typename ClassifierType::Args& rootClassifierArgs = ClassifierType::_args(allClassifierArgs(partitionSize_+1));
@@ -541,10 +576,14 @@ CompositeClassifier<ClassifierType>::createRootClassifier(std::unique_ptr<Classi
     // we just use the classifier below to predict on the larger dataset for this step's
     // prediction
 
-    auto dataset_slice = dataset_.submat(rowMask, colMask);
+    auto dataset_slice = dataset_.submat(rowMask_, colMask_);
     Leaves allLeaves = best_leaves;
-    
-    setRootClassifier(classifier, dataset_slice, allLeaves, rootClassifierArgs);
+
+    if (useWeights_) {
+      setRootClassifier(classifier, dataset_slice, allLeaves, weights_, rootClassifierArgs);
+    } else {
+      setRootClassifier(classifier, dataset_slice, allLeaves, rootClassifierArgs);
+    }
 
   } else {
     // Fit classifier on {dataset, padded best_leaves}, where padded best_leaves is the
@@ -552,9 +591,13 @@ CompositeClassifier<ClassifierType>::createRootClassifier(std::unique_ptr<Classi
 
     // Zero pad labels first
     Leaves allLeaves = zeros<Row<DataType>>(m_);
-    allLeaves(colMask) = best_leaves;
+    allLeaves(colMask_) = best_leaves;
 
-    setRootClassifier(classifier, dataset_, allLeaves, rootClassifierArgs);
+    if (ClassifierFileScope::USE_WEIGHTS) {
+      setRootClassifier(classifier, dataset_, allLeaves, weights_, rootClassifierArgs);
+    } else {
+      setRootClassifier(classifier, dataset_, allLeaves, rootClassifierArgs);
+    }
     
   }
 }
@@ -610,7 +653,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 							  activePartitionRatio_,
 							  ClassifierFileScope::SUBSET_DIAGNOSTICS);
     
-    createRootClassifier(classifier, rowMask_, colMask_, best_leaves);
+    createRootClassifier(classifier, best_leaves);
 
     classifier->Classify(dataset_, prediction);
 
@@ -761,7 +804,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 							activePartitionRatio_,
 							ClassifierFileScope::SUBSET_DIAGNOSTICS);
 
-  createRootClassifier(classifier, rowMask_, colMask_, best_leaves);
+  createRootClassifier(classifier, best_leaves);
 
   classifier->Classify(dataset_, prediction);
 
@@ -920,6 +963,12 @@ CompositeClassifier<ClassifierType>::writeLabels() {
 
 template<typename ClassifierType>
 std::string
+CompositeClassifier<ClassifierType>::writeWeights() {
+  return IB_utils::writeWeightsIS(weights_, fldr_);
+}
+
+template<typename ClassifierType>
+std::string
 CompositeClassifier<ClassifierType>::writeLabelsOOS() {
   return IB_utils::writeLabelsOOS(labels_oos_, fldr_);
 }
@@ -1015,7 +1064,7 @@ template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::commit() {
 
-  std::string path, predictionPath, colMaskPath;
+  std::string path, predictionPath, colMaskPath, weightsPath;
   path = write();
   fileNames_.push_back(path);
 
@@ -1027,6 +1076,14 @@ CompositeClassifier<ClassifierType>::commit() {
     colMaskPath = writeColMask();
     fileNames_.push_back(colMaskPath);
   }
+
+  /* No - weights are attached to the classifier serialization
+     if (ClassifierFileScope::USE_WEIGHTS) {
+     weightsPath = writeWeights();
+     fileNames_.push_back(weightsPath);
+     }
+  */
+
   // std::copy(fileNames_.begin(), fileNames_.end(),std::ostream_iterator<std::string>(std::cout, "\n"));
   indexName_ = writeIndex(fileNames_, fldr_);  
   ClassifierList{}.swap(classifiers_);

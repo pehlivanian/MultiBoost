@@ -364,8 +364,9 @@ namespace IB_utils {
       DATASET_OOS = 4,
       LABELS_IS = 5,
       LABELS_OOS = 6,
-      REGRESSOR = 7,
-      CONTEXT = 8
+      WEIGHTS_IS = 7,
+      REGRESSOR = 8,
+      CONTEXT = 9
       };
 
   template<typename DataType>
@@ -504,8 +505,9 @@ namespace IB_utils {
 	{4, "__DOOS_"},
 	{5, "__LIS_"},
 	{6, "__LOOS_"},
-	{7, "__REG_"},
-	{8, "__CXT_"}
+	{7, "__WIS_"},
+	{8, "__REG_"},
+	{9, "__CXT_"}
       };
     
     std::string pref = SerializedTypeMap[static_cast<std::underlying_type_t<SerializedType>>(typ)];
@@ -564,6 +566,13 @@ namespace IB_utils {
   std::string writeLabelsIS(const Row<DataType>& labels, boost::filesystem::path fldr=boost::filesystem::path{}) {
     LabelsArchive<DataType> la{labels};
     std::string fileName = dumps<LabelsArchive<DataType>, CerealIArch, CerealOArch>(la, SerializedType::LABELS_IS, fldr);
+    return fileName;
+  }
+
+  template<typename DataType>
+  std::string writeWeightsIS(const Row<DataType>& weights, boost::filesystem::path fldr=boost::filesystem::path{}) {
+    LabelsArchive<DataType> wg{weights};
+    std::string fileName = dumps<LabelsArchive<DataType>, CerealIArch, CerealOArch>(wg, SerializedType::WEIGHTS_IS, fldr);
     return fileName;
   }
 
