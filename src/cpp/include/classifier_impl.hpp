@@ -50,9 +50,20 @@ namespace {
   template<std::size_t N, typename... T>
   using subpack = decltype(sub<N, T...>(std::make_index_sequence<sizeof...(T) - N>{}));
 
-  template<typename DataType, typename... Args>
+  template<typename DataType, typename ClassifierType, typename... ClassArgs>
   struct dispatcher {
-    dispatcher(const Mat<DataType>& dataset, Row<DataType>& labels, std::tuple<Args...>& params) :
+    
+    template<typename... Args>
+    using Base = DiscreteClassifierBase<DataType, ClassifierType, Args...>;
+
+    template<typename... Args>
+    using memFn = void (Base<Args...>::*)(const Mat<DataType>&,
+					  Row<DataType>&,
+					  Args &&...);
+    
+    dispatcher(const Mat<DataType>& dataset, 
+	       Row<DataType>& labels, 
+	       std::tuple<ClassArgs...>& params) :
       dataset_{dataset},
       labels_{labels},
       params_{params} {}
@@ -63,11 +74,11 @@ namespace {
     }
 
     void dispatch() {
-      call_func(std::index_sequence_for<Args...>{});
+      call_func(std::index_sequence_for<ClassArgs...>{});
     }
 
     // Try to avoid copying
-    std::tuple<Args...> params_;
+    std::tuple<ClassArgs...> params_;
     Mat<DataType> dataset_;
     Row<DataType>& labels_;
   
@@ -78,23 +89,39 @@ namespace {
 
 template<typename DataType, typename ClassifierType, typename... Args>
 void
-DiscreteClassifierBase<DataType, ClassifierType, Args...>::init_(const Mat<DataType>& dataset, Row<DataType>& labels, bool useWeights, Args&&... args) {
+DiscreteClassifierBase<DataType, ClassifierType, Args...>::init_(const Mat<DataType>& dataset, 
+								 Row<DataType>& labels, 
+								 bool useWeights, 
+								 Args&&... args) {
   labels_t_ = Row<std::size_t>(labels.n_cols);
   encode(labels, labels_t_, useWeights);
+
   if (useWeights) {
     constexpr auto N = sizeof...(args);
-    if constexpr (N > 1) {
-      auto args_tup = to_tuple(std::forward<Args>(args)...);
-      auto numClasses = std::get<0>(args_tup);
-      auto args_short = remove_element_from_tuple<0>(args_tup);
-      auto I = std::index_sequence_for<decltype(args_short)>{};
-      // setClassifier(dataset, labels_t_, numClasses, weights_, std::get<I>(args_short)...);
-      setClassifier<Args...>(dataset, labels_t_, numClasses, weights_, std::forward<Args>(args)...);
+
+    if constexpr (N > 0) {
+      // Reordering of arguments required by mlpack classifiers
+
+      auto args_tup = to_tuple(args...);
+      std::size_t numClasses = std::get<0>(args_tup);
+      auto args_tup_short = remove_element_from_tuple<0>(args_tup);
+      auto args_tup_long = std::tuple_cat(std::make_tuple(numClasses, weights_),
+					  args_tup_short);
+      
+      auto setC = [this, &dataset](auto const&... args) {
+	this->setClassifier(dataset, labels_t_, args...);
+	};
+      
+      // Call on reordered params
+      std::apply(setC, args_tup_long);
+      
     } else {
-      setClassifier<Args...>(dataset, labels_t_, std::forward<Args>(args)...);
+      // Mainly for constant classifier, just ignore weights
+      // in this case
+      setClassifier(dataset, labels_t_, std::forward<Args>(args)...);
     }
   } else {
-    setClassifier<Args...>(dataset, labels_t_, std::forward<Args>(args)...);
+    setClassifier(dataset, labels_t_, std::forward<Args>(args)...);
   }
 
   args_ = std::tuple<Args...>(args...);
@@ -103,50 +130,9 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::init_(const Mat<DataT
 template<typename DataType, typename ClassifierType, typename... Args>
 template<typename... ClassArgs>
 void
-DiscreteClassifierBase<DataType, ClassifierType, Args...>::setClassifier(const Mat<DataType>& dataset, Row<std::size_t>& labels, std::size_t numClasses, const Row<DataType>& weights, ClassArgs &&... args) {
-    classifier_ = std::make_unique<ClassifierType>(dataset, labels, std::forward<ClassArgs>(args)...);
-    // classifier_ = std::make_unique<ClassifierType>(dataset, labels, numClasses, weights_, std::forward<ClassArgs>(args)...);
-}
-
-template<typename DataType, typename ClassifierType, typename... Args>
-template<typename... ClassArgs>
-void
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::setClassifier(const Mat<DataType>& dataset, Row<std::size_t>& labels, ClassArgs &&... args) {
     classifier_ = std::make_unique<ClassifierType>(dataset, labels, std::forward<ClassArgs>(args)...);
 }
-
-/*
-template<typename DataType, typename ClassifierType, typename... Args>
-void
-DiscreteClassifierBase<DataType, ClassifierType, Args...>::setClassifier(const Mat<DataType>& dataset, Row<std::size_t>& labels, bool useWeights, Args&&... args) {
-
-  // Implicit 
-  // void fit(const Mat<DataType>&, Row<std::size_t>&) 
-  // called on ClasifierType
-
-  if (useWeights) {
-    // Unfortunately the numClasses parameter comes before the 
-    // weights vector, we have to unroll the parameter pack
-    constexpr auto N = sizeof...(args);
-    auto args_tup = to_tuple(std::forward<Args>(args)...);
-    if constexpr (N > 1) {
-      auto args_extended = std::tuple_cat(tuple_slice<0,1>(args_tup),
-					  std::make_tuple(weights_),
-					  tuple_slice<1,N>(args_tup));
-
-      classifier_ = std::make_unique<ClassifierType>(dataset, labels, std::forward<Args>(args)...);
-    } else {
-      classifier_ = std::make_unique<ClassifierType>(dataset, labels, std::forward<Args>(args)...);
-    }
-  } else {
-
-    auto c_ = [&dataset, &labels](Args...){};
-
-    classifier_ = std::make_unique<ClassifierType>(dataset, labels, std::forward<Args>(args)...);
-  }
-
-}
-*/
 
 template<typename DataType, typename ClassifierType, typename... Args>
 void 

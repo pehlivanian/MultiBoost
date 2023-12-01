@@ -55,9 +55,6 @@ public:
   DiscreteClassifierBase(const DiscreteClassifierBase&) = default;
   virtual ~DiscreteClassifierBase() = default;
 
-
-  template<typename... ClassArgs>
-  void setClassifier(const Mat<DataType>&, Row<std::size_t>&, std::size_t, const Row<DataType>&, ClassArgs &&... args);
   template<typename... ClassArgs>
   void setClassifier(const Mat<DataType>&, Row<std::size_t>&, ClassArgs&&...);
 
