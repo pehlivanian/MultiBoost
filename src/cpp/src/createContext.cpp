@@ -178,6 +178,7 @@ auto main(int argc, char **argv) -> int {
   bool					symmetrizeLabels	  = true;
   bool					removeRedundantLabels	  = true;
   bool					quietRun		  = false;
+  bool					useWeights		  = false;
   double				rowSubsampleRatio	  = 1.;
   double				colSubsampleRatio	  = .25;
   bool					recursiveFit		  = true;
@@ -222,6 +223,7 @@ auto main(int argc, char **argv) -> int {
     ("symmetrizeLabels",	value<bool>(&symmetrizeLabels),					"symmetrizeLabels")
     ("removeRedundantLabels",	value<bool>(&removeRedundantLabels),				"removeRedundantLabels")
     ("quietRun",		value<bool>(&quietRun),						"quietRun")
+    ("useWeights",		value<bool>(&useWeights),					"useWeights")
     ("rowSubsampleRatio",	value<double>(&rowSubsampleRatio),				"rowSubsampleRatio")
     ("colSubsampleRatio",	value<double>(&colSubsampleRatio),				"colSubsampleRatio")
     ("recursiveFit",		value<bool>(&recursiveFit),					"recursiveFit")
@@ -283,6 +285,7 @@ auto main(int argc, char **argv) -> int {
   context.symmetrizeLabels = symmetrizeLabels;
   context.removeRedundantLabels = removeRedundantLabels;
   context.quietRun = quietRun;
+  context.useWeights = useWeights;
   context.rowSubsampleRatio = rowSubsampleRatio;
   context.colSubsampleRatio = colSubsampleRatio;
   context.recursiveFit = recursiveFit;

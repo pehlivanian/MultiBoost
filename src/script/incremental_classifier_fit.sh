@@ -23,6 +23,7 @@ DELIM=';'
 PATH=/home/charles/src/C++/sandbox/Inductive-Boost/build/
 
 SHOW_OOS=0
+USE_WEIGHTS=1
 
 # Context creation
 EXEC_CC=${PATH}createContext
@@ -108,6 +109,8 @@ while (( $# )); do
 
 done
 
+use_weights=$USE_WEIGHTS
+
 if [ -z "$clamp_gradient" ]; then
   clamp_gradient=0
   upper_val=1000
@@ -145,6 +148,7 @@ $EXEC_CC \
 --symmetrizeLabels true \
 --removeRedundantLabels false \
 --quietRun true \
+--useWeights ${use_weights} \
 --rowSubsampleRatio 1. \
 --colSubsampleRatio ${colsubsample_ratio} \
 --recursiveFit ${recursivefit} \
@@ -178,6 +182,7 @@ $EXEC_CC \
 --symmetrizeLabels true \
 --removeRedundantLabels false \
 --quietRun true \
+--useWeights ${use_weights} \
 --rowSubsampleRatio 1. \
 --colSubsampleRatio ${colsubsample_ratio} \
 --recursiveFit ${recursivefit} \

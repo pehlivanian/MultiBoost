@@ -49,11 +49,11 @@ def _create_synthetic_disc_data(dim=2):
             for j in range(n):
                 arg = coord[i]*coord[i] + coord[j]+coord[i]; label = 0.
                 label += (1./1.)*np.cos(arg)
-                label -= (21./1.)*np.cos(2*arg)
+                label += (21./1.)*np.cos(2*arg)
                 label += (1./1.)*np.cos(4*arg)
-                label -= (11./1.)*np.cos(8*arg)
+                label += (11./1.)*np.cos(8*arg)
                 label += (7./1.)*np.cos(16*arg)
-                label -= (8./1.)*np.cos(32*arg)
+                label += (8./1.)*np.cos(32*arg)
                 label += (14./1.)*np.cos(64*arg)
                 data[j+i*n] = np.array([coord[i], coord[j], label])
                 data[j+i*n,2] = data[j+i*n,2] < 0.5
@@ -70,8 +70,8 @@ def _create_synthetic_disc_data(dim=2):
                                          (coord[j] + 47))) - coord[i]*np.sin(np.abs(coord[i] - (coord[j] + 47)))])
                 data[j+i*n,2]  = data[j+i*n,2] < -5.5
 
-    TRAIN_SIZE = 500
-    TEST_SIZE = 500
+    TRAIN_SIZE = 250
+    TEST_SIZE = 750
     X_train, X_test, y_train, y_test = train_test_split(data[:,:2], data[:,2], random_state=55, train_size=TRAIN_SIZE, test_size=TEST_SIZE)
 
     np.savetxt( '{}/{}_train_X.csv'.format(ROOT_DATA, dataset_name), X_train, delimiter=',')

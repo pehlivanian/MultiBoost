@@ -518,6 +518,7 @@ private:
 
   void updateClassifiers(std::unique_ptr<Model<DataType>>&&, Row<DataType>&);
 
+  void calcWeights();
   void setWeights();
   auto generate_coefficients(const Row<DataType>&, const uvec&) -> std::pair<Row<DataType>, Row<DataType>>;
   auto computeOptimalSplit(Row<DataType>&, Row<DataType>&, std::size_t, std::size_t, double, double, bool=false) -> optLeavesInfo;

@@ -70,6 +70,7 @@ namespace ModelContext{
       baseSteps{-1},
       removeRedundantLabels{false},
       quietRun{false},
+      useWeights{false},
       recursiveFit{false},
       partitionSizeMethod{PartitionSize::PartitionSizeMethod::FIXED},
       learningRateMethod{LearningRate::LearningRateMethod::FIXED},
@@ -109,6 +110,7 @@ namespace ModelContext{
       symmetrizeLabels = rhs.symmetrizeLabels;
       removeRedundantLabels = rhs.removeRedundantLabels;
       quietRun = rhs.quietRun;
+      useWeights = rhs.useWeights;
       rowSubsampleRatio = rhs.rowSubsampleRatio;
       colSubsampleRatio = rhs.colSubsampleRatio;
       recursiveFit = rhs.recursiveFit;
@@ -152,6 +154,7 @@ namespace ModelContext{
       ar(symmetrizeLabels);
       ar(removeRedundantLabels);
       ar(quietRun);
+      ar(useWeights);
       ar(rowSubsampleRatio);
       ar(colSubsampleRatio);
       ar(recursiveFit);
@@ -193,6 +196,7 @@ namespace ModelContext{
     bool symmetrizeLabels;
     bool removeRedundantLabels;
     bool quietRun;
+    bool useWeights;
     double rowSubsampleRatio;
     double colSubsampleRatio;
     bool recursiveFit;

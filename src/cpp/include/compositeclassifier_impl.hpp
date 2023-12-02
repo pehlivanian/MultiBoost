@@ -12,7 +12,6 @@ namespace ClassifierFileScope{
   const bool POST_EXTRAPOLATE = false;
   const bool W_CYCLE_PREFIT = true;
   const bool NEW_COLMASK_FOR_CHILD = true;
-  const bool USE_WEIGHTS = true;
   const bool DIAGNOSTICS_0_ = false;
   const bool DIAGNOSTICS_1_ = false;
   const bool SUBSET_DIAGNOSTICS = false;
@@ -43,6 +42,7 @@ CompositeClassifier<ClassifierType>::childContext(Context& context) {
   context.rowSubsampleRatio	= row_subsample_ratio_;
   context.colSubsampleRatio	= col_subsample_ratio_;
   context.recursiveFit		= true;
+  context.useWeights		= useWeights_;
   context.numTrees		= numTrees_;
 
   context.partitionSize		= partitionSize+1;
@@ -109,6 +109,7 @@ CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
   symmetrized_			= context.symmetrizeLabels;
   removeRedundantLabels_	= context.removeRedundantLabels;
   quietRun_			= context.quietRun;
+  useWeights_			= context.useWeights;
   row_subsample_ratio_		= context.rowSubsampleRatio;
   col_subsample_ratio_		= context.colSubsampleRatio;
   recursiveFit_			= context.recursiveFit;
@@ -214,9 +215,6 @@ CompositeClassifier<ClassifierType>::init_(Context&& context) {
     path = writeLabelsOOS();
     fileNames_.push_back(path);
   }
-
-  // Experimental for now
-  useWeights_ = ClassifierFileScope::USE_WEIGHTS;
 
   // Note these are flipped
   n_ = dataset_.n_rows; 
@@ -579,7 +577,11 @@ CompositeClassifier<ClassifierType>::createRootClassifier(std::unique_ptr<Classi
     auto dataset_slice = dataset_.submat(rowMask_, colMask_);
     Leaves allLeaves = best_leaves;
 
-    if (useWeights_) {
+    if (useWeights_ && true) {
+      // We opt to express weighted values via the coefficient generation
+      // and partition selection, not during classification fitting
+
+      calcWeights();
       setRootClassifier(classifier, dataset_slice, allLeaves, weights_, rootClassifierArgs);
     } else {
       setRootClassifier(classifier, dataset_slice, allLeaves, rootClassifierArgs);
@@ -593,7 +595,11 @@ CompositeClassifier<ClassifierType>::createRootClassifier(std::unique_ptr<Classi
     Leaves allLeaves = zeros<Row<DataType>>(m_);
     allLeaves(colMask_) = best_leaves;
 
-    if (ClassifierFileScope::USE_WEIGHTS) {
+    if (useWeights_ && true) {
+      // We opt to express weighted values via the coefficient generation
+      // and partition selection, not during classification fitting
+
+      calcWeights();
       setRootClassifier(classifier, dataset_, allLeaves, weights_, rootClassifierArgs);
     } else {
       setRootClassifier(classifier, dataset_, allLeaves, rootClassifierArgs);
@@ -644,7 +650,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     }
     
     coeffs = generate_coefficients(labels_slice, colMask_);
-    
+
     auto [subset_info, best_leaves] = computeOptimalSplit(coeffs.first,
 							  coeffs.second,
 							  stepNum,
@@ -1078,7 +1084,7 @@ CompositeClassifier<ClassifierType>::commit() {
   }
 
   /* No - weights are attached to the classifier serialization
-     if (ClassifierFileScope::USE_WEIGHTS) {
+     if (useWeights_) {
      weightsPath = writeWeights();
      fileNames_.push_back(weightsPath);
      }
@@ -1204,6 +1210,21 @@ CompositeClassifier<ClassifierType>::fit() {
 
 template<typename ClassifierType>
 void
+CompositeClassifier<ClassifierType>::calcWeights() {
+
+  Row<DataType> yhat;
+
+  Predict(yhat, colMask_);
+  
+  Row<DataType> labels_slice = labels_.submat(zeros<uvec>(1), colMask_);
+
+  weights_ = sqrt(abs(labels_slice - yhat));
+  weights_ = weights_ * (static_cast<DataType>(weights_.n_cols)/sum(weights_));
+  
+}
+
+template<typename ClassifierType>
+void
 CompositeClassifier<ClassifierType>::Classify(const Mat<DataType>& dataset, Row<DataType>& labels) {
 
   Predict(dataset, labels);
@@ -1218,7 +1239,13 @@ auto CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataTy
 
   Row<DataType> g, h;
   lossFn_->loss(yhat, labels, &g, &h, clamp_gradient_, upper_val_, lower_val_);
-  
+
+  if (useWeights_ && false) {
+    // normalize weights
+    calcWeights();
+    g = g % weights_;
+  }  
+
   return std::make_pair(g, h);
 
 }
