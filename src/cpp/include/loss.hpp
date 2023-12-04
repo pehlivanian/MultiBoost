@@ -100,13 +100,14 @@ namespace LossMeasures {
     using mtype = typename arma_types<DataType>::mattype;
 
     DataType loss(const vtype&, const vtype&, vtype*, vtype*, bool=false, DataType=DataType{}, DataType=DataType{});
-    DataType loss(const vtype& yhat, const vtype& y) { return loss_reverse_arma(yhat, y); }
+    DataType loss(const vtype& yhat, const vtype& y) { return loss_arma(yhat, y); }
     virtual LossFunction* create() = 0;
   private:
 #ifdef AUTODIFF
     virtual autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) = 0;
 #endif
     virtual DataType loss_reverse_arma(const vtype&, const vtype&) = 0;
+    virtual DataType loss_arma(const vtype&, const vtype&) = 0;
     virtual DataType gradient_(const vtype&, const vtype&, vtype*) = 0;
     virtual void hessian_(const vtype&, const vtype&, vtype*) = 0;
   };
@@ -125,6 +126,7 @@ namespace LossMeasures {
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
 #endif
     DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType loss_arma(const vtype&, const vtype&) override;
     DataType gradient_(const vtype&, const vtype&, vtype*) override;
     void hessian_(const vtype&, const vtype&, vtype*) override;
   };
@@ -143,6 +145,7 @@ namespace LossMeasures {
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
 #endif
     DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType loss_arma(const vtype&, const vtype&) override;
     DataType gradient_(const vtype&, const vtype&, vtype*) override;
     void hessian_(const vtype&, const vtype&, vtype*) override;
   };
@@ -161,6 +164,7 @@ namespace LossMeasures {
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
 #endif
     DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType loss_arma(const vtype&, const vtype&) override;
     DataType gradient_(const vtype&, const vtype&, vtype*) override;
     void hessian_(const vtype&, const vtype&, vtype*) override;
   };
@@ -179,6 +183,7 @@ namespace LossMeasures {
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
 #endif
     DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType loss_arma(const vtype&, const vtype&) override;
     DataType gradient_(const vtype&, const vtype&, vtype*) override;
     void hessian_(const vtype&, const vtype&, vtype*) override;
   };
@@ -197,6 +202,7 @@ namespace LossMeasures {
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
 #endif
     DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType loss_arma(const vtype&, const vtype&) override;
     DataType gradient_(const vtype&, const vtype&, vtype*) override;
     void hessian_(const vtype&, const vtype&, vtype*) override;
   };
@@ -215,6 +221,7 @@ namespace LossMeasures {
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;  
 #endif
     DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType loss_arma(const vtype&, const vtype&) override;
     DataType gradient_(const vtype&, const vtype&, vtype*) override;
     void hessian_(const vtype&, const vtype&, vtype*) override;
   };
@@ -233,6 +240,7 @@ namespace LossMeasures {
     autodiff::real loss_Reverse(const ArrayXreal&, const ArrayXreal&) override;
 #endif
     DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType loss_arma(const vtype&, const vtype&) override;
     DataType gradient_(const vtype&, const vtype&, vtype*) override;
     void hessian_(const vtype&, const vtype&, vtype*) override;
   };
@@ -252,6 +260,7 @@ namespace LossMeasures {
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
 #endif
     DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType loss_arma(const vtype&, const vtype&) override;
     DataType gradient_(const vtype&, const vtype&, vtype*) override;
     void hessian_(const vtype&, const vtype&, vtype*) override;  
   };
@@ -270,6 +279,7 @@ namespace LossMeasures {
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
 #endif
     DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType loss_arma(const vtype&, const vtype&) override;
     DataType gradient_(const vtype&, const vtype&, vtype*) override;
     void hessian_(const vtype&, const vtype&, vtype*) override;
   };
@@ -288,6 +298,7 @@ namespace LossMeasures {
     audodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
 #endif
     DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType loss_arma(const vtype&, const vtype&) override;
     DataType gradient_(const vtype&, const vtype&, vtype*) override;
     void hessian_(const vtype&, const vtype&, vtype*) override;
   };
@@ -306,6 +317,7 @@ namespace LossMeasures {
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
 #endif
     DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType loss_arma(const vtype&, const vtype&) override;
     DataType gradient_(const vtype&, const vtype&, vtype*) override;
     void hessian_(const vtype&, const vtype&, vtype*) override;
   };
@@ -324,6 +336,7 @@ namespace LossMeasures {
     autodiff::real loss_reverse(const ArrayXreal&,, const ArrayXreal&) override;
 #endif
     DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType loss_arma(const vtype&, const vtype&) override;
     DataType gradient_(const vtype&, const vtype&, vtype*) override;
     void hessian_(const vtype&, const vtype&, vtype*) override;
   };
@@ -343,6 +356,7 @@ namespace LossMeasures {
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
 #endif
     DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType loss_arma(const vtype&, const vtype&) override;
     DataType gradient_(const vtype&, const vtype&, vtype*) override;
     void hessian_(const vtype&, const vtype&, vtype*) override;
 

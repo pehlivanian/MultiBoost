@@ -39,7 +39,7 @@ def _dataset(dataset_name):
 def _create_synthetic_disc_data(dim=2):
     dataset_name = "synthetic"
     ROOT_DATA = "/home/charles/Data/"
-    METHOD = ['spherical', 'eggholder'][0]
+    METHOD = ['spherical', 'eggholder', 'rastrigin'][0]
 
     if METHOD in ('spherical',):
         coord = np.arange(-np.sqrt(np.pi), np.sqrt(np.pi), .1)
@@ -48,13 +48,13 @@ def _create_synthetic_disc_data(dim=2):
         for i in range(n):
             for j in range(n):
                 arg = coord[i]*coord[i] + coord[j]+coord[i]; label = 0.
-                label += (1./1.)*np.cos(arg)
+                label += (12./1.)*np.cos(arg)
                 label += (21./1.)*np.cos(2*arg)
                 label += (1./1.)*np.cos(4*arg)
                 label += (11./1.)*np.cos(8*arg)
                 label += (7./1.)*np.cos(16*arg)
-                label += (8./1.)*np.cos(32*arg)
-                label += (14./1.)*np.cos(64*arg)
+                label += (13./1.)*np.cos(32*arg)
+                label += (24./1.)*np.cos(64*arg)
                 data[j+i*n] = np.array([coord[i], coord[j], label])
                 data[j+i*n,2] = data[j+i*n,2] < 0.5
     elif METHOD in ('eggholder',):
@@ -70,8 +70,18 @@ def _create_synthetic_disc_data(dim=2):
                                          (coord[j] + 47))) - coord[i]*np.sin(np.abs(coord[i] - (coord[j] + 47)))])
                 data[j+i*n,2]  = data[j+i*n,2] < -5.5
 
-    TRAIN_SIZE = 250
-    TEST_SIZE = 750
+    elif METHOD in ('rastrigin',):
+        A = 10
+        coord = np.arange(-2.*np.pi, 2.*np.pi, .01)
+        n = coord.shape[0]
+        data = np.zeros([np.power(coord.shape[0],2), 2*(dim-1) + 1])
+        for i in range(n):
+            for j in range(n):
+                data[j+i*n] = np.array([coord[i], coord[j], A*2 + (np.power(coord[i], 2) - A*np.cos(2*np.pi*coord[i])) + (np.power(coord[j], 2) - A*np.cos(2*np.pi*coord[j]))])                
+                data[j+i*n,2] = data[j+i*n,2] < 50.
+                
+    TRAIN_SIZE = 1000
+    TEST_SIZE = 200
     X_train, X_test, y_train, y_test = train_test_split(data[:,:2], data[:,2], random_state=55, train_size=TRAIN_SIZE, test_size=TEST_SIZE)
 
     np.savetxt( '{}/{}_train_X.csv'.format(ROOT_DATA, dataset_name), X_train, delimiter=',')

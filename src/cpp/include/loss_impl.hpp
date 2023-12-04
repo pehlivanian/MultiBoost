@@ -76,6 +76,12 @@ SquareLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
   return 0.;
 }
 
+template<typename DataType>
+DataType
+SquareLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
+  return sum(pow(1 - y % yhat, 2));
+}
+
 #ifdef AUTODIFF
 template<typename DataType>
 autodiff::real
@@ -117,6 +123,12 @@ MSELoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
   UNUSED(yhat);
   UNUSED(y);
   return 0.;
+}
+
+template<typename DataType>
+DataType
+MSELoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
+  return sum(pow( y - yhat, 2));
 }
 
 #ifdef AUTODIFF
@@ -171,6 +183,12 @@ BinomialDevianceLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype
   return 0.;
 }
 
+template<typename DataType>
+DataType
+BinomialDevianceLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
+  return sum(log(1 + exp(-y % yhat)));
+}
+
 #ifdef AUTODIFF
 template<typename DataType>
 autodiff::real
@@ -213,6 +231,12 @@ ExpLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
   UNUSED(yhat);
   UNUSED(y);
   return 0.;
+}
+
+template<typename DataType>
+DataType
+ExpLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
+  return sum(exp(-y % yhat));
 }
 
 #ifdef AUTODIFF
@@ -262,6 +286,11 @@ SavageLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
   return 0.;
 }
 
+template<typename DataType>
+DataType
+SavageLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
+  return 1. / sum(pow(1 + exp(-y % yhat), 2));
+}
 
 #ifdef AUTODIFF
 template<typename DataType>
@@ -308,6 +337,12 @@ ArctanLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
   UNUSED(yhat);
   UNUSED(y);
   return 0.;
+}
+
+template<typename DataType>
+DataType
+ArctanLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
+  return sum(pow(atan(y - yhat), 2));
 }
 
 #ifdef AUTODIFF
@@ -363,6 +398,12 @@ SyntheticLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
   UNUSED(yhat);
   UNUSED(y);
   return 0.;
+}
+
+template<typename DataType>
+DataType
+SyntheticLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
+  return sum(pow(y - yhat, 2));
 }
 
 #ifdef AUTODIFF
@@ -448,6 +489,12 @@ SyntheticLossVar1<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y
   return 0.;
 }
 
+template<typename DataType>
+DataType
+SyntheticLossVar1<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
+  return sum(pow(y - yhat, 2));
+}
+
 #ifdef AUTODIFF
 template<typename DataType>
 autodiff::real
@@ -529,6 +576,12 @@ SyntheticLossVar2<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y
   return 0.;
 }
 
+template<typename DataType>
+DataType
+SyntheticLossVar2<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
+  return sum(pow(y - yhat, 2));
+}
+
 #ifdef AUTODIFF
 template<typename DataType>
 autodiff::real
@@ -579,6 +632,12 @@ SyntheticLossVar3<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y
   UNUSED(yhat);
   UNUSED(y);
   return 0.;
+}
+
+template<typename DataType>
+DataType
+SyntheticLossVar3<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
+  return sum(pow(y - yhat, 2));
 }
 
 #ifdef AUTODIFF
@@ -643,6 +702,12 @@ PowerLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
   return 0.;
 }
 
+template<typename DataType>
+DataType
+PowerLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
+  return sum(pow(y - yhat, 2));
+}
+
 #ifdef AUTODIFF
 template<typename DataType>
 autodiff::real
@@ -693,6 +758,12 @@ SyntheticRegLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y)
   UNUSED(yhat);
   UNUSED(y);
   return 0.;
+}
+
+template<typename DataType>
+DataType
+SyntheticRegLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
+  return sum(pow(y - yhat, 2));
 }
 
 #ifdef AUTODIFF
@@ -756,6 +827,17 @@ LogLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
     vtype log_odds = log(yhat_norm / (1 - yhat_norm));
     return -1 * sum(y_norm % log_odds - log(1 + exp(log_odds)));
   */
+
+}
+
+template<typename DataType>
+DataType
+LogLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
+  vtype yhat_norm = 0.5 * yhat + 0.5;
+  vtype y_norm = 0.5 * y + 0.5;
+  
+  vtype log_odds = log(yhat_norm / (1 - yhat_norm));
+  return -1 * sum(y_norm % log_odds - log(1 + exp(log_odds)));
 
 }
 

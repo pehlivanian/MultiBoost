@@ -1129,7 +1129,6 @@ CompositeClassifier<ClassifierType>::printStats(int stepNum) {
   if (serializeModel_) {
     // Prediction from current archive
     Predict(indexName_, yhat, false);
-    r = lossFn_->loss(yhat, labels_);
     if (symmetrized_) {
       deSymmetrize(yhat);
       symmetrize(yhat);
@@ -1138,7 +1137,6 @@ CompositeClassifier<ClassifierType>::printStats(int stepNum) {
   } else {
     // Prediction from nonarchived classifier
     Predict(yhat); 
-    r = lossFn_->loss(yhat, labels_);
     if (symmetrized_) {
       deSymmetrize(yhat); 
       symmetrize(yhat);
@@ -1218,7 +1216,7 @@ CompositeClassifier<ClassifierType>::calcWeights() {
   
   Row<DataType> labels_slice = labels_.submat(zeros<uvec>(1), colMask_);
 
-  weights_ = sqrt(abs(labels_slice - yhat));
+  weights_ = abs(labels_slice - yhat);
   weights_ = weights_ * (static_cast<DataType>(weights_.n_cols)/sum(weights_));
   
 }
