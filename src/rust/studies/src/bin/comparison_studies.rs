@@ -34,7 +34,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Mongodb connection uri
     let mongodb_uri: &str = "mongodb://localhost:27017";
-    let creds = mongodbext::Credentials::get_credentials(mongodb_uri).await.unwrap();
+    let creds = mongodbext::Credentials::get_credentials_static(mongodb_uri).await.unwrap();
 
     // Mariadb connection uri
     let database_name = model::ModelType::database_name(&model_type);
@@ -52,9 +52,9 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let numCols = datasetShape.1;
 
     // Vector inputs
-    let mut childNumPartitions:		Vec<f32> = vec![1000.0, 100.0];
+    let mut childNumPartitions:		Vec<f32> = vec![750.0, 250.0];
     let mut childNumSteps:		Vec<f32> = vec![1.00; childNumPartitions.len()];
-    let mut childLearningRate:		Vec<f32> = vec![0.001; childNumPartitions.len()];
+    let mut childLearningRate:		Vec<f32> = vec![0.01; childNumPartitions.len()];
     let mut childPartitionUsageRatio:	Vec<f32> = vec![0.50; childNumPartitions.len()];
     let mut childMaxDepth:		Vec<f32> = vec![0.00; childNumPartitions.len()];
     let mut childMinLeafSize:		Vec<f32> = vec![1.00; childNumPartitions.len()];
@@ -68,8 +68,8 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut colSubsampleRatio:	f32   = 1.0;
     let mut recursiveFit:	bool  = true;
     let mut clampGradient:	usize = 1;
-    let mut upperVal:		f32   = 1.0;
-    let mut lowerVal:		f32   = -1.0;
+    let mut upperVal:		f32   = 10.0;
+    let mut lowerVal:		f32   = -10.0;
     let mut runOnTestData:	usize = 1;
     let mut splitRatio:		f32   = 0.0;
 
@@ -108,8 +108,8 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     */
  
     let mut cases: Vec<case> = Vec::new();
-    for i in 0..200 {
-        let c = case{lossFn: 12, lossPower: i as f32/20., clampGradient: 1, upperVal: 1.0, lowerVal: -1.0, childPartitionUsageRatio: vec![0.5]};
+    for i in 0..250 {
+        let c = case{lossFn: 12, lossPower: i as f32/50., clampGradient: 1, upperVal: 1.0, lowerVal: -1.0, childPartitionUsageRatio: vec![0.5]};
         cases.push(c);
     }
     let mut run_keys: Vec<u64> = Vec::new();
@@ -121,10 +121,6 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         clampGradient = case.clampGradient;
         upperVal = case.upperVal;
         lowerVal = case.lowerVal;
-
-	if lossPower < 0.7 {
-            continue;
-        }
 
         let mut cmd: String = "".to_string();
         cmd.push_str(&base_path);

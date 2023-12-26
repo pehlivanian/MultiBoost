@@ -32,6 +32,12 @@ impl Credentials {
         Ok((user, passwd))
     }
 
+    pub async fn get_credentials_static(uri: &str) -> Result<(String,String), Box<dyn std::error::Error>> {
+        let user: String = String::from("charles");
+        let passwd: String = String::from("gongzuo");
+        Ok((user, passwd))
+    }
+
     fn new(user: String, passwd: String) -> Self {
         let creds_lev0 = Creds_lev0{user, passwd};
         let creds = Creds{TS_DB: creds_lev0};

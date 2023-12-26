@@ -62,14 +62,16 @@ class Visitor(metaclass=abc.ABCMeta):
 class Credentials(metaclass=Singleton):
 
     def __init__(self):
-        client = MongoClient()
+        # client = MongoClient()
         
-        self._coll = client.MULTISCALEGB.get_collection('credentials')
+        # self._coll = client.MULTISCALEGB.get_collection('credentials')
+        pass
 
     def DB_creds(self):
-        creds = self._coll.find_one()
+        # creds = self._coll.find_one()
 
-        return creds['TS_DB']['user'], creds['TS_DB']['passwd']
+        # return creds['TS_DB']['user'], creds['TS_DB']['passwd']
+        return "charles", "gongzuo"
 
 class DBExt(object):
     def __init__(self, dbName=None, is_classifier=True):
@@ -227,36 +229,48 @@ class DBExt(object):
         return xaxis,yaxis
 
     def plot_OOS_simple(self, dataset, with_priority=True):
-        q = "select A.dataset_name, A.run_key, A.err as err, A.prcsn as prcsn, A.F1 as F1, B.loss_fn, B.loss_power, B.num_partitions0, B.num_partitions1, B.num_partitions2, B.learning_rate0, B.learning_rate1, B.learning_rate2, B.num_steps0, B.num_steps1, B.num_steps2 from outofsample A join run_specification B on A.run_key=B.run_key where B.loss_fn = 12 and B.num_partitions0 = 1000 and A.dataset_name = \"{}\" and B.num_partitions1 = 100 and B.basesteps = 50 and B.active_partition_ratio0 = .50 group by A.run_key order by B.loss_power".format(dataset)
+        # q = "select A.dataset_name, A.run_key, A.err as err, A.prcsn as prcsn, A.F1 as F1, B.loss_fn, B.loss_power, B.num_partitions0, B.num_partitions1, B.num_partitions2, B.learning_rate0, B.learning_rate1, B.learning_rate2, B.num_steps0, B.num_steps1, B.num_steps2 from outofsample A join run_specification B on A.run_key=B.run_key where B.loss_fn = 12 and B.num_partitions0 = 1000 and A.dataset_name = \"{}\" and B.num_partitions1 = 100 and B.basesteps = 50 and B.active_partition_ratio0 = .50 group by A.run_key order by B.loss_power".format(dataset)
+        q ="select A.dataset_name, A.run_key, A.err as err, A.prcsn as prcsn, A.F1 as F1, B.loss_fn, B.loss_power, B.num_partitions0, B.num_partitions1, B.num_partitions2, B.learning_rate0, B.learning_rate1, B.learning_rate2, B.num_steps0, B.num_steps1, B.num_steps2 from outofsample A join run_specification B on A.run_key=B.run_key where A.dataset_name = \"{}\" group by A.run_key order by B.loss_power".format(dataset)
 
-        fig,ax = plot.subplots(1,1)
+        fig = plot.figure()
         fig.set_size_inches(9, 6)
         fig.subplots_adjust(left=0.075)
         fig.subplots_adjust(right=0.925)
-        
+
+        axis = fig.add_subplot(211)
         i = 4; level = 2
         req = self.conn.execute(text(q))
         df = pd.DataFrame(columns=req.keys(), data=req.fetchall())
-        xaxis = df[(df['loss_power'] > 0.) & (df['loss_power'] <= 5.0)]['loss_power'].values
-        yaxis = df[(df['loss_power'] > 0.) & (df['loss_power'] <= 5.0)]['err'].values
+        xaxis = df[(df['loss_power'] > 0.5) & (df['loss_power'] <= 5.0)]['loss_power'].values
+        yaxis = df[(df['loss_power'] > 0.5) & (df['loss_power'] <= 5.0)]['err'].values
         
         b, m, c = polyfit(xaxis, yaxis, 2)
         opt_x = -m/2/c
         opt_y = b+m*opt_x+c*np.power(opt_x,2)
         fitaxis = b + m*xaxis + c*np.power(xaxis,2)
-        axis = ax
-        DBExt._add_plot(dataset, xaxis, yaxis, fitaxis, opt_x, opt_y, level, axis)
+        DBExt._add_plot(dataset, xaxis, yaxis, fitaxis, opt_x, opt_y, level, axis, metric="error (%)")
         # plot.show()
 
-        if with_priority:
-            path = 'Error_by_power_priority_50_{}.pdf'
-        else:
-            path = 'Error_by_power_{}.pdf'
+        axis = fig.add_subplot(212)
+        i = 4; level = 2
+        req = self.conn.execute(text(q))
+        df = pd.DataFrame(columns=req.keys(), data=req.fetchall())
+        xaxis = df[(df['loss_power'] > 0.5) & (df['loss_power'] <= 5.0)]['loss_power'].values
+        yaxis = df[(df['loss_power'] > 0.5) & (df['loss_power'] <= 5.0)]['prcsn'].values
+        
+        b, m, c = polyfit(xaxis, yaxis, 2)
+        opt_x = -m/2/c
+        opt_y = b+m*opt_x+c*np.power(opt_x,2)
+        fitaxis = b + m*xaxis + c*np.power(xaxis,2)
+        DBExt._add_plot(dataset, xaxis, yaxis, fitaxis, opt_x, opt_y, level, axis, metric="precision")
+        # plot.show()
 
-        filename = path.format(dataset)
+
+        filename = "Summary_by_p_{}.pdf".format(dataset)
         with PdfPages(filename) as pdf:
             pdf.savefig(fig)
-        
+        filename = "Summary_by_p_{}.png".format(dataset)
+        fig.savefig(filename)
 
         
     def plot_OOS_by_power(self, dataset, with_priority=True):
@@ -339,11 +353,13 @@ class DBExt(object):
         
 
     @staticmethod
-    def _add_plot(dataset, xaxis, yaxis, fitaxis, opt_x, opt_y, level, axis):
+    def _add_plot(dataset, xaxis, yaxis, fitaxis, opt_x, opt_y, level, axis, metric="error"):
         axis.grid(True)
         axis.set_xlabel('p')
-        axis.set_ylabel('Out of sample error (%)')
-        axis.set_title('Recursive[{}] OOS error (%)'.format(level))
+        # axis.set_ylabel('Out of sample error (%)')
+        axis.set_ylabel('Out of sample {}'.format(metric))
+        # axis.set_title('Recursive[{}] OOS error (%)'.format(level))
+        axis.set_title('OOS {}'.format(metric))
 
         axis.scatter(xaxis, yaxis, marker='x', label="OOS error")
         axis.plot(xaxis, fitaxis, '-', label="quad fit", color="orange")
@@ -505,7 +521,7 @@ if __name__ == "__main__":
     # dbext.plot_OOS_by_power("colic_train")
     # dbext.plot_OOS_by_power("buggyCrx_train")
 
-    dbext.plot_OOS_simple("ring_train")
+    dbext.plot_OOS_simple("adult_sm_train")
 
     # b, m, c = polyfit(xaxis, yaxis, 2)
     # print("optimal x: {}".format(-m/2/c))

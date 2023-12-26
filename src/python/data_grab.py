@@ -90,8 +90,8 @@ from pmlb import classification_dataset_names, regression_dataset_names
 from sklearn.model_selection import train_test_split
 
 ROOT_DATA = "/home/charles/Data/"
-# MODEL_TYPE = "Classification"
-MODEL_TYPE = "Regression"
+MODEL_TYPE = "Classification"
+# MODEL_TYPE = "Regression"
 
 # dataset_name = "606_fri_c2_1000_10"
 # dataset_name = "529_pollen"
@@ -101,7 +101,7 @@ MODEL_TYPE = "Regression"
 # dataset_name = "564_fried"
 # dataset_name = "1193_BNG_lowbwt"
 # dataset_name = "1201_BNG_breastTumor"
-dataset_name = "1203_BNG_pwLinear"
+# dataset_name = "1203_BNG_pwLinear"
 
 # dataset_name = "spambase"
 # dataset_name = "backache"
@@ -114,7 +114,7 @@ dataset_name = "1203_BNG_pwLinear"
 # dataset_name = "breast_cancer_wisconsin"
 # dataset_name = "hypothyroid"
 # dataset_name = "coil2000"
-# dataset_name = "adult"
+dataset_name = "adult"
 # dataset_name = "income_2000"
 # dataset_name = "house_votes_84"
 # dataset_name = "colic"
@@ -127,7 +127,7 @@ X,y = pmlb.fetch_data(dataset_name, return_X_y=True)
 # X_train, X_test, y_train, y_test = train_test_split(X, y)
 # X = X_train; y = y_train
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=44, train_size=800, test_size=200)
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=44, train_size=1134, test_size=224)
 
 
 if MODEL_TYPE in ("Regression", ):
@@ -136,7 +136,7 @@ if MODEL_TYPE in ("Regression", ):
     np.savetxt( '{}/{}/{}_test_X.csv'. format(ROOT_DATA, MODEL_TYPE, dataset_name), X_test,  delimiter=',')
     np.savetxt( '{}/{}/{}_test_y.csv'. format(ROOT_DATA, MODEL_TYPE, dataset_name), y_test,  delimiter=',')
 else:
-    np.savetxt( '{}/{}_train_X.csv'.format(ROOT_DATA, dataset_name), X_train, delimiter=',')
-    np.savetxt( '{}/{}_train_y.csv'.format(ROOT_DATA, dataset_name), y_train, delimiter=',')
-    np.savetxt( '{}/{}_test_X.csv'. format(ROOT_DATA, dataset_name), X_test,  delimiter=',')
-    np.savetxt( '{}/{}_test_y.csv'. format(ROOT_DATA, dataset_name), y_test,  delimiter=',')    
+    np.savetxt( '{}/{}_sm_train_X.csv'.format(ROOT_DATA, dataset_name), X_train, delimiter=',')
+    np.savetxt( '{}/{}_sm_train_y.csv'.format(ROOT_DATA, dataset_name), y_train, delimiter=',')
+    np.savetxt( '{}/{}_sm_test_X.csv'. format(ROOT_DATA, dataset_name), X_test,  delimiter=',')
+    np.savetxt( '{}/{}_sm_test_y.csv'. format(ROOT_DATA, dataset_name), y_test,  delimiter=',')    
