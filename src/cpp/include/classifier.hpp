@@ -18,8 +18,8 @@ public:
 
   virtual ~ClassifierBase() = default;
 
-  virtual void Classify(const Mat<DataType>& data, Row<DataType>& pred) { Classify_(data, pred); }
-  virtual void Classify(Mat<DataType>&& data, Row<DataType>& pred) { Classify_(std::move(data), pred); }
+  void Classify(const Mat<DataType>& data, Row<DataType>& pred) { Classify_(data, pred); }
+  void Classify(Mat<DataType>&& data, Row<DataType>& pred) { Classify_(std::move(data), pred); }
 
 private:
   virtual void Classify_(const Mat<DataType>&, Row<DataType>&) = 0;
@@ -89,3 +89,4 @@ private:
 #include "classifier_impl.hpp"
 
 #endif
+

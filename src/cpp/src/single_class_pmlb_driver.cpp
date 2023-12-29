@@ -18,7 +18,6 @@ using namespace IB_utils;
 auto main() -> int {
 
   Mat<DataType> dataset, trainDataset, testDataset;
-  // Mat<double> dataset, trainDataset, testDataset;
   Row<std::size_t> labels, trainLabels, testLabels;
   Row<std::size_t> trainPrediction, testPrediction;
 

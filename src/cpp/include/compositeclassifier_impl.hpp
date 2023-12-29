@@ -20,119 +20,9 @@ namespace ClassifierFileScope{
 } // namespace ClassifierFileScope
 
 template<typename ClassifierType>
-void
-CompositeClassifier<ClassifierType>::childContext(Context& context) {
-
-  auto [partitionSize, 
-	stepSize, 
-	learningRate, 
-	activePartitionRatio] = computeChildPartitionInfo();
-  auto [maxDepth, 
-	minLeafSize, 
-	minimumGainSplit] = computeChildModelInfo();
-
-  context.loss			= loss_;
-  context.lossPower		= lossPower_;
-  context.clamp_gradient	= clamp_gradient_;
-  context.upper_val		= upper_val_;
-  context.lower_val		= lower_val_;
-  context.baseSteps		= baseSteps_;
-  context.symmetrizeLabels	= false;
-  context.removeRedundantLabels	= true;
-  context.rowSubsampleRatio	= row_subsample_ratio_;
-  context.colSubsampleRatio	= col_subsample_ratio_;
-  context.recursiveFit		= true;
-  context.useWeights		= useWeights_;
-  context.numTrees		= numTrees_;
-
-  context.partitionSize		= partitionSize+1;
-  context.steps			= stepSize;
-  context.learningRate		= learningRate;
-  context.activePartitionRatio	= activePartitionRatio;
-
-  context.maxDepth		= maxDepth;
-  context.minLeafSize		= minLeafSize;
-  context.minimumGainSplit	= minimumGainSplit;
-
-  auto it = std::find(childPartitionSize_.cbegin(), childPartitionSize_.cend(), partitionSize);
-  auto ind = std::distance(childPartitionSize_.cbegin(), it);
-
-  // Must ensure that ind > 0; this may happen if partition size is the same through 2 steps
-  ind = ind > 0 ? ind : 1;
-
-  context.childPartitionSize	= std::vector<std::size_t>(childPartitionSize_.cbegin()+ind,
-							   childPartitionSize_.cend());
-  context.childNumSteps		= std::vector<std::size_t>(childNumSteps_.cbegin()+ind,
-							   childNumSteps_.cend());
-  context.childLearningRate	= std::vector<double>(childLearningRate_.cbegin()+ind,
-						      childLearningRate_.cend());
-  context.childActivePartitionRatio = std::vector<double>(childActivePartitionRatio_.cbegin()+ind,
-							  childActivePartitionRatio_.cend());
-  // Model args
-  context.childMinLeafSize	= std::vector<std::size_t>(childMinLeafSize_.cbegin()+ind,
-							   childMinLeafSize_.cend());
-  context.childMaxDepth		= std::vector<std::size_t>(childMaxDepth_.cbegin()+ind,
-							   childMaxDepth_.cend());
-  context.childMinimumGainSplit	= std::vector<double>(childMinimumGainSplit_.cbegin()+ind,
-						      childMinimumGainSplit_.cend());
-
-  context.depth			= depth_ + 1;
-
-}
-
-template<typename ClassifierType>
 AllClassifierArgs
 CompositeClassifier<ClassifierType>::allClassifierArgs(std::size_t numClasses) {
   return std::make_tuple(numClasses, minLeafSize_, minimumGainSplit_, numTrees_, maxDepth_);
-}
-
-template<typename ClassifierType>
-void
-CompositeClassifier<ClassifierType>::contextInit_(Context&& context) {
-
-  loss_				= context.loss;
-  lossPower_			= context.lossPower;
-  clamp_gradient_		= context.clamp_gradient;
-  upper_val_			= context.upper_val;
-  lower_val_			= context.lower_val;
-
-  partitionSize_		= context.childPartitionSize[0];
-  steps_			= context.childNumSteps[0];
-  learningRate_			= context.childLearningRate[0];
-  activePartitionRatio_		= context.childActivePartitionRatio[0];
-
-  minLeafSize_			= context.childMinLeafSize[0];
-  maxDepth_			= context.childMaxDepth[0];
-  minimumGainSplit_		= context.childMinimumGainSplit[0];
-  
-  baseSteps_			= context.baseSteps;
-  symmetrized_			= context.symmetrizeLabels;
-  removeRedundantLabels_	= context.removeRedundantLabels;
-  quietRun_			= context.quietRun;
-  useWeights_			= context.useWeights;
-  row_subsample_ratio_		= context.rowSubsampleRatio;
-  col_subsample_ratio_		= context.colSubsampleRatio;
-  recursiveFit_			= context.recursiveFit;
-
-  childPartitionSize_		= context.childPartitionSize;
-  childNumSteps_		= context.childNumSteps;
-  childLearningRate_		= context.childLearningRate;
-  childActivePartitionRatio_	= context.childActivePartitionRatio;
-
-  childMinLeafSize_		= context.childMinLeafSize;
-  childMaxDepth_		= context.childMaxDepth;
-  childMinimumGainSplit_	= context.childMinimumGainSplit;
-
-  numTrees_			= context.numTrees;
-  serializeModel_		= context.serializeModel;
-  serializePrediction_		= context.serializePrediction;
-  serializeColMask_		= context.serializeColMask;
-  serializeDataset_		= context.serializeDataset;
-  serializeLabels_		= context.serializeLabels;
-  serializationWindow_		= context.serializationWindow;
-
-  depth_			= context.depth;
-
 }
 
 template<typename ClassifierType>
@@ -177,7 +67,12 @@ template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::init_(Context&& context) {
 
-  contextInit_(std::move(context));
+  // Context stuff
+  contextManager_.reset(new ContextManager{std::move(context)});
+
+  contextManager_->contextInit_(*this);
+
+  // contextInit_(std::move(context));
 
   if (serializeModel_ || serializePrediction_ ||
       serializeColMask_ || serializeDataset_ ||
@@ -513,7 +408,28 @@ CompositeClassifier<ClassifierType>::setRootClassifier(std::unique_ptr<Classifie
   std::apply(_c, args);
 
   // Feedback 
-  // ...
+  Row<DataType> labels_it=labels, prediction;
+  const float beta = 0.001;
+  const std::size_t FEEDBACK_ITERATIONS = 0;
+
+  if (FEEDBACK_ITERATIONS > 0) {
+    cls->Classify(dataset, prediction);
+    
+    // weights not reused
+    auto _c0 = [&cls, &dataset](Row<DataType>& labels, Ts const&... classArgs) {
+      cls = std::make_unique<ClassifierType>(dataset, labels, classArgs...);
+    };
+    
+    for (std::size_t i=0; i<FEEDBACK_ITERATIONS; ++i) {
+      labels_it = labels_it - beta * prediction;
+      auto _cn = [&labels_it, &_c0](Ts const&... classArgs) {
+	_c0(labels_it,
+	    classArgs...);
+      };
+      std::apply(_cn, args);
+      cls->Classify(dataset, prediction);
+    }
+  }
 
   classifier = std::move(cls);
 }
@@ -532,8 +448,9 @@ CompositeClassifier<ClassifierType>::setRootClassifier(std::unique_ptr<Classifie
   };
   std::apply(_c, args);
 
+  // Feedback
   Row<DataType> labels_it=labels, prediction;
-  float beta = 0.025;
+  float beta = 0.001;
   const std::size_t FEEDBACK_ITERATIONS = 0;
 
   if (FEEDBACK_ITERATIONS > 0) {
@@ -544,9 +461,6 @@ CompositeClassifier<ClassifierType>::setRootClassifier(std::unique_ptr<Classifie
     };
     
     for (std::size_t i=0; i<FEEDBACK_ITERATIONS; ++i) {
-      for (std::size_t j=0; j<10; ++j) {
-	std::cerr << j << " : " << labels(j) << " : " << prediction(j) << std::endl;
-      }
       labels_it = labels_it - beta * prediction;
       auto _cn = [&labels_it, &_c0](Ts const&... classArgs) {
 	_c0(labels_it,
@@ -723,8 +637,8 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
       colMask = colMask_;
     }
 
-    Context context{};      
-    childContext(context);
+    Context context{};
+    contextManager_->childContext(context, *this);
 
     // allLeaves may not strictly fit the definition of labels here - 
     // aside from the fact that it is of double type, it may have more 
@@ -1220,14 +1134,6 @@ CompositeClassifier<ClassifierType>::calcWeights() {
   weights_ = weights_ * (static_cast<DataType>(weights_.n_cols)/sum(weights_));
   
 }
-
-template<typename ClassifierType>
-void
-CompositeClassifier<ClassifierType>::Classify(const Mat<DataType>& dataset, Row<DataType>& labels) {
-
-  Predict(dataset, labels);
-}
-
 
 template<typename ClassifierType>
 auto CompositeClassifier<ClassifierType>::generate_coefficients(const Row<DataType>& labels, const uvec& colMask) -> std::pair<Row<DataType>, Row<DataType>> {

@@ -167,6 +167,8 @@ add_library(classifier OBJECT classifier.cpp)
 add_library(regressor OBJECT regressor.cpp)
 add_library(compositeclassifier OBJECT compositeclassifier.cpp)
 add_library(threadsafequeue OBJECT threadsafequeue.cpp)
+add_library(contextmanager OBJECT contextmanager.cpp)
+add_library(negativefeedback OBJECT negativefeedback.cpp)
 # add_library(gradientboostmulticlassifier OBJECT gradientboostmulticlassifier.cpp)
 
 ###########
@@ -197,7 +199,7 @@ elseif(Boost_FOUND)
       	  $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 endif()
 
-target_link_libraries(compositeclassifier PUBLIC utils score2 classifier DP
+target_link_libraries(compositeclassifier PUBLIC utils score2 classifier DP contextmanager
 	${ARMADILLO_LIBRARIES}
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES}
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)	
