@@ -6,37 +6,44 @@
 
 #include <mlpack/core.hpp>
 
+#include "classifiers.hpp"
 #include "classifier.hpp"
 
 using namespace arma;
 
-template<typename DataType, typename ClassifierType, typename... Args>
-class NegativeFeedback {
+template<typename ClassifierType, typename... Args>
+class NegativeFeedback : DecoratorClassifier<ClassifierType,
+					     typename Model_Traits::model_traits<ClassifierType>::modelArgs> {
+
 public:
-  NegativeFeedback(const DiscreteClassifierBase<DataType, ClassifierType, Args...>& c) : c_{new ClassifierType{}}
+  using DataType = typename Model_Traits::model_traits<ClassifierType>::datatype;
+  using modelArgs = typename Model_Traits::model_traits<ClassifierType>::modelArgs;
+
+  NegativeFeedback(const Mat<DataType>& dataset,
+		   Row<DataType>& labels,
+		   Args &&... args) : 
+    DecoratorClassifier<ClassifierType, modelArgs>(dataset,
+						   labels,
+						   std::forward<Args>(args)...)
+  {}
+
+  NegativeFeedback(const Mat<DataType>& dataset,
+		   Row<DataType>& labels,
+		   Row<DataType>& weights,
+		   Args &&... args) :
+    DecoratorClassifier<ClassifierType, modelArgs>(dataset,
+						   labels,
+						   weights,
+						   std::forward<Args>(args)...)
   {}
 
   template<typename... Ts>
-  void setRootClassifier(std::unique_ptr<ClassifierType>& ,
+  void setRootClassifier(std::unique_ptr<ClassifierType>&,
 		    const Mat<DataType>&,
 		    Row<DataType>&,
 		    std::tuple<Ts...> const&,
 		    float,
 		    std::size_t);
 
-  // From DiscreteClassifierBase<DataType, ClassifierType, Args...>
-  //
-  // virtual void Classify_(const Mat<DataType>&, Row<DataType>&) = 0;
-  // virtual void Classify_(Mat<DataType>&&, Row<DataType>&) = 0;
-  // 
-  // So we dispatch
-  //
-  void Classify_(const Mat<DataType>& dataset, Row<DataType>& pred) { c_->Classify_(dataset, pred); }
-  void Classify_(Mat<DataType>&& dataset, Row<DataType>& pred) { c_->Classify_(dataset, pred); }
-
-  
-		    
-private:
-  std::unique_ptr<ClassifierType> c_;
 };
 #endif

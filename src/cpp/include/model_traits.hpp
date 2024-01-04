@@ -19,6 +19,11 @@ class DecisionTreeClassifier;
 class RandomForestClassifier;
 class ConstantTreeClassifier;
 
+template<typename DecoratedType, typename... Parms>
+class DecoratorClassifier;
+template<typename DecoratedType, typename... Parms>
+class NegativeFeedback;
+
 using namespace mlpack;
 using namespace mlpack::tree;
 using namespace mlpack::data;
@@ -36,6 +41,11 @@ namespace Model_Traits {
     using RandomForestClassifierType = RandomForest<>;
     using DecisionTreeClassifierType = DecisionTree<>;
     using ConstantTreeClassifierType = ConstantTree;
+    using NegativeFeedbackDecisionTreeClassifierType = NegativeFeedback<DecisionTreeClassifier,
+									std::size_t,
+									std::size_t,
+									double,
+									std::size_t>;
 
     // [==========--===========]
     // [============--=========]
@@ -83,6 +93,14 @@ namespace Model_Traits {
     using integrallabeltype = std::size_t;
     using model = ClassifierTypes::ConstantTreeClassifierType;
     using modelArgs = std::tuple<std::size_t, std::size_t>;
+  };
+
+  template<>
+  struct model_traits<DecoratorClassifier<DecisionTreeClassifier, std::size_t, std::size_t, double, std::size_t>> {
+    using datatype = model_traits<DecisionTreeClassifier>::datatype;
+    using integrallabeltype = model_traits<DecisionTreeClassifier>::integrallabeltype;
+    using model = model_traits<DecisionTreeClassifier>::model;
+    using modelArgs = model_traits<DecisionTreeClassifier>::modelArgs;
   };
 
   using AllRegressorArgs = std::tuple<std::size_t,	// (0) minLeafSize

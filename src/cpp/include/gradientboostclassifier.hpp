@@ -242,26 +242,40 @@ public:
 
 #include "gradientboostclassifier_impl.hpp"
 
-using CompositeClassifierDTC = CompositeClassifier<DecisionTreeClassifier>;
-using CompositeClassifierRFC = CompositeClassifier<RandomForestClassifier>;
+using NegativeFeedbackDecisionTreeClassifier = NegativeFeedback<DecisionTreeClassifier,
+								std::size_t,
+								std::size_t,
+								double,
+								std::size_t>;
 
-using GradientBoostClassifierDTC = GradientBoostClassifier<DecisionTreeClassifier>;
-using GradientBoostClassifierRFC = GradientBoostClassifier<RandomForestClassifier>;
+using CompositeClassifierDTC  = CompositeClassifier<DecisionTreeClassifier>;
+using CompositeClassifierRFC  = CompositeClassifier<RandomForestClassifier>;
+using CompositeClassifierDDTC = CompositeClassifier<NegativeFeedbackDecisionTreeClassifier>;
+
+using GradientBoostClassifierDTC  = GradientBoostClassifier<DecisionTreeClassifier>;
+using GradientBoostClassifierRFC  = GradientBoostClassifier<RandomForestClassifier>;
+using GradientBoostClassifierDDTC = GradientBoostClassifier<NegativeFeedbackDecisionTreeClassifier>;
 
 CEREAL_REGISTER_TYPE(GradientBoostClassifierDTC);
 CEREAL_REGISTER_TYPE(GradientBoostClassifierRFC);
+CEREAL_REGISTER_TYPE(GradientBoostClassifierDDTC);
 
 CEREAL_REGISTER_TYPE(CompositeClassifierDTC);
 CEREAL_REGISTER_TYPE(CompositeClassifierRFC);
+CEREAL_REGISTER_TYPE(CompositeClassifierDDTC);
 
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, CompositeClassifierDTC);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, CompositeClassifierDTC);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, CompositeClassifierRFC);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, CompositeClassifierRFC);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, CompositeClassifierDDTC);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, CompositeClassifierDDTC);
 
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, GradientBoostClassifierDTC);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, GradientBoostClassifierDTC); 
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, GradientBoostClassifierRFC)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, GradientBoostClassifierRFC);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, GradientBoostClassifierDDTC);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, GradientBoostClassifierDDTC);
 
 #endif
