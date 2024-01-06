@@ -19,6 +19,8 @@ public:
   using DataType = typename Model_Traits::model_traits<ClassifierType>::datatype;
   using modelArgs = typename Model_Traits::model_traits<ClassifierType>::modelArgs;
 
+  NegativeFeedback() {};
+
   NegativeFeedback(const Mat<DataType>& dataset,
 		   Row<DataType>& labels,
 		   Args &&... args) : 
