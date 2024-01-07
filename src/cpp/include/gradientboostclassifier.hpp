@@ -245,44 +245,56 @@ public:
 using CompositeClassifierDTC  = CompositeClassifier<DecisionTreeClassifier>;
 using CompositeClassifierRFC  = CompositeClassifier<RandomForestClassifier>;
 
+/*
 // Decorator using directives
 using C1 = CompositeClassifier<DC5>;
+*/
 
 using GradientBoostClassifierDTC  = GradientBoostClassifier<DecisionTreeClassifier>;
 using GradientBoostClassifierRFC  = GradientBoostClassifier<RandomForestClassifier>;
 
+/*
 // Decorator using directives
 using G1 = GradientBoostClassifier<DC5>;
+*/
 
 CEREAL_REGISTER_TYPE(GradientBoostClassifierDTC);
 CEREAL_REGISTER_TYPE(GradientBoostClassifierRFC);
 
+/*
 // Decorator registrations
 CEREAL_REGISTER_TYPE(G1);
+*/
 
 CEREAL_REGISTER_TYPE(CompositeClassifierDTC);
 CEREAL_REGISTER_TYPE(CompositeClassifierRFC);
 
+/*
 // Decorator registrations
 CEREAL_REGISTER_TYPE(C1);
+*/
 
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, CompositeClassifierDTC);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, CompositeClassifierDTC);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, CompositeClassifierRFC);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, CompositeClassifierRFC);
 
+/*
 // Decorator polymorphic relations
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, C1);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, C1);
+*/
 
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, GradientBoostClassifierDTC);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, GradientBoostClassifierDTC); 
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, GradientBoostClassifierRFC)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, GradientBoostClassifierRFC);
 
+/*
 // Decorator polymorphic relations
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, G1);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, G1);
+*/
 
 
 #endif
