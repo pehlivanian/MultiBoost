@@ -850,67 +850,6 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
 
 }
 
-TEST(GradientBoostClassifierTest, TestNegativeFeedbackInSampleMatchesLatest) {
-  /*
-  std::vector<bool> trials = {false, true};
-
-  dataset_t dataset, trainDataset, testDataset;
-  labels_t labels, trainLabels, testLabels;
-
-  loadClassifierDatasets(dataset, labels);
-  data::Split(dataset,
-	      labels,
-	      trainDataset,
-	      testDataset,
-	      trainLabels,
-	      testLabels, 0.2);
-
-  Context context{};
-
-  context.loss = lossFunction::BinomialDeviance;
-  context.childPartitionSize = std::vector<std::size_t>{11, 5};
-  context.childNumSteps = std::vector<std::size_t>{5, 2};
-  context.childLearningRate = std::vector<double>{.001, .001};
-  context.childActivePartitionRatio = std::vector<double>{0.5, 0.2};
-  context.childMinLeafSize = std::vector<std::size_t>{1, 1};
-  context.childMaxDepth = std::vector<std::size_t>{5, 5};
-  context.childMinimumGainSplit = std::vector<double>{0., 0.};
-  context.partitionRatio = .25;
-  context.quietRun = true;
-  context.symmetrizeLabels = true;
-  context.rowSubsampleRatio = 1.;
-  context.colSubsampleRatio = .45; // .75
-  context.serializeModel = false;
-
-  using T = GradientBoostClassifier<NegativeFeedback<DecisionTreeClassifier, std::size_t, std::size_t, double, std::size_t>>;
-
-  T classifier{trainDataset, trainLabels, testDataset, testLabels, context};
-
-  ASSERT_EQ(1, 1);
-
-  using T = GradientBoostClassifier<NegativeFeedback<DecisionTreeClassifier, std::size_t, std::size_t, double, std::size_t>>;
-  
-  for (auto recursive : trials) {
-    
-    context.recursiveFit = recursive;
-
-    // Fit classifier
-    T classifier, newClassifier;
-    classifier = T(trainDataset, trainLabels, testDataset, testLabels, context);
-    classifier.fit();
-
-    // IS prediction - live classifier
-    Row<DataType> liveTrainPrediction;
-    classifier.Predict(liveTrainPrediction);
-
-    ASSERT_EQ(liveTrainPrediction.n_cols, testLabels.n_cols);
-    
-  }
-  */
-
-  ASSERT_EQ(1, 1);
-}
-
 TEST(GradientBoostClassifierTest, TestInSamplePredictionMatchesLatestPrediction) {
   std::vector<bool> trials = {false, true};
 
@@ -2074,6 +2013,7 @@ TEST(GradientBoostClassifierTest, TestIncrementalClassifierScript) {
   sprintf(cmd, "%ssrc/script/incremental_classifier_fit.sh 1 250 1 0.1 0.75 0 1 0 %s 20 12 2.15 1 1 1 1 -1 1", abs_path, dataset_name_train);
 
   std::string cmd_str{cmd};
+
   child c(cmd_str, std_out > pipe_stream);
 
   std::regex ws_re{rg_ex};
@@ -2081,10 +2021,10 @@ TEST(GradientBoostClassifierTest, TestIncrementalClassifierScript) {
   std::string line;
   std::size_t cnt=0;
 
-  std::array<float, 21> errors = {27, 24, 18, 18, 18, 16, 18, 16, 16, 15, 13, 11, 11, 12, 12, 13, 13, 13, 13, 12, 12};
-  std::array<float, 21> precision = {0.716418, 0.75, 0.796875, 0.796875, 0.796875, 0.822581, 0.806452, 0.844828, 0.833333, 0.836066, 0.864407, 0.881356, 0.881356, 0.866667, 0.866667, 0.852459, 0.852459, 0.852459, 0.852459, 0.866667, 0.866667};
-  std::array<float, 21> recall = {0.857143, 0.857143, 0.910714, 0.910714, 0.910714, 0.910714, 0.892857, 0.875, 0.892857, 0.910714, 0.910714, 0.928571, 0.928571, 0.928571, 0.928571, 0.928571, 0.928571, 0.928571, 0.928571, 0.928571, 0.928571};
-  std::array<float, 21> F1 = {0.780488, 0.8, 0.85, 0.85, 0.85, 0.864407, 0.847458, 0.859649, 0.862069, 0.871795, 0.886957, 0.904348, 0.904348, 0.896552, 0.896552, 0.888889, 0.888889, 0.888889, 0.888889, 0.896552, 0.896552};
+  std::array<float, 21> errors = {20, 15, 14, 11, 13, 14, 12, 11, 12, 12, 13, 13, 13, 12, 12, 12, 12, 13, 13, 13, 13};
+  std::array<float, 21> precision = { 0.78125,0.836066,0.85,0.894737,0.90566,0.888889,0.892857,0.894737,0.892857,0.907407,0.890909,0.90566,0.90566,0.907407,0.907407,0.907407,0.907407,0.90566,0.90566,0.90566,0.90566};
+  std::array<float, 21> recall = { 0.892857,0.910714,0.910714,0.910714,0.857143,0.857143,0.892857,0.910714,0.892857,0.875,0.875,0.857143,0.857143,0.875,0.875,0.875,0.875,0.857143,0.857143,0.857143,0.857143};
+  std::array<float, 21> F1 = {0.833333,0.871795,0.87931,0.902655,0.880734,0.872727,0.892857,0.902655,0.892857,0.890909,0.882883,0.880734,0.880734,0.890909,0.890909,0.890909,0.890909,0.880734,0.880734,0.880734,0.880734};
   float imbalance = 0.9604;
   
   while (pipe_stream && std::getline(pipe_stream, line) && !line.empty()) {
