@@ -168,7 +168,7 @@ add_library(regressor OBJECT regressor.cpp)
 add_library(compositeclassifier OBJECT compositeclassifier.cpp)
 add_library(threadsafequeue OBJECT threadsafequeue.cpp)
 add_library(contextmanager OBJECT contextmanager.cpp)
-add_library(negativefeedback OBJECT negativefeedback.cpp)
+# add_library(negativefeedback OBJECT negativefeedback.cpp)
 # add_library(gradientboostmulticlassifier OBJECT gradientboostmulticlassifier.cpp)
 
 ###########

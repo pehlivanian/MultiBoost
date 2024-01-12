@@ -505,13 +505,13 @@ private:
 			 Row<DataType>&,
 			 Row<DataType>&,
 			 std::tuple<Ts...> const&);
-
+  
   template<typename... Ts>
   void setRootClassifier(std::unique_ptr<ClassifierType>&, 
 			 const Mat<DataType>&,
 			 Row<DataType>&,
 			 std::tuple<Ts...> const&);
-
+  
   auto computeChildPartitionInfo() -> childPartitionInfo;
   auto computeChildModelInfo() -> childModelInfo;
 

@@ -38,13 +38,15 @@ namespace Model_Traits {
 				       std::size_t>;	// (4) maxDepth
 
   namespace ClassifierTypes {
-    using RandomForestClassifierType = RandomForest<>;
     using DecisionTreeClassifierType = DecisionTree<>;
+    using RandomForestClassifierType = RandomForest<>;
     using ConstantTreeClassifierType = ConstantTree;
-    using NegativeFeedbackDecisionTreeClassifierType = NegativeFeedback<DecisionTreeClassifier, 
-									std::size_t, std::size_t, double, std::size_t>;
-    using NegativeFeedbackRandomForestClassifierType = NegativeFeedback<RandomForestClassifier,
-									std::size_t, std::size_t, double, std::size_t>;
+    using NegativeFeedbackDecisionTreeClassifierType = DecisionTree<>;
+    using NegativeFeedbackRandomForestClassifierType = RandomForest<>;
+    // using NegativeFeedbackDecisionTreeClassifierType = NegativeFeedback<DecisionTreeClassifier, 
+    // 									std::size_t, std::size_t, double, std::size_t>;
+    // using NegativeFeedbackRandomForestClassifierType = NegativeFeedback<RandomForestClassifier,
+    // 								std::size_t, std::size_t, double, std::size_t>;
 
     // [==========--===========]
     // [============--=========]

@@ -37,11 +37,14 @@ public:
 
   DiscreteClassifierBase(const Mat<DataType>& dataset, Row<DataType>& labels, Args&&... args) : 
     ClassifierBase<DataType, ClassifierType>(typeid(*this).name())
-  { init_(dataset, labels, false, std::forward<Args>(args)...); }
+  { 
+    init_(dataset, labels, false, std::forward<Args>(args)...); 
+  }
 
   DiscreteClassifierBase(const Mat<DataType>& dataset, Row<DataType>& labels, Row<DataType>& weights, Args&&... args) : 
     ClassifierBase<DataType, ClassifierType>(typeid(*this).name())
-  { weights_ = weights;
+  { 
+    weights_ = weights;
     init_(dataset, labels, true, std::forward<Args>(args)...); 
   }
 

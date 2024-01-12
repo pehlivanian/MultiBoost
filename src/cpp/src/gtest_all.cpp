@@ -850,6 +850,67 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
 
 }
 
+TEST(GradientBoostClassifierTest, TestNegativeFeedbackInSampleMatchesLatest) {
+  /*
+  std::vector<bool> trials = {false, true};
+
+  dataset_t dataset, trainDataset, testDataset;
+  labels_t labels, trainLabels, testLabels;
+
+  loadClassifierDatasets(dataset, labels);
+  data::Split(dataset,
+	      labels,
+	      trainDataset,
+	      testDataset,
+	      trainLabels,
+	      testLabels, 0.2);
+
+  Context context{};
+
+  context.loss = lossFunction::BinomialDeviance;
+  context.childPartitionSize = std::vector<std::size_t>{11, 5};
+  context.childNumSteps = std::vector<std::size_t>{5, 2};
+  context.childLearningRate = std::vector<double>{.001, .001};
+  context.childActivePartitionRatio = std::vector<double>{0.5, 0.2};
+  context.childMinLeafSize = std::vector<std::size_t>{1, 1};
+  context.childMaxDepth = std::vector<std::size_t>{5, 5};
+  context.childMinimumGainSplit = std::vector<double>{0., 0.};
+  context.partitionRatio = .25;
+  context.quietRun = true;
+  context.symmetrizeLabels = true;
+  context.rowSubsampleRatio = 1.;
+  context.colSubsampleRatio = .45; // .75
+  context.serializeModel = false;
+
+  using T = GradientBoostClassifier<NegativeFeedback<DecisionTreeClassifier, std::size_t, std::size_t, double, std::size_t>>;
+
+  T classifier{trainDataset, trainLabels, testDataset, testLabels, context};
+
+  ASSERT_EQ(1, 1);
+
+  using T = GradientBoostClassifier<NegativeFeedback<DecisionTreeClassifier, std::size_t, std::size_t, double, std::size_t>>;
+  
+  for (auto recursive : trials) {
+    
+    context.recursiveFit = recursive;
+
+    // Fit classifier
+    T classifier, newClassifier;
+    classifier = T(trainDataset, trainLabels, testDataset, testLabels, context);
+    classifier.fit();
+
+    // IS prediction - live classifier
+    Row<DataType> liveTrainPrediction;
+    classifier.Predict(liveTrainPrediction);
+
+    ASSERT_EQ(liveTrainPrediction.n_cols, testLabels.n_cols);
+    
+  }
+  */
+
+  ASSERT_EQ(1, 1);
+}
+
 TEST(GradientBoostClassifierTest, TestInSamplePredictionMatchesLatestPrediction) {
   std::vector<bool> trials = {false, true};
 

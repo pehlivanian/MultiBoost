@@ -6,8 +6,9 @@
 namespace {
 
   template<typename... Ts>
-  std::tuple<Ts...> to_tuple(Ts &&... ts) {
-    std::make_tuple(std::forward<Ts>(ts)...);
+  decltype(auto) to_tuple(Ts &&... ts) {
+    auto tup = std::make_tuple(std::forward<Ts>(ts)...);
+    return tup;
   }
 
   template<typename T, std::size_t... I>
@@ -86,7 +87,6 @@ namespace {
 
 } // namespace 
 
-
 template<typename DataType, typename ClassifierType, typename... Args>
 void
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::init_(const Mat<DataType>& dataset, 
@@ -126,6 +126,18 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::init_(const Mat<DataT
 
   args_ = std::tuple<Args...>(args...);
 }
+
+/*
+template<typename DataType, typename ClassifierType, typename... Args>
+void
+DiscreteClassifierBase<DataType, ClassifierType, Args...>::init_(const Mat<DataType>& dataset,
+								 Row<DataType>& labels,
+								 bool useWeights,
+								 Args... args) {
+  init_(dataset, labels, useWeights, std::move(args)...);
+}
+*/
+
 
 template<typename DataType, typename ClassifierType, typename... Args>
 template<typename... ClassArgs>
