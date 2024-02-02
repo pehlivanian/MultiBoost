@@ -39,7 +39,7 @@ def _dataset(dataset_name):
 def _create_synthetic_disc_data(dim=2):
     dataset_name = "synthetic"
     ROOT_DATA = "/home/charles/Data/"
-    METHOD = ['spherical', 'eggholder', 'rastrigin'][0]
+    METHOD = ['spherical', 'eggholder', 'rastrigin'][2]
 
     if METHOD in ('spherical',):
         coord = np.arange(-np.sqrt(np.pi), np.sqrt(np.pi), .1)
@@ -48,13 +48,13 @@ def _create_synthetic_disc_data(dim=2):
         for i in range(n):
             for j in range(n):
                 arg = coord[i]*coord[i] + coord[j]+coord[i]; label = 0.
-                label += (12./1.)*np.cos(arg)
-                label += (21./1.)*np.cos(2*arg)
-                label += (1./1.)*np.cos(4*arg)
-                label += (11./1.)*np.cos(8*arg)
-                label += (7./1.)*np.cos(16*arg)
-                label += (13./1.)*np.cos(32*arg)
-                label += (24./1.)*np.cos(64*arg)
+                label += (1./1.)*np.cos(arg)
+                label += (2./1.)*np.cos(2*arg)
+                label += (4./1.)*np.cos(4*arg)
+                label += (8./1.)*np.cos(8*arg)
+                label += (16./1.)*np.cos(16*arg)
+                label += (32./1.)*np.cos(32*arg)
+                label += (64./1.)*np.cos(64*arg)
                 data[j+i*n] = np.array([coord[i], coord[j], label])
                 data[j+i*n,2] = data[j+i*n,2] < 0.5
     elif METHOD in ('eggholder',):
@@ -77,12 +77,29 @@ def _create_synthetic_disc_data(dim=2):
         data = np.zeros([np.power(coord.shape[0],2), 2*(dim-1) + 1])
         for i in range(n):
             for j in range(n):
-                data[j+i*n] = np.array([coord[i], coord[j], A*2 + (np.power(coord[i], 2) - A*np.cos(2*np.pi*coord[i])) + (np.power(coord[j], 2) - A*np.cos(2*np.pi*coord[j]))])                
+                data[j+i*n] = np.array([coord[i], coord[j], A*2 + \
+                                        (np.power(coord[i], 2) - A*np.cos(2*np.pi*coord[i])) + \
+                                        (np.power(coord[j], 2) - A*np.cos(2*np.pi*coord[j]))])                
                 data[j+i*n,2] = data[j+i*n,2] < 50.
                 
-    TRAIN_SIZE = 1000
-    TEST_SIZE = 200
-    X_train, X_test, y_train, y_test = train_test_split(data[:,:2], data[:,2], random_state=55, train_size=TRAIN_SIZE, test_size=TEST_SIZE)
+    TRAIN_SIZE = 500
+    TEST_SIZE = 500
+
+    RND_SEED = 22
+
+    # Add random data in front
+    np.random.seed(RND_SEED)
+    rnd = np.random.uniform(np.min(data), np.max(data), (data.shape[0], 100))
+    data = np.concatenate([rnd, data], axis=1)
+
+    labels = data[:,-1]
+    features = data[:,:-1]
+
+    # Shuffle feature columns
+    np.random.seed(RND_SEED)
+    features = features[:, np.random.permutation(features.shape[1])]
+
+    X_train, X_test, y_train, y_test = train_test_split(features, labels, random_state=55, train_size=TRAIN_SIZE, test_size=TEST_SIZE)
 
     np.savetxt( '{}/{}_train_X.csv'.format(ROOT_DATA, dataset_name), X_train, delimiter=',')
     np.savetxt( '{}/{}_train_y.csv'.format(ROOT_DATA, dataset_name), y_train, delimiter=',')
@@ -125,7 +142,9 @@ def _create_synthetic_cont_data(dim=2):
         data = np.zeros([np.power(coord.shape[0],2), 2*(dim-1) + 1])
         for i in range(n):
             for j in range(n):
-                data[j+i*n] = np.array([coord[i], coord[j], A*2 + (np.power(coord[i], 2) - A*np.cos(2*np.pi*coord[i])) + (np.power(coord[j], 2) - A*np.cos(2*np.pi*coord[j]))])
+                data[j+i*n] = np.array([coord[i], coord[j], A*2 + \
+                                        (np.power(coord[i], 2) - A*np.cos(2*np.pi*coord[i])) + \
+                                        (np.power(coord[j], 2) - A*np.cos(2*np.pi*coord[j]))])
     elif METHOD in ('rosenbrock',):
         A = 10
         coord = np.arange(-2, 2., .01)
@@ -133,7 +152,8 @@ def _create_synthetic_cont_data(dim=2):
         data = np.zeros([np.power(coord.shape[0],2), 2*(dim-1) + 1])
         for i in range(n):
             for j in range(n):
-                data[j+i*n] = np.array([coord[i], coord[j], 100.*np.power(coord[j] - np.power(coord[i], 2), 2) + np.power(1-coord[i], 2)])
+                data[j+i*n] = np.array([coord[i], coord[j], 100.* \
+                                        np.power(coord[j] - np.power(coord[i], 2), 2) + np.power(1-coord[i], 2)])
     elif METHOD in ('bukin',):
         A = 10
         coord = np.arange(-15, 15., .01)
@@ -141,7 +161,8 @@ def _create_synthetic_cont_data(dim=2):
         data = np.zeros([np.power(coord.shape[0],2), 2*(dim-1) + 1])
         for i in range(n):
             for j in range(n):
-                data[j+i*n] = np.array([coord[i], coord[j], 100*np.sqrt(np.abs(coord[j] - 0.01*np.power(coord[i],2))) + 0.01*np.abs(coord[i] + 10)])
+                data[j+i*n] = np.array([coord[i], coord[j], 100* \
+                                        np.sqrt(np.abs(coord[j] - 0.01*np.power(coord[i],2))) + 0.01*np.abs(coord[i] + 10)])
     elif METHOD in ('levi',):
         A = 10
         coord = np.arange(-5, 5., .01)
@@ -149,7 +170,9 @@ def _create_synthetic_cont_data(dim=2):
         data = np.zeros([np.power(coord.shape[0],2), 2*(dim-1) + 1])
         for i in range(n):
             for j in range(n):
-                data[j+i*n] = np.array([coord[i], coord[j], np.power(np.sin(3*np.pi*coord[i]), 2) + np.power(coord[i] - 1,2)*(1 + np.power(np.sin(3*np.pi*coord[j]), 2)) + np.power(coord[j] - 1, 2)*(1 + np.power(np.sin(2*np.pi*coord[j]), 2))])
+                data[j+i*n] = np.array([coord[i], coord[j], np.power(np.sin(3*np.pi*coord[i]), 2) + \
+                                        np.power(coord[i] - 1,2)*(1 + np.power(np.sin(3*np.pi*coord[j]), 2)) + \
+                                        np.power(coord[j] - 1, 2)*(1 + np.power(np.sin(2*np.pi*coord[j]), 2))])
     elif METHOD in ('eggholder',):
         A = 10
         coord = np.arange(-.10, .10, .001)
@@ -157,7 +180,9 @@ def _create_synthetic_cont_data(dim=2):
         data = np.zeros([np.power(coord.shape[0],2), 2*(dim-1) + 1])
         for i in range(n):
             for j in range(n):
-                data[j+i*n] = np.array([coord[i], coord[j], -(coord[j] + 47)*np.sin(np.abs(coord[i]/2. + (coord[j] + 47))) - coord[i]*np.sin(np.abs(coord[i] - (coord[j] + 47)))])
+                data[j+i*n] = np.array([coord[i], coord[j], -(coord[j] + 47)* \
+                                        np.sin(np.abs(coord[i]/2. + (coord[j] + 47))) - \
+                                        coord[i]*np.sin(np.abs(coord[i] - (coord[j] + 47)))])
                 
     if (False):
         xaxis=coord; yaxis=coord;
@@ -210,8 +235,8 @@ def _R2_sklearn(y, yhat):
 # dataset_name = "Regression/529_pollen"
 # _create_synthetic_cont_data(); dataset_name = "Regression/synthetic"
 # X_train, y_train, X_test, y_test = _dataset(dataset_name);
-_create_synthetic_disc_data(); dataset_name = "synthetic"
-X_train, y_train, X_test, y_test = _dataset(dataset_name);
+# _create_synthetic_disc_data(); dataset_name = "synthetic"
+# X_train, y_train, X_test, y_test = _dataset(dataset_name);
 
 
 
@@ -290,6 +315,12 @@ if __name__ == '__nowhere__':
     
     
 if __name__ == '__main__':
+
+    # _create_synthetic_disc_data(); dataset_name = "synthetic"
+    # dataset_name = "coil2000"
+    dataset_name = "ring_sm"
+    X_train, y_train, X_test, y_test = _dataset(dataset_name);
+
     ##############
     ## CATBOOST ##
     ##############
@@ -303,7 +334,7 @@ if __name__ == '__main__':
                                 learning_rate=learning_rate,
                                 loss_function=catboost_loss_function,
                                 verbose=False)
-    
+
     cls_cb.fit(X_train, y_train)
     yhat_train_cb = cls_cb.predict(X_train)
     yhat_test_cb = cls_cb.predict(X_test)
