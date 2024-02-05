@@ -36,7 +36,6 @@ public:
 
   virtual ~Model() = default;
 
-  // General predict method for classifier, regressor
   void Project(const Mat<DataType>& data, Row<DataType>& projection) { 
     Project_(data, projection); 
   }

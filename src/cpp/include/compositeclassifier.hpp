@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 #include <unordered_map>
+#include <optional>
 
 #include <boost/filesystem.hpp>
 
@@ -14,7 +15,6 @@
 #include "DP.hpp"
 #include "score2.hpp"
 #include "constantclassifier.hpp"
-#include "contextmanager.hpp"
 #include "classifier.hpp"
 #include "model_traits.hpp"
 
@@ -27,8 +27,6 @@ template<typename ClassifierType>
 class CompositeClassifier : public ClassifierBase<typename model_traits<ClassifierType>::datatype,
 						  typename model_traits<ClassifierType>::model> {
   
-  friend class ContextManager;
-
 public:  
   using DataType		= typename model_traits<ClassifierType>::datatype;
   using IntegralLabelType	= typename model_traits<ClassifierType>::integrallabeltype;
@@ -409,6 +407,8 @@ public:
 
   virtual void fit();
 
+  virtual void Classify(const Mat<DataType>&, Row<DataType>&) override;
+
   // 4 Predict methods
   // predict on member dataset; use latestPrediction_
   virtual void Predict(Row<DataType>&);
@@ -476,6 +476,8 @@ public:
   }
 
 private:
+  void childContext(Context&);
+  void contextInit_(Context&&);
   void init_(Context&&);
   auto _constantLeaf() -> Row<DataType> const;
   auto _constantLeaf(double) -> Row<DataType> const;
@@ -606,8 +608,6 @@ private:
   std::size_t depth_;
 
   boost::filesystem::path fldr_{};
-
-  std::unique_ptr<ContextManager> contextManager_;
 
 };
 
