@@ -49,12 +49,21 @@ def _create_synthetic_disc_data(dim=2):
             for j in range(n):
                 arg = coord[i]*coord[i] + coord[j]+coord[i]; label = 0.
                 label += (1./1.)*np.cos(arg)
+<<<<<<< HEAD
                 label += (2./1.)*np.cos(2*arg)
                 label += (4./1.)*np.cos(4*arg)
                 label += (8./1.)*np.cos(8*arg)
                 label += (16./1.)*np.cos(16*arg)
                 label += (32./1.)*np.cos(32*arg)
                 label += (64./1.)*np.cos(64*arg)
+=======
+                label -= (21./1.)*np.cos(2*arg)
+                label += (1./1.)*np.cos(4*arg)
+                label -= (11./1.)*np.cos(8*arg)
+                label += (1./1.)*np.cos(16*arg)
+                label -= (8./1.)*np.cos(32*arg)
+                label += (14./1.)*np.cos(64*arg)
+>>>>>>> parent of 3bb7055... Added weights; checkpoint
                 data[j+i*n] = np.array([coord[i], coord[j], label])
                 data[j+i*n,2] = data[j+i*n,2] < 0.5
     elif METHOD in ('eggholder',):
@@ -70,6 +79,7 @@ def _create_synthetic_disc_data(dim=2):
                                          (coord[j] + 47))) - coord[i]*np.sin(np.abs(coord[i] - (coord[j] + 47)))])
                 data[j+i*n,2]  = data[j+i*n,2] < -5.5
 
+<<<<<<< HEAD
     elif METHOD in ('rastrigin',):
         A = 10
         coord = np.arange(-2.*np.pi, 2.*np.pi, .01)
@@ -100,6 +110,11 @@ def _create_synthetic_disc_data(dim=2):
     features = features[:, np.random.permutation(features.shape[1])]
 
     X_train, X_test, y_train, y_test = train_test_split(features, labels, random_state=55, train_size=TRAIN_SIZE, test_size=TEST_SIZE)
+=======
+    TRAIN_SIZE = 250
+    TEST_SIZE = 750
+    X_train, X_test, y_train, y_test = train_test_split(data[:,:2], data[:,2], random_state=55, train_size=TRAIN_SIZE, test_size=TEST_SIZE)
+>>>>>>> parent of 3bb7055... Added weights; checkpoint
 
     np.savetxt( '{}/{}_train_X.csv'.format(ROOT_DATA, dataset_name), X_train, delimiter=',')
     np.savetxt( '{}/{}_train_y.csv'.format(ROOT_DATA, dataset_name), y_train, delimiter=',')
