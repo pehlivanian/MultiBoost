@@ -39,7 +39,7 @@ def _dataset(dataset_name):
 def _create_synthetic_disc_data(dim=2):
     dataset_name = "synthetic"
     ROOT_DATA = "/home/charles/Data/"
-    METHOD = ['spherical', 'eggholder', 'rastrigin'][2]
+    METHOD = ['spherical', 'eggholder', 'rastrigin'][0]
 
     if METHOD in ('spherical',):
         coord = np.arange(-np.sqrt(np.pi), np.sqrt(np.pi), .1)
@@ -49,21 +49,12 @@ def _create_synthetic_disc_data(dim=2):
             for j in range(n):
                 arg = coord[i]*coord[i] + coord[j]+coord[i]; label = 0.
                 label += (1./1.)*np.cos(arg)
-<<<<<<< HEAD
                 label += (2./1.)*np.cos(2*arg)
                 label += (4./1.)*np.cos(4*arg)
                 label += (8./1.)*np.cos(8*arg)
                 label += (16./1.)*np.cos(16*arg)
                 label += (32./1.)*np.cos(32*arg)
                 label += (64./1.)*np.cos(64*arg)
-=======
-                label -= (21./1.)*np.cos(2*arg)
-                label += (1./1.)*np.cos(4*arg)
-                label -= (11./1.)*np.cos(8*arg)
-                label += (1./1.)*np.cos(16*arg)
-                label -= (8./1.)*np.cos(32*arg)
-                label += (14./1.)*np.cos(64*arg)
->>>>>>> parent of 3bb7055... Added weights; checkpoint
                 data[j+i*n] = np.array([coord[i], coord[j], label])
                 data[j+i*n,2] = data[j+i*n,2] < 0.5
     elif METHOD in ('eggholder',):
@@ -78,8 +69,6 @@ def _create_synthetic_disc_data(dim=2):
                                         -(coord[j] + 47)*np.sin(np.abs(coord[i]/2. + \
                                          (coord[j] + 47))) - coord[i]*np.sin(np.abs(coord[i] - (coord[j] + 47)))])
                 data[j+i*n,2]  = data[j+i*n,2] < -5.5
-
-<<<<<<< HEAD
     elif METHOD in ('rastrigin',):
         A = 10
         coord = np.arange(-2.*np.pi, 2.*np.pi, .01)
@@ -95,12 +84,12 @@ def _create_synthetic_disc_data(dim=2):
     TRAIN_SIZE = 500
     TEST_SIZE = 500
 
-    RND_SEED = 22
+    RND_SEED = 24
 
     # Add random data in front
-    np.random.seed(RND_SEED)
-    rnd = np.random.uniform(np.min(data), np.max(data), (data.shape[0], 100))
-    data = np.concatenate([rnd, data], axis=1)
+    # np.random.seed(RND_SEED)
+    # rnd = np.random.uniform(np.min(data), np.max(data), (data.shape[0], 20))
+    # data = np.concatenate([rnd, data], axis=1)
 
     labels = data[:,-1]
     features = data[:,:-1]
@@ -110,11 +99,6 @@ def _create_synthetic_disc_data(dim=2):
     features = features[:, np.random.permutation(features.shape[1])]
 
     X_train, X_test, y_train, y_test = train_test_split(features, labels, random_state=55, train_size=TRAIN_SIZE, test_size=TEST_SIZE)
-=======
-    TRAIN_SIZE = 250
-    TEST_SIZE = 750
-    X_train, X_test, y_train, y_test = train_test_split(data[:,:2], data[:,2], random_state=55, train_size=TRAIN_SIZE, test_size=TEST_SIZE)
->>>>>>> parent of 3bb7055... Added weights; checkpoint
 
     np.savetxt( '{}/{}_train_X.csv'.format(ROOT_DATA, dataset_name), X_train, delimiter=',')
     np.savetxt( '{}/{}_train_y.csv'.format(ROOT_DATA, dataset_name), y_train, delimiter=',')
@@ -254,86 +238,12 @@ def _R2_sklearn(y, yhat):
 # X_train, y_train, X_test, y_test = _dataset(dataset_name);
 
 
-
-if __name__ == '__nowhere__':
-    #############
-    ## XGBOOST ##
-    #############
-    eta = 0.35
-    objective = "reg:linear"
-
-    reg_xgb = xgb.XGBRegressor(objective=objective,
-                               eta=eta,
-                               n_estimators=10,
-                               seed=414)
-
-    reg_xgb.fit(X_train, y_train)
-    yhat_train_xgb = reg_xgb.predict(X_train)
-    yhat_test_xgb  = reg_xgb.predict(X_test)
-    R2_IS_xgb = _R2(y_train, yhat_train_xgb)
-    R2_OOS_xgb = _R2(y_test, yhat_test_xgb)
-    print("[{}_train]: {} x {}".format(dataset_name, X_train.shape[0], X_train.shape[1]))
-    print("[{}_test]:  {} x {}".format(dataset_name, X_test.shape[0], X_test.shape[1]))
-    print("[{}] XGBOOST:  R2_IS: {:2.2%} R2_OOS: {:2.2%}".format(dataset_name,
-                                                                   R2_IS_xgb,
-                                                                   R2_OOS_xgb))
-
-    ##############
-    ## CATBOOST ##
-    ##############
-
-    loss_function = "RMSE"
-    iterations = 1000
-    learning_rate = 0.25
-    
-    reg_cb = CatBoostRegressor(loss_function=loss_function,
-                               iterations=iterations,
-                               learning_rate=learning_rate,
-                               verbose=False)
-
-    reg_cb.fit(X_train, y_train)
-    yhat_train_cb = reg_cb.predict(X_train)
-    yhat_test_cb = reg_cb.predict(X_test)
-    R2_IS_cb = _R2(y_train, yhat_train_cb)
-    R2_OOS_cb = _R2(y_test, yhat_test_cb)
-    print("[{}_train]: {} x {}".format(dataset_name, X_train.shape[0], X_train.shape[1]))
-    print("[{}_test]:  {} x {}".format(dataset_name, X_test.shape[0], X_test.shape[1]))
-    print("[{}] CATBOOST:  R2_IS: {:2.2%} R2_OOS: {:2.2%}".format(dataset_name,
-                                                                  R2_IS_cb,
-                                                                  R2_OOS_cb))
-    ##############
-    ## LIGHTGBM ##
-    ##############
-    params = {
-        "task": "train",
-        "boosting": "gbdt",
-        "objective": "regression",
-        "num_leaves": 10,
-        "learning_rate": 0.05,
-        "verbose": -1
-        }
-    train_lgb = lgb.Dataset(X_train, y_train)
-    test_lgb = lgb.Dataset(X_test, y_test)
-    reg_lgb = lgb.train(params,
-                        train_set=train_lgb,
-                        valid_sets=test_lgb)
-    yhat_train_lgb = reg_lgb.predict(X_train)
-    yhat_test_lgb = reg_lgb.predict(X_test)
-    R2_IS_lgb = _R2(y_train, yhat_train_lgb)
-    R2_OOS_lgb = _R2(y_test, yhat_test_lgb)
-    print("[{}_train]: {} x {}".format(dataset_name, X_train.shape[0], X_train.shape[1]))
-    print("[{}_test]:  {} x {}".format(dataset_name, X_test.shape[0], X_test.shape[1]))
-    print("[{}] LIGHTGBM:  R2_IS: {:2.2%} R2_OOS: {:2.2%}".format(dataset_name,
-                                                                  R2_IS_lgb,
-                                                                  R2_OOS_lgb))
-
-    
-    
 if __name__ == '__main__':
 
-    # _create_synthetic_disc_data(); dataset_name = "synthetic"
+    _create_synthetic_disc_data(); dataset_name = "synthetic"
     # dataset_name = "coil2000"
-    dataset_name = "ring_sm"
+    # dataset_name = "ring_sm"
+    # dataset_name = "buggyCrx"
     X_train, y_train, X_test, y_test = _dataset(dataset_name);
 
     ##############

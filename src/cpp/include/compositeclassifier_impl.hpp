@@ -11,8 +11,7 @@ using namespace IB_utils;
 namespace ClassifierFileScope{
   const bool POST_EXTRAPOLATE = false;
   const bool W_CYCLE_PREFIT = true;
-  const bool NEW_COLMASK_FOR_CHILD = true;
-  const bool USE_WEIGHTS = false;
+  const bool NEW_COLMASK_FOR_CHILD = false;
   const bool DIAGNOSTICS_0_ = false;
   const bool DIAGNOSTICS_1_ = false;
   const bool SUBSET_DIAGNOSTICS = false;
@@ -507,7 +506,7 @@ CompositeClassifier<ClassifierType>::setRootClassifier(std::unique_ptr<Classifie
   // cls{dataset, labels, numClasses, weights, args...)
   // We must remake the tuple in this case
   std::unique_ptr<ClassifierType> cls;
-
+ 
   auto _c = [&cls, &dataset, &labels, &weights](Ts const&... classArgs) {
     cls = std::make_unique<ClassifierType>(dataset, labels, weights, classArgs...);
   };
@@ -583,6 +582,7 @@ CompositeClassifier<ClassifierType>::createRootClassifier(std::unique_ptr<Classi
       // and partition selection, not during classification fitting
 
       calcWeights();
+
       setRootClassifier(classifier, dataset_slice, allLeaves, weights_, rootClassifierArgs);
     } else {
       setRootClassifier(classifier, dataset_slice, allLeaves, rootClassifierArgs);
@@ -1211,14 +1211,23 @@ template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::calcWeights() {
 
-  Row<DataType> yhat;
+  Row<DataType> res = labels_;
+  Row<DataType> uniqueVals = unique(res);
 
-  Predict(yhat, colMask_);
-  
-  Row<DataType> labels_slice = labels_.submat(zeros<uvec>(1), colMask_);
+  for (const auto& el : uniqueVals) {
+    uvec ind = find(res == el);
+    DataType weight = static_cast<DataType>(m_)/static_cast<DataType>(ind.n_elem);
+    weights_.elem(ind).fill(weight);
+  }
 
-  weights_ = abs(labels_slice - yhat);
-  weights_ = weights_ * (static_cast<DataType>(weights_.n_cols)/sum(weights_));
+  /*
+    Row<DataType> yhat;    
+    Predict(yhat, colMask_);    
+    Row<DataType> labels_slice = labels_.submat(zeros<uvec>(1), colMask_);
+    
+    weights_ = abs(labels_slice - yhat);
+    weights_ = weights_ * (static_cast<DataType>(weights_.n_cols)/sum(weights_));
+  */
   
 }
 
