@@ -11,9 +11,6 @@
 
 using namespace arma;
 using namespace mlpack;
-using namespace mlpack::tree;
-using namespace mlpack::data;
-using namespace mlpack::util;
 
 using row_d = Row<double>;
 using row_t = Row<std::size_t>;

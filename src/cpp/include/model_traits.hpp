@@ -25,9 +25,6 @@ template<typename DecoratedType, typename... Args>
 class NegativeFeedback;
 
 using namespace mlpack;
-using namespace mlpack::tree;
-using namespace mlpack::data;
-using namespace mlpack::util;
 
 namespace Model_Traits {
     

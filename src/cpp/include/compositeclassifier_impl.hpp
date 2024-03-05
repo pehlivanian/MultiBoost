@@ -9,7 +9,7 @@ using namespace Objectives;
 using namespace IB_utils;
 
 namespace ClassifierFileScope{
-  const bool POST_EXTRAPOLATE = false;
+  const bool POST_EXTRAPOLATE = true;
   const bool W_CYCLE_PREFIT = true;
   const bool NEW_COLMASK_FOR_CHILD = false;
   const bool DIAGNOSTICS_0_ = false;

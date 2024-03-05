@@ -6,9 +6,6 @@ namespace {
 
 using namespace arma;
 using namespace mlpack;
-using namespace mlpack::tree;
-using namespace mlpack::data;
-using namespace mlpack::util;
 using namespace std;
 
 using namespace LossMeasures;
