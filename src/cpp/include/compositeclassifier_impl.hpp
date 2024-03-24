@@ -11,7 +11,8 @@ using namespace IB_utils;
 namespace ClassifierFileScope{
   const bool POST_EXTRAPOLATE = true;
   const bool W_CYCLE_PREFIT = true;
-  const bool NEW_COLMASK_FOR_CHILD = false;
+  // XXX
+  const bool NEW_COLMASK_FOR_CHILD = true;
   const bool DIAGNOSTICS_0_ = false;
   const bool DIAGNOSTICS_1_ = false;
   const bool SUBSET_DIAGNOSTICS = false;
