@@ -15,6 +15,7 @@
 #include "DP.hpp"
 #include "score2.hpp"
 #include "constantclassifier.hpp"
+#include "contextmanager.hpp"
 #include "classifier.hpp"
 #include "model_traits.hpp"
 
@@ -41,6 +42,8 @@ public:
   using childModelInfo		= std::tuple<std::size_t, std::size_t, double>;
   using childPartitionInfo	= std::tuple<std::size_t, std::size_t, double, double>;
   
+
+  friend ContextManager;
 
   CompositeClassifier() = default;
 

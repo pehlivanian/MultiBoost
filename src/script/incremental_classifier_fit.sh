@@ -223,7 +223,9 @@ echo ${PREFIX}" ITER: 1"
 /bin/mv ${CONTEXT_PATH_RUN1} ${FOLDER_STEP}
 /bin/mv ${CONTEXT_PATH_RUNS} ${FOLDER_STEP} 
 
+
 ((n=n+1))
+
 
 if [ ! -z "$test_OOS_each_it" ]; then
 

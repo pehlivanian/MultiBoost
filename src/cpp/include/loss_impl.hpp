@@ -594,6 +594,60 @@ SyntheticLossVar2<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXre
 // END SyntheticLossVariation2
 //////////////////////////////
 
+/////////////////////////
+// BEGIN CrossEntropyLoss
+/////////////////////////
+
+template<typename DataType>
+DataType
+CrossEntropyLoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* grad) {
+  *grad = sigmoid<DataType>(yhat) - y;
+
+#ifdef AUTODIFF
+  ArrayXreal yhatr = LossUtils::static_cast_eigen<DataType>(yhat).eval();
+  ArrayXreal yr = LossUtils::static_cast_eigen<DataType>(y).eval();
+
+  return static_cast<DataType>(loss_reverse(yr, yhatr).val());
+#else
+  return static_cast<DataType>(loss_reverse_arma(y, yhat));
+#endif
+}
+
+template<typename DataType>
+void
+CrossEntropyLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
+  
+  vtype f = sigmoid<DataType>(yhat);
+  *hess = f % (1 - f);
+}
+
+template<typename DataType>
+DataType
+CrossEntropyLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
+  UNUSED(yhat);
+  UNUSED(y);
+  return 0.;
+}
+
+template<typename DataType>
+DataType
+CrossEntropyLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
+  return sum(pow(y - yhat, 2));
+}
+
+#ifdef AUTODIFF
+template<typename DataType>
+autodiff::real
+CrossEntropyLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
+  return pow((y - yhat), 2).sum();
+}
+#endif
+
+/////////////////////////
+// END CrossEntropyLoss
+/////////////////////////
+
+
 //////////////////////////////
 // BEGIN SyntheticLossVariation3
 //////////////////////////////

@@ -68,7 +68,7 @@ def _create_synthetic_disc_data(dim=2):
                                         coord[j],
                                         -(coord[j] + 47)*np.sin(np.abs(coord[i]/2. + \
                                          (coord[j] + 47))) - coord[i]*np.sin(np.abs(coord[i] - (coord[j] + 47)))])
-                data[j+i*n,2]  = data[j+i*n,2] < -5.5
+                data[j+i*n,2]  = data[j+i*n,2] < -7.5
     elif METHOD in ('rastrigin',):
         A = 10
         coord = np.arange(-2.*np.pi, 2.*np.pi, .01)
@@ -254,6 +254,8 @@ if __name__ == '__main__':
     learning_rate = 0.35
     catboost_loss_function = "CrossEntropy"
     # catboost_loss_function = "Logloss"
+    # catboost_loss_function = "MultiClass"
+    # catboost_loss_function = "MultiClassOneVsAll"
     cls_cb = CatBoostClassifier(iterations=iterations,
                                 depth=None,
                                 learning_rate=learning_rate,
@@ -278,6 +280,8 @@ if __name__ == '__main__':
     max_depth = 0
     subsample = 1. # default is 1.
     objective = "binary:logistic"
+    # objective = "binary:hinge"
+    # objective = "reg:squarederror"
     
     cls_xgb = xgb.XGBClassifier(eta=eta,
                                 objective=objective,

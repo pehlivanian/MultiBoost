@@ -46,6 +46,7 @@ auto main() -> int {
   // context.loss = lossFunction::Synthetic;
   // context.loss = lossFunction::SyntheticVar1;
   // context.loss = lossFunction::SyntheticVar2;
+  // context.loss = lossFunction::CrossEntropyLoss;
   context.childPartitionSize = std::vector<std::size_t>{100, 50, 20, 10, 1};
   context.childNumSteps = std::vector<std::size_t>{100, 2, 4, 2, 1};
   context.childLearningRate = std::vector<double>{.001, .001, .001, .001, .001, .001};

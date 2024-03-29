@@ -3,50 +3,50 @@
 
 template<typename ClassifierType>
 void
-ContextManager::contextInit_(CompositeClassifier<ClassifierType>& c) {
+ContextManager::contextInit(CompositeClassifier<ClassifierType>& c, const Context& context) {
   
-  c.loss_			= context_.loss;
-  c.lossPower_			= context_.lossPower;
-  c.clamp_gradient_		= context_.clamp_gradient;
-  c.upper_val_			= context_.upper_val;
-  c.lower_val_			= context_.lower_val;
+  c.loss_			= context.loss;
+  c.lossPower_			= context.lossPower;
+  c.clamp_gradient_		= context.clamp_gradient;
+  c.upper_val_			= context.upper_val;
+  c.lower_val_			= context.lower_val;
 
-  c.partitionSize_		= context_.childPartitionSize[0];
-  c.steps_			= context_.childNumSteps[0];
-  c.learningRate_		= context_.childLearningRate[0];
-  c.activePartitionRatio_	= context_.childActivePartitionRatio[0];
+  c.partitionSize_		= context.childPartitionSize[0];
+  c.steps_			= context.childNumSteps[0];
+  c.learningRate_		= context.childLearningRate[0];
+  c.activePartitionRatio_	= context.childActivePartitionRatio[0];
 
-  c.minLeafSize_		= context_.childMinLeafSize[0];
-  c.maxDepth_			= context_.childMaxDepth[0];
-  c.minimumGainSplit_		= context_.childMinimumGainSplit[0];
+  c.minLeafSize_		= context.childMinLeafSize[0];
+  c.maxDepth_			= context.childMaxDepth[0];
+  c.minimumGainSplit_		= context.childMinimumGainSplit[0];
   
-  c.baseSteps_			= context_.baseSteps;
-  c.symmetrized_		= context_.symmetrizeLabels;
-  c.removeRedundantLabels_	= context_.removeRedundantLabels;
-  c.quietRun_			= context_.quietRun;
-  c.useWeights_			= context_.useWeights;
-  c.row_subsample_ratio_	= context_.rowSubsampleRatio;
-  c.col_subsample_ratio_	= context_.colSubsampleRatio;
-  c.recursiveFit_		= context_.recursiveFit;
+  c.baseSteps_			= context.baseSteps;
+  c.symmetrized_		= context.symmetrizeLabels;
+  c.removeRedundantLabels_	= context.removeRedundantLabels;
+  c.quietRun_			= context.quietRun;
+  c.useWeights_			= context.useWeights;
+  c.row_subsample_ratio_	= context.rowSubsampleRatio;
+  c.col_subsample_ratio_	= context.colSubsampleRatio;
+  c.recursiveFit_		= context.recursiveFit;
 
-  c.childPartitionSize_		= context_.childPartitionSize;
-  c.childNumSteps_		= context_.childNumSteps;
-  c.childLearningRate_		= context_.childLearningRate;
-  c.childActivePartitionRatio_	= context_.childActivePartitionRatio;
+  c.childPartitionSize_		= context.childPartitionSize;
+  c.childNumSteps_		= context.childNumSteps;
+  c.childLearningRate_		= context.childLearningRate;
+  c.childActivePartitionRatio_	= context.childActivePartitionRatio;
 
-  c.childMinLeafSize_		= context_.childMinLeafSize;
-  c.childMaxDepth_		= context_.childMaxDepth;
-  c.childMinimumGainSplit_	= context_.childMinimumGainSplit;
+  c.childMinLeafSize_		= context.childMinLeafSize;
+  c.childMaxDepth_		= context.childMaxDepth;
+  c.childMinimumGainSplit_	= context.childMinimumGainSplit;
 
-  c.numTrees_			= context_.numTrees;
-  c.serializeModel_		= context_.serializeModel;
-  c.serializePrediction_	= context_.serializePrediction;
-  c.serializeColMask_		= context_.serializeColMask;
-  c.serializeDataset_		= context_.serializeDataset;
-  c.serializeLabels_		= context_.serializeLabels;
-  c.serializationWindow_	= context_.serializationWindow;
+  c.numTrees_			= context.numTrees;
+  c.serializeModel_		= context.serializeModel;
+  c.serializePrediction_	= context.serializePrediction;
+  c.serializeColMask_		= context.serializeColMask;
+  c.serializeDataset_		= context.serializeDataset;
+  c.serializeLabels_		= context.serializeLabels;
+  c.serializationWindow_	= context.serializationWindow;
 
-  c.depth_			= context_.depth;
+  c.depth_			= context.depth;
 
 }
 

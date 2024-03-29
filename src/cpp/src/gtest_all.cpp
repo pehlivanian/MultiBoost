@@ -309,7 +309,7 @@ TEST(DPSolverTest, TestCachedScoresMatchAcrossMethods) {
   }
 }
 
-TEST(DPSolverTest, TestRationalScoreContextComputeScoreMethods) {
+TEST(DPSolverTest, TestRationalScoreContextComputeScoreMethoDs) {
   using namespace Objectives;
 
   std::size_t n = 100;

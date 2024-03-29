@@ -46,8 +46,19 @@ enum class lossFunction {      MSE = 0,
 			       LogLoss = 10,
 			       SyntheticVar3 = 11,
 			       PowerLoss = 12,
+			       CrossEntropyLoss = 13
 			       };
 
+
+template<typename DataType>
+typename arma_types<DataType>::vectype sigmoid(const typename arma_types<DataType>::vectype& v) {
+  return 1.0 / ( 1 + exp(-v));
+}
+
+template<typename DataType>
+typename arma_types<DataType>::vectype normalize(const typename arma_types<DataType>::vectype& v) {
+  return 0.5 * ( v + 1);
+}
 
 #ifdef AUTODIFF
 template<typename DataType>
@@ -363,10 +374,29 @@ namespace LossMeasures {
     float p_;
   };
 
+  template<typename DataType>
+  class CrossEntropyLoss : public LossFunction<DataType> {
+  private:
+    using vtype = typename LossFunction<DataType>::vtype;
+    using mtype = typename LossFunction<DataType>::mtype;
+    
+  public:
+    CrossEntropyLoss() = default;
+    CrossEntropyLoss<DataType>* create() override { return new CrossEntropyLoss<DataType>(); }
+  private:
+#ifdef AUTODIFF
+    autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
+#endif
+    DataType loss_reverse_arma(const vtype&, const vtype&) override;
+    DataType loss_arma(const vtype&, const vtype&) override;
+    DataType gradient_(const vtype&, const vtype&, vtype*) override;
+    void hessian_(const vtype&, const vtype&, vtype*) override;
+  };
+  
   struct lossMapHash {
     std::size_t operator()(lossFunction l) const { return static_cast<std::size_t>(l); }
   };
-
+  
   template<typename T>
   std::unordered_map<lossFunction, LossFunction<T>*, lossMapHash> lossMap = 
     {
@@ -381,7 +411,8 @@ namespace LossMeasures {
       {lossFunction::SquareLoss,	new SquareLoss<T>() },
       {lossFunction::SyntheticRegLoss,	new SyntheticRegLoss<T>() },
       {lossFunction::LogLoss,		new LogLoss<T>() },
-      {lossFunction::SyntheticVar3,	new SyntheticLossVar3<T>() }
+      {lossFunction::SyntheticVar3,	new SyntheticLossVar3<T>() },
+      {lossFunction::CrossEntropyLoss,  new CrossEntropyLoss<T>() }
     };
 
   template<typename T>

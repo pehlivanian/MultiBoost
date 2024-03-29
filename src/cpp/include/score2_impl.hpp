@@ -516,7 +516,7 @@ namespace Objectives {
 	for (std::size_t j=i+1; j<=n_; ++j) {
 	  a_sum += ParametricContext<DataType>::a_[j-1];
 	  b_sum += ParametricContext<DataType>::b_[j-1];
-	  ParametricContext<DataType>::partialSums_[i][j] = a_sum * a_sum * a_sum * a_sum / b_sum;
+	  ParametricContext<DataType>::partialSums_[i][j] = a_sum * a_sum / b_sum;
 	}
       }
     };

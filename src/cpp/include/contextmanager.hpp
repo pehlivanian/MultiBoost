@@ -16,24 +16,24 @@ public:
   using childModelInfo		= std::tuple<std::size_t, std::size_t, double>;
   using childPartitionInfo	= std::tuple<std::size_t, std::size_t, double, double>;
 
-  ContextManager() = default;
-  ContextManager(const Context& context) : context_{context} {}
-  ContextManager(Context&& context) : context_{std::move(context)} {}
+  ContextManager() = delete;
+
+  ContextManager(const Context& context) = delete;
+  ContextManager(Context&& context) = delete;
   
   template<typename ClassifierType>
-  void contextInit_(CompositeClassifier<ClassifierType>&);
+  static void contextInit(CompositeClassifier<ClassifierType>&, const Context&);
 
   template<typename ClassifierType>
-  void childContext(Context&, const CompositeClassifier<ClassifierType>&);
+  static void childContext(Context&, const CompositeClassifier<ClassifierType>&);
 
 private:
   template<typename ClassifierType>
-  auto computeChildPartitionInfo(const CompositeClassifier<ClassifierType>&) -> childPartitionInfo;
+  static auto computeChildPartitionInfo(const CompositeClassifier<ClassifierType>&) -> childPartitionInfo;
   
   template<typename ClassifierType>
-  auto computeChildModelInfo(const CompositeClassifier<ClassifierType>&) -> childModelInfo;
+  static auto computeChildModelInfo(const CompositeClassifier<ClassifierType>&) -> childModelInfo;
 
-  Context context_;
 };
 
 #include "contextmanager_impl.hpp"

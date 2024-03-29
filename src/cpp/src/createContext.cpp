@@ -70,6 +70,9 @@ namespace std {
     case (12):
       loss = lossFunction::PowerLoss;
       break;
+    case (13):
+      loss = lossFunction::CrossEntropyLoss;
+      break;
     default:
       in.setstate(std::ios_base::failbit);
     }
