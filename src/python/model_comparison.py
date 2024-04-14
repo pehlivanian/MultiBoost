@@ -39,7 +39,7 @@ def _dataset(dataset_name):
 def _create_synthetic_disc_data(dim=2):
     dataset_name = "synthetic"
     ROOT_DATA = "/home/charles/Data/"
-    METHOD = ['spherical', 'eggholder', 'rastrigin'][0]
+    METHOD = ['spherical', 'eggholder', 'rastrigin'][2]
 
     if METHOD in ('spherical',):
         coord = np.arange(-np.sqrt(np.pi), np.sqrt(np.pi), .1)
@@ -68,7 +68,7 @@ def _create_synthetic_disc_data(dim=2):
                                         coord[j],
                                         -(coord[j] + 47)*np.sin(np.abs(coord[i]/2. + \
                                          (coord[j] + 47))) - coord[i]*np.sin(np.abs(coord[i] - (coord[j] + 47)))])
-                data[j+i*n,2]  = data[j+i*n,2] < -7.5
+                data[j+i*n,2]  = data[j+i*n,2] < -10.5
     elif METHOD in ('rastrigin',):
         A = 10
         coord = np.arange(-2.*np.pi, 2.*np.pi, .01)

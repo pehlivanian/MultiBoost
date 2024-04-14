@@ -11,6 +11,9 @@ using namespace ModelContext;
 template<typename ClassifierType>
 class CompositeClassifier;
 
+template<typename RegressorType>
+class CompositeRegressor;
+
 class ContextManager {
 public:
   using childModelInfo		= std::tuple<std::size_t, std::size_t, double>;
@@ -24,8 +27,14 @@ public:
   template<typename ClassifierType>
   static void contextInit(CompositeClassifier<ClassifierType>&, const Context&);
 
+  template<typename RegressorType>
+  static void contextInit(CompositeRegressor<RegressorType>&, const Context&);
+
   template<typename ClassifierType>
   static void childContext(Context&, const CompositeClassifier<ClassifierType>&);
+
+  template<typename RegressorType>
+  static void childContext(Context&, const CompositeRegressor<RegressorType>&);
 
 private:
   template<typename ClassifierType>
@@ -33,6 +42,12 @@ private:
   
   template<typename ClassifierType>
   static auto computeChildModelInfo(const CompositeClassifier<ClassifierType>&) -> childModelInfo;
+
+  template<typename RegressorType>
+  static auto computeChildPartitionInfo(const CompositeRegressor<RegressorType>&) -> childPartitionInfo;
+  
+  template<typename RegressorType>
+  static auto computeChildModelInfo(const CompositeRegressor<RegressorType>&) -> childModelInfo;
 
 };
 

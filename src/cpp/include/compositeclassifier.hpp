@@ -517,8 +517,6 @@ private:
 			 Row<DataType>&,
 			 std::tuple<Ts...> const&);
   
-  auto computeChildPartitionInfo() -> childPartitionInfo;
-  auto computeChildModelInfo() -> childModelInfo;
 
   void updateClassifiers(std::unique_ptr<Model<DataType>>&&, Row<DataType>&);
 

@@ -88,7 +88,6 @@ class DBExt(object):
 
     def list_tables(self, dbName):
         return self.conn.table_names()        
-        return self.conn_table_names()
 
     @staticmethod
     def last_min_occ(df, colName):

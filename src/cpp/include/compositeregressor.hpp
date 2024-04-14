@@ -17,6 +17,7 @@
 #include "DP.hpp"
 #include "score2.hpp"
 #include "constantregressor.hpp"
+#include "contextmanager.hpp"
 #include "regressor.hpp"
 #include "model_traits.hpp"
 
@@ -39,6 +40,8 @@ public:
   using PredictionList = std::vector<Prediction>;
   using optLeavesInfo = std::tuple<Leaves,
 				   std::optional<std::vector<std::vector<int>>>>;
+
+  friend ContextManager;
 
   CompositeRegressor() = default;
 
@@ -299,6 +302,13 @@ private:
   void setRootRegressor(std::unique_ptr<RegressorType>&,
 			const Mat<DataType>&,
 			Row<DataType>&,
+			Row<DataType>&,
+			std::tuple<Ts...> const&);
+
+  template<typename... Ts>
+  void setRootRegressor(std::unique_ptr<RegressorType>&,
+			const Mat<DataType>&,
+			Row<DataType>&,
 			std::tuple<Ts...> const&);
 
 
@@ -309,11 +319,10 @@ private:
 			   uvec,
 			   const Row<DataType>&);
 
-  std::tuple<std::size_t, std::size_t, double, double> computeChildPartitionInfo();
-  std::tuple<std::size_t, std::size_t, double> computeChildModelInfo();
-
   void updateRegressors(std::unique_ptr<Model<DataType>>&&, Row<DataType>&);
 
+  void calcWeights();
+  void setWeights();
   auto generate_coefficients(const Row<DataType>&, const uvec&) -> std::pair<Row<DataType>,Row<DataType>>;
   auto computeOptimalSplit(Row<DataType>&, Row<DataType>&, std::size_t, std::size_t, double, double, const uvec&, bool=false) -> optLeavesInfo;
 
@@ -324,6 +333,7 @@ private:
   int baseSteps_;
   Mat<DataType> dataset_;
   Row<DataType> labels_;
+  Row<DataType> weights_;
   Mat<DataType> dataset_oos_;
   Row<DataType> labels_oos_;
 
@@ -372,6 +382,8 @@ private:
   // call: partitionDist_(default_engine_)
 
   bool quietRun_;
+
+  bool useWeights_;
 
   bool recursiveFit_;
   bool serializeModel_;

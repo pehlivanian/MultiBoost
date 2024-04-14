@@ -5,14 +5,17 @@
 
 #include <mlpack/core.hpp>
 
+#include "utils.hpp"
 #include "model.hpp"
 
 using namespace arma;
+using namespace TupleUtils;
 
 template<typename DataType, typename RegressorType>
 class RegressorBase : public Model<DataType> {
 public:
   RegressorBase() = default;
+  RegressorBase(const RegressorBase&) = default;
   RegressorBase(std::string id) : Model<DataType>(id) {}
 
   virtual ~RegressorBase() = default;
@@ -34,9 +37,16 @@ public:
   ContinuousRegressorBase(const Mat<DataType>& dataset, Row<DataType>& labels, Args&&... args) : 
     RegressorBase<DataType, RegressorType>(typeid(*this).name()) 
   {
+    init_(dataset, labels, false, std::forward<Args>(args)...);
+  }
 
-    setRegressor(dataset, labels, std::forward<Args>(args)...);
-    args_ = std::tuple<Args...>(args...);
+
+  ContinuousRegressorBase(const Mat<DataType>& dataset, Row<DataType>& labels, Row<DataType>& weights, Args&&... args) :
+    RegressorBase<DataType, RegressorType>(typeid(*this).name())
+  {
+    weights_ = weights;
+    // XXX
+    init_(dataset, labels, false, std::forward<Args>(args)...);
   }
 
   ContinuousRegressorBase(std::unique_ptr<RegressorType> regressor) : regressor_{std::move(regressor)} {}
@@ -54,6 +64,10 @@ public:
   }
 
 private:
+  void init_(const Mat<DataType>&, Row<DataType>&, bool, Args&&...);
+
+  Row<DataType> labels_;
+  Row<DataType> weights_;
   std::unique_ptr<RegressorType> regressor_;
   std::tuple<Args...> args_;
 

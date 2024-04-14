@@ -21,115 +21,9 @@ namespace RegressorFileScope {
 } // namespace RegressorFileScope
 
 template<typename RegressorType>
-void
-CompositeRegressor<RegressorType>::childContext(Context& context) {
-
-  auto [partitionSize, 
-	stepSize, 
-	learningRate, 
-	activePartitionRatio] = computeChildPartitionInfo();
-  auto [maxDepth, 
-	minLeafSize, 
-	minimumGainSplit] = computeChildModelInfo();
-
-  context.loss			= loss_;
-  context.lossPower		= lossPower_;
-  context.clamp_gradient	= clamp_gradient_;
-  context.upper_val		= upper_val_;
-  context.lower_val		= lower_val_;
-  context.baseSteps		= baseSteps_;
-  context.symmetrizeLabels	= false;
-  context.removeRedundantLabels	= false;
-  context.rowSubsampleRatio	= row_subsample_ratio_;
-  context.colSubsampleRatio	= col_subsample_ratio_;
-  context.recursiveFit		= true;
-  context.numTrees		= numTrees_;
-
-  context.partitionSize		= partitionSize;
-  context.steps			= stepSize;
-  context.learningRate		= learningRate;
-  context.activePartitionRatio	= activePartitionRatio;
-
-  auto it = std::find(childPartitionSize_.cbegin(), childPartitionSize_.cend(), partitionSize);
-  auto ind = std::distance(childPartitionSize_.cbegin(), it);
-
-  // Must ensure that ind > 0; this may happen if partition size is the same through 2 steps
-  ind = ind > 0 ? ind : 1;
-
-  context.childPartitionSize	= std::vector<std::size_t>(childPartitionSize_.cbegin()+ind,
-							   childPartitionSize_.cend());
-  context.childNumSteps		= std::vector<std::size_t>(childNumSteps_.cbegin()+ind,
-							   childNumSteps_.cend());
-  context.childLearningRate	= std::vector<double>(childLearningRate_.cbegin()+ind,
-						      childLearningRate_.cend());
-  context.childActivePartitionRatio = std::vector<double>(childActivePartitionRatio_.cbegin()+ind,
-							  childActivePartitionRatio_.cend());
-
-  // Model args
-  context.childMinLeafSize	= std::vector<std::size_t>(childMinLeafSize_.cbegin()+ind,
-							   childMinLeafSize_.cend());
-  context.childMaxDepth		= std::vector<std::size_t>(childMaxDepth_.cbegin()+ind,
-							   childMaxDepth_.cend());
-  context.childMinimumGainSplit	= std::vector<double>(childMinimumGainSplit_.cbegin()+ind,
-						      childMinimumGainSplit_.cend());
-
-  context.maxDepth		= maxDepth;
-  context.minLeafSize		= minLeafSize;
-  context.minimumGainSplit	= minimumGainSplit;
-
-  context.depth			= depth_ + 1;
-
-}
-
-template<typename RegressorType>
 AllRegressorArgs
 CompositeRegressor<RegressorType>::allRegressorArgs() {
   return std::make_tuple(minLeafSize_, minimumGainSplit_, maxDepth_);
-}
-
-template<typename RegressorType>
-void
-CompositeRegressor<RegressorType>::contextInit_(Context&& context) {
-
-  loss_				= context.loss;
-  lossPower_			= context.lossPower;
-  clamp_gradient_		= context.clamp_gradient;
-  upper_val_			= context.upper_val;
-  lower_val_			= context.lower_val;
-
-  partitionSize_		= context.childPartitionSize[0];
-  steps_			= context.childNumSteps[0];
-  learningRate_			= context.childLearningRate[0];
-  activePartitionRatio_		= context.childActivePartitionRatio[0];
-
-  minLeafSize_			= context.childMinLeafSize[0];
-  maxDepth_			= context.childMaxDepth[0];
-  minimumGainSplit_		= context.childMinimumGainSplit[0];
-
-  baseSteps_			= context.baseSteps;
-  quietRun_			= context.quietRun;
-  row_subsample_ratio_		= context.rowSubsampleRatio;
-  col_subsample_ratio_		= context.colSubsampleRatio;
-  recursiveFit_			= context.recursiveFit;
-
-  childPartitionSize_		= context.childPartitionSize;
-  childNumSteps_		= context.childNumSteps;
-  childLearningRate_		= context.childLearningRate;
-  childActivePartitionRatio_	= context.childActivePartitionRatio;
-
-  childMinLeafSize_		= context.childMinLeafSize;
-  childMaxDepth_		= context.childMaxDepth;
-  childMinimumGainSplit_	= context.childMinimumGainSplit;
-
-  serializeModel_		= context.serializeModel;
-  serializePrediction_		= context.serializePrediction;
-  serializeColMask_		= context.serializeColMask;
-  serializeDataset_		= context.serializeDataset;
-  serializeLabels_		= context.serializeLabels;
-  serializationWindow_		= context.serializationWindow;
-
-  depth_			= context.depth;
-
 }
 
 template<typename RegressorType>
@@ -169,6 +63,27 @@ CompositeRegressor<RegressorType>::updateRegressors(std::unique_ptr<Model<DataTy
   regressors_.push_back(std::move(regressor));
 }
 
+template<typename RegressorType>
+template<typename... Ts>
+void
+CompositeRegressor<RegressorType>::setRootRegressor(std::unique_ptr<RegressorType>& regressor,
+						    const Mat<DataType>& dataset,
+						    Row<DataType>& labels,
+						    Row<DataType>& weights,
+						    std::tuple<Ts...> const& args) {
+
+  // The calling convention for mlpack regressors with weigh specification:
+  // cls{dataset, responses, weights, args...)
+  std::unique_ptr<RegressorType> reg;
+
+  auto _c = [&reg, &dataset, &labels, &weights](Ts const&... classArgs) {
+    reg = std::make_unique<RegressorType>(dataset, labels, weights, classArgs...);
+  };
+  std::apply(_c, args);
+
+  regressor = std::move(reg);
+
+}
 
 template<typename RegressorType>
 template<typename... Ts>
@@ -183,31 +98,6 @@ CompositeRegressor<RegressorType>::setRootRegressor(std::unique_ptr<RegressorTyp
     reg = std::make_unique<RegressorType>(dataset, labels, classArgs...);
   };
   std::apply(_c, args);
-
-  Row<DataType> labels_it=labels, prediction;
-  float beta = 0.025;
-  const std::size_t FEEDBACK_ITERATIONS = 0;
-
-  if (FEEDBACK_ITERATIONS > 0) {
-    reg->Predict(dataset, prediction);
-    
-    auto _c0 = [&reg, &dataset](Row<DataType>& labels, Ts const&... classArgs) {
-      reg = std::make_unique<RegressorType>(dataset, labels, classArgs...);
-    };
-    
-    for (std::size_t i=0; i<FEEDBACK_ITERATIONS; ++i) {
-      for (std::size_t j=0; j<10; ++j) {
-	std::cerr << j << " : " << labels(j) << " : " << prediction(j) << std::endl;
-      }
-      labels_it = labels_it - beta * prediction;
-      auto _cn = [&labels_it, &_c0](Ts const&... classArgs) {
-	_c0(labels_it,
-	    classArgs...);
-      };
-      std::apply(_cn, args);
-      reg->Predict(dataset, prediction);
-    }
-  }
 
   regressor = std::move(reg);
   
@@ -231,8 +121,15 @@ CompositeRegressor<RegressorType>::createRootRegressor(std::unique_ptr<Regressor
 
     auto dataset_slice = dataset_.submat(rowMask, colMask);
     Leaves allLeaves = best_leaves;
+
+    if (useWeights_ && true) {
+
+      calcWeights();
+      setRootRegressor(regressor, dataset_slice, weights_, rootRegressorArgs);
+    } else {
+      setRootRegressor(regressor, dataset_slice, allLeaves, rootRegressorArgs);
+    }
     
-    setRootRegressor(regressor, dataset_slice, allLeaves, rootRegressorArgs);
 
   } else {
     // Fit regressor on {dataset, padded best_leaves}
@@ -241,7 +138,13 @@ CompositeRegressor<RegressorType>::createRootRegressor(std::unique_ptr<Regressor
     Leaves allLeaves = zeros<Row<DataType>>(m_);
     allLeaves(colMask) = best_leaves;
 
-    setRootRegressor(regressor, dataset_, allLeaves, rootRegressorArgs);
+    if (useWeights_ && true) {
+      
+      calcWeights();
+      setRootRegressor(regressor, dataset_, allLeaves, weights_, rootRegressorArgs);
+    } else {
+      setRootRegressor(regressor, dataset_, allLeaves, rootRegressorArgs);
+    }
   }
 }
 
@@ -249,7 +152,7 @@ template<typename RegressorType>
 void
 CompositeRegressor<RegressorType>::init_(Context&& context) {
 
-  contextInit_(std::move(context));
+  ContextManager::contextInit(*this, context);
   
   if (serializeModel_ || serializePrediction_ ||
       serializeColMask_ || serializeDataset_ ||
@@ -267,6 +170,9 @@ CompositeRegressor<RegressorType>::init_(Context&& context) {
     writeBinary<Context>(contextFilename, context, fldr_);
     
   }
+
+  // Set weights
+  weights_ = ones<Row<DataType>>(labels_.n_cols);
 
   // Serialize dataset, labels first
   if (serializeDataset_) {
@@ -491,7 +397,7 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
     }
 
     Context context{};      
-    childContext(context);
+    ContextManager::childContext(context, *this);
 
     // allLeaves may not strictly fit the definition of labels here - 
     // aside from the fact that it is of double type, it may have more 
@@ -947,23 +853,21 @@ CompositeRegressor<RegressorType>::fit() {
 }
 
 template<typename RegressorType>
-std::tuple<std::size_t, std::size_t, double, double>
-CompositeRegressor<RegressorType>::computeChildPartitionInfo() {
+void
+CompositeRegressor<RegressorType>::calcWeights() {
 
-  return std::make_tuple(childPartitionSize_[1],
-			 childNumSteps_[1],
-			 childLearningRate_[1],
-			 childActivePartitionRatio_[1]);
-
+  Row<DataType> yhat;
+  Predict(yhat, colMask_);
+  Row<DataType> labels_slice = labels_.submat(zeros<uvec>(1), colMask_);
+  
+  weights_ = abs(labels_slice - yhat);
+  weights_ = weights_ * (static_cast<DataType>(weights_.n_cols)/sum(weights_));
 }
 
 template<typename RegressorType>
-std::tuple<std::size_t, std::size_t, double>
-CompositeRegressor<RegressorType>::computeChildModelInfo() {
-  
-  return std::make_tuple(childMaxDepth_[1],
-			 childMinLeafSize_[1],
-			 childMinimumGainSplit_[1]);
+void
+CompositeRegressor<RegressorType>::setWeights() {
+  ;
 }
 
 template<typename RegressorType>

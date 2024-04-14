@@ -434,7 +434,7 @@ using DiscreteClassifierBaseCTCD = DiscreteClassifierBase<double,
 using DiscreteClassifierBaseCTCF = DiscreteClassifierBase<float,
 							  Model_Traits::ClassifierTypes::ConstantTreeClassifierType>;
 
-// LEGEL 1 using directives
+// LEVEL 1 using directives
 using ClassifierBaseDTCD  = ClassifierBase<double, Model_Traits::ClassifierTypes::DecisionTreeClassifierType>;
 using ClassifierBaseDTCF  = ClassifierBase<float,  Model_Traits::ClassifierTypes::DecisionTreeClassifierType>;
 using ClassifierBaseRFCD  = ClassifierBase<double, Model_Traits::ClassifierTypes::RandomForestClassifierType>;

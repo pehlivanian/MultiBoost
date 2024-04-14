@@ -48,6 +48,15 @@ pub fn check_for_existing_run_dim3(uri: &str, creds: &(String, String), num_part
     r
 }
 
+pub fn check_for_existing_run_latest(uri: &str, creds: &(String, String), childLearningRate: f32, cihldPartitionRate: f32, datasetname: &str) -> Vec<i32> {
+    let mut conn = get_connection(uri, creds).unwrap();
+    let query = format!("select count(*) from run_specification where num_partitions0 = 40 and num_partitions1 = 4 and num_partitions2 = {} and dataset_name=\"{}\"",
+        num_partitions.to_string(),
+        datasetname);
+    let r = conn.query(query).expect("Failed to select from table");
+    r	
+}
+
 pub fn format_run_specification_query(run_key: u64, cmd: &str, folder: &str, index: &str, datasetname: &str,
     loss_fn: u32, loss_power: f32, n_rows: usize, n_cols: usize, basesteps: u32, colsubsample_ratio: f32, 
     rcsive: bool, clamp_gradient: usize, upper_val: f32, lower_val: f32, split_ratio: f32, specs: &Vec<Vec<String>>) -> String {

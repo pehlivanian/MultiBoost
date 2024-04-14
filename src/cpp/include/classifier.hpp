@@ -5,9 +5,11 @@
 
 #include <mlpack/core.hpp>
 
+#include "utils.hpp"
 #include "model.hpp"
 
 using namespace arma;
+using namespace TupleUtils;
 
 template<typename DataType, typename ClassifierType>
 class ClassifierBase : public Model<DataType> {
@@ -52,8 +54,6 @@ public:
     leavesMap_{leavesMap},
     classifier_{std::move(classifier)} {}
 
-  void init_(const Mat<DataType>&, Row<DataType>&, bool, Args&&...);
-
   DiscreteClassifierBase() = default;
   DiscreteClassifierBase(const DiscreteClassifierBase&) = default;
   virtual ~DiscreteClassifierBase() = default;
@@ -77,6 +77,8 @@ public:
   }
 
 private:
+  void init_(const Mat<DataType>&, Row<DataType>&, bool, Args&&...);
+
   void encode(const Row<DataType>&, Row<std::size_t>&, bool); 
   void decode(const Row<std::size_t>&, Row<DataType>&);
 

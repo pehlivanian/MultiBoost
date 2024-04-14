@@ -9,7 +9,7 @@ using namespace Objectives;
 using namespace IB_utils;
 
 namespace ClassifierFileScope{
-  const bool POST_EXTRAPOLATE = true;
+  const bool POST_EXTRAPOLATE = false;
   const bool W_CYCLE_PREFIT = true;
   const bool NEW_COLMASK_FOR_CHILD = false;
   const bool DIAGNOSTICS_0_ = false;
@@ -469,8 +469,6 @@ CompositeClassifier<ClassifierType>::createRootClassifier(std::unique_ptr<Classi
     Leaves allLeaves = best_leaves;
 
     if (useWeights_ && true) {
-      // We opt to express weighted values via the coefficient generation
-      // and partition selection, not during classification fitting
 
       calcWeights();
 
@@ -911,23 +909,6 @@ CompositeClassifier<ClassifierType>::_predict_in_loop_archive(std::vector<std::s
     deSymmetrize(prediction);
   }
   
-}
-
-template<typename ClassifierType>
-auto CompositeClassifier<ClassifierType>::computeChildPartitionInfo() -> childPartitionInfo {
-
-  return std::make_tuple(childPartitionSize_[1],
-			 childNumSteps_[1],
-			 childLearningRate_[1],
-			 childActivePartitionRatio_[1]);
-
-}
-
-template<typename ClassifierType>
-auto CompositeClassifier<ClassifierType>::computeChildModelInfo() -> childModelInfo {
-  return std::make_tuple(childMaxDepth_[1],
-			 childMinLeafSize_[1],
-			 childMinimumGainSplit_[1]);
 }
 
 template<typename ClassifierType>

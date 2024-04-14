@@ -3,6 +3,18 @@
 
 #include <utility>
 
+#include <cereal/types/polymorphic.hpp>
+#include <cereal/types/base_class.hpp>
+#include <cereal/archives/portable_binary.hpp>
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/json.hpp>
+#include <cereal/archives/xml.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/access.hpp>
+
+
 #include "model_traits.hpp"
 #include "regressor.hpp"
 
@@ -24,6 +36,14 @@ public:
 			    RegressorType, 
 			    Args...>(dataset, labels, std::forward<Args>(args)...) {}
 
+  DecisionTreeRegressorRegressorBase(const Mat<DataType>& dataset,
+				     Row<DataType>& labels,
+				     Row<DataType>& weights,
+				     Args&&... args) :
+    ContinuousRegressorBase<DataType,
+			    RegressorType,
+			    Args...>(dataset, labels, weights, std::forward<Args>(args)...) {}
+
 };
 
 class DecisionTreeRegressorRegressor : 
@@ -42,6 +62,20 @@ public:
 				 std::size_t maxDepth=100) :
     DecisionTreeRegressorRegressorBase<std::size_t, double, std::size_t>(dataset, 
 									 labels, 
+									 std::move(minLeafSize),
+									 std::move(minGainSplit),
+									 std::move(maxDepth))
+  {}
+
+  DecisionTreeRegressorRegressor(const Mat<DataType>& dataset,
+				 Row<DataType>& labels,
+				 Row<DataType>& weights,
+				 std::size_t minLeafSize=1,
+				 double minGainSplit=0.,
+				 std::size_t maxDepth=100) :
+    DecisionTreeRegressorRegressorBase<std::size_t, double, std::size_t>(dataset,
+									 labels,
+									 weights,
 									 std::move(minLeafSize),
 									 std::move(minGainSplit),
 									 std::move(maxDepth))
@@ -67,11 +101,19 @@ public:
   ConstantTreeRegressorRegressorBase() = default;
   
   ConstantTreeRegressorRegressorBase(const Mat<DataType>& dataset,
-			    Row<DataType>& labels,
-			    Args&&... args) :
+				     Row<DataType>& labels,
+				     Args&&... args) :
     ContinuousRegressorBase<DataType,
 			    RegressorType,
 			    Args...>(dataset, labels, std::forward<Args>(args)...) {}
+
+  ConstantTreeRegressorRegressorBase(const Mat<DataType>& dataset,
+				     Row<DataType>& labels,
+				     Row<DataType>& weights,
+				     Args&&... args) :
+    ContinuousRegressorBase<DataType,
+			    RegressorType,
+			    Args...>(dataset, labels, weights, std::forward<Args>(args)...) {}
 };
 
 class ConstantTreeRegressorRegressor :
@@ -86,6 +128,12 @@ public:
 				 Row<DataType>& labels) :
     ConstantTreeRegressorRegressorBase<>(dataset, 
 					 labels)
+  {}
+  
+  ConstantTreeRegressorRegressor(const Mat<DataType>& dataset,
+				 Row<DataType>& labels,
+				 Row<DataType>& weights) :
+    ConstantTreeRegressorRegressorBase<>(dataset, labels, weights) 
   {}
 };
 

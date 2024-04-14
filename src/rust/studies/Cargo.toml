@@ -20,6 +20,11 @@ name = "comparison_studies"
 test = false
 bench = false
 
+[[bin]]
+name = "comparison_studies2"
+test = false
+bench = false
+
 [dependencies]
 run_script = "0.10.1"
 mysql = "*"

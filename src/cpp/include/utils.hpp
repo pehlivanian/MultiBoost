@@ -221,6 +221,55 @@ namespace ModelContext{
 
 } // namespace ModelContext
 
+namespace TupleUtils {
+  template<typename... Ts>
+  decltype(auto) to_tuple(Ts &&... ts) {
+    auto tup = std::make_tuple(std::forward<Ts>(ts)...);
+    return tup;
+  }
+
+  template<typename T, std::size_t... I>
+  void print_tuple(const T& tup, std::index_sequence<I...>) {
+    std::cout << "(";
+    (..., (std::cout << (I == 0? "" : ", ") << std::get<I>(tup)));
+  }
+  
+  template<typename... T>
+  void print_tuple(const std::tuple<T...>& tup) {
+    print_tuple(tup, std::make_index_sequence<sizeof...(T)>());
+  }
+
+  template<std::size_t Ofst, class Tuple, std::size_t... I>
+  constexpr auto slice_impl(Tuple&& t, std::index_sequence<I...>) {
+    return std::forward_as_tuple(std::get<I + Ofst>(std::forward<Tuple>(t))...);
+  }
+  
+  template<std::size_t I1, std::size_t I2, class Cont>
+  constexpr auto tuple_slice(Cont&& t) {
+    static_assert(I2 >= I1, "invalid slice");
+    static_assert(std::tuple_size<std::decay_t<Cont>>::value >= I2,
+		  "slice index out of bounds");
+    return slice_impl<I1>(std::forward<Cont>(t),
+			  std::make_index_sequence<I2 - I1>{});
+  }
+  
+  template<std::size_t N, typename... Types>
+  auto remove_element_from_tuple(const std::tuple<Types...>& t) {
+    return std::tuple_cat(
+			  tuple_slice<0, N>(t),
+			  tuple_slice<N + 1, sizeof...(Types)>(t)
+			  );
+  }
+
+  template<std::size_t N, typename... T, std::size_t... I>
+  std::tuple<std::tuple_element_t<N+I, std::tuple<T...>>...>
+  sub(std::index_sequence<I...>);
+  
+  template<std::size_t N, typename... T>
+  using subpack = decltype(sub<N, T...>(std::make_index_sequence<sizeof...(T) - N>{}));
+
+} // namespace TupleUtils
+
 class PartitionUtils {
 public:
   static std::vector<int> _shuffle(int sz) {

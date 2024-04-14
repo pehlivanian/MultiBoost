@@ -11,7 +11,7 @@ pub struct Creds_lev0 {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Creds {
-    TS_DB: Creds_lev0,
+    mariadb: Creds_lev0,
 }
 
 #[derive(Debug)]
@@ -40,16 +40,16 @@ impl Credentials {
 
     fn new(user: String, passwd: String) -> Self {
         let creds_lev0 = Creds_lev0{user, passwd};
-        let creds = Creds{TS_DB: creds_lev0};
+        let creds = Creds{mariadb: creds_lev0};
         Credentials{credentials: creds}
     }
 
     pub fn get_user(&self) -> String {
-        self.credentials.TS_DB.user.clone()
+        self.credentials.mariadb.user.clone()
     }
 
     pub fn get_passwd(&self) -> String {
-        self.credentials.TS_DB.passwd.clone()
+        self.credentials.mariadb.passwd.clone()
     }
 }
 
