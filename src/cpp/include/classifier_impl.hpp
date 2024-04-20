@@ -14,7 +14,6 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::init_(const Mat<DataT
       auto numClasses = std::get<0>(args_tup);
       auto args_short = remove_element_from_tuple<0>(args_tup);
       auto I = std::index_sequence_for<decltype(args_short)>{};
-      // setClassifier(dataset, labels_t_, numClasses, weights_, std::get<I>(args_short)...);
       setClassifier<Args...>(dataset, labels_t_, numClasses, weights_, std::forward<Args>(args)...);
     } else {
       setClassifier<Args...>(dataset, labels_t_, std::forward<Args>(args)...);
@@ -25,18 +24,6 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::init_(const Mat<DataT
 
   args_ = std::tuple<Args...>(args...);
 }
-
-/*
-template<typename DataType, typename ClassifierType, typename... Args>
-void
-DiscreteClassifierBase<DataType, ClassifierType, Args...>::init_(const Mat<DataType>& dataset,
-								 Row<DataType>& labels,
-								 bool useWeights,
-								 Args... args) {
-  init_(dataset, labels, useWeights, std::move(args)...);
-}
-*/
-
 
 template<typename DataType, typename ClassifierType, typename... Args>
 template<typename... ClassArgs>

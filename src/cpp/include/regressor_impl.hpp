@@ -9,6 +9,12 @@ ContinuousRegressorBase<DataType, RegressorType, Args...>::init_(const Mat<DataT
 								 Args&&... args) {
   if (useWeights) {
     // XXX
+    constexpr auto N = sizeof...(args);
+    if constexpr (N > 1) {
+      
+    }
+
+
     setRegressor(dataset, labels, std::forward<Args>(args)...);
     args_ = std::tuple<Args...>(args...);
   }
