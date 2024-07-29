@@ -21,6 +21,15 @@ pub fn insert_to_table(uri: &str, creds: &(String, String), query: &str) {
     let _r = conn.query_drop(query).expect("Failed to insert to table");
 }
 
+pub fn run_exists(uri: &str, creds: &(String, String), learning_rate: f32, active_partition_ratio: f32, 
+    datasetname: &str) -> Vec<i32> {
+    let mut conn = get_connection(uri, creds).unwrap();
+    let query = format!("select count(*) from run_specification where CAST(learning_rate0 as FLOAT) = CAST({} as FLOAT)  and CAST(active_partition_ratio0 as FLOAT) = CAST({} as FLOAT) and dataset_name=\"{}\"",
+        learning_rate.to_string(), active_partition_ratio.to_string(), datasetname);
+    let r = conn.query(query).expect("Failed to select from table");
+    r
+}
+
 pub fn check_for_existing_run_dim1(uri: &str, creds: &(String, String), num_partitions: i32, datasetname: &str) -> Vec<i32> {
     let mut conn = get_connection(uri, creds).unwrap();
     let query = format!("select count(*) from run_specification where loss_fn = 6 and num_partitions0 = {} and num_partitions1 = 0 and dataset_name=\"{}\"",
@@ -46,15 +55,6 @@ pub fn check_for_existing_run_dim3(uri: &str, creds: &(String, String), num_part
         datasetname);
     let r = conn.query(query).expect("Failed to select from table");
     r
-}
-
-pub fn check_for_existing_run_latest(uri: &str, creds: &(String, String), childLearningRate: f32, cihldPartitionRate: f32, datasetname: &str) -> Vec<i32> {
-    let mut conn = get_connection(uri, creds).unwrap();
-    let query = format!("select count(*) from run_specification where num_partitions0 = 40 and num_partitions1 = 4 and num_partitions2 = {} and dataset_name=\"{}\"",
-        num_partitions.to_string(),
-        datasetname);
-    let r = conn.query(query).expect("Failed to select from table");
-    r	
 }
 
 pub fn format_run_specification_query(run_key: u64, cmd: &str, folder: &str, index: &str, datasetname: &str,

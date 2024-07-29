@@ -16,7 +16,9 @@ void print_subsets(std::vector<std::vector<int> >& subsets, const std::vector<do
 		    sum_a+=a[ind];
 		    sum_b+=b[ind];
 		  }
-		  std::cout << "[avg. priority: " << sum_a/sum_b << " cum ratl score: " << sum_a*sum_a/sum_b << "]\n";
+		  std::cout << "[avg. priority: " << sum_a/sum_b 
+			    << " wtd. priority: " << sum_a * subset.size() / sum_b
+			    << " cum ratl score: " << sum_a*sum_a/sum_b << "]\n";
 		});
   std::cout << "]";
 }
@@ -216,7 +218,7 @@ auto main() -> int {
 
   std::random_device rnd_device;
   std::mt19937 mersenne_engine{rnd_device()};
-  std::uniform_real_distribution<double> dista(0., 10.);
+  std::uniform_real_distribution<double> dista(-10., 10.);
   std::uniform_real_distribution<double> distb(0., 10.);
 
   auto gena = [&mersenne_engine, &dista](){ return dista(mersenne_engine); };

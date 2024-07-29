@@ -64,91 +64,6 @@ CompositeRegressor<RegressorType>::updateRegressors(std::unique_ptr<Model<DataTy
 }
 
 template<typename RegressorType>
-template<typename... Ts>
-void
-CompositeRegressor<RegressorType>::setRootRegressor(std::unique_ptr<RegressorType>& regressor,
-						    const Mat<DataType>& dataset,
-						    Row<DataType>& labels,
-						    Row<DataType>& weights,
-						    std::tuple<Ts...> const& args) {
-
-  // The calling convention for mlpack regressors with weigh specification:
-  // cls{dataset, responses, weights, args...)
-  std::unique_ptr<RegressorType> reg;
-
-  auto _c = [&reg, &dataset, &labels, &weights](Ts const&... classArgs) {
-    reg = std::make_unique<RegressorType>(dataset, labels, weights, classArgs...);
-  };
-  std::apply(_c, args);
-
-  regressor = std::move(reg);
-
-}
-
-template<typename RegressorType>
-template<typename... Ts>
-void
-CompositeRegressor<RegressorType>::setRootRegressor(std::unique_ptr<RegressorType>& regressor,
-						    const Mat<DataType>& dataset,
-						    Row<DataType>& labels,
-						    std::tuple<Ts...> const& args) {
-  std::unique_ptr<RegressorType> reg;
-  
-  auto _c = [&reg, &dataset, &labels](Ts const&... classArgs) {
-    reg = std::make_unique<RegressorType>(dataset, labels, classArgs...);
-  };
-  std::apply(_c, args);
-
-  regressor = std::move(reg);
-  
-}
-
-template<typename RegressorType>
-template<typename... Ts>
-void
-CompositeRegressor<RegressorType>::createRootRegressor(std::unique_ptr<RegressorType>& regressor,
-						       uvec rowMask,
-						       uvec colMask,
-						       const Row<DataType>& best_leaves) {
-
-  const typename RegressorType::Args& rootRegressorArgs = RegressorType::_args(allRegressorArgs());
-
-  if (RegressorFileScope::POST_EXTRAPOLATE) {
-    // Fit regressor on {dataset_slice, best_leaves}, both subsets of the original data
-    // There will be no post-padding of zeros as that is not defined for OOS prediction, we
-    // just use the regressor below to predict on the larger dataset for this step's
-    // prediction
-
-    auto dataset_slice = dataset_.submat(rowMask, colMask);
-    Leaves allLeaves = best_leaves;
-
-    if (useWeights_ && true) {
-
-      calcWeights();
-      setRootRegressor(regressor, dataset_slice, weights_, rootRegressorArgs);
-    } else {
-      setRootRegressor(regressor, dataset_slice, allLeaves, rootRegressorArgs);
-    }
-    
-
-  } else {
-    // Fit regressor on {dataset, padded best_leaves}
-
-    // Zero pad labels first
-    Leaves allLeaves = zeros<Row<DataType>>(m_);
-    allLeaves(colMask) = best_leaves;
-
-    if (useWeights_ && true) {
-      
-      calcWeights();
-      setRootRegressor(regressor, dataset_, allLeaves, weights_, rootRegressorArgs);
-    } else {
-      setRootRegressor(regressor, dataset_, allLeaves, rootRegressorArgs);
-    }
-  }
-}
-
-template<typename RegressorType>
 void
 CompositeRegressor<RegressorType>::init_(Context&& context) {
 
@@ -215,6 +130,95 @@ CompositeRegressor<RegressorType>::init_(Context&& context) {
     recursiveFit_ = false;
   }
 
+}
+
+
+template<typename RegressorType>
+template<typename... Ts>
+void
+CompositeRegressor<RegressorType>::setRootRegressor(std::unique_ptr<RegressorType>& regressor,
+						    const Mat<DataType>& dataset,
+						    Row<DataType>& labels,
+						    Row<DataType>& weights,
+						    std::tuple<Ts...> const& args) {
+
+  // The calling convention for mlpack regressors with weight specification:
+  // cls{dataset, responses, weights, args...)
+  std::unique_ptr<RegressorType> reg;
+
+  auto _c = [&reg, &dataset, &labels, &weights](Ts const&... classArgs) {
+    reg = std::make_unique<RegressorType>(dataset, labels, weights, classArgs...);
+  };
+  std::apply(_c, args);
+
+  // Feedback
+  // ...
+
+  regressor = std::move(reg);
+
+}
+
+template<typename RegressorType>
+template<typename... Ts>
+void
+CompositeRegressor<RegressorType>::setRootRegressor(std::unique_ptr<RegressorType>& regressor,
+						    const Mat<DataType>& dataset,
+						    Row<DataType>& labels,
+						    std::tuple<Ts...> const& args) {
+  std::unique_ptr<RegressorType> reg;
+  
+  auto _c = [&reg, &dataset, &labels](Ts const&... classArgs) {
+    reg = std::make_unique<RegressorType>(dataset, labels, classArgs...);
+  };
+  std::apply(_c, args);
+
+  regressor = std::move(reg);
+  
+}
+
+template<typename RegressorType>
+template<typename... Ts>
+void
+CompositeRegressor<RegressorType>::createRootRegressor(std::unique_ptr<RegressorType>& regressor,
+						       uvec rowMask,
+						       uvec colMask,
+						       const Row<DataType>& best_leaves) {
+
+  const typename RegressorType::Args& rootRegressorArgs = RegressorType::_args(allRegressorArgs());
+
+  if (RegressorFileScope::POST_EXTRAPOLATE) {
+    // Fit regressor on {dataset_slice, best_leaves}, both subsets of the original data
+    // There will be no post-padding of zeros as that is not defined for OOS prediction, we
+    // just use the regressor below to predict on the larger dataset for this step's
+    // prediction
+
+    auto dataset_slice = dataset_.submat(rowMask, colMask);
+    Leaves allLeaves = best_leaves;
+
+    if (useWeights_ && true) {
+
+      calcWeights();
+      setRootRegressor(regressor, dataset_slice, weights_, rootRegressorArgs);
+    } else {
+      setRootRegressor(regressor, dataset_slice, allLeaves, rootRegressorArgs);
+    }
+    
+
+  } else {
+    // Fit regressor on {dataset, padded best_leaves}
+
+    // Zero pad labels first
+    Leaves allLeaves = zeros<Row<DataType>>(m_);
+    allLeaves(colMask) = best_leaves;
+
+    if (useWeights_ && true) {
+      
+      calcWeights();
+      setRootRegressor(regressor, dataset_, allLeaves, weights_, rootRegressorArgs);
+    } else {
+      setRootRegressor(regressor, dataset_, allLeaves, rootRegressorArgs);
+    }
+  }
 }
 
 template<typename RegressorType>
@@ -528,12 +532,14 @@ auto CompositeRegressor<RegressorType>::computeOptimalSplit(Row<DataType>& g,
   (void)stepNum;
 
   int n = colMask.n_rows, T = partitionSize;
+  objective_fn obj_fn				= objective_fn::RationalScore;
   bool risk_partitioning_objective		= false;
   bool use_rational_optimization		= true;
   bool sweep_down				= false;
   double gamma					= 0.;
   double reg_power				= 1.;
   bool find_optimal_t				= false;
+  bool reorder_by_weighted_priority		= true;
     
   std::vector<DataType> gv = arma::conv_to<std::vector<DataType>>::from(g);
   std::vector<DataType> hv = arma::conv_to<std::vector<DataType>>::from(h);
@@ -546,13 +552,14 @@ auto CompositeRegressor<RegressorType>::computeOptimalSplit(Row<DataType>& g,
     // auto timer_ = __timer{"DPSolver instantiation"};
 
     dp = DPSolver(n, T, gv, hv,
-		  objective_fn::RationalScore,
+		  obj_fn,
 		  risk_partitioning_objective,
 		  use_rational_optimization,
 		  gamma,
 		  reg_power,
 		  sweep_down,
-		  find_optimal_t
+		  find_optimal_t,
+		  reorder_by_weighted_priority
 		  );
   }
 
@@ -567,6 +574,7 @@ auto CompositeRegressor<RegressorType>::computeOptimalSplit(Row<DataType>& g,
 
     if (T > 1 || risk_partitioning_objective) {
       std::size_t start_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(T*activePartitionRatio);
+      std::size_t end_ind = risk_partitioning_objective ? 0 :   static_cast<std::size_t>(activePartitionRatio*static_cast<double>(subsets.size()));
 
       for (std::size_t i=start_ind; i<subsets.size(); ++i) {
 	uvec ind = arma::conv_to<uvec>::from(subsets[i]);

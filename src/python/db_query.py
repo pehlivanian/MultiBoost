@@ -90,10 +90,22 @@ class DBExt(object):
 
 if __name__ == "__main__":
     dbext = DBExt()
-    # dataset_name = "synthetic_train"
     # dataset_name = "synthetic_case_1_train"
     # dataset_name = "buggyCrx_train"
-    dataset_name = "adult_train"
+    
+    # dataset_name = "adult_train"
+    # dataset_name = "magic_train"
+    # dataset_name = "synthetic_case_0_train"
+    # dataset_name = "spambase_train"
+    # dataset_name = "magic_reverse_train"
+    # dataset_name = "adult_reverse_train"
+    # dataset_name = "magic_wtd_priority_train"
+    # dataset_name = "magic_cum_wtd_priority_train"
+    # dataset_name = "magic_cum_wtd_priority_a2_b2_train"
+    # dataset_name = "magic_cum_wtd_priority_b2_a2_train"
+    # dataset_name = "magic_cum_wtd_priority_a2_over_b2_train"
+    dataset_name = "magic_cum_wtd_priority_a2_over_b2_sym_train"
+    
     
     sql_oos = text("""select * from outofsample where dataset_name = :name_""")
     req_oos = dbext.conn.execute(sql_oos, {"name_": dataset_name})
@@ -104,8 +116,25 @@ if __name__ == "__main__":
     df_run = pd.DataFrame(columns=req_run.keys(), data=req_run.fetchall())
 
     merged = pd.merge(df_oos, df_run, left_on=['run_key'], right_on=['run_key'], how='left')
+    merged = merged[merged['active_partition_ratio0'] != 1.0]
+
     grouped = merged.groupby(by=['active_partition_ratio0'], as_index=False)['err'].mean()
-    plot.plot(grouped.active_partition_ratio0, grouped.err)
+
+    plot.plot(grouped.active_partition_ratio0[:-1], grouped.err[:-1])
+    plot.xlabel('active_partition_ratio')
+    plot.ylabel('error')
+    plot.title('Error by active partition ratio')
     plot.show()
-    import pdb; pdb.set_trace()
+
+    grouped = merged.groupby(by=['learning_rate0'], as_index=False)['err'].mean()
+    plot.plot(grouped.learning_rate0[:-1], grouped.err[:-1])
+    plot.xlabel('learning_rate')
+    plot.ylabel('error')
+    plot.title('Error by active learning rate')
+    plot.show()
+
+    optimal_learning_rate0 = grouped[grouped['err'] == grouped['err'].min()].iloc[0].learning_rate0
+    
+    
+
     

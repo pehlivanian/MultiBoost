@@ -17,7 +17,7 @@
 #include <cmath>
 #include <math.h>
 
-// No use for eigen lib
+// No use yet for eigen lib for MultiBoosting
 #undef EIGEN
 
 #if EIGEN
@@ -55,7 +55,8 @@ public:
 	   DataType gamma=0.,
 	   int reg_power=1.,
 	   bool sweep_down=false,
-	   bool find_optimal_t=false
+	   bool find_optimal_t=false,
+	   bool reorder_by_weighted_priority=false
 	   ) :
     n_{n},
     T_{T},
@@ -69,6 +70,7 @@ public:
     reg_power_{reg_power},
     sweep_down_{sweep_down},
     find_optimal_t_{find_optimal_t},
+    reorder_by_weighted_priority_{reorder_by_weighted_priority},
     optimal_num_clusters_OLS_{0}    
   { _init(); }
 
@@ -82,7 +84,8 @@ public:
 	   DataType gamma=0.,
 	   int reg_power=1.,
 	   bool sweep_down=false,
-	   bool find_optimal_t=false
+	   bool find_optimal_t=false,
+	   bool reorder_by_weighted_priority=false
 	   ) :
     n_{n},
     T_{T},
@@ -96,6 +99,7 @@ public:
     reg_power_{reg_power},
     sweep_down_{sweep_down},
     find_optimal_t_{find_optimal_t},
+    reorder_by_weighted_priority_{reorder_by_weighted_priority},
     optimal_num_clusters_OLS_{0}    
   { _init(); }
 	   
@@ -159,6 +163,7 @@ public:
   std::vector<std::vector<int> > get_optimal_subsets_extern() const;
   DataType get_optimal_score_extern() const;
   std::vector<DataType> get_score_by_subset_extern() const;
+  std::vector<DataType> get_weighted_priority_by_subset_extern() const;
   all_part_scores get_all_subsets_and_scores_extern() const;
   int get_optimal_num_clusters_OLS_extern() const;
   void print_maxScore_();
@@ -190,6 +195,7 @@ private:
   DataType optimal_score_;
   std::vector<std::vector<int> > subsets_;
   std::vector<DataType> score_by_subset_;
+  std::vector<DataType> weighted_priority_by_subset_;
   objective_fn parametric_dist_;
   bool risk_partitioning_objective_;
   bool use_rational_optimization_;
@@ -197,6 +203,7 @@ private:
   int reg_power_;
   bool sweep_down_;
   bool find_optimal_t_;
+  bool reorder_by_weighted_priority_;
   all_part_scores subsets_and_scores_;
   int optimal_num_clusters_OLS_;
   std::unique_ptr<ParametricContext<DataType>> context_;
@@ -209,6 +216,8 @@ private:
   void optimize_multiple_clustering_case();
   void sort_by_priority(std::vector<DataType>&, std::vector<DataType>&);
   void reorder_subsets(std::vector<std::vector<int> >&, std::vector<DataType>&);
+  void reorder_subsets_by_weighted_priority(std::vector<std::vector<int>>&,
+					    std::vector<DataType>&);
   DataType compute_score(int, int);
   DataType compute_ambient_score(DataType, DataType);
 #if EIGEN

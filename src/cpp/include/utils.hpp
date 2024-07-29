@@ -268,6 +268,11 @@ namespace TupleUtils {
   template<std::size_t N, typename... T>
   using subpack = decltype(sub<N, T...>(std::make_index_sequence<sizeof...(T) - N>{}));
 
+  template<typename T, typename... Ts>
+  struct remove_first {
+    using type = std::tuple<Ts...>;
+  };
+
 } // namespace TupleUtils
 
 class PartitionUtils {

@@ -23,7 +23,7 @@ DELIM=';'
 PATH=/home/charles/src/C++/sandbox/Inductive-Boost/build/
 
 SHOW_OOS=0
-USE_WEIGHTS=1
+USE_WEIGHTS=0
 
 # Context creation
 EXEC_CC=${PATH}createContext

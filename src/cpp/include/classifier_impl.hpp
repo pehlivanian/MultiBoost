@@ -14,7 +14,12 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::init_(const Mat<DataT
       auto numClasses = std::get<0>(args_tup);
       auto args_short = remove_element_from_tuple<0>(args_tup);
       auto I = std::index_sequence_for<decltype(args_short)>{};
-      setClassifier<Args...>(dataset, labels_t_, numClasses, weights_, std::forward<Args>(args)...);
+      // setClassifier<Args...>(dataset, labels_t_, numClasses, weights_, std::forward<Args>(args)...);
+
+      // XXX
+      // No weights
+      setClassifier<Args...>(dataset, labels_t_, std::forward<Args>(args)...);
+
     } else {
       setClassifier<Args...>(dataset, labels_t_, std::forward<Args>(args)...);
     }

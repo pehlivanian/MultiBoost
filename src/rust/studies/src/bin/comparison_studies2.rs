@@ -99,10 +99,9 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mariadb_uri: &str = &format!("mysql://{}:{}@localhost:3306/{}", creds.0, creds.1, databaseName);
     let pool = Pool::new(mariadb_uri)?;
     let mut conn = pool.get_conn().expect("Bad mariadb connection");;
-
     
     // Vector inputs
-    let mut childNumPartitions:		Vec<f32> = vec![800.0, 25.0];
+    let mut childNumPartitions:		Vec<f32> = vec![500.0, 25.0];
     let mut childNumSteps:		Vec<f32> = vec![1.00; childNumPartitions.len()];
     let mut childLearningRate:		Vec<f32> = vec![0.01; childNumPartitions.len()];
     let mut childPartitionUsageRatio:	Vec<f32> = vec![0.50; childNumPartitions.len()];
@@ -129,13 +128,22 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut run_keys: Vec<u64> = Vec::new();
 
     for case in cases {
-   
+
         let mut caseVar0           = case.childLearningRate;
         let mut caseVar1           = case.childPartitionUsageRatio;
+
 
         if (caseVar0[0] == 0. || caseVar1[0] == 0.) {
             continue;
         }
+
+	let mut r = mariadbext::run_exists(mariadb_uri, &creds, caseVar0[0], caseVar1[0], &datasetTrainName);
+	if (r[0] > 0) {
+            println!("Case childLearningRate: {} childPartitionUsageRatio: {} exists",
+                caseVar0[0], caseVar1[0]);
+            continue;
+        }
+   
     
         let mut vecSpecs: Vec<Vec<String>> = vec![ childNumPartitions.clone(),
                                         childNumSteps.clone(),

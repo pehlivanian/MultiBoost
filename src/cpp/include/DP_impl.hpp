@@ -126,28 +126,44 @@ DPSolver<DataType>::optimize_for_fixed_S(int S) {
   int currentInd = 0, nextInd = 0;
   DataType optimal_score = 0.;
   auto subsets = std::vector<std::vector<int> >(S, std::vector<int>());
+  DataType weighted_priority_by_subset_num, weighted_priority_by_subset_den;
+  auto weighted_priority_by_subset = std::vector<DataType>(S, 0.);
   auto score_by_subset = std::vector<DataType>(S, 0.);
 
   for (int t=S; t>0; --t) {
     nextInd = nextStart_[t][currentInd];
+    weighted_priority_by_subset_num = 0.;
+    weighted_priority_by_subset_den = 0.;
     for (int i=currentInd; i<nextInd; ++i) {
       subsets[S-t].push_back(priority_sortind_[i]);
+      // weighted_priority_by_subset[S-t] += std::fabs(a_[priority_sortind_[i]]) / b_[priority_sortind_[i]];
+      weighted_priority_by_subset_num += a_[priority_sortind_[i]] * a_[priority_sortind_[i]] / b_[priority_sortind_[i]] / b_[priority_sortind_[i]];
+      weighted_priority_by_subset_den += 1;
     }
+    weighted_priority_by_subset[S-t] = weighted_priority_by_subset_num / weighted_priority_by_subset_den;
+    weighted_priority_by_subset[S-t] *= static_cast<DataType>(nextInd - currentInd);
+   
     score_by_subset[S-t] = compute_score(currentInd, nextInd);
     optimal_score += score_by_subset[S-t];
     currentInd = nextInd;
   }
 
   if (!risk_partitioning_objective_) {
-    reorder_subsets(subsets, score_by_subset);
+    if (reorder_by_weighted_priority_) {
+      reorder_subsets_by_weighted_priority(subsets, weighted_priority_by_subset);
+    } else {
+      reorder_subsets(subsets, score_by_subset);
+    }
   }
 
   // Subtract regularization term
   optimal_score -= gamma_ * std::pow(S, reg_power_);
 
   // Retain score_by_subsets if S is maximal
-  if (S == T_)
+  if (S == T_) {
     score_by_subset_ = score_by_subset;
+    weighted_priority_by_subset_ = weighted_priority_by_subset;
+  }
 
   return all_scores{subsets, optimal_score};
 }
@@ -234,6 +250,36 @@ DPSolver<DataType>::optimize() {
 
 template<typename DataType>
 void
+DPSolver<DataType>::reorder_subsets_by_weighted_priority(std::vector<std::vector<int> >& subsets,
+							 std::vector<DataType>& weighted_priority_by_subset) {
+
+  std::vector<int> ind(subsets.size(), 0);
+  std::iota(ind.begin(), ind.end(), 0.);
+
+  std::stable_sort(ind.begin(), ind.end(),
+		   [weighted_priority_by_subset](int i, int j) {
+		     return (weighted_priority_by_subset[i] < weighted_priority_by_subset[j]);
+		   });
+
+  // Inefficient reordering
+  std::vector<std::vector<int> > subsets_s;
+  std::vector<DataType> weighted_priority_by_subset_s;
+  subsets_s = std::vector<std::vector<int> >(subsets.size(), std::vector<int>());
+  weighted_priority_by_subset_s = std::vector<DataType>(subsets.size(), 0.);
+
+  for (size_t i=0; i<subsets.size(); ++i) {
+    subsets_s[i] = subsets[ind[i]];
+    weighted_priority_by_subset_s[i] = weighted_priority_by_subset[ind[i]];
+  }
+
+  std::copy(subsets_s.cbegin(), subsets_s.cend(), subsets.begin());
+  std::copy(weighted_priority_by_subset_s.cbegin(), weighted_priority_by_subset_s.cend(), weighted_priority_by_subset.begin());
+
+}
+
+
+template<typename DataType>
+void
 DPSolver<DataType>::reorder_subsets(std::vector<std::vector<int> >& subsets, 
 				    std::vector<DataType>& score_by_subsets) {
   std::vector<int> ind(subsets.size(), 0);
@@ -276,6 +322,12 @@ DPSolver<DataType>::get_optimal_score_extern() const {
   else {
     return std::accumulate(score_by_subset_.cbegin()+1, score_by_subset_.cend(), 0.) - gamma_ * std::pow(T_, reg_power_);
   }
+}
+
+template<typename DataType>
+std::vector<DataType>
+DPSolver<DataType>::get_weighted_priority_by_subset_extern() const {
+  return weighted_priority_by_subset_;
 }
 
 template<typename DataType>

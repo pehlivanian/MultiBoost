@@ -129,6 +129,7 @@ CompositeClassifier<ClassifierType>::init_(Context&& context) {
     auto uniqueVals = uniqueCloseAndReplace(labels_);
   }
 
+  // Set latestPrediction to 0 if not passed
   if (!hasInitialPrediction_) {
     latestPrediction_ = _constantLeaf(0.0);
   }
@@ -764,6 +765,7 @@ auto CompositeClassifier<ClassifierType>::computeOptimalSplit(Row<CompositeClass
   double gamma						= 0.;
   double reg_power					= 1.;
   bool find_optimal_t					= false;
+  bool reorder_by_weighted_priority			= true;
 
   std::vector<DataType> gv0 = arma::conv_to<std::vector<DataType>>::from(g);
   std::vector<DataType> hv0 = arma::conv_to<std::vector<DataType>>::from(h);
@@ -775,17 +777,22 @@ auto CompositeClassifier<ClassifierType>::computeOptimalSplit(Row<CompositeClass
 		      gamma,
 		      reg_power,
 		      sweep_down,
-		      find_optimal_t
+		      find_optimal_t,
+		      reorder_by_weighted_priority
 		      );
   
   auto subsets0 = dp0.get_optimal_subsets_extern();
+  double end_ratio = 0.10;
 
   Row<DataType> leaf_values0 = arma::zeros<Row<DataType>>(n);
 
   if (T > 1 || risk_partitioning_objective) {
-    std::size_t start_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(T*activePartitionRatio);
+    std::size_t start_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(static_cast<double>(T)*activePartitionRatio);
+    std::size_t end_ind = risk_partitioning_objective ? subsets0.size() : static_cast<std::size_t>((1.-end_ratio)*static_cast<double>(T));
+    // std::size_t end_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(activePartitionRatio*static_cast<double>(subsets0.size()));
 
-    for (std::size_t i=start_ind; i<subsets0.size(); ++i) {      
+    // for (std::size_t i=start_ind; i<subsets0.size(); ++i) {      
+    for (std::size_t i=start_ind; i<end_ind; ++i) {      
       uvec ind = arma::conv_to<uvec>::from(subsets0[i]);
       double val = -1. * learningRate * sum(g(ind))/sum(h(ind));
       for (auto j: ind) {
