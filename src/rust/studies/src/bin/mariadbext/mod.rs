@@ -154,10 +154,13 @@ fn outofsample_classifier_query(run_key: u64, datasetname: &str, it: i32, mut pa
 }
 
 fn outofsample_regressor_query(run_key: u64, datasetname: &str, it: i32, mut parsed: Vec<String>) -> String {
-    let rho = parsed.pop().unwrap().parse::<f32>().unwrap();
-    let tau = parsed.pop().unwrap().parse::<f32>().unwrap();
+    // let rho = parsed.pop().unwrap().parse::<f32>().unwrap();
+    // let tau = parsed.pop().unwrap().parse::<f32>().unwrap();
+    // let loss = parsed.pop().unwrap().parse::<f32>().unwrap();
     let r2 = parsed.pop().unwrap().parse::<f32>().unwrap();
-    let loss = parsed.pop().unwrap().parse::<f32>().unwrap();
+    let rho = 0.0;
+    let tau = 0.0;
+    let loss = 0.0;
     format!("INSERT INTO outofsample (run_key, dataset_name, iteration, loss, r2, tau, rho) VALUES ({}, \"{}\", {}, {}, {}, {}, {})",
         run_key, datasetname, it, loss, r2, tau, rho)
 }

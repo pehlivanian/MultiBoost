@@ -17,9 +17,16 @@ pub mod mariadbext;
 pub mod model;
 pub mod dataset;
 
-const model_type: model::ModelType	= model::ModelType::classifier;
+// static CLASSIFIER_PROBLEM: bool = true;
+// const model_type: model::ModelType	= model::ModelType::classifier;
+
+static CLASSIFIER_PROBLEM: bool = false;
+const model_type: model::ModelType	= model::ModelType::regressor;
+
 const numIterations:	 u32		= 250;
-const lossFn:		 u32		= 5;
+// CLASSIFIER = TRUE
+// const lossFn:		 u32		= 5;
+const lossFn:		 u32		= 0;
 const lossPower:	 f32		= 1.0;
 const colSubsampleRatio: f32		= 1.0;
 const recursiveFit:	 bool		= true;
@@ -70,7 +77,7 @@ fn commandStr(specs: &Vec<Vec<String>>, datasetTrainName: &str) -> String {
     cmd.push_str(&splitRatio.to_string());
 
 
-        println!("call: {} \n", cmd);
+        println!("call: {}", cmd);
 
     cmd
 }
@@ -119,8 +126,8 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut cases: Vec<case> = Vec::new();
     for i in 0..51 {
         for j in 0..51 {
-            let c = case{childLearningRate: vec![i as f32 / 50.0; numGrids],
-                         childPartitionUsageRatio: vec![j as f32/ 50.0; numGrids]};
+            let c = case{childLearningRate: vec![i as f32 / (50.0 * 5.0); numGrids],
+                         childPartitionUsageRatio: vec![j as f32 / 50.0; numGrids]};
             cases.push(c);
         }
     }
@@ -146,12 +153,12 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
    
     
         let mut vecSpecs: Vec<Vec<String>> = vec![ childNumPartitions.clone(),
-                                        childNumSteps.clone(),
- 		              	        caseVar0,
-			   		caseVar1,
-					childMaxDepth.clone(),
-					childMinLeafSize.clone(),
-					childMinimumGainSplit.clone()]
+         	                               childNumSteps.clone(),
+			             	        caseVar0,
+				   		caseVar1,
+						childMaxDepth.clone(),
+						childMinLeafSize.clone(),
+						childMinimumGainSplit.clone()]
             .into_iter()
             .map(|v| v.into_iter().map(|w| w.to_string()).collect()).collect();                
 

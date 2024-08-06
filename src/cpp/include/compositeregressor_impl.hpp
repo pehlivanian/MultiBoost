@@ -564,8 +564,9 @@ auto CompositeRegressor<RegressorType>::computeOptimalSplit(Row<DataType>& g,
   }
 
   auto subsets = dp.get_optimal_subsets_extern();
+  double end_ratio = 0.10;
 
-  // printSubsets<DataType>(subsets0, gv, hv, colMask);
+  // printSubsets<DataType>(subsets, gv, hv, colMask);
 
   Row<DataType> leaf_values = arma::zeros<Row<DataType>>(n);
 
@@ -574,9 +575,11 @@ auto CompositeRegressor<RegressorType>::computeOptimalSplit(Row<DataType>& g,
 
     if (T > 1 || risk_partitioning_objective) {
       std::size_t start_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(T*activePartitionRatio);
-      std::size_t end_ind = risk_partitioning_objective ? 0 :   static_cast<std::size_t>(activePartitionRatio*static_cast<double>(subsets.size()));
+      std::size_t end_ind = risk_partitioning_objective ? subsets.size() : static_cast<std::size_t>((1.-end_ratio)*static_cast<double>(T));
+      // std::size_t end_ind = risk_partitioning_objective ? 0 :   static_cast<std::size_t>(activePartitionRatio*static_cast<double>(subsets.size()));
 
-      for (std::size_t i=start_ind; i<subsets.size(); ++i) {
+      // for (std::size_t i=start_ind; i<subsets.size(); ++i) {
+      for (std::size_t i=start_ind; i<end_ind; ++i) {
 	uvec ind = arma::conv_to<uvec>::from(subsets[i]);
 	double val = -1. * learningRate * sum(g(ind))/sum(h(ind));
 	for (auto j: ind) {
