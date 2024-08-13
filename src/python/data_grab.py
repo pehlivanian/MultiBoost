@@ -89,9 +89,10 @@ import pandas as pd
 from pmlb import classification_dataset_names, regression_dataset_names
 from sklearn.model_selection import train_test_split
 
-ROOT_DATA = "/home/charles/Data/"
-MODEL_TYPE = "Classification"
-# MODEL_TYPE = "Regression"
+# ROOT_DATA = "/home/charles/Data/"
+ROOT_DATA = "/home/charles/Data/tabular_benchmark/"
+# MODEL_TYPE = "Classification"
+MODEL_TYPE = "Regression"
 
 # dataset_name = "606_fri_c2_1000_10"
 # dataset_name = "529_pollen"
@@ -114,20 +115,24 @@ MODEL_TYPE = "Classification"
 # dataset_name = "breast_cancer_wisconsin"
 # dataset_name = "hypothyroid"
 # dataset_name = "coil2000"
-dataset_name = "adult"
+# dataset_name = "adult"
 # dataset_name = "income_2000"
 # dataset_name = "house_votes_84"
 # dataset_name = "colic"
 # dataset_name = "buggyCrx"
 # dataset_name = "ring"
+# dataset_name = "pol"
+dataset_name = "nyc-taxi-green-dec-2016"
 
 # X = pd.read_csv("/home/charles/Data/income_train_X.csv")
 # y = pd.read_csv("/home/charles/Data/income_train_y.csv")
-X,y = pmlb.fetch_data(dataset_name, return_X_y=True)
+X = pd.read_csv("/home/charles/Data/tabular_benchmark/Regression/"+dataset_name+"_X.csv")
+y = pd.read_csv("/home/charles/Data/tabular_benchmark/Regression/"+dataset_name+"_y.csv")
+# X,y = pmlb.fetch_data(dataset_name, return_X_y=True)
 # X_train, X_test, y_train, y_test = train_test_split(X, y)
 # X = X_train; y = y_train
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=44, train_size=1134, test_size=224)
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=44, train_size=10000, test_size=10000)
 
 
 if MODEL_TYPE in ("Regression", ):

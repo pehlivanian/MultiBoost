@@ -128,7 +128,7 @@ def _create_synthetic_cont_data(dim=2):
     dataset_name = "synthetic"
     ROOT_DATA = "/home/charles/Data/"
     MODEL_TYPE = "Regression"
-    METHOD = ['spherical', 'beale', 'rastrigin', 'rosenbrock', 'bukin', 'levi', 'eggholder'][0]
+    METHOD = ['spherical', 'beale', 'rastrigin', 'rosenbrock', 'bukin', 'levi', 'eggholder'][6]
 
     if METHOD in ('spherical',):
         coord = np.arange(-np.sqrt(np.pi), np.sqrt(np.pi), .1)
@@ -282,7 +282,16 @@ if __name__ == '__main__':
     # dataset_name = "magic_cum_wtd_priority_a2_over_b2"
 
     # REGRESSION datasets
-    dataset_name = "Regression/1193_BNG_lowbwt"
+    # dataset_name = "Regression/1193_BNG_lowbwt"
+    # dataset_name = "Regression/1203_BNG_pwLinear"
+    # dataset_name = "Regression/1201_BNG_breastTumor"
+    # dataset_name = "Regression/529_pollen"
+    # dataset_name = "Regression/boston"
+    # dataset_name = "Regression/197_cpu_act"
+    # dataset_name = "Regression/606_fri_c2_1000_10"
+    # dataset_name = "tabular_benchmark/Regression/cpu_act"
+    # dataset_name = "tabular_benchmark/Regression/pol"
+    dataset_name = "tabular_benchmark/Regression/nyc-taxi-green-dec-2016"
 
     X_train, y_train, X_test, y_test = _dataset(dataset_name);
 
@@ -316,10 +325,10 @@ if __name__ == '__main__':
     else:
         # REGRESSION
         iterations = 25000
-        learning_rate = 0.35
+        learning_rate = 0.15
         catboost_loss_function = "RMSE"
         reg_cb = CatBoostRegressor(iterations=iterations,
-                                   depth=None,
+                                   depth=5,
                                    learning_rate=learning_rate,
                                    loss_function=catboost_loss_function,
                                    verbose=False)
@@ -330,7 +339,7 @@ if __name__ == '__main__':
         r2_IS_cb = metrics.r2_score(yhat_train_cb, y_train)
         r2_OOS_cb = metrics.r2_score(yhat_test_cb, y_test)
 
-        print("[{}] CATBOOST:  R2_IS: {:>4.2%} Rw_OOS: {:>4.2%}".format(dataset_name,
+        print("[{}] CATBOOST:  R2_IS: {:>4.2%} R2_OOS: {:>4.2%}".format(dataset_name,
                                                                         r2_IS_cb,
                                                                         r2_OOS_cb))
 
@@ -339,17 +348,18 @@ if __name__ == '__main__':
     ## XGBOOST ##
     #############
 
-    eta = 0.35
-    max_depth = 0
-    subsample = 1. # default is 1.
-    objective = "binary:logistic"
-    # objective = "binary:hinge"
-    # objective = "reg:squarederror"
-
     if CLASSIFIER:
+        eta = 0.35
+        max_depth = 0
+        subsample = 1. # default is 1.
+        objective = "binary:logistic"
+        # objective = "binary:hinge"
+        # objective = "reg:squarederror"
+
         cls_xgb = xgb.XGBClassifier(eta=eta,
                                     objective=objective,
                                     max_depth=max_depth)
+
         cls_xgb.fit(X_train, y_train)
     
         yhat_train_xgb = cls_xgb.predict(X_train)
@@ -361,14 +371,26 @@ if __name__ == '__main__':
                                                                           acc_IS_xgb,
                                                                           acc_OOS_xgb))
     else:
-        eta = 0.35
+        eta = 0.15
         max_depth = 0
         subsample = 1. # default is 1.
         objective = "reg:squarederror"
         
-        reg_xgb = xgb.XGBRegressor(eta=eta,
-                                   objective=objective,
-                                   max_depth=max_depth)
+        # reg_xgb = xgb.XGBRegressor(eta=eta,
+        #                            objective=objective,
+        #                            max_depth=max_depth)
+
+        reg_xgb = xgb.XGBRegressor(colsample_bytree=0.7,
+                                   gamma=0,
+                                   learning_rate=0.1,
+                                   max_depth=5,
+                                   # min_child_weight=1.5,
+                                   n_estimators=1000,
+                                   # reg_alpha=0.75,
+                                   # reg_lambda=0.45,
+                                   subsample=0.8,
+                                   seed=1000)
+        
         reg_xgb.fit(X_train, y_train)
         
         yhat_train_xgb = reg_xgb.predict(X_train)
@@ -376,7 +398,7 @@ if __name__ == '__main__':
         r2_IS_xgb = metrics.r2_score(yhat_train_xgb, y_train)
         r2_OOS_xgb = metrics.r2_score(yhat_test_xgb, y_test)
         
-        print("[{}] XGBOOST:  R2_IS: {:>4.2%} Rw_OOS: {:>4.2%}".format(dataset_name,
+        print("[{}] XGBOOST:   R2_IS: {:>4.2%} R2_OOS: {:>4.2%}".format(dataset_name,
                                                                        r2_IS_xgb,
                                                                        r2_OOS_xgb))
 
@@ -415,7 +437,7 @@ if __name__ == '__main__':
             "task": "train",
             "boosting_type": "gbdt",
             "metric": "rmse",
-            "learning_rate": 0.05,
+            "learning_rate": 0.15,
             "verbose": -1
             }
         train_lgb = lgb.Dataset(X_train, y_train)
@@ -428,7 +450,7 @@ if __name__ == '__main__':
         r2_IS_lgb = metrics.r2_score(yhat_train_lgb, y_train)
         r2_OOS_lgb = metrics.r2_score(yhat_test_lgb, y_test)
 
-        print("[{}] LIGHTGBM:  R2_IS: {:>4.2%} Rw_OOS: {:>4.2%}".format(dataset_name,
+        print("[{}] LIGHTGBM:  R2_IS: {:>4.2%} R2_OOS: {:>4.2%}".format(dataset_name,
                                                                         r2_IS_lgb,
                                                                         r2_OOS_lgb))
     

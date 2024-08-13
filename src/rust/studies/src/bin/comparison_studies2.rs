@@ -108,7 +108,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut conn = pool.get_conn().expect("Bad mariadb connection");;
     
     // Vector inputs
-    let mut childNumPartitions:		Vec<f32> = vec![500.0, 25.0];
+    let mut childNumPartitions:		Vec<f32> = vec![20.0, 10.0];
     let mut childNumSteps:		Vec<f32> = vec![1.00; childNumPartitions.len()];
     let mut childLearningRate:		Vec<f32> = vec![0.01; childNumPartitions.len()];
     let mut childPartitionUsageRatio:	Vec<f32> = vec![0.50; childNumPartitions.len()];

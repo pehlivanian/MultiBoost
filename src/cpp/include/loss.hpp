@@ -32,6 +32,16 @@ using namespace std::placeholders;
 using namespace ANALYTIC_utils;
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
+'
+
+// Classifier loss functions:
+// Binomial Deviance
+// Savage
+// Exp
+// Arctan
+
+// Regressor loss functions:
+// MSE
 
 enum class lossFunction {      MSE = 0,
 			       BinomialDeviance = 1,
