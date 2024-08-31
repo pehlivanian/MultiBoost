@@ -11,6 +11,8 @@
 using namespace arma;
 using namespace TupleUtils;
 
+#define UNUSED(expr) do { (void)(expr); } while (0)
+
 template<typename DataType, typename ClassifierType>
 class ClassifierBase : public Model<DataType> {
 public:

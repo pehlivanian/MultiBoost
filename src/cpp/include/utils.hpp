@@ -894,7 +894,6 @@ namespace IB_utils {
   writeBinary(std::string fileName,
 	      const T& data,
 	      boost::filesystem::path fldr=boost::filesystem::path{}) {
-    auto success = false;
 
     std::string abs_path;
     if (fldr.string().size()) {
@@ -909,7 +908,6 @@ namespace IB_utils {
 
       try {
 	ofs.write(reinterpret_cast<const char*>(&data), sizeof(data));
-	success = true;
       }
       catch(std::ios_base::failure &) {
 	std::cerr << "Failed to write to " << abs_path << std::endl;
@@ -932,7 +930,6 @@ namespace IB_utils {
       abs_path = fileName;
     }    
 
-    std::size_t readBytes = 0;
     std::ifstream ifs{abs_path, std::ios::ate | std::ios::binary};
     if (ifs.is_open()) {
 
@@ -940,7 +937,6 @@ namespace IB_utils {
 
       try {
 	ifs.read(reinterpret_cast<char*>(&obj), sizeof(T));
-	readBytes = static_cast<std::size_t>(ifs.gcount());
       }
       catch(std::ios_base::failure &) {
 	std::cerr << "Failed to read from " << abs_path << std::endl;

@@ -616,7 +616,8 @@ CrossEntropyLoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* 
 template<typename DataType>
 void
 CrossEntropyLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
-  
+
+  UNUSED(y);
   vtype f = sigmoid<DataType>(yhat);
   *hess = f % (1 - f);
 }

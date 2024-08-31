@@ -13,7 +13,6 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::init_(const Mat<DataT
       auto args_tup = to_tuple(std::forward<Args>(args)...);
       auto numClasses = std::get<0>(args_tup);
       auto args_short = remove_element_from_tuple<0>(args_tup);
-      auto I = std::index_sequence_for<decltype(args_short)>{};
       // setClassifier<Args...>(dataset, labels_t_, numClasses, weights_, std::forward<Args>(args)...);
 
       // XXX
@@ -34,8 +33,9 @@ template<typename DataType, typename ClassifierType, typename... Args>
 template<typename... ClassArgs>
 void
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::setClassifier(const Mat<DataType>& dataset, Row<std::size_t>& labels, std::size_t numClasses, const Row<DataType>& weights, ClassArgs &&... args) {
-    classifier_ = std::make_unique<ClassifierType>(dataset, labels, std::forward<ClassArgs>(args)...);
-    // classifier_ = std::make_unique<ClassifierType>(dataset, labels, numClasses, weights_, std::forward<ClassArgs>(args)...);
+  UNUSED(numClasses);
+  classifier_ = std::make_unique<ClassifierType>(dataset, labels, std::forward<ClassArgs>(args)...);
+  // classifier_ = std::make_unique<ClassifierType>(dataset, labels, numClasses, weights_, std::forward<ClassArgs>(args)...);
 }
 
 template<typename DataType, typename ClassifierType, typename... Args>
@@ -81,6 +81,8 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::setClassifier(const M
 template<typename DataType, typename ClassifierType, typename... Args>
 void 
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::encode(const Row<DataType>& labels_d, Row<std::size_t>& labels_t, bool useWeights) {
+
+  UNUSED(useWeights);
 
   Row<DataType> uniqueVals = sort(unique(labels_d));    
 
