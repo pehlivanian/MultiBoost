@@ -45,6 +45,9 @@ namespace IB_utils {
 	  FP += 1.;
       }
     }
+
+    UNUSED(TN);
+    
     // precision, recall, F1
     return std::make_tuple(TP/(TP+FP), TP/(TP+FN), 2*TP/(2*TP+FP+FN));
   }

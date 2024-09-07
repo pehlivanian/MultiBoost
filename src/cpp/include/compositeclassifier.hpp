@@ -25,8 +25,10 @@ using namespace ModelContext;
 using namespace Model_Traits;
 
 template<typename ClassifierType>
-class CompositeClassifier : public ClassifierBase<typename model_traits<ClassifierType>::datatype,
-						  typename model_traits<ClassifierType>::model> {
+class CompositeClassifier : 
+  public ClassifierBase<typename model_traits<ClassifierType>::datatype,
+			typename model_traits<ClassifierType>::model>
+{
   
 public:  
   using DataType		= typename model_traits<ClassifierType>::datatype;
@@ -576,6 +578,7 @@ private:
   AllClassifierArgs classifierArgs_;
 
   ClassifierList classifiers_;
+  ClassifierList mdodels_;
   PredictionList predictions_;
  
   std::mt19937 mersenne_engine_{std::random_device{}()};

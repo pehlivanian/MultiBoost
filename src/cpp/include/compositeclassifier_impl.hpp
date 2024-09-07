@@ -8,6 +8,7 @@ using namespace ModelContext;
 using namespace Objectives;
 using namespace IB_utils;
 
+
 namespace ClassifierFileScope{
   const bool POST_EXTRAPOLATE = false;
   const bool W_CYCLE_PREFIT = true;
@@ -26,33 +27,6 @@ CompositeClassifier<ClassifierType>::allClassifierArgs(std::size_t numClasses) {
   return std::make_tuple(numClasses, minLeafSize_, minimumGainSplit_, numTrees_, maxDepth_);
 }
 
-template<typename ClassifierType>
-auto CompositeClassifier<ClassifierType>::_constantLeaf() -> Row<DataType> const {
-
-  Row<DataType> r;
-  r.zeros(dataset_.n_cols);
-  return r;
-}
-
-template<typename ClassifierType>
-auto CompositeClassifier<ClassifierType>::_constantLeaf(double val) -> Row<DataType> const {
-  
-  Row<DataType> r;
-  r.ones(dataset_.n_cols);
-  r *= val;
-  return r;
-}
-
-template<typename ClassifierType>
-auto CompositeClassifier<ClassifierType>::_randomLeaf() -> Row<DataType>const {
-
-  Row<DataType> r(dataset_.n_cols, arma::fill::none);
-  std::mt19937 rng;
-  std::uniform_real_distribution<DataType> dist{-1., 1.};
-  r.imbue([&](){ return dist(rng);});
-  return r;
-
-}
 
 template<typename ClassifierType>
 void
@@ -63,6 +37,37 @@ CompositeClassifier<ClassifierType>::updateClassifiers(std::unique_ptr<Model<Dat
   classifier->purge();
   classifiers_.push_back(std::move(classifier));
 }
+
+template<typename ClassifierType>
+auto
+CompositeClassifier<ClassifierType>::_constantLeaf() -> Row<DataType> const {
+
+  Row<DataType> r;
+  r.zeros(dataset_.n_cols);
+  return r;
+}
+
+template<typename ClassifierType>
+auto
+CompositeClassifier<ClassifierType>::_constantLeaf(double val) -> Row<DataType> const {
+
+  Row<DataType> r;
+  r.ones(dataset_.n_cols);
+  r *= val;
+  return r;
+}
+
+template<typename ClassifierType>
+auto
+CompositeClassifier<ClassifierType>::_randomLeaf() -> Row<DataType> const {
+
+  Row<DataType> r(dataset_.n_cols);
+  std::mt19937 rng;
+  std::uniform_real_distribution<DataType> dist{-1., 1.};
+  r.imbue([&](){ return dist(rng); });
+  return r;
+}
+
 
 template<typename ClassifierType>
 void
@@ -1004,7 +1009,6 @@ void
 CompositeClassifier<ClassifierType>::printStats(int stepNum) {
 
   Row<DataType> yhat;
-  double r;
 
   if (serializeModel_) {
     // Prediction from current archive
@@ -1038,7 +1042,6 @@ CompositeClassifier<ClassifierType>::printStats(int stepNum) {
 	      << "(PARTITION SIZE = " << partitionSize_
 	      << ", STEPS = " << steps_ << ")"
 	      << " STEP: " << stepNum 
-	      << " IS LOSS: " << r
 	      << " IS ERROR: " << error_is << "%" << std::endl;
   }
   

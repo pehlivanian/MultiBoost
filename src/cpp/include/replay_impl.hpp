@@ -91,8 +91,8 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
   Row<DataType> prediction_is;
   readIndex(indexName, fileNames, folderName);
 
-  int n_rows, n_cols;
-  int n_rows_is, n_cols_is;
+  int n_cols;
+  int n_cols_is;
   Mat<DataType> dataset, dataset_oos;
   Row<DataType> labels, predictionStep;
   int classifierNum = 0;
@@ -107,12 +107,10 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
     auto fileName_short = strJoin(tokens, '_', 1);
     if (tokens[0] == "DIS") { // Dataset In Sample
       read(dataset, datasetFileName = fileName_short, folderName);
-      n_rows_is = dataset.n_rows;
       n_cols_is = dataset.n_cols;
     }
     else if (tokens[0] == "DOOS") { // Dataset Out Of Sample
       read(dataset_oos, datasetOOSFileName = fileName_short, folderName);
-      n_rows = dataset_oos.n_rows;
       n_cols = dataset_oos.n_cols;
     }
     else if (tokens[0] == "LIS") { // Labels In Sample
@@ -373,8 +371,8 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
 
 
 
-  int n_rows, n_cols;
-  int n_rows_is, n_cols_is;
+  int n_cols;
+  int n_cols_is;
   Mat<DataType> dataset, dataset_oos;
   Row<DataType> labels, predictionStep;
   int regressorNum = 0;
@@ -389,12 +387,10 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
     auto fileName_short = strJoin(tokens, '_', 1);
     if (tokens[0] == "DIS") { // Dataset In Sample
       read(dataset, datasetFileName = fileName_short, folderName);
-      n_rows_is = dataset.n_rows;
       n_cols_is = dataset.n_cols;
     }
     else if (tokens[0] == "DOOS") { // Dataset Out Of Sample
       read(dataset_oos, datasetOOSFileName = fileName_short, folderName);
-      n_rows = dataset_oos.n_rows;
       n_cols = dataset_oos.n_cols;
     }
     else if (tokens[0] == "LIS") { // Labels In Sample

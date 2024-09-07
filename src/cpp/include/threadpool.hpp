@@ -158,7 +158,9 @@ public:
    * Submit a job to be run by the thread pool.
    */
   template <typename Func, typename... Args>
-  auto submit(Func&& func, Args&&... args) -> TaskFuture<typename std::result_of<Func(Args...)>::type>
+  // auto submit(Func&& func, Args&&... args) -> TaskFuture<typename std::result_of<Func(Args...)>::type>
+  auto submit(Func&& func, Args&&... args) -> TaskFuture<typename std::invoke_result<std::decay_t<Func>, std::decay_t<Args>...>::type>
+
   {
     auto boundTask = std::bind(std::forward<Func>(func), std::forward<Args>(args)...);
     using ResultType = typename std::result_of<decltype(boundTask)()>::type;

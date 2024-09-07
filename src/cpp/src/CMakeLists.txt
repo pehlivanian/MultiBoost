@@ -18,8 +18,13 @@ set(CMAKE_CXX_FLAGS "-mavx2 -Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
-# Requires C++17
-set(CMAKE_CXX_STANDARD 17)
+# C++17
+# set(CMAKE_CXX_STANDARD 17)
+# set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# set(CMAKE_CXX_EXTENSIONS OFF)
+
+# C++20
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -159,6 +164,7 @@ add_library(analyticutils OBJECT analytic_utils.cpp)
 add_library(utils OBJECT utils.cpp)
 add_library(loss OBJECT loss.cpp)
 add_library(pmlb OBJECT pmlb.cpp)
+add_library(recursivemodel OBJECT recursivemodel.cpp)
 add_library(gradientboostclassifier OBJECT gradientboostclassifier.cpp)
 add_library(gradientboostregressor OBJECT gradientboostregressor.cpp)
 add_library(replay OBJECT replay.cpp)
@@ -199,7 +205,7 @@ elseif(Boost_FOUND)
       	  $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 endif()
 
-target_link_libraries(compositeclassifier PUBLIC utils score2 classifier DP
+target_link_libraries(compositeclassifier PUBLIC utils score2 classifier recursivemodel DP
 	${ARMADILLO_LIBRARIES}
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES}
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)	
@@ -215,7 +221,8 @@ target_link_libraries(regressor PUBLIC ${ARMADILLO_LIBRARIES}
 target_link_libraries(threadsafequeue PUBLIC pthread 
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 
-target_link_libraries(gradientboostclassifier PUBLIC utils loss score2 DP classifier compositeclassifier
+target_link_libraries(gradientboostclassifier PUBLIC utils loss score2 DP classifier
+        compositeclassifier recursivemodel
 	${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 
@@ -253,7 +260,7 @@ endif()
 if (BUILD_SINGLECLASS)
   add_executable(single_class_pmlb_driver single_class_pmlb_driver.cpp)
   target_link_libraries(single_class_pmlb_driver loss utils
-	gradientboostclassifier
+	gradientboostclassifier recursivemodel
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES} 
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)

@@ -30,6 +30,9 @@
 
 #include "loss.hpp"
 
+#define UNUSED(expr) do { (void)(expr); } while (0)
+
+
 // using fs = CXX_FILESYSTEM_NAMESPACE;
 using namespace boost::filesystem;
 using namespace LossMeasures;

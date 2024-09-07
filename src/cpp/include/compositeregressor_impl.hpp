@@ -243,12 +243,10 @@ void
 CompositeRegressor<RegressorType>::_predict_in_loop(MatType&& dataset, Row<DataType>& prediction) {
   prediction = zeros<Row<DataType>>(dataset.n_cols);
 
-  std::size_t count=0;
   for (const auto& regressor : regressors_) {
     Row<DataType> predictionStep;
     regressor->Project(std::forward<MatType>(dataset), predictionStep);
     prediction += predictionStep;    
-    count+=1;
   }  
 
 }

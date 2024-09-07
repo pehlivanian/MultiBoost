@@ -47,6 +47,7 @@
 #include "classifier.hpp"
 #include "classifiers.hpp"
 #include "compositeclassifier.hpp"
+#include "recursivemodel.hpp"
 #include "model_traits.hpp"
 
 using namespace arma;
@@ -242,6 +243,11 @@ public:
 using CompositeClassifierDTC  = CompositeClassifier<DecisionTreeClassifier>;
 using CompositeClassifierRFC  = CompositeClassifier<RandomForestClassifier>;
 
+using RecursiveModelDTCD = RecursiveModel<double, CompositeClassifierDTC>;
+using RecursiveModelDTCF = RecursiveModel<float,  CompositeClassifierDTC>;
+using RecursiveModelRFCD = RecursiveModel<double, CompositeClassifierRFC>;
+using RecursiveModelRFCF = RecursiveModel<float,  CompositeClassifierRFC>;
+
 /*
 // Decorator using directives
 using C1 = CompositeClassifier<DC5>;
@@ -276,6 +282,11 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, CompositeClassifierDTC);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, CompositeClassifierRFC);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, CompositeClassifierRFC);
 
+CEREAL_REGISTER_POLYMORPHIC_RELATION(RecursiveModelDTCD, CompositeClassifierDTC);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(RecursiveModelDTCF, CompositeClassifierDTC);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(RecursiveModelRFCD, CompositeClassifierRFC);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(RecursiveModelRFCF, CompositeClassifierRFC);
+
 /*
 // Decorator polymorphic relations
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, C1);
@@ -286,6 +297,12 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, GradientBoostClassifierDTC);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, GradientBoostClassifierDTC); 
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, GradientBoostClassifierRFC)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, GradientBoostClassifierRFC);
+
+CEREAL_REGISTER_POLYMORPHIC_RELATION(RecursiveModelDTCD, GradientBoostClassifierDTC);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(RecursiveModelDTCF, GradientBoostClassifierDTC); 
+CEREAL_REGISTER_POLYMORPHIC_RELATION(RecursiveModelRFCD, GradientBoostClassifierRFC)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(RecursiveModelRFCF, GradientBoostClassifierRFC);
+
 
 /*
 // Decorator polymorphic relations

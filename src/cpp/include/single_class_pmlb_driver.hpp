@@ -18,6 +18,7 @@
 #include "loss.hpp"
 #include "classifiers.hpp"
 #include "gradientboostclassifier.hpp"
+#include "recursivemodel.hpp"
 #include "utils.hpp"
 
 #endif

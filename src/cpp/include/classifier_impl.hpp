@@ -10,9 +10,9 @@ DiscreteClassifierBase<DataType, ClassifierType, Args...>::init_(const Mat<DataT
   if (useWeights) {
     constexpr auto N = sizeof...(args);
     if constexpr (N > 1) {
-      auto args_tup = to_tuple(std::forward<Args>(args)...);
-      auto numClasses = std::get<0>(args_tup);
-      auto args_short = remove_element_from_tuple<0>(args_tup);
+      // auto args_tup = to_tuple(std::forward<Args>(args)...);
+      // auto args_short = remove_element_from_tuple<0>(args_tup);
+      // auto numClasses = std::get<0>(args_tup);
       // setClassifier<Args...>(dataset, labels_t_, numClasses, weights_, std::forward<Args>(args)...);
 
       // XXX
@@ -34,6 +34,7 @@ template<typename... ClassArgs>
 void
 DiscreteClassifierBase<DataType, ClassifierType, Args...>::setClassifier(const Mat<DataType>& dataset, Row<std::size_t>& labels, std::size_t numClasses, const Row<DataType>& weights, ClassArgs &&... args) {
   UNUSED(numClasses);
+  UNUSED(weights);
   classifier_ = std::make_unique<ClassifierType>(dataset, labels, std::forward<ClassArgs>(args)...);
   // classifier_ = std::make_unique<ClassifierType>(dataset, labels, numClasses, weights_, std::forward<ClassArgs>(args)...);
 }
