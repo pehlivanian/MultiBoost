@@ -40,9 +40,15 @@ public:
   void updateModels(std::unique_ptr<Model<DataType>>&&,
 		    Row<DataType> prediction);
 
-  ModelList models_;
-  // Row<DataType> latestPrediction_;
+  // void fit();
+  void fit_step(int);
 
+  ModelList getModels() const { return models_; }
+
+protected:
+
+  ModelList models_;
+  
   
 
 };

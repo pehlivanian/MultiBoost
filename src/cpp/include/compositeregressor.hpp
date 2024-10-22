@@ -19,6 +19,7 @@
 #include "constantregressor.hpp"
 #include "contextmanager.hpp"
 #include "regressor.hpp"
+#include "recursivemodel.hpp"
 #include "model_traits.hpp"
 
 using namespace arma;
@@ -27,8 +28,13 @@ using namespace ModelContext;
 using namespace Model_Traits;
 
 template<typename RegressorType>
-class CompositeRegressor : public RegressorBase<typename model_traits<RegressorType>::datatype,
-						typename model_traits<RegressorType>::model> {
+class CompositeRegressor : 
+  public RegressorBase<typename model_traits<RegressorType>::datatype,
+		       typename model_traits<RegressorType>::model>,
+  public RecursiveModel<typename model_traits<RegressorType>::datatype,
+			CompositeRegressor<RegressorType>>
+{
+  
 public:
   using DataType = typename model_traits<RegressorType>::datatype;
   using Regressor = typename model_traits<RegressorType>::model;
@@ -40,8 +46,14 @@ public:
   using PredictionList = std::vector<Prediction>;
   using optLeavesInfo = std::tuple<Leaves,
 				   std::optional<std::vector<std::vector<int>>>>;
+  
+  using BaseModel_t				= RecursiveModel<typename model_traits<RegressorType>::datatype,
+								 CompositeRegressor<RegressorType>>;
+
 
   friend ContextManager;
+  friend RecursiveModel<typename model_traits<RegressorType>::datatype,
+			CompositeRegressor<RegressorType>>;
 
   CompositeRegressor() = default;
 
@@ -282,9 +294,6 @@ private:
   void childContext(Context&);
   void contextInit_(Context&&);
   void init_(Context&&);
-  auto _constantLeaf() -> Row<DataType> const;
-  auto _constantLeaf(double) -> Row<DataType> const;
-  auto _randomLeaf() -> Row<DataType> const;
   uvec subsampleRows(size_t);
   uvec subsampleCols(size_t);
   void fit_step(std::size_t);

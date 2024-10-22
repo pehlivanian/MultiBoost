@@ -13,7 +13,7 @@ using namespace IB_utils;
 namespace RegressorFileScope {
   const bool POST_EXTRAPOLATE = false;
   const bool W_CYCLE_PREFIT = true;
-  const bool DIAGNOSTICS_0_ = false;
+  const bool DIAGNOSTICS_0_ = true;
   const bool DIAGNOSTICS_1_ = false;
   const bool TIMER = true;
   const std::string DIGEST_PATH = 
@@ -24,33 +24,6 @@ template<typename RegressorType>
 AllRegressorArgs
 CompositeRegressor<RegressorType>::allRegressorArgs() {
   return std::make_tuple(minLeafSize_, minimumGainSplit_, maxDepth_);
-}
-
-template<typename RegressorType>
-auto CompositeRegressor<RegressorType>::_constantLeaf() -> Row<DataType> const {
-
-  Row<DataType> r;
-  r.zeros(dataset_.n_cols);
-  return r;
-}
-
-template<typename RegressorType>
-auto CompositeRegressor<RegressorType>::_constantLeaf(double val) -> Row<DataType> const {
-  Row<DataType> r;
-  r.ones(dataset_.n_cols);
-  r *= val;
-  return r;
-}
-
-template<typename RegressorType>
-auto CompositeRegressor<RegressorType>::_randomLeaf() -> Row<DataType> const {
-
-  Row<DataType> r(dataset_.n_cols, arma::fill::none);
-  std::mt19937 rng;
-  std::uniform_real_distribution<DataType> dist{-learningRate_, learningRate_};
-  r.imbue([&](){ return dist(rng);});
-  return r;
-
 }
 
 template<typename RegressorType>
@@ -119,7 +92,7 @@ CompositeRegressor<RegressorType>::init_(Context&& context) {
 
   // Set latestPrediction to 0 if not passed
   if (!hasInitialPrediction_) {
-    latestPrediction_ = _constantLeaf(0.0);
+    latestPrediction_ = BaseModel_t::_constantLeaf(0.0);
   }
   
   // set loss function
@@ -316,7 +289,7 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
 
   if (!hasInitialPrediction_) {
     
-    latestPrediction_ = _constantLeaf(0.0);
+    latestPrediction_ = BaseModel_t::_constantLeaf(0.0);
 
     std::unique_ptr<ConstantTreeRegressorRegressor> reg_;
     Row<DataType> constantLeaf = ones<Row<DataType>>(labels_.n_elem);
@@ -467,7 +440,7 @@ CompositeRegressor<RegressorType>::fit_step(std::size_t stepNum) {
   }
 
   if (!hasInitialPrediction_) {
-    latestPrediction_ = _constantLeaf(0.0);
+    latestPrediction_ = BaseModel_t::_constantLeaf(0.0);
   }
 
   // Generate coefficients g, h

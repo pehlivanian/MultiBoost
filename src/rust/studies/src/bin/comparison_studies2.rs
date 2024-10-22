@@ -126,7 +126,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut cases: Vec<case> = Vec::new();
     for i in 0..51 {
         for j in 0..51 {
-            let c = case{childLearningRate: vec![i as f32 / (50.0 * 5.0); numGrids],
+            let c = case{childLearningRate: vec![i as f32 / (50.0 * 10.0); numGrids],
                          childPartitionUsageRatio: vec![j as f32 / 50.0; numGrids]};
             cases.push(c);
         }

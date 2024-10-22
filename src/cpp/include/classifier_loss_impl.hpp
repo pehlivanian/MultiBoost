@@ -1,152 +1,10 @@
-#ifndef __LOSS_IMPL_HPP__
-#define __LOSS_IMPL_HPP__
+#ifndef __CLASSIFIER_LOSS_IMPL_HPP__
+#define __CLASSIFIER_LOSS_IMPL_HPP__
 
-using namespace LossMeasures;
+using namespace ClassifierLossMeasures;
 
 const bool AUTODIFF_ON = false;
 
-template<typename DataType>
-DataType
-LossFunction<DataType>::loss(const vtype& yhat, const vtype& y, vtype* grad, vtype* hess,
-			     bool clamp_gradient, DataType upper_val, DataType lower_val) {
-#ifdef AUTODIFFBAD
-  {
-    // Slooooooowwww...
-    // Since we only need gradient, hessian of quadratic approximation to loss and not
-    // some deep neural network composition, we can usually compute and 
-    // hard-code these for a given loss function, the approach we take here.
-    autodiff::real u;
-    ArrayXreal yhatr = LossUtils::static_cast_eigen<DataType>(yhat).eval();
-    ArrayXreal yr = LossUtils::static_cast_eigen<DataType>(y).eval();
-    
-    std::function<autodiff::real(const ArrayXreal&)> loss_ = 
-      std::bind(&LossFunction<DataType>::loss_reverse, this, yr, _1);
-    Eigen::VectorXd grad_tmp = gradient(loss_, wrt(yhatr), at(yhatr), u);
-    *grad = LossUtils::static_cast_arma<DataType>(gradtmp);
-    return static_cast<DataType>(u.val());
-  }
-#else
-  {
-    DataType r = gradient_(yhat, y, grad);
-
-    if (clamp_gradient) {
-      // Clamp gradient, leave hessian as is
-      for (std::size_t i=0; i<grad->n_elem; ++i) {
-	if ((y[i] > 0 && yhat[i] > upper_val) || (y[i] < 0 && yhat[i] < lower_val)) {
-	  (*grad)[i] = 0.;
-	}
-      }
-    }
-
-    hessian_(yhat, y, hess);
-    return r;
-  }
-#endif
-}
-
-///////////////////
-// BEGIN SquareLoss
-///////////////////
-
-template<typename DataType>
-DataType
-SquareLoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* grad) {
-  *grad = 2 * y % (y % yhat - 1);
-#ifdef AUTODIFF
-  ArrayXreal yhatr = LossUtils::static_cast_eigen<DataType>(yhat).eval();
-  ArrayXreal yr = LossUtils::static_cast_eigen<DataType>(y).eval();
-
-  return static_cast<DataType>(loss_reverse(yr, yhatr).val());
-#else
-  return static_cast<DataType>(loss_reverse_arma(y, yhat));
-#endif
-}
-
-template<typename DataType>
-void
-SquareLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
-  UNUSED(yhat);
-  *hess = 2 * pow(y, 2);
-}
-
-template<typename DataType>
-DataType
-SquareLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
-  UNUSED(yhat);
-  UNUSED(y);
-  return 0.;
-}
-
-template<typename DataType>
-DataType
-SquareLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
-  return sum(pow(1 - y % yhat, 2));
-}
-
-#ifdef AUTODIFF
-template<typename DataType>
-autodiff::real
-SquareLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
-  return pow(1 - y*yhat, 2).sum();
-}
-#endif
-
-/////////////////
-// END SquareLoss
-/////////////////
-
-////////////////
-// BEGIN MSELoss
-////////////////
-
-template<typename DataType>
-DataType
-MSELoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* grad) {
-  *grad = -2 * (y - yhat);
-
-#ifdef AUTODIFF
-  ArrayXreal yhatr = LossUtils::static_cast_eigen<DataType>(yhat).eval();
-  ArrayXreal yr = LossUtils::static_cast_eigen<DataType>(y).eval();
-
-  return static_cast<DataType>(loss_reverse(yr, yhatr).val());
-#else
-  return static_cast<DataType>(loss_reverse_arma(y, yhat));
-#endif
-}
-
-template<typename DataType>
-void
-MSELoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
-  UNUSED(yhat);
-  vtype f(y.n_cols, arma::fill::ones);
-  *hess = 2 * f;
-}
-
-template<typename DataType>
-DataType
-MSELoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
-  UNUSED(yhat);
-  UNUSED(y);
-  return 0.;
-}
-
-template<typename DataType>
-DataType
-MSELoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
-  return sum(pow( y - yhat, 2));
-}
-
-#ifdef AUTODIFF
-template<typename DataType>
-autodiff::real
-MSELoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
-  return pow((y - yhat), 2).sum();
-}
-#endif
-
-////////////////
-// END MSELoss
-////////////////
 
 
 ////////////////
@@ -207,56 +65,6 @@ BinomialDevianceLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const Array
 ////////////////
 
 ////////////////
-// BEGIN ExpLoss
-////////////////
-
-template<typename DataType>
-DataType
-ExpLoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* grad) {
-  *grad = -y % exp(-y % yhat);
-#ifdef AUTODIFF
-  ArrayXreal yhatr = LossUtils::static_cast_eigen<DataType>(yhat).eval();
-  ArrayXreal yr = LossUtils::static_cast_eigen<DataType>(y).eval();
-  
-  return static_cast<DataType>(loss_reverse(yr, yhatr).val());
-#else
-  return static_cast<DataType>(loss_reverse_arma(y, yhat));
-#endif
-}
-
-template<typename DataType>
-void
-ExpLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype *hess) {
-  *hess = pow(y, 2) % exp(-y % yhat);
-}
-
-template<typename DataType>
-DataType
-ExpLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
-  UNUSED(yhat);
-  UNUSED(y);
-  return 0.;
-}
-
-template<typename DataType>
-DataType
-ExpLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
-  return sum(exp(-y % yhat));
-}
-
-#ifdef AUTODIFF
-template<typename DataType>
-autodiff::real
-ExpLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
-  return ((-y * yhat).exp()).sum();
-}
-#endif
-
-////////////////
-// END ExpLoss
-////////////////
-
-////////////////
 // BEGIN SavageLoss
 ////////////////
 
@@ -307,6 +115,56 @@ SavageLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) 
 
 ////////////////
 // END SavageLoss
+////////////////
+
+////////////////
+// BEGIN ExpLoss
+////////////////
+
+template<typename DataType>
+DataType
+ExpLoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* grad) {
+  *grad = -y % exp(-y % yhat);
+#ifdef AUTODIFF
+  ArrayXreal yhatr = LossUtils::static_cast_eigen<DataType>(yhat).eval();
+  ArrayXreal yr = LossUtils::static_cast_eigen<DataType>(y).eval();
+  
+  return static_cast<DataType>(loss_reverse(yr, yhatr).val());
+#else
+  return static_cast<DataType>(loss_reverse_arma(y, yhat));
+#endif
+}
+
+template<typename DataType>
+void
+ExpLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype *hess) {
+  *hess = pow(y, 2) % exp(-y % yhat);
+}
+
+template<typename DataType>
+DataType
+ExpLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
+  UNUSED(yhat);
+  UNUSED(y);
+  return 0.;
+}
+
+template<typename DataType>
+DataType
+ExpLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
+  return sum(exp(-y % yhat));
+}
+
+#ifdef AUTODIFF
+template<typename DataType>
+autodiff::real
+ExpLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
+  return ((-y * yhat).exp()).sum();
+}
+#endif
+
+////////////////
+// END ExpLoss
 ////////////////
 
 ////////////////
@@ -361,6 +219,7 @@ ArctanLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) 
 ////////////////
 // END ArctanLoss
 ////////////////
+
 
 ////////////////
 // BEGIN SyntheticLoss
@@ -599,15 +458,14 @@ SyntheticLossVar2<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXre
 // END SyntheticLossVariation2
 //////////////////////////////
 
-/////////////////////////
-// BEGIN CrossEntropyLoss
-/////////////////////////
+///////////////////
+// BEGIN SquareLoss
+///////////////////
 
 template<typename DataType>
 DataType
-CrossEntropyLoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* grad) {
-  *grad = sigmoid<DataType>(yhat) - y;
-
+SquareLoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* grad) {
+  *grad = 2 * y % (y % yhat - 1);
 #ifdef AUTODIFF
   ArrayXreal yhatr = LossUtils::static_cast_eigen<DataType>(yhat).eval();
   ArrayXreal yr = LossUtils::static_cast_eigen<DataType>(y).eval();
@@ -620,16 +478,14 @@ CrossEntropyLoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* 
 
 template<typename DataType>
 void
-CrossEntropyLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
-
-  UNUSED(y);
-  vtype f = sigmoid<DataType>(yhat);
-  *hess = f % (1 - f);
+SquareLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
+  UNUSED(yhat);
+  *hess = 2 * pow(y, 2);
 }
 
 template<typename DataType>
 DataType
-CrossEntropyLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
+SquareLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
   UNUSED(yhat);
   UNUSED(y);
   return 0.;
@@ -637,80 +493,21 @@ CrossEntropyLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y)
 
 template<typename DataType>
 DataType
-CrossEntropyLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
-  return sum(pow(y - yhat, 2));
+SquareLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
+  return sum(pow(1 - y % yhat, 2));
 }
 
 #ifdef AUTODIFF
 template<typename DataType>
 autodiff::real
-CrossEntropyLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
-  return pow((y - yhat), 2).sum();
+SquareLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
+  return pow(1 - y*yhat, 2).sum();
 }
 #endif
 
-/////////////////////////
-// END CrossEntropyLoss
-/////////////////////////
-
-
-//////////////////////////////
-// BEGIN SyntheticLossVariation3
-//////////////////////////////
-
-template<typename DataType>
-DataType
-SyntheticLossVar3<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* grad) {
-  // Proper decomposition of \Phi \left( y,\hat{y}\right) = y\left( 1-y\hat{y}\right)^3
-  vtype f = exp(-1.0 / (pow(y, 2) % pow(1 - y % yhat, 2)));
-  vtype g = exp(1.0 / pow(y, 2));
-  *grad = -y % f % g;
-
-#ifdef AUTODIFF
-  ArrayXreal yhatr = LossUtils::static_cast_eigen<DataType>(yhat).eval();
-  ArrayXreal yr = LossUtils::static_cast_eigen<DataType>(y).eval();
-
-  return static_cast<DataType>(loss_reverse(yr, yhatr).val());
-#else
-  return static_cast<DataType>(loss_reverse_arma(y, yhat));
-#endif
-}
-
-template<typename DataType>
-void
-SyntheticLossVar3<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
-  vtype f = exp(-1.0 / (pow(y, 2) % pow(1 - y % yhat, 2)));
-  vtype g = exp(1.0 / pow(y, 2));
-  vtype den = pow(1 - y % yhat, 2);
-  *hess = (2.0 / den) % f % g;
-
-}
-
-template<typename DataType>
-DataType
-SyntheticLossVar3<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
-  UNUSED(yhat);
-  UNUSED(y);
-  return 0.;
-}
-
-template<typename DataType>
-DataType
-SyntheticLossVar3<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
-  return sum(pow(y - yhat, 2));
-}
-
-#ifdef AUTODIFF
-template<typename DataType>
-autodiff::real
-SyntheticLossVar3<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
-  return pow((y - yhat), 2).sum();
-}
-#endif
-
-//////////////////////////////
-// END SyntheticLossVariation3
-//////////////////////////////
+/////////////////
+// END SquareLoss
+/////////////////
 
 ////////////////////
 // BEGIN PowerLoss
@@ -781,16 +578,13 @@ PowerLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
 ////////////////////
 
 /////////////////////////
-// BEGIN SyntheticRegLoss
+// BEGIN CrossEntropyLoss
 /////////////////////////
 
 template<typename DataType>
 DataType
-SyntheticRegLoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* grad) {
-
-  vtype f = -2. * sign(y - yhat) % pow(abs(y - yhat), .3333);
-  f.transform([](DataType val){ return (std::isnan(val) ? 0. : val); });
-  *grad = f;
+CrossEntropyLoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* grad) {
+  *grad = sigmoid<DataType>(yhat) - y;
 
 #ifdef AUTODIFF
   ArrayXreal yhatr = LossUtils::static_cast_eigen<DataType>(yhat).eval();
@@ -804,17 +598,16 @@ SyntheticRegLoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* 
 
 template<typename DataType>
 void
-SyntheticRegLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
-  UNUSED(yhat);
+CrossEntropyLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
 
-  vtype f(y.n_cols, arma::fill::ones);
-  *hess = 2 * f;
-
+  UNUSED(y);
+  vtype f = sigmoid<DataType>(yhat);
+  *hess = f % (1 - f);
 }
 
 template<typename DataType>
 DataType
-SyntheticRegLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
+CrossEntropyLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
   UNUSED(yhat);
   UNUSED(y);
   return 0.;
@@ -822,102 +615,20 @@ SyntheticRegLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y)
 
 template<typename DataType>
 DataType
-SyntheticRegLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
+CrossEntropyLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
   return sum(pow(y - yhat, 2));
 }
 
 #ifdef AUTODIFF
 template<typename DataType>
 autodiff::real
-SyntheticRegLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
+CrossEntropyLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
   return pow((y - yhat), 2).sum();
 }
 #endif
 
-///////////////////////
-// END SyntheticRegLoss
-///////////////////////
-
-////////////////
-// BEGIN LogLoss 
-////////////////
-template<typename DataType>
-DataType
-LogLoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* grad) {
-  // The usual log loss function assumes that $y \in \left\lbrace 0, 1\right\rbrace$
-  // We maintain the consistency by assuming $y \in \left\brace -1, 1\right\rbrace$
-  // here, and do a pre-transformation
-
-  vtype yhat_norm = 0.5 * yhat + 0.5;
-  vtype y_norm = 0.5 * y + 0.5;
-  *grad = -1 * (y_norm - yhat_norm);
-
-#ifdef AUTODIFF
-  ArrayXreal yhatr = LossUtils::static_cast_eigen<DataType>(yhat).eval();
-  ArrayXreal yr = LossUtils::static_cast_eigen<DataType>(y).eval();
-
-  return static_cast<DataType>(loss_reverse(yr, yhatr).val());
-#else
-  return static_cast<DataType>(loss_reverse_arma(y, yhat));
-#endif
-}
-
-template<typename DataType>
-void
-LogLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
-  // The usual log loss function assumes that $y \in \left\lbrace 0, 1\right\rbrace$
-  // We maintain the consistency by assuming $y \in \left\brace -1, 1\right\rbrace$
-  // here, and do a pre-transformation
-  
-  vtype yhat_norm = 0.5 * yhat + 0.5 + y + y;
-  *hess = yhat_norm % (1 - yhat_norm);
-}
-
-template<typename DataType>
-DataType
-LogLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
-  UNUSED(yhat);
-  UNUSED(y);
-  return 0.;
-
-  /*
-    vtype yhat_norm = 0.5 * yhat + 0.5;
-    vtype y_norm = 0.5 * y + 0.5;
-    
-    vtype log_odds = log(yhat_norm / (1 - yhat_norm));
-    return -1 * sum(y_norm % log_odds - log(1 + exp(log_odds)));
-  */
-
-}
-
-template<typename DataType>
-DataType
-LogLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
-  vtype yhat_norm = 0.5 * yhat + 0.5;
-  vtype y_norm = 0.5 * y + 0.5;
-  
-  vtype log_odds = log(yhat_norm / (1 - yhat_norm));
-  return -1 * sum(y_norm % log_odds - log(1 + exp(log_odds)));
-
-}
-
-#ifdef AUTODIFF
-template<typename DataType>
-autodiff::real
-LogLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
-  return pow(1 - y*yhat, 2).sum();
-}
-#endif
-
-////////////////
-// END LogLoss 
-////////////////
-
-
-////////////////
-// END Loss
-////////////////
-
-
+/////////////////////////
+// END CrossEntropyLoss
+/////////////////////////
 
 #endif

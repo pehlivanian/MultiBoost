@@ -30,42 +30,12 @@ CompositeClassifier<ClassifierType>::allClassifierArgs(std::size_t numClasses) {
 
 template<typename ClassifierType>
 void
-CompositeClassifier<ClassifierType>::updateClassifiers(std::unique_ptr<Model<DataType>>&& classifier,
+CompositeClassifier<ClassifierType>::updateModels(std::unique_ptr<Model<DataType>>&& classifier,
 						       Row<DataType>& prediction) {
 
   latestPrediction_ += prediction;
   classifier->purge();
   classifiers_.push_back(std::move(classifier));
-}
-
-template<typename ClassifierType>
-auto
-CompositeClassifier<ClassifierType>::_constantLeaf() -> Row<DataType> const {
-
-  Row<DataType> r;
-  r.zeros(dataset_.n_cols);
-  return r;
-}
-
-template<typename ClassifierType>
-auto
-CompositeClassifier<ClassifierType>::_constantLeaf(double val) -> Row<DataType> const {
-
-  Row<DataType> r;
-  r.ones(dataset_.n_cols);
-  r *= val;
-  return r;
-}
-
-template<typename ClassifierType>
-auto
-CompositeClassifier<ClassifierType>::_randomLeaf() -> Row<DataType> const {
-
-  Row<DataType> r(dataset_.n_cols);
-  std::mt19937 rng;
-  std::uniform_real_distribution<DataType> dist{-1., 1.};
-  r.imbue([&](){ return dist(rng); });
-  return r;
 }
 
 
@@ -136,7 +106,7 @@ CompositeClassifier<ClassifierType>::init_(Context&& context) {
 
   // Set latestPrediction to 0 if not passed
   if (!hasInitialPrediction_) {
-    latestPrediction_ = _constantLeaf(0.0);
+    latestPrediction_ = BaseModel_t::_constantLeaf(0.0);
   }
 
   // set loss function
@@ -506,6 +476,32 @@ CompositeClassifier<ClassifierType>::createRootClassifier(std::unique_ptr<Classi
 
 template<typename ClassifierType>
 void
+CompositeClassifier<ClassifierType>::fit() {
+
+  for (int stepNum=1; stepNum<=steps_; ++stepNum) {
+    fit_step(stepNum);
+    if (serializeModel_) {
+      commit();
+    }
+    if (!quietRun_) {
+      printStats(stepNum);
+    }
+    
+  }
+
+  // Serialize residual
+  if (serializeModel_)
+    commit();
+
+  // print final stats
+  if (!quietRun_) {
+    printStats(steps_);
+  }
+
+}
+
+template<typename ClassifierType>
+void
 CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   // Implementation of W-cycle
   
@@ -522,7 +518,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
   if (!hasInitialPrediction_) {
 
-    latestPrediction_ = _constantLeaf(0.0);
+    latestPrediction_ = BaseModel_t::_constantLeaf(0.0);
 
     std::unique_ptr<ConstantTreeClassifier> cls_;    
     Row<DataType> constantLeaf = ones<Row<DataType>>(labels_.n_elem);
@@ -530,7 +526,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
     cls_ = std::make_unique<ConstantTreeClassifier>(dataset_, constantLeaf);
 
-    updateClassifiers(std::move(cls_), constantLeaf);
+    updateModels(std::move(cls_), constantLeaf);
 
   }
 
@@ -559,7 +555,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
     classifier->Classify(dataset_, prediction);
 
-    updateClassifiers(std::move(classifier), prediction);
+    updateModels(std::move(classifier), prediction);
 
     hasInitialPrediction_ = true;
     
@@ -665,7 +661,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
     classifier->Predict(dataset_, prediction);
 
-    updateClassifiers(std::move(classifier), prediction);
+    updateModels(std::move(classifier), prediction);
 
     hasInitialPrediction_ = true;
 
@@ -688,9 +684,9 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
   if (!hasInitialPrediction_){
     if (false&& (loss_ == lossFunction::LogLoss)) {
-      latestPrediction_ = _constantLeaf(mean(labels_slice));
+      latestPrediction_ = BaseModel_t::_constantLeaf(mean(labels_slice));
     } else {
-      latestPrediction_ = _constantLeaf(0.0);
+      latestPrediction_ = BaseModel_t::_constantLeaf(0.0);
     }
   }
   
@@ -710,7 +706,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
   classifier->Classify(dataset_, prediction);
 
-  updateClassifiers(std::move(classifier), prediction);
+  updateModels(std::move(classifier), prediction);
 
   hasInitialPrediction_ = true;
 
@@ -1058,33 +1054,6 @@ CompositeClassifier<ClassifierType>::printStats(int stepNum) {
 	      << ", STEPS = " << steps_ << ")"
 	      << " STEP: " << stepNum
 	      << " OOS ERROR: " << error_oos << "%" << std::endl;
-  }
-
-}
-
-template<typename ClassifierType>
-void
-CompositeClassifier<ClassifierType>::fit() {
-
-  for (int stepNum=1; stepNum<=steps_; ++stepNum) {
-    fit_step(stepNum);
-    
-    if (serializeModel_) {
-      commit();
-    }
-    if (!quietRun_) {
-      printStats(stepNum);
-    }
-
-  }
-
-  // Serialize residual
-  if (serializeModel_)
-    commit();
-
-  // print final stats
-  if (!quietRun_) {
-    printStats(steps_);
   }
 
 }

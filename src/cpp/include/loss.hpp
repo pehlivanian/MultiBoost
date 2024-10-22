@@ -80,7 +80,7 @@ public:
   }
   
   static std::enable_if<!_is_double<DataType>::value, Eigen::VectorXf> static_cast_eigen(const arma_fvec_type& rhs) {
-    Eigen::Vectorfd lhs = Eigen::Map<Eigen::VectorXf>(const_cast<float*>(rhs.memptr()), rhs.n_cols);
+    Eigen::VectorXf lhs = Eigen::Map<Eigen::VectorXf>(const_cast<float*>(rhs.memptr()), rhs.n_cols);
   }
   
   static std::enable_if<_is_double<DataType>::value, arma_dvec_type> static_cast_arma(const Eigen::VectorXd& rhs) {

@@ -10,7 +10,7 @@
 namespace {
   // Only used #ifdef PARALLEL_CALCULATION
   // Hard-coded rather than based on hardware_concurrency
-  const std::size_t NUMTHREADS = 14;
+  const std::size_t NUMTHREADS = 16;
 }
 
 namespace Objectives {

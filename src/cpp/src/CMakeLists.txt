@@ -172,6 +172,7 @@ add_library(score2 OBJECT score2.cpp)
 add_library(classifier OBJECT classifier.cpp)
 add_library(regressor OBJECT regressor.cpp)
 add_library(compositeclassifier OBJECT compositeclassifier.cpp)
+add_library(compositeregressor OBJECT compositeregressor.cpp)
 add_library(threadsafequeue OBJECT threadsafequeue.cpp)
 add_library(contextmanager OBJECT contextmanager.cpp)
 # add_library(negativefeedback OBJECT negativefeedback.cpp)
@@ -193,6 +194,10 @@ target_link_libraries(replay PUBLIC utils threadsafequeue gradientboostclassifie
 	${ARMADILLO_LIBRARIES}
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 
+target_link_libraries(replay PUBLIC utils threadsafequeue gradientboostregressor
+	${ARMADILLO_LIBRARIES}
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+
 if (Filesystem_FOUND)
   target_compile_definitions(utils PUBLIC -DCXX_FILESYSTEM_HEADER=<filesystem.hpp>)
   target_compile_definitions(utils PUBLIC -DCXX_FILESYSTEM_NAMESPACE=std::filesystem)
@@ -210,6 +215,11 @@ target_link_libraries(compositeclassifier PUBLIC utils score2 classifier recursi
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES}
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)	
 
+target_link_libraries(compositeregressor PUBLIC utils score2 regressor recursivemodel DP
+	${ARMADILLO_LIBRARIES}
+	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES}
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)			
+
 target_link_libraries(classifier PUBLIC ${ARMADILLO_LIBRARIES}
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES}
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)	
@@ -220,15 +230,6 @@ target_link_libraries(regressor PUBLIC ${ARMADILLO_LIBRARIES}
 
 target_link_libraries(threadsafequeue PUBLIC pthread 
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
-
-target_link_libraries(gradientboostclassifier PUBLIC utils loss score2 DP classifier
-        compositeclassifier recursivemodel
-	${ARMADILLO_LIBRARIES} 
-	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
-
-# target_link_libraries(gradientboostmulticlassifier PUBLIC threadsafequeue 
-# 	${ARMADILLO_LIBRARIES} pthread 
-# 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 
 
 ###############
@@ -268,8 +269,9 @@ endif()
 
 # InductiveBoostRegressor driver on pmlb data
 if (BUILD_REGRESSOR)
-  add_Executable(regressor_pmlb_driver regressor_pmlb_driver.cpp)
+  add_executable(regressor_pmlb_driver regressor_pmlb_driver.cpp)
   target_link_libraries(regressor_pmlb_driver utils loss gradientboostregressor
+        recursivemodel
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES}
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES} 
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)	

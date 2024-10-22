@@ -17,6 +17,7 @@
 #include "constantclassifier.hpp"
 #include "contextmanager.hpp"
 #include "classifier.hpp"
+#include "recursivemodel.hpp"
 #include "model_traits.hpp"
 
 using namespace arma;
@@ -27,7 +28,9 @@ using namespace Model_Traits;
 template<typename ClassifierType>
 class CompositeClassifier : 
   public ClassifierBase<typename model_traits<ClassifierType>::datatype,
-			typename model_traits<ClassifierType>::model>
+			typename model_traits<ClassifierType>::model>,
+  public RecursiveModel<typename model_traits<ClassifierType>::datatype,
+			CompositeClassifier<ClassifierType>>
 {
   
 public:  
@@ -43,9 +46,14 @@ public:
 					     Leaves>;
   using childModelInfo		= std::tuple<std::size_t, std::size_t, double>;
   using childPartitionInfo	= std::tuple<std::size_t, std::size_t, double, double>;
+
+  using BaseModel_t		= RecursiveModel<typename model_traits<ClassifierType>::datatype,
+						 CompositeClassifier<ClassifierType>>;
   
 
   friend ContextManager;
+  friend RecursiveModel<typename model_traits<ClassifierType>::datatype,
+			CompositeClassifier<ClassifierType>>;
 
   CompositeClassifier() = default;
 
@@ -411,7 +419,6 @@ public:
   }
 
   virtual void fit();
-
   virtual void Classify(const Mat<DataType>&, Row<DataType>&) override;
 
   // 4 Predict methods
@@ -484,9 +491,6 @@ private:
   void childContext(Context&);
   void contextInit_(Context&&);
   void init_(Context&&);
-  auto _constantLeaf() -> Row<DataType> const;
-  auto _constantLeaf(double) -> Row<DataType> const;
-  auto _randomLeaf() -> Row<DataType> const;
   uvec subsampleRows(size_t);
   uvec subsampleCols(size_t);
   auto uniqueCloseAndReplace(Row<DataType>&) -> Row<DataType>;
@@ -520,7 +524,8 @@ private:
 			 std::tuple<Ts...> const&);
   
 
-  void updateClassifiers(std::unique_ptr<Model<DataType>>&&, Row<DataType>&);
+  // void updateClassifiers(std::unique_ptr<Model<DataType>>&&, Row<DataType>&);
+  void updateModels(std::unique_ptr<Model<DataType>>&&, Row<DataType>&);
 
   void calcWeights();
   void setWeights();
