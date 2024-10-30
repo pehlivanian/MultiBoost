@@ -2,6 +2,7 @@
 #define __CONTEXT_MANAGER_HPP__
 
 #include <tuple>
+#include <variant>
 
 #include "utils.hpp"
 

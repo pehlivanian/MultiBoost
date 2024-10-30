@@ -4,7 +4,7 @@ using namespace arma;
 using namespace mlpack;
 using namespace std;
 
-using namespace LossMeasures;
+using namespace RegressorLossMeasures;
 using namespace ModelContext;
 using namespace IB_utils;
 
@@ -38,14 +38,14 @@ auto main() -> int {
   
   
   Context context{};
-  // context.loss = lossFunction::Savage;
-  // context.loss = lossFunction::BinomialDeviance;
-  context.loss = lossFunction::MSE;
-  // context.loss = lossFunction::Exp;
-  // context.loss = lossFunction::Arctan;
-  // context.loss = lossFunction::Synthetic;
-  // context.loss = lossFunction::SyntheticVar1;
-  // context.loss = lossFunction::SyntheticVar2;
+  // context.loss = regressorLossFunction::Savage;
+  // context.loss = regressorLossFunction::BinomialDeviance;
+  context.loss = regressorLossFunction::MSE;
+  // context.loss = regressorLossFunction::Exp;
+  // context.loss = regressorLossFunction::Arctan;
+  // context.loss = regressorLossFunction::Synthetic;
+  // context.loss = regressorLossFunction::SyntheticVar1;
+  // context.loss = regressorLossFunction::SyntheticVar2;
   context.partitionRatio = 1.;
   context.baseSteps = 1;
   context.symmetrizeLabels = false;

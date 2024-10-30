@@ -6,7 +6,7 @@ void
 ContextManager::contextInit(CompositeRegressor<RegressorType>& r, 
 					       const Context& context) {
 
-  r.loss_			= context.loss;
+  r.loss_			= std::get<regressorLossFunction>(context.loss);
   r.lossPower_			= context.lossPower;
   r.clamp_gradient_		= context.clamp_gradient;
   r.upper_val_			= context.upper_val;
@@ -51,7 +51,7 @@ template<typename ClassifierType>
 void
 ContextManager::contextInit(CompositeClassifier<ClassifierType>& c, const Context& context) {
   
-  c.loss_			= context.loss;
+  c.loss_			= std::get<classifierLossFunction>(context.loss);
   c.lossPower_			= context.lossPower;
   c.clamp_gradient_		= context.clamp_gradient;
   c.upper_val_			= context.upper_val;

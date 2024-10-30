@@ -15,7 +15,7 @@ auto main() -> int {
   using namespace mlpack;
   using namespace std;
 
-  using namespace LossMeasures;
+  using namespace ClassifierLossMeasures;
   using namespace IB_utils;
 
   Mat<DataType> trainDataset, testDataset;
@@ -35,12 +35,12 @@ auto main() -> int {
   
   Context context{};
 
-  // context.loss = lossFunction::Savage;
-  // context.loss = lossFunction::BinomialDeviance;
-  // context.loss = lossFunction::MSE;
-  // context.loss = lossFunction::Exp;
-  // context.loss = lossFunction::Arctan;
-  context.loss = lossFunction::Synthetic;
+  // context.loss = classifierLossFunction::Savage;
+  // context.loss = classifierLossFunction::BinomialDeviance;
+  // context.loss = classifierLossFunction::MSE;
+  // context.loss = classifierLossFunction::Exp;
+  // context.loss = classifierLossFunction::Arctan;
+  context.loss = classifierLossFunction::Synthetic;
   context.partitionSize = 12;
   context.partitionRatio = .25;
   context.learningRate = .0001;

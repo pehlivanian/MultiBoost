@@ -5,22 +5,41 @@
 
 #include "loss2.hpp"
 
+#define UNUSED(expr) do { (void)(expr); } while (0)
+
 enum class classifierLossFunction {
-  BinomialDeviance = 0;
-  Savage = 1;
-  Exp = 2;
-  Arctan = 3;
-  SyntheticLoss = 4;
-  SyntheticLossVar1 = 5;
-  SyntheticLossVar2 = 6;
-  SquareLsos = 7;
-  PowerLoss = 8;
-  CrossEntropyLoss = 9;
+  
+    BinomialDeviance = 0,
+    Savage = 1,
+    Exp = 2,
+    Arctan = 3,
+    SyntheticLoss = 4,
+    SyntheticLossVar1 = 5,
+    SyntheticLossVar2 = 6,
+    SquareLoss = 7,
+    ClassifierPowerLoss = 8,
+    CrossEntropyLoss = 9,
 };
 
+template<typename DataType>
+typename arma_types<DataType>::vectype sigmoid(const typename arma_types<DataType>::vectype& v) {
+  return 1.0 / ( 1 + exp(-v));
+}
+
+template<typename DataType>
+typename arma_types<DataType>::vectype normalize(const typename arma_types<DataType>::vectype& v) {
+  return 0.5 * ( v + 1);
+}
+
 namespace ClassifierLossMeasures {
+
   template<typename DataType>
-  class BinomialDevianceLoss : public LossFunction<DataType> {
+  class ClassifierLossFunction : public LossFunction<DataType>{
+    
+  };
+
+  template<typename DataType>
+  class BinomialDevianceLoss : public ClassifierLossFunction<DataType> {
   private:
     using vtype = typename LossFunction<DataType>::vtype;
     using mtype = typename LossFunction<DataType>::mtype;
@@ -39,7 +58,7 @@ namespace ClassifierLossMeasures {
   };
 
   template<typename DataType>
-  class SavageLoss : public LossFunction<DataType> {
+  class SavageLoss : public ClassifierLossFunction<DataType> {
   private:
     using vtype = typename LossFunction<DataType>::vtype;
     using mtype = typename LossFunction<DataType>::mtype;
@@ -58,7 +77,7 @@ namespace ClassifierLossMeasures {
   };
 
   template<typename DataType>
-  class ExpLoss : public LossFunction<DataType> {
+  class ExpLoss : public ClassifierLossFunction<DataType> {
   private:
     using vtype = typename LossFunction<DataType>::vtype;
     using mtype = typename LossFunction<DataType>::mtype;
@@ -77,7 +96,7 @@ namespace ClassifierLossMeasures {
   };
 
   template<typename DataType>
-  class ArctanLoss : public LossFunction<DataType> {
+  class ArctanLoss : public ClassifierLossFunction<DataType> {
   private:
     using vtype = typename LossFunction<DataType>::vtype;
     using mtype = typename LossFunction<DataType>::mtype;
@@ -97,7 +116,7 @@ namespace ClassifierLossMeasures {
 
 
   template<typename DataType>
-  class SyntheticLoss : public LossFunction<DataType> {
+  class SyntheticLoss : public ClassifierLossFunction<DataType> {
   private:
     using vtype = typename LossFunction<DataType>::vtype;
     using mtype = typename LossFunction<DataType>::mtype;
@@ -116,7 +135,7 @@ namespace ClassifierLossMeasures {
   };
 
   template<typename DataType>
-  class SyntheticLossVar1 : public LossFunction<DataType> {
+  class SyntheticLossVar1 : public ClassifierLossFunction<DataType> {
   private:
     using vtype = typename LossFunction<DataType>::vtype;
     using mtype = typename LossFunction<DataType>::mtype;
@@ -135,7 +154,7 @@ namespace ClassifierLossMeasures {
   };
   
   template<typename DataType>
-  class SyntheticLossVar2 : public LossFunction<DataType> {
+  class SyntheticLossVar2 : public ClassifierLossFunction<DataType> {
   private:
     using vtype = typename LossFunction<DataType>::vtype;
     using mtype = typename LossFunction<DataType>::mtype;
@@ -154,7 +173,7 @@ namespace ClassifierLossMeasures {
   };
 
   template<typename DataType>
-  class SquareLoss : public LossFunction<DataType> {
+  class SquareLoss : public ClassifierLossFunction<DataType> {
   private:
     using vtype = typename LossFunction<DataType>::vtype;
     using mtype = typename LossFunction<DataType>::mtype;
@@ -173,15 +192,15 @@ namespace ClassifierLossMeasures {
   };
 
   template<typename DataType>
-  class PowerLoss : public LossFunction<DataType> {
+  class ClassifierPowerLoss : public ClassifierLossFunction<DataType> {
   private:
     using vtype = typename LossFunction<DataType>::vtype;
     using mtype = typename LossFunction<DataType>::mtype;
 
   public:
-    PowerLoss(float p) : p_{p} {}
-    PowerLoss<DataType>* create() override { return new PowerLoss<DataType>{0.}; }
-    PowerLoss<DataType>* create(float p) { return new PowerLoss<DataType>{p}; }
+    ClassifierPowerLoss(float p) : p_{p} {}
+    ClassifierPowerLoss<DataType>* create() override { return new ClassifierPowerLoss<DataType>{0.}; }
+    ClassifierPowerLoss<DataType>* create(float p) { return new ClassifierPowerLoss<DataType>{p}; }
   private:
 #ifdef AUTODIFF
     autodiff::real loss_reverse(const ArrayXreal&, const ArrayXreal&) override;
@@ -195,7 +214,7 @@ namespace ClassifierLossMeasures {
   };
 
   template<typename DataType>
-  class CrossEntropyLoss : public LossFunction<DataType> {
+  class CrossEntropyLoss : public ClassifierLossFunction<DataType> {
   private:
     using vtype = typename LossFunction<DataType>::vtype;
     using mtype = typename LossFunction<DataType>::mtype;
@@ -212,16 +231,16 @@ namespace ClassifierLossMeasures {
     DataType gradient_(const vtype&, const vtype&, vtype*) override;
     void hessian_(const vtype&, const vtype&, vtype*) override;
   };
-
-  struct ClassifierLossMapHash {
-    std::size_t operator() (classifierLossFunction l) const { return static_cast<std::size_t>(l); }
+  
+  struct classifierLossHashMap {
+    int operator()(classifierLossFunction l) const { return static_cast<int>(l); }
   };
 
   template<typename T>
-  std::unordered_map<classifierLossFunction, LossFunction<T>*, ClassifierLossMapHash> lossMap = 
+  std::unordered_map<classifierLossFunction, ClassifierLossFunction<T>*> classifierLossMap = 
     {
       {classifierLossFunction::BinomialDeviance,	new BinomialDevianceLoss<T>() },
-      {classifierLossFunction::Savage,			new SavagetLoss<T>() },
+      {classifierLossFunction::Savage,			new SavageLoss<T>() },
       {classifierLossFunction::Exp,			new ExpLoss<T>() },
       {classifierLossFunction::Arctan,			new ArctanLoss<T>() },
       {classifierLossFunction::SyntheticLoss,		new SyntheticLoss<T>() },
@@ -232,11 +251,11 @@ namespace ClassifierLossMeasures {
     };
 
   template<typename T>
-  LossFunction<T>* createLoss(classifierLossFunction loss, float p) {
-    if (loss == classifierLossFunction::PowerLoss) {
-      return new PowerLoss<T>{p};
+  ClassifierLossFunction<T>* createLoss(classifierLossFunction loss, float p) {
+    if (loss == classifierLossFunction::ClassifierPowerLoss) {
+      return new ClassifierPowerLoss<T>{p};
     } else {
-      return lossMap<T>[loss];
+      return classifierLossMap<T>[loss];
     }
   }
 

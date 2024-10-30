@@ -19,6 +19,7 @@
 #include "classifier.hpp"
 #include "recursivemodel.hpp"
 #include "model_traits.hpp"
+#include "classifier_loss.hpp"
 
 using namespace arma;
 
@@ -551,8 +552,8 @@ private:
   Row<DataType> latestPrediction_;
   std::vector<std::string> fileNames_;
 
-  lossFunction loss_;
-  LossFunction<DataType>* lossFn_;
+  classifierLossFunction loss_;
+  ClassifierLossFunction<DataType>* lossFn_;
 
   float lossPower_ = -1.;
 

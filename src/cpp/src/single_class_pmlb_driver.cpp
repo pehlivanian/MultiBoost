@@ -8,7 +8,7 @@ using namespace arma;
 using namespace mlpack;
 using namespace std;
 
-using namespace LossMeasures;
+using namespace ClassifierLossMeasures;
 using namespace ModelContext;
 using namespace IB_utils;
 
@@ -37,16 +37,16 @@ auto main() -> int {
   
   
   Context context{};
-  // context.loss = lossFunction::Savage;
-  context.loss = lossFunction::BinomialDeviance;
-  // context.loss = lossFunction::LogLoss;
-  // context.loss = lossFunction::MSE;
-  // context.loss = lossFunction::Exp;
-  // context.loss = lossFunction::Arctan;
-  // context.loss = lossFunction::Synthetic;
-  // context.loss = lossFunction::SyntheticVar1;
-  // context.loss = lossFunction::SyntheticVar2;
-  // context.loss = lossFunction::CrossEntropyLoss;
+  // context.loss = classifierLossFunction::Savage;
+  context.loss = classifierLossFunction::BinomialDeviance;
+  // context.loss = classifierLossFunction::LogLoss;
+  // context.loss = classifierLossFunction::MSE;
+  // context.loss = classifierLossFunction::Exp;
+  // context.loss = classifierLossFunction::Arctan;
+  // context.loss = classifierLossFunction::Synthetic;
+  // context.loss = classifierLossFunction::SyntheticVar1;
+  // context.loss = classifierLossFunction::SyntheticVar2;
+  // context.loss = classifierLossFunction::CrossEntropyLoss;
   context.childPartitionSize = std::vector<std::size_t>{100, 50, 20, 10, 1};
   context.childNumSteps = std::vector<std::size_t>{100, 2, 4, 2, 1};
   context.childLearningRate = std::vector<double>{.001, .001, .001, .001, .001, .001};

@@ -783,7 +783,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
 
   Context context{};
   
-  context.loss = lossFunction::BinomialDeviance;
+  context.loss = classifierLossFunction::BinomialDeviance;
   context.childPartitionSize = std::vector<std::size_t>{11, 5};
   context.childNumSteps = std::vector<std::size_t>{21, 2};
   context.childLearningRate = std::vector<double>{.001, .001};
@@ -868,7 +868,7 @@ TEST(GradientBoostClassifierTest, TestInSamplePredictionMatchesLatestPrediction)
 
   Context context{};
   
-  context.loss = lossFunction::BinomialDeviance;
+  context.loss = classifierLossFunction::BinomialDeviance;
   context.childPartitionSize = std::vector<std::size_t>{11, 5};
   context.childNumSteps = std::vector<std::size_t>{5, 2};
   context.childLearningRate = std::vector<double>{.001, .001};
@@ -925,7 +925,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveRoundTrips) {
 
   Context context{};
   
-  context.loss = lossFunction::BinomialDeviance;
+  context.loss = classifierLossFunction::BinomialDeviance;
   context.childPartitionSize = std::vector<std::size_t>{11, 5};
   context.childNumSteps = std::vector<std::size_t>{5, 2};
   context.childLearningRate = std::vector<double>{.001, .001};
@@ -1057,7 +1057,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips)
 
   Context context{};
   
-  context.loss = lossFunction::BinomialDeviance;
+  context.loss = classifierLossFunction::BinomialDeviance;
   context.childPartitionSize = std::vector<std::size_t>{10};
   context.childNumSteps = std::vector<std::size_t>{8};
   context.childLearningRate = std::vector<double>{.001};
@@ -1116,7 +1116,7 @@ TEST(GradientBoostRegressorTest, TestContextWrittenWithCorrectValues) {
   Context context_archive;
 
   std::string fileName = "./ctx_cls.dat";
-  std::string cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/createContext ";
+  std::string cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/create_context_regressor ";
 
   cmd += "--loss 0 --partitionSize 41 --partitionRatio .25 ";
   cmd += "--partitionSizeMethod 0 --learningRateMethod 0 ";
@@ -1129,8 +1129,8 @@ TEST(GradientBoostRegressorTest, TestContextWrittenWithCorrectValues) {
 
   loads<CerealT, CerealIArch, CerealOArch>(context_archive, fileName);
 
-  // Uset set values
-  ASSERT_EQ(context_archive.loss, lossFunction::MSE);
+  // User set values
+  ASSERT_EQ(std::get<regressorLossFunction>(context_archive.loss), regressorLossFunction::MSE);
   ASSERT_EQ(context_archive.partitionSize, 41);
   ASSERT_EQ(context_archive.steps, 4122);
   ASSERT_EQ(context_archive.partitionRatio, .25);
@@ -1170,9 +1170,9 @@ TEST(GradientBoostClassifierTest, TestContextWrittenWithCorrectValues) {
   Context context_archive;
   
   std::string fileName = "ctx_reg.dat";
-  std::string cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/createContext ";
+  std::string cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/create_context_classifier ";
 
-  cmd += "--loss 1 --partitionSize 6 --partitionRatio .25 ";
+  cmd += "--loss 7 --partitionSize 6 --partitionRatio .25 ";
   cmd += "--partitionSizeMethod 1 --learningRateMethod 2 ";
   cmd += "--learningRate .01 --steps 1010 --symmetrizeLabels true ";
   cmd += "--childMinLeafSize 10 10 5 2 1 ";
@@ -1183,7 +1183,7 @@ TEST(GradientBoostClassifierTest, TestContextWrittenWithCorrectValues) {
   loads<CerealT, CerealIArch, CerealOArch>(context_archive, fileName);
 
   // User set values
-  ASSERT_EQ(context_archive.loss, lossFunction::BinomialDeviance);
+  ASSERT_EQ(std::get<classifierLossFunction>(context_archive.loss), classifierLossFunction::SquareLoss);
   ASSERT_EQ(context_archive.partitionSize, 6);
   ASSERT_EQ(context_archive.steps, 1010);
   ASSERT_EQ(context_archive.partitionRatio, .25);
@@ -1212,7 +1212,7 @@ TEST(GradientBoostClassifierTest, TestContextReadWrite) {
 
   Context context{}, context_archive;
   
-  context.loss = lossFunction::BinomialDeviance;
+  context.loss = classifierLossFunction::BinomialDeviance;
   context.partitionSize = partitionSize;
   context.partitionRatio = .25;
   context.learningRate = .01;
@@ -1235,7 +1235,7 @@ TEST(GradientBoostClassifierTest, TestContextReadWrite) {
   dumps<CerealT, CerealIArch, CerealOArch>(context, binFileName);
   loads<CerealT, CerealIArch, CerealOArch>(context_archive, binFileName);
 
-  ASSERT_EQ(context_archive.loss, lossFunction::BinomialDeviance);
+  ASSERT_EQ(std::get<classifierLossFunction>(context_archive.loss), classifierLossFunction::BinomialDeviance);
   ASSERT_EQ(context_archive.loss, context.loss);
 
   ASSERT_EQ(context_archive.partitionSize, 10);
@@ -1259,7 +1259,7 @@ TEST(GradientBoostClassifierTest, TestWritePrediction) {
 
   Context context{};
   
-  context.loss = lossFunction::BinomialDeviance;
+  context.loss = classifierLossFunction::BinomialDeviance;
   context.childPartitionSize = std::vector<std::size_t>{11, 6};
   context.childNumSteps = std::vector<std::size_t>{4, 4};
   context.childLearningRate = std::vector<double>{.001, .001};
@@ -1334,7 +1334,7 @@ TEST(GradientBoostRegressorTest, TestPredictionRoundTrip) {
 
   Context context{};
   
-  context.loss = lossFunction::MSE;
+  context.loss = regressorLossFunction::MSE;
   context.childPartitionSize = std::vector<std::size_t>{11};
   context.childNumSteps = std::vector<std::size_t>{21};
   context.childLearningRate = {1., 1., 1.};
@@ -1419,7 +1419,7 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
 
   Context context{};
   
-  context.loss = lossFunction::BinomialDeviance;
+  context.loss = classifierLossFunction::BinomialDeviance;
   context.childPartitionSize = std::vector<std::size_t>{11};
   context.childNumSteps = std::vector<std::size_t>{114};
   context.childLearningRate = std::vector<double>{.001};
@@ -1577,7 +1577,7 @@ TEST(GradientBoostRegressorTest, TestInSamplePredictionMatchesLatestPrediction) 
 
   Context context{};
   
-  context.loss = lossFunction::MSE;
+  context.loss = regressorLossFunction::MSE;
   context.childPartitionSize = std::vector<std::size_t>{11, 5, 2};
   context.childNumSteps = std::vector<std::size_t>{14, 1, 2};
   context.childLearningRate = std::vector<double>{1., 1., 1.};
@@ -1634,7 +1634,7 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
 
   Context context{};
   
-  context.loss = lossFunction::MSE;
+  context.loss = regressorLossFunction::MSE;
   context.childPartitionSize = std::vector<std::size_t>{11, 5, 2};
   context.childNumSteps = std::vector<std::size_t>{1, 1, 1};
   context.childLearningRate = std::vector<double>{1., 1., 1.};
@@ -1731,7 +1731,7 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorNonRecursiveRoundTrips) {
 
   Context context{};
   
-  context.loss = lossFunction::MSE;
+  context.loss = regressorLossFunction::MSE;
   context.childPartitionSize = std::vector<std::size_t>{10, 2};
   context.childNumSteps = std::vector<std::size_t>{14, 2};
   context.childLearningRate = std::vector<double>{1., 1.};
@@ -1838,7 +1838,7 @@ TEST(GradientBoostRegressorTest, TestPerfectInSampleFit) {
   for (auto recursive_ : recursive) {
     Context context{};
     
-    context.loss = lossFunction::MSE;
+    context.loss = regressorLossFunction::MSE;
     context.childPartitionSize = std::vector<std::size_t>{10, 4};
     context.childNumSteps = std::vector<std::size_t>{5, 6};
     context.childLearningRate = std::vector<double>{1., 1.};
@@ -1922,7 +1922,7 @@ TEST(GradientBoostRegressorTest, TestOutofSampleFit) {
   for (auto recursive_ : recursive) {
     Context context{};
     
-    context.loss = lossFunction::MSE;
+    context.loss = regressorLossFunction::MSE;
     context.childPartitionSize = std::vector<std::size_t>{10, 4};
     context.childNumSteps = std::vector<std::size_t>{5, 6};
     context.childLearningRate = std::vector<double>{1., 1.};
@@ -1976,7 +1976,7 @@ TEST(GradientBoostRegressorTest, TestIncrementalRegressorScript) {
   char rg_ex[50];
   char cmd[200];
   sprintf(rg_ex, "\\[%s\\]\\sOOS[\\s]*:[\\s]*.*:[\\s]+\\((.*)\\)", dataset_name_test);
-  sprintf(cmd, "%ssrc/script/incremental_regressor_fit.sh 2 10 10 1 1 0.01 0.01 0.5 0.5 0 0 1 1 0 0 %s 10 9 1 1 1 1 -1 1 .2", abs_path, dataset_name_train);
+  sprintf(cmd, "%ssrc/script/incremental_regressor_fit.sh 2 10 10 1 1 0.01 0.01 0.5 0.5 0 0 1 1 0 0 %s 10 2 1 1 1 1 -1 1 .2", abs_path, dataset_name_train);
 
   std::array<float, 11> rsquared = {0.0494059, 0.100179, 0.147325, 0.191885, 0.235369, 
 				    0.277301, 0.313569, 0.347098, 0.379328, 0.410435, 
@@ -2013,7 +2013,7 @@ TEST(GradientBoostClassifierTest, TestIncrementalClassifierScript) {
   char rg_ex[50];
   char cmd[200];
   sprintf(rg_ex, "\\[%s\\]\\sOOS[\\s]*:[\\s]*.*:[\\s]+\\((.*)\\)", dataset_name_test);
-  sprintf(cmd, "%ssrc/script/incremental_classifier_fit.sh 1 250 1 0.1 0.75 0 1 0 %s 20 12 2.15 1 1 1 1 -1 1", abs_path, dataset_name_train);
+  sprintf(cmd, "%ssrc/script/incremental_classifier_fit.sh 1 250 1 0.1 0.75 0 1 0 %s 20 8 2.15 1 1 1 1 -1 1", abs_path, dataset_name_train);
 
   std::string cmd_str{cmd};
 

@@ -20,6 +20,7 @@
 #include "contextmanager.hpp"
 #include "regressor.hpp"
 #include "recursivemodel.hpp"
+#include "regressor_loss.hpp"
 #include "model_traits.hpp"
 
 using namespace arma;
@@ -265,7 +266,7 @@ public:
   std::string getIndexName() const { return indexName_; }
   boost::filesystem::path getFldr() const { return fldr_; }
 
-  lossFunction getLoss() const { return loss_; }
+  regressorLossFunction getLoss() const { return loss_; }
 
   double loss(const Row<DataType>& yhat);
   double loss(const Row<DataType>& y, const Row<DataType>& yhat);
@@ -354,8 +355,8 @@ private:
   Row<DataType> latestPrediction_;
   std::vector<std::string> fileNames_;
 
-  lossFunction loss_;
-  LossFunction<DataType>* lossFn_;
+  regressorLossFunction loss_;
+  RegressorLossFunction<DataType>* lossFn_;
 
   float lossPower_ = -1.;
 

@@ -3,9 +3,6 @@
 
 using namespace ClassifierLossMeasures;
 
-const bool AUTODIFF_ON = false;
-
-
 
 ////////////////
 // BEGIN BinomialDevianceLoss
@@ -510,12 +507,12 @@ SquareLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) 
 /////////////////
 
 ////////////////////
-// BEGIN PowerLoss
+// BEGIN ClassifierPowerLoss
 ////////////////////
 
 template<typename DataType>
 DataType
-PowerLoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* grad) {
+ClassifierPowerLoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* grad) {
   // Proper decomposition of \Phi \left( y,\hat{y}\right) = y\left( 1-y\hat{y}\right)^p
   if (p_ != 1) {
     vtype f = exp(1.0 / ((-p_+1) * pow(y, 2))) % pow(1 - y%yhat, -p_+1);
@@ -538,7 +535,7 @@ PowerLoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* grad) {
 
 template<typename DataType>
 void
-PowerLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
+ClassifierPowerLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
 
   if (p_ != 1) {
     vtype f = exp(1.0 / ((-p_+1) * pow(y, 2))) % pow(1 - y%yhat, -p_+1);
@@ -553,7 +550,7 @@ PowerLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
 
 template<typename DataType>
 DataType
-PowerLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
+ClassifierPowerLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
   UNUSED(yhat);
   UNUSED(y);
   return 0.;
@@ -561,20 +558,20 @@ PowerLoss<DataType>::loss_reverse_arma(const vtype& yhat, const vtype& y) {
 
 template<typename DataType>
 DataType
-PowerLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
+ClassifierPowerLoss<DataType>::loss_arma(const vtype& yhat, const vtype& y) {
   return sum(pow(y - yhat, 2));
 }
 
 #ifdef AUTODIFF
 template<typename DataType>
 autodiff::real
-PowerLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
+ClassifierPowerLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const ArrayXreal& y) {
   return pow((y - yhat), 2).sum();
 }
 #endif
 
 ////////////////////
-// END PowerLoss
+// END ClassifierPowerLoss
 ////////////////////
 
 /////////////////////////

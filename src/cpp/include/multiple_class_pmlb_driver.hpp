@@ -16,7 +16,7 @@
 
 
 #include "pmlb.hpp"
-#include "loss.hpp"
+#include "classifier_loss.hpp"
 #include "gradientboostmulticlassifier.hpp"
 #include "utils.hpp"
 

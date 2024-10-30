@@ -7,7 +7,7 @@ SHOW_OOS=0
 USE_WEIGHTS=0
 
 # Context creation
-EXEC_CC=${PATH}createContext
+EXEC_CC=${PATH}create_context_regressor
 
 # Incremental IS regressor fit
 EXEC_INC=${PATH}incremental_predict

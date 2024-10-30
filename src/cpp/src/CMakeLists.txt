@@ -162,7 +162,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 add_library(DP OBJECT DP.cpp)
 add_library(analyticutils OBJECT analytic_utils.cpp)
 add_library(utils OBJECT utils.cpp)
-add_library(loss OBJECT loss.cpp)
+# add_library(loss OBJECT loss.cpp)
+add_library(classifier_loss OBJECT classifier_loss.cpp)
+add_library(regressor_loss OBJECT regressor_loss.cpp)
 add_library(pmlb OBJECT pmlb.cpp)
 add_library(recursivemodel OBJECT recursivemodel.cpp)
 add_library(gradientboostclassifier OBJECT gradientboostclassifier.cpp)
@@ -184,7 +186,7 @@ add_library(contextmanager OBJECT contextmanager.cpp)
 target_link_libraries(DP PUBLIC utils score2
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 
-target_link_libraries(loss PUBLIC $<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> 
+target_link_libraries(classifier_loss PUBLIC $<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> 
         analyticutils
 	${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES}
@@ -201,12 +203,12 @@ target_link_libraries(replay PUBLIC utils threadsafequeue gradientboostregressor
 if (Filesystem_FOUND)
   target_compile_definitions(utils PUBLIC -DCXX_FILESYSTEM_HEADER=<filesystem.hpp>)
   target_compile_definitions(utils PUBLIC -DCXX_FILESYSTEM_NAMESPACE=std::filesystem)
-  target_link_libraries(utils PUBLIC analyticutils loss std::filesystem 
+  target_link_libraries(utils PUBLIC analyticutils classifier_loss regressor_loss std::filesystem 
 	  $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 elseif(Boost_FOUND)
   target_compile_definitions(utils PUBLIC -DCXX_FILESYSTEM_HEADER=<boost/filesystem.hpp>)
   target_compile_definitions(utils PUBLIC -DCXX_FILESYSTEM_NAMESPACE=boost::filesystem)
-  target_link_libraries(utils PUBLIC loss Boost::filesystem
+  target_link_libraries(utils PUBLIC classifier_loss regressor_loss Boost::filesystem
       	  $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 endif()
 
@@ -243,10 +245,17 @@ if (BUILD_ARMA_EX)
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 endif()
 
-# Context creation
+# Classifier context creation
 if (BUILD_CONTEXT_BUILDER)
-  add_executable(createContext createContext.cpp)
-  target_link_libraries(createContext LINK_PUBLIC ${Boost_LIBRARIES} utils loss
+  add_executable(create_context_classifier create_context_classifier.cpp)
+  target_link_libraries(create_context_classifier LINK_PUBLIC ${Boost_LIBRARIES} utils classifier_loss
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+endif()
+
+# Regressor context creation
+if (BUILD_CONTEXT_BUILDER)
+  add_executable(create_context_regressor create_context_regressor.cpp)
+  target_link_libraries(create_context_regressor LINK_PUBLIC ${Boost_LIBRARIES} utils regressor_loss
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 endif()
 
@@ -260,7 +269,7 @@ endif()
 # InductiveBoostClassifier driver on pmlb data
 if (BUILD_SINGLECLASS)
   add_executable(single_class_pmlb_driver single_class_pmlb_driver.cpp)
-  target_link_libraries(single_class_pmlb_driver loss utils
+  target_link_libraries(single_class_pmlb_driver classifier_loss utils
 	gradientboostclassifier recursivemodel
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES} 
@@ -270,7 +279,7 @@ endif()
 # InductiveBoostRegressor driver on pmlb data
 if (BUILD_REGRESSOR)
   add_executable(regressor_pmlb_driver regressor_pmlb_driver.cpp)
-  target_link_libraries(regressor_pmlb_driver utils loss gradientboostregressor
+  target_link_libraries(regressor_pmlb_driver utils regressor_loss gradientboostregressor
         recursivemodel
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES}
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES} 
@@ -302,7 +311,7 @@ endif()
 # Stepwise classifier for sequential, serialized runs
 if (BUILD_STEPWISE_CLASSIFY)
   add_executable(stepwise_classify stepwise_classify.cpp)
-  target_link_libraries(stepwise_classify LINK_PUBLIC ${Boost_LIBRARIES} loss utils 
+  target_link_libraries(stepwise_classify LINK_PUBLIC ${Boost_LIBRARIES} classifier_loss utils 
 	gradientboostclassifier replay
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> 
@@ -332,7 +341,7 @@ endif()
 # Stepwise predictor for sequential, serialized runs
 if (BUILD_STEPWISE_PREDICT)
   add_executable(stepwise_predict stepwise_predict.cpp)
-  target_link_libraries(stepwise_predict LINK_PUBLIC ${Boost_LIBRARIES} loss utils 
+  target_link_libraries(stepwise_predict LINK_PUBLIC ${Boost_LIBRARIES} regressor_loss utils 
 	gradientboostregressor replay
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> 
@@ -342,7 +351,7 @@ endif()
 # OOS predictor for sequential, serialized runs
 if (BUILD_OOS_PREDICTOR)
   add_executable(OOS_predict OOS_predict.cpp)
-  target_link_libraries(OOS_predict LINK_PUBLIC ${Boost_LIBRARIES} loss utils 
+  target_link_libraries(OOS_predict LINK_PUBLIC ${Boost_LIBRARIES} regressor_loss utils 
 	gradientboostregressor replay
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> 
@@ -352,7 +361,7 @@ endif()
 # OOS classifier for sequential, serialized runs
 if (BUILD_OOS_CLASSIFIER)
   add_executable(OOS_classify OOS_classify.cpp)
-  target_link_libraries(OOS_classify LINK_PUBLIC ${Boost_LIBRARIES} loss utils 
+  target_link_libraries(OOS_classify LINK_PUBLIC ${Boost_LIBRARIES} classifier_loss utils 
 	gradientboostclassifier replay
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> 
@@ -363,7 +372,7 @@ endif()
 if (BUILD_TITANIC)
   add_executable(titanic_driver titanic_driver.cpp)
   target_link_libraries(titanic_driver LINK_PUBLIC ${Boost_LIBRARIES} 
-	${Boost_SYSTEM_LIBRARY} pmlb loss utils 
+	${Boost_SYSTEM_LIBRARY} pmlb classifier_loss utils 
 	gradientboostclassifier replay
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES} 
@@ -373,7 +382,7 @@ endif()
 # Multiclass classification driver on pmlb data
 if (BUILD_MULTICLASS)
   add_executable(multiple_class_pmlb_driver multiple_class_pmlb_driver.cpp)
-  target_link_libraries(multiple_class_pmlb_driver pmlb loss utils gradientboostclassifier 
+  target_link_libraries(multiple_class_pmlb_driver pmlb classifier_loss utils gradientboostclassifier 
 	gradientboostmulticlassifier 
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES} 

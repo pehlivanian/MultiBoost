@@ -39,7 +39,7 @@
 #include <mlpack/methods/decision_tree/multiple_random_dimension_select.hpp>
 #include <mlpack/methods/random_forest/random_forest.hpp>
 
-#include "loss.hpp"
+#include "classifier_loss.hpp"
 #include "score2.hpp"
 #include "DP.hpp"
 #include "utils.hpp"

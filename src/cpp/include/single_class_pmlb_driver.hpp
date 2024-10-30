@@ -15,7 +15,7 @@
 #include <mlpack/methods/decision_tree/multiple_random_dimension_select.hpp>
 
 
-#include "loss.hpp"
+#include "classifier_loss.hpp"
 #include "classifiers.hpp"
 #include "gradientboostclassifier.hpp"
 #include "recursivemodel.hpp"

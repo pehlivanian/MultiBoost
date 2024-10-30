@@ -26,7 +26,7 @@ SHOW_OOS=0
 USE_WEIGHTS=0
 
 # Context creation
-EXEC_CC=${PATH}createContext
+EXEC_CC=${PATH}create_context_classifier
 
 # Incremental IS classifier fit
 EXEC_INC=${PATH}incremental_classify

@@ -5,7 +5,7 @@ using namespace arma;
 using namespace mlpack;
 using namespace std;
 
-using namespace LossMeasures;
+using namespace ClassifierLossMeasures;
 using namespace IB_utils;
 
 auto main(int argc, char **argv) -> int {
@@ -42,12 +42,12 @@ auto main(int argc, char **argv) -> int {
   MultiClassifierContext::CombinedContext combinedContext{};
 
 
-  // context.loss = lossFunction::Savage;
-  // context.loss = lossFunction::BinomialDeviance;
-  // context.loss = lossFunction::MSE;
-  // context.loss = lossFunction::Exp;
-  // context.loss = lossFunction::Arctan;
-  context.loss = lossFunction::Synthetic;
+  // context.loss = classifierLossFunction::Savage;
+  // context.loss = classifierLossFunction::BinomialDeviance;
+  // context.loss = classifierLossFunction::MSE;
+  // context.loss = classifierLossFunction::Exp;
+  // context.loss = classifierLossFunction::Arctan;
+  context.loss = classifierLossFunction::Synthetic;
   context.partitionSize = 6;
   context.partitionRatio = .25;
   context.learningRate = .001;

@@ -13,7 +13,7 @@ using namespace IB_utils;
 namespace RegressorFileScope {
   const bool POST_EXTRAPOLATE = false;
   const bool W_CYCLE_PREFIT = true;
-  const bool DIAGNOSTICS_0_ = true;
+  const bool DIAGNOSTICS_0_ = false;
   const bool DIAGNOSTICS_1_ = false;
   const bool TIMER = true;
   const std::string DIGEST_PATH = 

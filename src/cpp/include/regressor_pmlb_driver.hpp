@@ -10,7 +10,7 @@
 
 #include <mlpack/core.hpp>
 
-#include "loss.hpp"
+#include "regressor_loss.hpp"
 #include "regressors.hpp"
 #include "gradientboostregressor.hpp"
 #include "utils.hpp"

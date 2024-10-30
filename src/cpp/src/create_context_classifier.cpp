@@ -8,7 +8,6 @@
 
 #include "utils.hpp"
 #include "classifier_loss.hpp"
-#include "regressor_loss.hpp"
 
 using namespace IB_utils;
 using namespace ModelContext;
@@ -29,15 +28,15 @@ std::string path_(std::string inputString) {
 
 namespace std {
 
-  std::istream& operator>>(std:istream& in, classifierLossFunction& loss) {
+  std::istream& operator>>(std::istream& in, classifierLossFunction& loss) {
     int token;
     in >> token;
     switch (token) {
     case (0):
-      loss = classifierLossFunction::BinomialDeviace;
+      loss = classifierLossFunction::BinomialDeviance;
       break;
     case (1):
-      loss = classifierLossFunction::Savate;
+      loss = classifierLossFunction::Savage;
       break;
     case (2):
       loss = classifierLossFunction::Exp;
@@ -49,10 +48,10 @@ namespace std {
       loss = classifierLossFunction::SyntheticLoss;
       break;
     case (5):
-      loss = classifierLossFunction::SyntheticVar1;
+      loss = classifierLossFunction::SyntheticLossVar1;
       break;
     case (6):
-      loss = classifierLossFunction::SyntheticVar2;
+      loss = classifierLossFunction::SyntheticLossVar2;
       break;
     case (7):
       loss = classifierLossFunction::SquareLoss;
@@ -70,83 +69,6 @@ namespace std {
     return in;
   }
 
-  std::istream& operator>>(std::istream& in, regressorLossFunction& loss) {
-    int token;
-    in >> token;
-    switch (token) {
-    case(0):
-      loss = regressorLossFunction::MSE;
-      break;
-    case (1):
-      loss = regressorLossFunction::SyntheticRegLoss;
-      break;
-    case (2):
-      loss = regressorLossFunction::LogLoss;
-      break;
-    case (3):
-      loss = regressorLossFunction::RegressorPowerLoss;
-      break;
-    default:
-      in.setstate(std::ios_base::failbit);
-    }
-    1
-    return in;
-  }
-
-  std::istream& operator>>(std::istream& in, regressorLossFunction& loss) {
-  }
-
-  std::istream& operator>>(std::istream& in, lossFunction& loss) {
-    int token;
-    in >> token;
-    switch (token) {
-    case (0):
-      loss = lossFunction::MSE;
-      break;
-    case (1):
-      loss = lossFunction::BinomialDeviance;
-      break;
-    case (2):
-      loss = lossFunction::Savage;
-      break;
-    case (3):
-      loss = lossFunction::Exp;
-      break;
-    case (4):
-      loss = lossFunction::Arctan;
-      break;
-    case (5):
-      loss = lossFunction::Synthetic;
-      break;
-    case (6):
-      loss = lossFunction::SyntheticVar1;
-      break;
-    case (7):
-      loss = lossFunction::SyntheticVar2;
-      break;
-    case (8):
-      loss = lossFunction::SquareLoss;
-      break;
-    case (9):
-      loss = lossFunction::SyntheticRegLoss;
-      break;
-    case (10):
-      loss = lossFunction::LogLoss;
-      break;
-    case (11):
-      loss = lossFunction::SyntheticVar3;
-      break;
-    case (12):
-      loss = lossFunction::PowerLoss;
-      break;
-    case (13):
-      loss = lossFunction::CrossEntropyLoss;
-      break;
-    default:
-      in.setstate(std::ios_base::failbit);
-    }
-    return in;
-  }
 
   std::istream& operator>>(std::istream& in, PartitionSize::PartitionSizeMethod& meth) {
     int token;
@@ -236,7 +158,7 @@ auto main(int argc, char **argv) -> int {
      context.minimumGainSplit = 0.;
   */
 
-  lossFunction				loss			  = lossFunction::Synthetic;
+  classifierLossFunction		loss			  = classifierLossFunction::SyntheticLoss;
   float					lossPower		  = -1.0;
   bool					clamp_gradient		  = false;
   double				upper_val		  = 0.;
@@ -281,7 +203,7 @@ auto main(int argc, char **argv) -> int {
   options_description desc("Options");
   desc.add_options()
     ("help,h", "Help screen")
-    ("loss",			value<lossFunction>(&loss),					"loss")
+    ("loss",			value<classifierLossFunction>(&loss),				"loss")
     ("lossPower",		value<float>(&lossPower),					"lossPower")
     ("clamp_gradient",		value<bool>(&clamp_gradient),					"clamp_gradient")
     ("upper_val",		value<double>(&upper_val),					"upper_val")

@@ -567,7 +567,7 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
     std::unique_ptr<R> regressor = std::make_unique<R>();
 
     read(*regressor, regressorFileName, folderName);
-    auto lossFn = lossMap<DataType>[regressor->getLoss()];
+    auto lossFn = regressorLossMap<DataType>[regressor->getLoss()];
     
     double r_OOS = std::sqrt(lossFn->loss(prediction, labels_oos));
 

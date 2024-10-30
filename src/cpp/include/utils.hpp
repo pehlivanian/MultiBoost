@@ -13,6 +13,7 @@
 #include <chrono>
 #include <memory>
 #include <type_traits>
+#include <variant>
 #include <mlpack/core.hpp>
 
 #include <boost/filesystem.hpp>
@@ -26,9 +27,11 @@
 #include <cereal/types/memory.hpp>
 #include <cereal/types/map.hpp>
 #include <cereal/types/vector.hpp>
+#include <cereal/types/variant.hpp>
 #include <cereal/access.hpp>
 
-#include "loss.hpp"
+#include "classifier_loss.hpp"
+#include "regressor_loss.hpp"
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
@@ -181,7 +184,7 @@ namespace ModelContext{
       ar(depth);
     }
       
-    lossFunction loss;
+    std::variant<classifierLossFunction, regressorLossFunction> loss;
     float lossPower;
     bool clamp_gradient;
     double upper_val;

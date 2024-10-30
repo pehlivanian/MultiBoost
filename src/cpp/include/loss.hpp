@@ -31,7 +31,7 @@ using namespace arma;
 using namespace std::placeholders;
 using namespace ANALYTIC_utils;
 
-#define UNUSED(expr) do { (void)(expr); } while (0)
+#define UNUSED(expr) do { (void)(expr); } while(0)
 
 
 // Classifier loss functions:
