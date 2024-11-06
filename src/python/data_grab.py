@@ -122,17 +122,21 @@ MODEL_TYPE = "Regression"
 # dataset_name = "buggyCrx"
 # dataset_name = "ring"
 # dataset_name = "pol"
-dataset_name = "nyc-taxi-green-dec-2016"
+# dataset_name = "nyc-taxi-green-dec-2016"
+# dataset_name = "diamonds"
+dataset_name = "house_sales"
 
 # X = pd.read_csv("/home/charles/Data/income_train_X.csv")
 # y = pd.read_csv("/home/charles/Data/income_train_y.csv")
 X = pd.read_csv("/home/charles/Data/tabular_benchmark/Regression/"+dataset_name+"_X.csv")
 y = pd.read_csv("/home/charles/Data/tabular_benchmark/Regression/"+dataset_name+"_y.csv")
+# X = pd.read_csv("/home/charles/Data/Regression/"+dataset_name+"_X.csv")
+# y = pd.read_csv("/home/charles/Data/Regression/"+dataset_name+"_y.csv")
 # X,y = pmlb.fetch_data(dataset_name, return_X_y=True)
 # X_train, X_test, y_train, y_test = train_test_split(X, y)
 # X = X_train; y = y_train
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=44, train_size=10000, test_size=10000)
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=44, train_size=1000, test_size=1000)
 
 
 if MODEL_TYPE in ("Regression", ):

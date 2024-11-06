@@ -290,6 +290,17 @@ if [ $SHOW_OOS -ne 1 ]; then
     # We assume that ${dataname} ends with the pattern r'''_train$'''
     # and we test OOS fit on the dataset with "_test" suffix
 
+    # IS
+    EXEC_TEST_OOS=${PATH}OOS_predict
+    PREFIX="["${dataname}"]"
+
+    $EXEC_TEST_OOS \
+    --dataName ${dataname} \
+    --indexName $INDEX_NAME_STEP \
+    --folderName $FOLDER_STEP \
+    --prefixStr $PREFIX
+
+    # OOS
     testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
     testdataname=${testdataname}"_test"
 

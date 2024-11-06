@@ -549,8 +549,8 @@ auto CompositeRegressor<RegressorType>::computeOptimalSplit(Row<DataType>& g,
       std::size_t end_ind = risk_partitioning_objective ? subsets.size() : static_cast<std::size_t>((1.-end_ratio)*static_cast<double>(T));
       // std::size_t end_ind = risk_partitioning_objective ? 0 :   static_cast<std::size_t>(activePartitionRatio*static_cast<double>(subsets.size()));
 
-      // for (std::size_t i=start_ind; i<subsets.size(); ++i) {
-      for (std::size_t i=start_ind; i<end_ind; ++i) {
+      for (std::size_t i=start_ind; i<subsets.size(); ++i) {
+	// for (std::size_t i=start_ind; i<end_ind; ++i) {
 	uvec ind = arma::conv_to<uvec>::from(subsets[i]);
 	double val = -1. * learningRate * sum(g(ind))/sum(h(ind));
 	for (auto j: ind) {
@@ -755,18 +755,21 @@ void
 CompositeRegressor<RegressorType>::printStats(int stepNum) {
 
   Row<DataType> yhat;
-  double r;
+  double r_squared_IS, r_squared_OOS;
 
   if (serializeModel_) {
     // Prediction from current archive
     Predict(indexName_, yhat);
-    r = lossFn_->loss(yhat, labels_);
     // checkAccuracyOfArchive();
   } else {
     // Prediction from nonarchived regressor
-    Predict(yhat); 
-    r = lossFn_->loss(yhat, labels_);
+    Predict(yhat);     
   }
+  
+  auto mn = mean(labels_);
+  auto den = sum(pow((labels_ - mn), 2));
+  auto num = sum(pow((labels_ - yhat), 2));
+  r_squared_IS = 1. - (num/den);
 
   auto now = std::chrono::system_clock::now();
   auto in_time_t = std::chrono::system_clock::to_time_t(now);
@@ -778,13 +781,11 @@ CompositeRegressor<RegressorType>::printStats(int stepNum) {
 
   // Only print stats for top level of recursive call
   if (hasOOSData_) {
-    double error_is = err(yhat, labels_);
     std::cout << suff << ": " 
 	      << "(PARTITION SIZE = " << partitionSize_
 	      << ", STEPS = " << steps_ << ") "
 	      << "STEP: " << stepNum 
-	      << " IS LOSS: " << r
-	      << " IS ERROR: " << error_is << "%" << std::endl;
+	      << " IS R^2: " << r_squared_IS << std::endl;
   }
   
   if (hasOOSData_) {
@@ -794,14 +795,17 @@ CompositeRegressor<RegressorType>::printStats(int stepNum) {
     } else {
       Predict(dataset_oos_, yhat_oos);
     }
-    
-    const double loss_oos = lossFn_->loss(yhat_oos, labels_oos_);
+
+    mn = mean(labels_oos_);
+    den = sum(pow((labels_oos_ - mn), 2));
+    num = sum(pow((labels_oos_ - yhat_oos), 2));
+    r_squared_OOS = 1. - (num/den);
     
     std::cout << suff<< ": "
 	      << "(PARTITION SIZE = " << partitionSize_
 	      << ", STEPS = " << steps_ << ") "
 	      << "STEP: " << stepNum
-	      << " OOS ERROR: " << loss_oos << std::endl;
+	      << " OOS R^2: " << r_squared_OOS << std::endl;
   }
 
 }

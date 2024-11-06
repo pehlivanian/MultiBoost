@@ -791,12 +791,13 @@ auto CompositeClassifier<ClassifierType>::computeOptimalSplit(Row<CompositeClass
   Row<DataType> leaf_values0 = arma::zeros<Row<DataType>>(n);
 
   if (T > 1 || risk_partitioning_objective) {
-    std::size_t start_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(static_cast<double>(T)*activePartitionRatio);
+    std::size_t start_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(T*activePartitionRatio);
+
     std::size_t end_ind = risk_partitioning_objective ? subsets0.size() : static_cast<std::size_t>((1.-end_ratio)*static_cast<double>(T));
     // std::size_t end_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(activePartitionRatio*static_cast<double>(subsets0.size()));
 
-    // for (std::size_t i=start_ind; i<subsets0.size(); ++i) {      
-    for (std::size_t i=start_ind; i<end_ind; ++i) {      
+    for (std::size_t i=start_ind; i<subsets0.size(); ++i) {      
+    // for (std::size_t i=start_ind; i<end_ind; ++i) {      
       uvec ind = arma::conv_to<uvec>::from(subsets0[i]);
       double val = -1. * learningRate * sum(g(ind))/sum(h(ind));
       for (auto j: ind) {

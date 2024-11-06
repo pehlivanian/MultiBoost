@@ -136,14 +136,14 @@ def _create_synthetic_cont_data(dim=2):
         data = np.zeros([np.power(coord.shape[0],2), 2*(dim-1) + 1])
         for i in range(n):
             for j in range(n):
-                arg = coord[i]*coord[i] + coord[j]+coord[i]
-                data[j+i*n] =  np.array([coord[i], coord[j], np.cos((1./1.)*arg)])
+                arg = coord[i]*coord[i] + coord[j]*coord[i]
+                data[j+i*n] =  np.array([coord[i], coord[j], np.cos((-1./1.)*arg)])
                 data[j+i*n] += np.array([coord[i], coord[j], (1./1.)*np.cos(2*arg)])
-                data[j+i*n] += np.array([coord[i], coord[j], (1./1.)*np.cos(4*arg)])
+                data[j+i*n] += np.array([coord[i], coord[j], (-1./1.)*np.cos(4*arg)])
                 data[j+i*n] += np.array([coord[i], coord[j], (1./1.)*np.cos(8*arg)])
-                data[j+i*n] += np.array([coord[i], coord[j], (1./1.)*np.cos(16*arg)])
+                data[j+i*n] += np.array([coord[i], coord[j], (-1./1.)*np.cos(16*arg)])
                 data[j+i*n] += np.array([coord[i], coord[j], (1./1.)*np.cos(32*arg)])
-                data[j+i*n] += np.array([coord[i], coord[j], (1./1.)*np.cos(64*arg)])
+                data[j+i*n] += np.array([coord[i], coord[j], (-1./1.)*np.cos(64*arg)])
     elif METHOD in ('beale',):
         coord = np.arange(-1, 1., .01)
         n = coord.shape[0]
@@ -259,7 +259,7 @@ def _R2_sklearn(y, yhat):
 
 if __name__ == '__main__':
 
-    CLASSIFIER = False
+    CLASSIFIER = True
 
     # Dataset creation
     # truncate_dataset("spambase")
@@ -273,7 +273,7 @@ if __name__ == '__main__':
     # dataset_name = "buggyCrx"
     # dataset_name = "adult"
     # dataset_name = "magic"
-    # dataset_name = "synthetic_case_0"
+    dataset_name = "synthetic_case_0"
     # dataset_name = "spambase"
     # dataset_name = "magic_reverse"
     # dataset_name = "adult_reverse"
@@ -291,8 +291,11 @@ if __name__ == '__main__':
     # dataset_name = "Regression/606_fri_c2_1000_10"
     # dataset_name = "tabular_benchmark/Regression/cpu_act"
     # dataset_name = "tabular_benchmark/Regression/pol"
-    dataset_name = "tabular_benchmark/Regression/nyc-taxi-green-dec-2016"
-
+    # dataset_name = "tabular_benchmark/Regression/nyc-taxi-green-dec-2016"
+    # dataset_name = "Regression/1203_BNG_pwLinear_1000_10"
+    # dataset_name = "Regression/1201_BNG_breastTumor_1000_10"
+    # dataset_name = "tabular_benchmark/Regression/diamonds"
+    # dataset_name = "tabular_benchmark/Regression/house_sales"
     X_train, y_train, X_test, y_test = _dataset(dataset_name);
 
     ##############
@@ -315,12 +318,20 @@ if __name__ == '__main__':
         cls_cb.fit(X_train, y_train)
         yhat_train_cb = cls_cb.predict(X_train)
         yhat_test_cb = cls_cb.predict(X_test)
-        acc_IS_cb = metrics.accuracy_score(yhat_train_cb, y_train)    
-        acc_OOS_cb = metrics.accuracy_score(yhat_test_cb, y_test)
+        acc_IS_cb = metrics.accuracy_score(y_train, yhat_train_cb)    
+        acc_OOS_cb = metrics.accuracy_score(y_test, yhat_test_cb)
+
+        precision_OOS_cb = metrics.precision_score(y_test, yhat_test_cb)
+        recall_OOS_cb = metrics.recall_score(y_test, yhat_test_cb)
+        f1_OOS_cb = metrics.f1_score(y_test, yhat_test_cb)
         
-        print("[{}] CATBOOST:  ACC_IS: {:>4.2%} ACC_OOS: {:>4.2%}".format(dataset_name,
-                                                                   acc_IS_cb,
-                                                                   acc_OOS_cb))
+        print("[{}] CATBOOST:  ACC_IS: {:>4.2%} ACC_OOS: {:>4.2%} PREC_OOS: {:>4.2%} RECALL_OOS: {:>4.2%} F1_OOS: {:4.2%}".format(dataset_name,
+                                                                                                                                  acc_IS_cb,
+                                                                                                                                  acc_OOS_cb,
+                                                                                                                                  precision_OOS_cb,
+                                                                                                                                  recall_OOS_cb,
+                                                                                                                                  f1_OOS_cb
+                                                                                                                                  ))
         
     else:
         # REGRESSION
@@ -364,15 +375,24 @@ if __name__ == '__main__':
     
         yhat_train_xgb = cls_xgb.predict(X_train)
         yhat_test_xgb = cls_xgb.predict(X_test)    
-        acc_IS_xgb = metrics.accuracy_score(yhat_train_xgb, y_train)
-        acc_OOS_xgb = metrics.accuracy_score(yhat_test_xgb, y_test)
-        
-        print("[{}] XGBOOST:   ACC_IS: {:>4.2%} ACC_OOS: {:>4.2%}".format(dataset_name,
-                                                                          acc_IS_xgb,
-                                                                          acc_OOS_xgb))
+        acc_IS_xgb = metrics.accuracy_score(y_train, yhat_train_xgb)
+        acc_OOS_xgb = metrics.accuracy_score(y_test, yhat_test_xgb)
+
+        precision_OOS_xgb = metrics.precision_score(y_test, yhat_test_xgb)
+        recall_OOS_xgb = metrics.recall_score(y_test, yhat_test_xgb)
+        f1_OOS_xgb = metrics.f1_score(y_test, yhat_test_xgb)
+       
+        print("[{}] XGBOOST:   ACC_IS: {:>4.2%} ACC_OOS: {:>4.2%} PREC_OOS: {:>4.2%} RECALL_OOS: {:>4.2%} F1_OOS: {:4.2%}".format(dataset_name,
+                                                                                                                                  acc_IS_xgb,
+                                                                                                                                  acc_OOS_xgb,
+                                                                                                                                  precision_OOS_xgb,
+                                                                                                                                  recall_OOS_xgb,
+                                                                                                                                  f1_OOS_xgb
+                                                                                                                                  ))
+
     else:
         eta = 0.15
-        max_depth = 0
+        max_depth = 2
         subsample = 1. # default is 1.
         objective = "reg:squarederror"
         
@@ -426,12 +446,21 @@ if __name__ == '__main__':
         yhat_test_lgb_prob = cls_lgb.predict(X_test)
         yhat_train_lgb = np.array(yhat_train_lgb_prob[:,0] < yhat_train_lgb_prob[:,1]).astype('int')
         yhat_test_lgb = np.array(yhat_test_lgb_prob[:,0] < yhat_test_lgb_prob[:,1]).astype('int')
-        acc_IS_lgb = metrics.accuracy_score(yhat_train_lgb, y_train)
-        acc_OOS_lgb = metrics.accuracy_score(yhat_test_lgb, y_test)
-    
-        print("[{}] LIGHTGBM:  ACC_IS: {:>4.2%} ACC_OOS: {:>4.2%}".format(dataset_name,
-                                                                          acc_IS_lgb,
-                                                                          acc_OOS_lgb))
+        acc_IS_lgb = metrics.accuracy_score(y_train, yhat_train_lgb)
+        acc_OOS_lgb = metrics.accuracy_score(y_test, yhat_test_lgb)
+
+        precision_OOS_lgb = metrics.precision_score(y_test, yhat_test_lgb)
+        recall_OOS_lgb = metrics.recall_score(y_test, yhat_test_lgb)
+        f1_OOS_lgb = metrics.f1_score(y_test, yhat_test_lgb)
+
+        print("[{}] LIGHTGBM:  ACC_IS: {:>4.2%} ACC_OOS: {:>4.2%} PREC_OOS: {:>4.2%} RECALL_OOS: {:>4.2%} F1_OOS: {:4.2%}".format(dataset_name,
+                                                                                                                                  acc_IS_lgb,
+                                                                                                                                  acc_OOS_lgb,
+                                                                                                                                  precision_OOS_lgb,
+                                                                                                                                  recall_OOS_lgb,
+                                                                                                                                  f1_OOS_lgb
+                                                                                                                                  ))
+
     else:
         params = {
             "task": "train",
@@ -462,3 +491,95 @@ if __name__ == '__main__':
 # /home/charles/src/C++/sandbox/Inductive-Boost/src/script/incremental_regressor_fit.sh 3 750 300 100 1 1 1 0.05 0.05 0.05 0.35 0.35 0.35 0 0 0 1 1 1 0 0 0 Regression/529_pollen_train 200 0 3 1.0 1 1 -1.0 1.0 0
 # /home/charles/src/C++/sandbox/Inductive-Boost/src/script/incremental_regressor_fit.sh 3 750 300 100 1 1 1 0.01 0.01 0.01 0.55 0.55 0.55 0 0 0 1 1 1 0 0 0 Regression/1199_BNG_echoMonths_train 200 0 3 1.0 1 1 -1.0 1.0 0
 # /home/charles/src/C++/sandbox/Inductive-Boost/src/script/incremental_regressor_fit.sh 5 750 500 300 100 20 1 1 1 1 1 0.01 0.01 0.01 0.01 0.01 0.55 0.55 0.55 0.55 0.55 0 0 0 0 0 1 1 1 1 1 0 0 0 0 0 Regression/1193_BNG_lowbwt_train 200 0 3 1.0 1 1 -1.0 1.0 0
+
+if False:
+    import numpy as np
+    import pandas as pd
+
+    Datasets = (["Synthetic Spherical I"]*4)+(["Synthetic Spherical II"]*4)+(['Rastrigen']*4)+(['Levi']*4)
+    Libraries = ((["CatBoost"]*1)+(["LightGBM"]*1)+(["XGBoost"]*1)+(["MultiBoost"]*1))*4
+    R2 = ["R^2"]*16
+    ISOOS = ["IS", "OOS"]
+
+    data = np.array([['99.96', '43.80'],
+                     ['90.12', '40.26'],
+                     ['65.15', '41.31'],
+                     ['98.71', '57.92'],
+
+                     ['99.93', '2.97'],
+                     ['-45.09', '-47.90'],
+                     ['12.96','4.54'],
+                     ['95.85','17.52'],
+
+                     ['100.00','99.95'],
+                     ['91.41', '79.85'],
+                     ['99.97', '99.86'],
+                     ['99.99', '99.86'],
+
+                     ['100.00', '95.98'],
+                     ['98.50', '95.67'],
+                     ['97.53', '94.23'],
+                     ['99.97', '93.51'],
+                     ])
+    
+    df_reg_synth = pd.DataFrame(data=data, index=[Datasets, Libraries, R2], columns=ISOOS)
+    
+    Datasets = (["cpu_act"]*4)+(["pol"]*4)+(["nyc-taxi-green-dec-2016"]*4)+(["1203_BNG_pwLinear"]*4)+(["diamonds"]*4)
+    Libraries = ((["CatBoost"]*1)+(["LightGBM"]*1)+(["XGBoost"]*1)+(["MultiBoost"]*1))*5
+    R2 = ["R^2"]*20
+    ISOOS = ["IS", "OOS"]
+
+    data = np.array([['100.00', '95.56'],
+                     ['100.00', '97.86'],
+                     ['99.84', '97.78'],
+                     ['100.00', '98.24'],
+
+                     ['100.00', '96.38'],
+                     ['100.00', '95.24'],
+                     ['99.84', '97.00'],
+                     ['99.76', '96.27'],
+
+                     ['100.00', '33.41'],
+                     ['99.90', '29.97'],
+                     ['87.16', '34.36'],
+                     ['99.97', '41.63'],
+
+                     ['99.17', '22.35'],
+                     ['97.47', '22.58'],
+                     ['81.19', '34.07'],
+                     ['97.77', '51.57'],
+
+                     ['100.0', '82.96'],
+                     ['100.0', '81.67'],
+                     ['99.11', '80.57&'],
+                     ['99.99', '91.21']
+                     ])
+    
+    df_reg_emp = pd.DataFrame(data=data, index=[Datasets, Libraries, R2], columns=ISOOS)
+
+
+    Datasets = (["magic"]*16)+(["coil200"]*16)+(["adult"]*16)+(['synthetic']*16)
+    Libraries = ((["CatBoost"]*4)+(["LightGBM"]*4)+(["XGBoost"]*4)+(["MultiBoost"]*4))*4
+    Metrics = ["Accuracy", "Precision", "Recall", "F1"]*16
+    ISOOS = ["OOS"]
+
+    data = np.array([['86.00', '88.19', '67.07', '76.19'],
+                     ['84.00', '80.42', '68.86', '74.19'],
+                     ['85.60', '84.67', '69.46', '76.32'],
+                     ['85.80', '89.34', '65.27', '75.43'],
+                     ['93.00', '25.00', '20.00', '22.22'],
+                     ['94.50', '40.00', '20.00', '26.67'],
+                     ['94.00', '25.00', '10.00', '14.29'],
+                     ['93.50', '28.57', '20.00', '23.53'],
+                     ['81.00', '84.54', '91.86', '88.05'],
+                     ['83.00', '86.10', '92.65', '89.25'],
+                     ['84.00', '86.09', '94.23', '89.97'],
+                     ['83.00', '83.95', '96.10', '89.60'],
+                     ['85.20', '88.33', '87.17', '87.75'],
+                     ['87.60', '89.80', '89.80', '89.80'],
+                     ['85.40', '89.69', '85.86', '87.73'],
+                     ['87.20', '88.26', '91.12', '89.64']
+                    ])
+                    
+
+    df_class = pd.DataFrame(data=data.reshape(64,1), index=[Datasets, Libraries, Metrics], columns=ISOOS)
