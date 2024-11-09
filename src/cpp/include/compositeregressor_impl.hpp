@@ -228,7 +228,7 @@ void
 CompositeRegressor<RegressorType>::Predict(const Mat<DataType>& dataset, Row<DataType>& prediction) {
 
   if (serializeModel_ && indexName_.size()) {
-    throw predictionAfterClearedClassifiersException();
+    throw predictionAfterClearedModelException();
     return;
   }
 
@@ -240,7 +240,7 @@ void
 CompositeRegressor<RegressorType>::Predict(Mat<DataType>&& dataset, Row<DataType>& prediction) {
   
   if (serializeModel_ && indexName_.size()) {
-    throw predictionAfterClearedClassifiersException();
+    throw predictionAfterClearedModelException();
     return;
   }
 

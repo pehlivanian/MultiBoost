@@ -27,18 +27,6 @@ CompositeClassifier<ClassifierType>::allClassifierArgs(std::size_t numClasses) {
   return std::make_tuple(numClasses, minLeafSize_, minimumGainSplit_, numTrees_, maxDepth_);
 }
 
-
-template<typename ClassifierType>
-void
-CompositeClassifier<ClassifierType>::updateModels(std::unique_ptr<Model<DataType>>&& classifier,
-						       Row<DataType>& prediction) {
-
-  latestPrediction_ += prediction;
-  classifier->purge();
-  classifiers_.push_back(std::move(classifier));
-}
-
-
 template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::init_(Context&& context) {
@@ -98,6 +86,7 @@ CompositeClassifier<ClassifierType>::init_(Context&& context) {
   // at regular intervals, but the external labels (hence labels_oos_)
   // may be in {0,1} and we leave things like that.
   assert(!(symmetrized_ && removeRedundantLabels_));
+  
   if (symmetrized_) {
     symmetrizeLabels();
   } else if (removeRedundantLabels_) {
@@ -105,8 +94,8 @@ CompositeClassifier<ClassifierType>::init_(Context&& context) {
   }
 
   // Set latestPrediction to 0 if not passed
-  if (!hasInitialPrediction_) {
-    latestPrediction_ = BaseModel_t::_constantLeaf(0.0);
+  if (!this->hasInitialPrediction_) {
+    this->latestPrediction_ = this->_constantLeaf(0.0);
   }
 
   // set loss function
@@ -123,7 +112,7 @@ template<typename ClassifierType>
 void
 CompositeClassifier<ClassifierType>::Predict(Row<DataType>& prediction) {
 
-  prediction = latestPrediction_;
+  prediction = this->latestPrediction_;
 }
 
 template<typename ClassifierType>
@@ -142,7 +131,7 @@ CompositeClassifier<ClassifierType>::_predict_in_loop(MatType&& dataset, Row<Dat
 
   prediction = zeros<Row<DataType>>(dataset.n_cols);
 
-  for (const auto& classifier : classifiers_) {
+  for (const auto& classifier : this->models_) {
     Row<DataType> predictionStep;
     classifier->Project(dataset, predictionStep);
     prediction += predictionStep;    
@@ -159,7 +148,7 @@ void
 CompositeClassifier<ClassifierType>::Predict(const Mat<DataType>& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
 
   if (serializeModel_ && indexName_.size()) {
-    throw predictionAfterClearedClassifiersException();
+    throw predictionAfterClearedModelException();
     return;
   }
   
@@ -172,7 +161,7 @@ void
 CompositeClassifier<ClassifierType>::Predict(Mat<DataType>&& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
 
   if (serializeModel_ && indexName_.size()) {
-    throw predictionAfterClearedClassifiersException();
+    throw predictionAfterClearedModelException();
     return;
   }
   
@@ -507,7 +496,7 @@ void
 CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   // Implementation of W-cycle
   
-  if (!reuseColMask_) {
+  if (!this->reuseColMask_) {
     int colRatio = static_cast<size_t>(m_ * col_subsample_ratio_);
     colMask_ = PartitionUtils::sortedSubsample2(m_, colRatio);
   }
@@ -518,9 +507,9 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   Row<DataType> prediction;
   std::unique_ptr<ClassifierType> classifier;
 
-  if (!hasInitialPrediction_) {
+  if (!this->hasInitialPrediction_) {
 
-    latestPrediction_ = BaseModel_t::_constantLeaf(0.0);
+    this->latestPrediction_ = this->_constantLeaf(0.0);
 
     std::unique_ptr<ConstantTreeClassifier> cls_;    
     Row<DataType> constantLeaf = ones<Row<DataType>>(labels_.n_elem);
@@ -528,7 +517,7 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
     cls_ = std::make_unique<ConstantTreeClassifier>(dataset_, constantLeaf);
 
-    updateModels(std::move(cls_), constantLeaf);
+    this->updateModels(std::move(cls_), constantLeaf);
 
   }
 
@@ -557,22 +546,23 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
     classifier->Classify(dataset_, prediction);
 
-    updateModels(std::move(classifier), prediction);
+    this->updateModels(std::move(classifier), prediction);
 
-    hasInitialPrediction_ = true;
+    this->hasInitialPrediction_ = true;
+
     
     if (ClassifierFileScope::SUBSET_DIAGNOSTICS) {
       std::vector<DataType> gv0 = arma::conv_to<std::vector<DataType>>::from(coeffs.first);
       std::vector<DataType> hv0 = arma::conv_to<std::vector<DataType>>::from(coeffs.second);
       std::vector<DataType> preds = arma::conv_to<std::vector<DataType>>::from(prediction);
       std::vector<DataType> yv0 = arma::conv_to<std::vector<DataType>>::from(labels_);
-      std::vector<DataType> yhatv0 = arma::conv_to<std::vector<DataType>>::from(latestPrediction_);   
+      std::vector<DataType> yhatv0 = arma::conv_to<std::vector<DataType>>::from(this->latestPrediction_);   
       std::vector<DataType> best_leavesv0 = arma::conv_to<std::vector<DataType>>::from(best_leaves);
       printSubsets<DataType>(subset_info.value(), best_leavesv0, preds, gv0, hv0, yv0, yhatv0, colMask_);
     }
 
     if (ClassifierFileScope::DIAGNOSTICS_1_) {    
-      Row<DataType> latestPrediction_slice = latestPrediction_.submat(zeros<uvec>(1), colMask_);
+      Row<DataType> latestPrediction_slice = this->latestPrediction_.submat(zeros<uvec>(1), colMask_);
       Row<DataType> prediction_slice = prediction.submat(zeros<uvec>(1), colMask_);
       float eps = std::numeric_limits<float>::epsilon();
 
@@ -625,10 +615,10 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     // than one class. So we don't want to symmetrize, but we want 
     // to remap the redundant values.
     std::unique_ptr<CompositeClassifier<ClassifierType>> classifier;
-    if (hasInitialPrediction_) {
+    if (this->hasInitialPrediction_) {
       classifier.reset(new CompositeClassifier<ClassifierType>(dataset_, 
 							       labels_, 
-							       latestPrediction_, 
+							       this->latestPrediction_, 
 							       colMask, 
 							       context));
     } else {
@@ -663,9 +653,9 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
     classifier->Predict(dataset_, prediction);
 
-    updateModels(std::move(classifier), prediction);
+    this->updateModels(std::move(classifier), prediction);
 
-    hasInitialPrediction_ = true;
+    this->hasInitialPrediction_ = true;
 
   } 
   ////////////////////////
@@ -684,12 +674,12 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 	      << std::endl;
   }
 
-  if (!hasInitialPrediction_){
+  if (!this->hasInitialPrediction_){
     // if (false&& (loss_ == lossFunction::LogLoss)) {
     if (false) {
-      latestPrediction_ = BaseModel_t::_constantLeaf(mean(labels_slice));
+      this->latestPrediction_ = this->_constantLeaf(mean(labels_slice));
     } else {
-      latestPrediction_ = BaseModel_t::_constantLeaf(0.0);
+      this->latestPrediction_ = this->_constantLeaf(0.0);
     }
   }
   
@@ -709,23 +699,23 @@ CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
   classifier->Classify(dataset_, prediction);
 
-  updateModels(std::move(classifier), prediction);
+  this->updateModels(std::move(classifier), prediction);
 
-  hasInitialPrediction_ = true;
+  this->hasInitialPrediction_ = true;
 
   if (ClassifierFileScope::SUBSET_DIAGNOSTICS) {
     std::vector<DataType> gv0 = arma::conv_to<std::vector<DataType>>::from(coeffs.first);
     std::vector<DataType> hv0 = arma::conv_to<std::vector<DataType>>::from(coeffs.second);
     std::vector<DataType> preds = arma::conv_to<std::vector<DataType>>::from(prediction);
     std::vector<DataType> yv0 = arma::conv_to<std::vector<DataType>>::from(labels_);
-    std::vector<DataType> yhatv0 = arma::conv_to<std::vector<DataType>>::from(latestPrediction_);   
+    std::vector<DataType> yhatv0 = arma::conv_to<std::vector<DataType>>::from(this->latestPrediction_);   
     std::vector<DataType> best_leavesv0 = arma::conv_to<std::vector<DataType>>::from(best_leaves);
     printSubsets<DataType>(subset_info.value(), best_leavesv0, preds, gv0, hv0, yv0, yhatv0, colMask_);
   }
 
 
   if (ClassifierFileScope::DIAGNOSTICS_1_) {    
-    Row<DataType> latestPrediction_slice = latestPrediction_.submat(zeros<uvec>(1), colMask_);
+    Row<DataType> latestPrediction_slice = this->latestPrediction_.submat(zeros<uvec>(1), colMask_);
     Row<DataType> prediction_slice = prediction.submat(zeros<uvec>(1), colMask_);
     float eps = std::numeric_limits<float>::epsilon();
     
@@ -848,7 +838,7 @@ template<typename ClassifierType>
 std::string
 CompositeClassifier<ClassifierType>::writePrediction() {
 
-  return IB_utils::writePrediction(latestPrediction_, fldr_);
+  return IB_utils::writePrediction(this->latestPrediction_, fldr_);
 }
 
 template<typename ClassifierType>
@@ -977,7 +967,7 @@ CompositeClassifier<ClassifierType>::commit() {
 
   // std::copy(fileNames_.begin(), fileNames_.end(),std::ostream_iterator<std::string>(std::cout, "\n"));
   indexName_ = writeIndex(fileNames_, fldr_);  
-  ClassifierList{}.swap(classifiers_);
+  ClassifierList{}.swap(this->models_);
 }
 
 template<typename ClassifierType>

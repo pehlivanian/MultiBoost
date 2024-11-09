@@ -816,7 +816,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
     // Predict IS with live classifier fails due to serialization...
     Row<DataType> liveTrainPrediction;
     EXPECT_THROW(classifier.Predict(trainDataset, liveTrainPrediction),
-		 predictionAfterClearedClassifiersException );
+		 predictionAfterClearedModelException );
 
     // Use latestPrediction_ instead
     classifier.Predict(liveTrainPrediction);
@@ -1293,7 +1293,7 @@ TEST(GradientBoostClassifierTest, TestWritePrediction) {
 
     // Predict IS with live classifier fails due to serialization...
     Row<DataType> liveTrainPrediction;
-    EXPECT_THROW(classifier.Predict(trainDataset, liveTrainPrediction), predictionAfterClearedClassifiersException );
+    EXPECT_THROW(classifier.Predict(trainDataset, liveTrainPrediction), predictionAfterClearedModelException );
 
     // Use latestPrediction_ instead
     classifier.Predict(liveTrainPrediction);
@@ -1666,7 +1666,7 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
     // Predict IS with live regressor fails due to serialization...
     Row<double> liveTrainPrediction;
     EXPECT_THROW(regressor.Predict(trainDataset, liveTrainPrediction),
-		 predictionAfterClearedClassifiersException);
+		 predictionAfterClearedModelException);
 
     // Use latestPrediction_ instead
     regressor.Predict(liveTrainPrediction);

@@ -8,7 +8,7 @@
 
 using namespace arma;
 
-struct predictionAfterClearedClassifiersException : public std::exception {
+struct predictionAfterClearedModelException : public std::exception {
   const char* what() const throw () {
     return "Attempting to predict on a classifier that has been serialized and cleared";
   }
