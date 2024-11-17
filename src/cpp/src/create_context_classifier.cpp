@@ -69,70 +69,6 @@ namespace std {
     return in;
   }
 
-
-  std::istream& operator>>(std::istream& in, PartitionSize::PartitionSizeMethod& meth) {
-    int token;
-    in >> token;
-    switch (token) {
-    case (0):
-      meth = PartitionSize::PartitionSizeMethod::FIXED;
-      break;
-    case (1):
-      meth = PartitionSize::PartitionSizeMethod::FIXED_PROPORTION;
-      break;
-    case (2):
-      meth = PartitionSize::PartitionSizeMethod::DECREASING;
-      break;
-    case (3):
-      meth = PartitionSize::PartitionSizeMethod::INCREASING;
-      break;
-    case (4):
-      meth = PartitionSize::PartitionSizeMethod::RANDOM;
-      break;
-    case (5):
-      meth = PartitionSize::PartitionSizeMethod::MULTISCALE;
-      break;
-    default:
-      in.setstate(std::ios_base::failbit);
-    }
-    return in;
-  }
-
-  std::istream& operator>>(std::istream& in, LearningRate::LearningRateMethod& meth) {
-    int token;
-    in >> token;
-    switch (token) {
-    case (0):
-      meth = LearningRate::LearningRateMethod::FIXED;
-      break;
-    case (1):
-      meth = LearningRate::LearningRateMethod::INCREASING;
-      break;
-    case (2):
-      meth = LearningRate::LearningRateMethod::DECREASING;
-      break;
-    default:
-      in.setstate(std::ios_base::failbit);
-    }
-    return in;
-  }
-
-  std::istream& operator>>(std::istream& in, StepSize::StepSizeMethod& meth) {
-    int token;
-    in >> token;
-    switch (token) {
-    case (0):
-      meth = StepSize::StepSizeMethod::LOG;
-      break;
-    case (1):
-      meth = StepSize::StepSizeMethod::PROPORTION;
-      break;
-    default:
-      in.setstate(std::ios_base::failbit);
-    }
-    return in;
-  }
-
 };
 
 
@@ -151,8 +87,6 @@ auto main(int argc, char **argv) -> int {
      context.colSubsampleRatio = .25; // .75
      context.recursiveFit = true;
      context.serializeModel = false;
-     context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED; // INCREASING
-     context.learningRateMethod = LearningRate::RateMethod::FIXED;   // DECREASING
      context.minLeafSize = 1;
      context.maxDepth = 10;
      context.minimumGainSplit = 0.;
@@ -164,7 +98,7 @@ auto main(int argc, char **argv) -> int {
   double				upper_val		  = 0.;
   double				lower_val		  = 0.;
   std::size_t				partitionSize		  = 6;
-  double				partitionRatio		  = .25;
+  double				activeartitionRatio	  = .25;
   double				learningRate		  = .0001;
   double				activePartitionRatio	  = 0.5;
   int					steps			  = 10000;
@@ -176,9 +110,6 @@ auto main(int argc, char **argv) -> int {
   double				rowSubsampleRatio	  = 1.;
   double				colSubsampleRatio	  = .25;
   bool					recursiveFit		  = true;
-  PartitionSize::PartitionSizeMethod	partitionSizeMethod	  = PartitionSize::PartitionSizeMethod::FIXED;
-  LearningRate::LearningRateMethod	learningRateMethod	  = LearningRate::LearningRateMethod::FIXED;
-  StepSize::StepSizeMethod		stepSizeMethod		  = StepSize::StepSizeMethod::LOG;
   std::vector<std::size_t>		childPartitionSize	  = std::vector<std::size_t>{};
   std::vector<std::size_t>		childNumSteps		  = std::vector<std::size_t>{};
   std::vector<double>			childLearningRate	  = std::vector<double>{};
@@ -209,7 +140,6 @@ auto main(int argc, char **argv) -> int {
     ("upper_val",		value<double>(&upper_val),					"upper_val")
     ("lower_val",		value<double>(&lower_val),					"lower_val")
     ("partitionSize",		value<std::size_t>(&partitionSize),				"partitionSize")
-    ("partitionRatio",		value<double>(&partitionRatio),					"partitionRatio")
     ("learningRate",		value<double>(&learningRate),					"learningRate")
     ("activePartitionRatio",	value<double>(&activePartitionRatio),				"activePartitionRatio")
     ("steps",			value<int>(&steps),						"steps")
@@ -221,9 +151,6 @@ auto main(int argc, char **argv) -> int {
     ("rowSubsampleRatio",	value<double>(&rowSubsampleRatio),				"rowSubsampleRatio")
     ("colSubsampleRatio",	value<double>(&colSubsampleRatio),				"colSubsampleRatio")
     ("recursiveFit",		value<bool>(&recursiveFit),					"recursiveFit")
-    ("partitionSizeMethod",	value<PartitionSize::PartitionSizeMethod>(&partitionSizeMethod),"partitionSizeMethod")
-    ("learningRateMethod",	value<LearningRate::LearningRateMethod>(&learningRateMethod),	"learningRateMethod")
-    ("stepSizeMethod",		value<StepSize::StepSizeMethod>(&stepSizeMethod),		"stepSizeMethod")
     ("childPartitionSize",	value<std::vector<std::size_t>>(&childPartitionSize)->multitoken(),		"childPartitionSize")
     ("childNumSteps",		value<std::vector<std::size_t>>(&childNumSteps)->multitoken(),		"childNumSteps")
     ("childLearningRate",	value<std::vector<double>>(&childLearningRate)->multitoken(),	"childLearningRate")
@@ -271,9 +198,8 @@ auto main(int argc, char **argv) -> int {
   context.upper_val = upper_val;
   context.lower_val = lower_val;
   context.partitionSize = partitionSize;
-  context.partitionRatio = partitionRatio;
-  context.learningRate = learningRate;
   context.activePartitionRatio = activePartitionRatio;
+  context.learningRate = learningRate;
   context.steps = steps;
   context.baseSteps = baseSteps;
   context.symmetrizeLabels = symmetrizeLabels;
@@ -283,9 +209,6 @@ auto main(int argc, char **argv) -> int {
   context.rowSubsampleRatio = rowSubsampleRatio;
   context.colSubsampleRatio = colSubsampleRatio;
   context.recursiveFit = recursiveFit;
-  context.partitionSizeMethod = partitionSizeMethod;
-  context.learningRateMethod = learningRateMethod;
-  context.stepSizeMethod = stepSizeMethod;
   context.childPartitionSize = childPartitionSize;
   context.childNumSteps = childNumSteps;
   context.childLearningRate = childLearningRate;

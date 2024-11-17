@@ -791,7 +791,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveReplay) {
   context.childMinLeafSize = std::vector<std::size_t>{1, 1};
   context.childMaxDepth = std::vector<std::size_t>{5, 5};
   context.childMinimumGainSplit = std::vector<double>{0., 0.};
-  context.partitionRatio = .25;
+  context.activePartitionRatio = .25;
   context.quietRun = true;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
@@ -876,7 +876,7 @@ TEST(GradientBoostClassifierTest, TestInSamplePredictionMatchesLatestPrediction)
   context.childMinLeafSize = std::vector<std::size_t>{1, 1};
   context.childMaxDepth = std::vector<std::size_t>{5, 5};
   context.childMinimumGainSplit = std::vector<double>{0., 0.};
-  context.partitionRatio = .25;
+  context.activePartitionRatio = .25;
   context.quietRun = true;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
@@ -933,7 +933,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierRecursiveRoundTrips) {
   context.childMinLeafSize = std::vector<std::size_t>{1, 1};
   context.childMaxDepth = std::vector<std::size_t>{5, 5};
   context.childMinimumGainSplit = std::vector<double>{0., 0.};
-  context.partitionRatio = .25;
+  context.activePartitionRatio = .25;
   context.quietRun = true;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
@@ -1065,7 +1065,7 @@ TEST(GradientBoostClassifierTest, TestAggregateClassifierNonRecursiveRoundTrips)
   context.childMinLeafSize = std::vector<std::size_t>{1, 1};
   context.childMaxDepth = std::vector<std::size_t>{5, 5};
   context.childMinimumGainSplit = std::vector<double>{0., 0.};
-  context.partitionRatio = .25;
+  context.activePartitionRatio = .25;
   context.quietRun = true;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
@@ -1118,9 +1118,8 @@ TEST(GradientBoostRegressorTest, TestContextWrittenWithCorrectValues) {
   std::string fileName = "./ctx_cls.dat";
   std::string cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/create_context_regressor ";
 
-  cmd += "--loss 0 --partitionSize 41 --partitionRatio .25 ";
-  cmd += "--partitionSizeMethod 0 --learningRateMethod 0 ";
-  cmd += "--learningRate 1. --steps 4122 --symmetrizeLabels false ";
+  cmd += "--loss 0 ";
+  cmd += "--steps 4122 --symmetrizeLabels false ";
   cmd += "--childPartitionSize 1000 500 250 125 10 1 --childNumSteps 100 10 5 2 1 1 ";
   cmd += "--childMinLeafSize 10 10 5 2 1 ";
   cmd += "--fileName ./ctx_cls.dat";
@@ -1131,11 +1130,7 @@ TEST(GradientBoostRegressorTest, TestContextWrittenWithCorrectValues) {
 
   // User set values
   ASSERT_EQ(std::get<regressorLossFunction>(context_archive.loss), regressorLossFunction::MSE);
-  ASSERT_EQ(context_archive.partitionSize, 41);
   ASSERT_EQ(context_archive.steps, 4122);
-  ASSERT_EQ(context_archive.partitionRatio, .25);
-  ASSERT_EQ(context_archive.partitionSizeMethod, PartitionSize::PartitionSizeMethod::FIXED);
-  ASSERT_EQ(context_archive.learningRateMethod, LearningRate::LearningRateMethod::FIXED);
   ASSERT_EQ(context_archive.symmetrizeLabels, false);
   
   std::vector<std::size_t> targetPartitionSize = {1000, 500, 250, 125, 10, 1};
@@ -1172,8 +1167,7 @@ TEST(GradientBoostClassifierTest, TestContextWrittenWithCorrectValues) {
   std::string fileName = "ctx_reg.dat";
   std::string cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/create_context_classifier ";
 
-  cmd += "--loss 7 --partitionSize 6 --partitionRatio .25 ";
-  cmd += "--partitionSizeMethod 1 --learningRateMethod 2 ";
+  cmd += "--loss 7 ";
   cmd += "--learningRate .01 --steps 1010 --symmetrizeLabels true ";
   cmd += "--childMinLeafSize 10 10 5 2 1 ";
   cmd += "--fileName ctx_reg.dat";
@@ -1184,11 +1178,7 @@ TEST(GradientBoostClassifierTest, TestContextWrittenWithCorrectValues) {
 
   // User set values
   ASSERT_EQ(std::get<classifierLossFunction>(context_archive.loss), classifierLossFunction::SquareLoss);
-  ASSERT_EQ(context_archive.partitionSize, 6);
   ASSERT_EQ(context_archive.steps, 1010);
-  ASSERT_EQ(context_archive.partitionRatio, .25);
-  ASSERT_EQ(context_archive.partitionSizeMethod, PartitionSize::PartitionSizeMethod::FIXED_PROPORTION);
-  ASSERT_EQ(context_archive.learningRateMethod, LearningRate::LearningRateMethod::DECREASING);
 
   std::vector<std::size_t> targetMinLeafSize = {10, 10, 5, 2, 1};
   for (std::size_t i=0; i<context_archive.childMinLeafSize.size(); ++i) {
@@ -1213,9 +1203,7 @@ TEST(GradientBoostClassifierTest, TestContextReadWrite) {
   Context context{}, context_archive;
   
   context.loss = classifierLossFunction::BinomialDeviance;
-  context.partitionSize = partitionSize;
-  context.partitionRatio = .25;
-  context.learningRate = .01;
+  context.activePartitionRatio = .25;
   context.steps = 21;
   context.quietRun = true;
   context.symmetrizeLabels = true;
@@ -1237,9 +1225,6 @@ TEST(GradientBoostClassifierTest, TestContextReadWrite) {
 
   ASSERT_EQ(std::get<classifierLossFunction>(context_archive.loss), classifierLossFunction::BinomialDeviance);
   ASSERT_EQ(context_archive.loss, context.loss);
-
-  ASSERT_EQ(context_archive.partitionSize, 10);
-  ASSERT_EQ(context_archive.partitionSize, context.partitionSize);
 
 }
 
@@ -1267,7 +1252,7 @@ TEST(GradientBoostClassifierTest, TestWritePrediction) {
   context.childMinLeafSize = std::vector<std::size_t>{1, 1};
   context.childMaxDepth = std::vector<std::size_t>{5, 5};
   context.childMinimumGainSplit = std::vector<double>{0., 0.};
-  context.partitionRatio = .25;
+  context.activePartitionRatio = .25;
   context.quietRun = true;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
@@ -1342,7 +1327,7 @@ TEST(GradientBoostRegressorTest, TestPredictionRoundTrip) {
   context.childMinLeafSize = std::vector<std::size_t>{1, 1};
   context.childMaxDepth = std::vector<std::size_t>{5, 5};
   context.childMinimumGainSplit = std::vector<double>{0., 0.};
-  context.partitionRatio = .25;
+  context.activePartitionRatio = .25;
   context.baseSteps = 35;
   context.quietRun = true;
   context.symmetrizeLabels = false;
@@ -1427,7 +1412,7 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
   context.childMinLeafSize = std::vector<std::size_t>{1, 1};
   context.childMaxDepth = std::vector<std::size_t>{5, 5};
   context.childMinimumGainSplit = std::vector<double>{0., 0.};
-  context.partitionRatio = .25;
+  context.activePartitionRatio = .25;
   context.quietRun = true;
   context.baseSteps = 214;
   context.symmetrizeLabels = true;
@@ -1585,7 +1570,7 @@ TEST(GradientBoostRegressorTest, TestInSamplePredictionMatchesLatestPrediction) 
   context.childMinLeafSize = std::vector<std::size_t>{1, 1, 1};
   context.childMaxDepth = std::vector<std::size_t>{5, 5, 5};
   context.childMinimumGainSplit = std::vector<double>{0., 0., 0.};
-  context.partitionRatio = .25;
+  context.activePartitionRatio = .25;
   context.quietRun = true;
   context.symmetrizeLabels = true;
   context.rowSubsampleRatio = 1.;
@@ -1642,7 +1627,7 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorRecursiveReplay) {
   context.childMinLeafSize = std::vector<std::size_t>{1, 1, 1};
   context.childMaxDepth = std::vector<std::size_t>{5, 5, 5};
   context.childMinimumGainSplit = std::vector<double>{0., 0., 0.};
-  context.partitionRatio = .25;
+  context.activePartitionRatio = .25;
   context.quietRun = true;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = 1.; // .75
@@ -1739,7 +1724,7 @@ TEST(GradientBoostRegressorTest, TestAggregateRegressorNonRecursiveRoundTrips) {
   context.childMinLeafSize = std::vector<std::size_t>{1, 1};
   context.childMaxDepth = std::vector<std::size_t>{5, 5};
   context.childMinimumGainSplit = std::vector<double>{0., 0.};
-  context.partitionRatio = .25;
+  context.activePartitionRatio = .25;
   context.quietRun = true;
   context.symmetrizeLabels = false;
   context.removeRedundantLabels = false;
@@ -1846,7 +1831,7 @@ TEST(GradientBoostRegressorTest, TestPerfectInSampleFit) {
     context.childMinLeafSize = std::vector<std::size_t>{1, 1};
     context.childMaxDepth = std::vector<std::size_t>{5, 5};
     context.childMinimumGainSplit = std::vector<double>{0., 0.};    
-    context.partitionRatio = .25;
+    context.activePartitionRatio = .25;
     context.baseSteps = 1000;
     context.symmetrizeLabels = true;
     context.serializationWindow = 1000;
@@ -1930,7 +1915,7 @@ TEST(GradientBoostRegressorTest, TestOutofSampleFit) {
     context.childMinLeafSize = std::vector<std::size_t>{1, 1};
     context.childMaxDepth = std::vector<std::size_t>{5, 5};
     context.childMinimumGainSplit = std::vector<double>{0., 0.};
-    context.partitionRatio = .25;
+    context.activePartitionRatio = .25;
     context.baseSteps = 1000;
     context.symmetrizeLabels = true;
     context.serializationWindow = 1000;

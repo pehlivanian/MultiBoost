@@ -51,70 +51,6 @@ namespace std {
     return in;
   }
 
-
-  std::istream& operator>>(std::istream& in, PartitionSize::PartitionSizeMethod& meth) {
-    int token;
-    in >> token;
-    switch (token) {
-    case (0):
-      meth = PartitionSize::PartitionSizeMethod::FIXED;
-      break;
-    case (1):
-      meth = PartitionSize::PartitionSizeMethod::FIXED_PROPORTION;
-      break;
-    case (2):
-      meth = PartitionSize::PartitionSizeMethod::DECREASING;
-      break;
-    case (3):
-      meth = PartitionSize::PartitionSizeMethod::INCREASING;
-      break;
-    case (4):
-      meth = PartitionSize::PartitionSizeMethod::RANDOM;
-      break;
-    case (5):
-      meth = PartitionSize::PartitionSizeMethod::MULTISCALE;
-      break;
-    default:
-      in.setstate(std::ios_base::failbit);
-    }
-    return in;
-  }
-
-  std::istream& operator>>(std::istream& in, LearningRate::LearningRateMethod& meth) {
-    int token;
-    in >> token;
-    switch (token) {
-    case (0):
-      meth = LearningRate::LearningRateMethod::FIXED;
-      break;
-    case (1):
-      meth = LearningRate::LearningRateMethod::INCREASING;
-      break;
-    case (2):
-      meth = LearningRate::LearningRateMethod::DECREASING;
-      break;
-    default:
-      in.setstate(std::ios_base::failbit);
-    }
-    return in;
-  }
-
-  std::istream& operator>>(std::istream& in, StepSize::StepSizeMethod& meth) {
-    int token;
-    in >> token;
-    switch (token) {
-    case (0):
-      meth = StepSize::StepSizeMethod::LOG;
-      break;
-    case (1):
-      meth = StepSize::StepSizeMethod::PROPORTION;
-      break;
-    default:
-      in.setstate(std::ios_base::failbit);
-    }
-    return in;
-  }
-
 };
 
 
@@ -133,8 +69,6 @@ auto main(int argc, char **argv) -> int {
      context.colSubsampleRatio = .25; // .75
      context.recursiveFit = true;
      context.serializeModel = false;
-     context.partitionSizeMethod = PartitionSize::SizeMethod::FIXED; // INCREASING
-     context.learningRateMethod = LearningRate::RateMethod::FIXED;   // DECREASING
      context.minLeafSize = 1;
      context.maxDepth = 10;
      context.minimumGainSplit = 0.;
@@ -145,10 +79,6 @@ auto main(int argc, char **argv) -> int {
   bool					clamp_gradient		  = false;
   double				upper_val		  = 0.;
   double				lower_val		  = 0.;
-  std::size_t				partitionSize		  = 6;
-  double				partitionRatio		  = .25;
-  double				learningRate		  = .0001;
-  double				activePartitionRatio	  = 0.5;
   int					steps			  = 10000;
   int					baseSteps		  = 10000;
   bool					symmetrizeLabels	  = true;
@@ -158,9 +88,7 @@ auto main(int argc, char **argv) -> int {
   double				rowSubsampleRatio	  = 1.;
   double				colSubsampleRatio	  = .25;
   bool					recursiveFit		  = true;
-  PartitionSize::PartitionSizeMethod	partitionSizeMethod	  = PartitionSize::PartitionSizeMethod::FIXED;
-  LearningRate::LearningRateMethod	learningRateMethod	  = LearningRate::LearningRateMethod::FIXED;
-  StepSize::StepSizeMethod		stepSizeMethod		  = StepSize::StepSizeMethod::LOG;
+  double				activePartitionRatio	  = 0.25;
   std::vector<std::size_t>		childPartitionSize	  = std::vector<std::size_t>{};
   std::vector<std::size_t>		childNumSteps		  = std::vector<std::size_t>{};
   std::vector<double>			childLearningRate	  = std::vector<double>{};
@@ -168,9 +96,6 @@ auto main(int argc, char **argv) -> int {
   std::vector<std::size_t>		childMinLeafSize	  = std::vector<std::size_t>{};
   std::vector<std::size_t>		childMaxDepth		  = std::vector<std::size_t>{};
   std::vector<double>			childMinimumGainSplit	  = std::vector<double>{};
-  std::size_t				minLeafSize		  = 1;
-  double				minimumGainSplit	  = 0.;
-  std::size_t				maxDepth		  = 10;
   std::size_t				numTrees		  = 10;
   bool					serializeModel		  = false;
   bool					serializePrediction	  = false;
@@ -190,10 +115,6 @@ auto main(int argc, char **argv) -> int {
     ("clamp_gradient",		value<bool>(&clamp_gradient),					"clamp_gradient")
     ("upper_val",		value<double>(&upper_val),					"upper_val")
     ("lower_val",		value<double>(&lower_val),					"lower_val")
-    ("partitionSize",		value<std::size_t>(&partitionSize),				"partitionSize")
-    ("partitionRatio",		value<double>(&partitionRatio),					"partitionRatio")
-    ("learningRate",		value<double>(&learningRate),					"learningRate")
-    ("activePartitionRatio",	value<double>(&activePartitionRatio),				"activePartitionRatio")
     ("steps",			value<int>(&steps),						"steps")
     ("baseSteps",		value<int>(&baseSteps),						"baseSteps")
     ("symmetrizeLabels",	value<bool>(&symmetrizeLabels),					"symmetrizeLabels")
@@ -203,9 +124,6 @@ auto main(int argc, char **argv) -> int {
     ("rowSubsampleRatio",	value<double>(&rowSubsampleRatio),				"rowSubsampleRatio")
     ("colSubsampleRatio",	value<double>(&colSubsampleRatio),				"colSubsampleRatio")
     ("recursiveFit",		value<bool>(&recursiveFit),					"recursiveFit")
-    ("partitionSizeMethod",	value<PartitionSize::PartitionSizeMethod>(&partitionSizeMethod),"partitionSizeMethod")
-    ("learningRateMethod",	value<LearningRate::LearningRateMethod>(&learningRateMethod),	"learningRateMethod")
-    ("stepSizeMethod",		value<StepSize::StepSizeMethod>(&stepSizeMethod),		"stepSizeMethod")
     ("childPartitionSize",	value<std::vector<std::size_t>>(&childPartitionSize)->multitoken(),		"childPartitionSize")
     ("childNumSteps",		value<std::vector<std::size_t>>(&childNumSteps)->multitoken(),		"childNumSteps")
     ("childLearningRate",	value<std::vector<double>>(&childLearningRate)->multitoken(),	"childLearningRate")
@@ -213,9 +131,6 @@ auto main(int argc, char **argv) -> int {
     ("childMinLeafSize",	value<std::vector<std::size_t>>(&childMinLeafSize)->multitoken(),	"childMinLeafSize")
     ("childMaxDepth",		value<std::vector<std::size_t>>(&childMaxDepth)->multitoken(),	"childMaxDepth")
     ("childMinimumGainSplit",	value<std::vector<double>>(&childMinimumGainSplit)->multitoken(),	"childMinimumGainSplit")
-    ("minLeafSize",		value<std::size_t>(&minLeafSize),				"minLeafSize")
-    ("minimumGainSplit",	value<double>(&minimumGainSplit),				"minimumGainSplit")
-    ("maxDepth",		value<std::size_t>(&maxDepth),					"maxDepth")
     ("numTrees",		value<std::size_t>(&numTrees),					"numTrees")
     ("serializeModel",		value<bool>(&serializeModel),					"serializeModel")
     ("serializePrediction",	value<bool>(&serializePrediction),				"serializePrediction")
@@ -252,9 +167,6 @@ auto main(int argc, char **argv) -> int {
   context.clamp_gradient = clamp_gradient;
   context.upper_val = upper_val;
   context.lower_val = lower_val;
-  context.partitionSize = partitionSize;
-  context.partitionRatio = partitionRatio;
-  context.learningRate = learningRate;
   context.activePartitionRatio = activePartitionRatio;
   context.steps = steps;
   context.baseSteps = baseSteps;
@@ -265,9 +177,6 @@ auto main(int argc, char **argv) -> int {
   context.rowSubsampleRatio = rowSubsampleRatio;
   context.colSubsampleRatio = colSubsampleRatio;
   context.recursiveFit = recursiveFit;
-  context.partitionSizeMethod = partitionSizeMethod;
-  context.learningRateMethod = learningRateMethod;
-  context.stepSizeMethod = stepSizeMethod;
   context.childPartitionSize = childPartitionSize;
   context.childNumSteps = childNumSteps;
   context.childLearningRate = childLearningRate;
@@ -275,9 +184,6 @@ auto main(int argc, char **argv) -> int {
   context.childMinLeafSize = childMinLeafSize;
   context.childMaxDepth = childMaxDepth;
   context.childMinimumGainSplit = childMinimumGainSplit;
-  context.minLeafSize = minLeafSize;
-  context.minimumGainSplit = minimumGainSplit;
-  context.maxDepth = maxDepth;
   context.numTrees = numTrees;
   context.serializeModel = serializeModel;
   context.serializePrediction = serializePrediction;
@@ -300,6 +206,15 @@ auto main(int argc, char **argv) -> int {
   // To deserialize
   // Context context_archive;
   // loads<CerealT, CerealIArch, CerealOArch>(context_archive, fileName, fldr);
+
+
+  // Create json archive
+  std::string fileNameJSON = fileName + ".json";
+  dumps<Context, cereal::JSONInputArchive, cereal::JSONOutputArchive>(context, fileNameJSON, fldr);  
+
+  Context context_json;
+  loads<Context, cereal::JSONInputArchive, cereal::JSONOutputArchive>(context_json, fileNameJSON, fldr);
+  dumps<CerealT, CerealIArch, CerealOArch>(context_json, fileName, fldr);
 
   return 0;
 }

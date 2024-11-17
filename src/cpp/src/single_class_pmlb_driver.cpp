@@ -53,7 +53,7 @@ auto main() -> int {
   context.childMinLeafSize = std::vector<std::size_t>{1, 1, 1, 1, 1};
   context.childMaxDepth = std::vector<std::size_t>{10, 10, 10, 10, 10};
   context.childMinimumGainSplit = std::vector<double>{0., 0., 0., 0., 0.};
-  context.partitionRatio = .25;
+  context.activePartitionRatio = .25;
   context.baseSteps = 1000;
   context.symmetrizeLabels = true;
   context.serializationWindow = 1000;
@@ -66,9 +66,6 @@ auto main() -> int {
   context.serializeDataset = false;
   context.serializeLabels = false;
   context.serializationWindow = 1;
-  context.partitionSizeMethod = PartitionSize::PartitionSizeMethod::FIXED; // INCREASING
-  context.learningRateMethod = LearningRate::LearningRateMethod::FIXED;    // DECREASING
-  context.stepSizeMethod = StepSize::StepSizeMethod::LOG;	
 
   using classifier = GradientBoostClassifier<DecisionTreeClassifier>;
   auto c = std::make_unique<classifier>(trainDataset, 

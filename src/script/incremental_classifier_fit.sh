@@ -143,7 +143,6 @@ $EXEC_CC \
 --childNumSteps ${childnumsteps[@]} \
 --childLearningRate ${childlearningrate[@]} \
 --childActivePartitionRatio ${childactivepartitionratio[@]} \
---partitionRatio .25 \
 --baseSteps ${basesteps} \
 --symmetrizeLabels true \
 --removeRedundantLabels false \
@@ -156,9 +155,6 @@ $EXEC_CC \
 --serializePrediction true \
 --serializeDataset true \
 --serializeLabels true \
---partitionSizeMethod 0 \
---learningRateMethod 0 \
---stepSizeMethod 0 \
 --childMinLeafSize ${childminleafsize[@]} \
 --childMaxDepth ${childmaxdepth[@]} \
 --childMinimumGainSplit ${childminimumgainsplit[@]} \
@@ -177,7 +173,6 @@ $EXEC_CC \
 --childNumSteps ${childnumsteps[@]} \
 --childLearningRate ${childlearningrate[@]} \
 --childActivePartitionRatio ${childactivepartitionratio[@]} \
---partitionRatio .25 \
 --baseSteps ${basesteps} \
 --symmetrizeLabels true \
 --removeRedundantLabels false \
@@ -190,9 +185,6 @@ $EXEC_CC \
 --serializePrediction true \
 --serializeDataset false \
 --serializeLabels false \
---partitionSizeMethod 0 \
---learningRateMethod 0 \
---stepSizeMethod 0 \
 --childMinLeafSize ${childminleafsize[@]} \
 --childMaxDepth ${childmaxdepth[@]} \
 --childMinimumGainSplit ${childminimumgainsplit[@]} \

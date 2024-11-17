@@ -75,13 +75,13 @@ class DBExt(object):
         dbName = dbName or ('MULTISCALEGB_CLASS' if is_classifier else 'MULTISCALEGB_REG')
         self.engine = create_engine('mysql+mysqldb://{}:{}@localhost/{}'.format(user,passwd,dbName))
         self.conn = Session(self.engine)
+        self.insp  = inspect(self.engine)
         
     def list_databases(self):
-        insp = inspect(self.conn)
-        return insp.get_schema_names()
+        return self.insp.get_schema_names()
 
-    def list_tables(self):
-        return self.conn.table_names()
+    def list_tables(self, schema):
+        return self.issp.get_table_names(schema=schema)
 
     def execute(self, q):
         req = self.conn.execute(text(q))

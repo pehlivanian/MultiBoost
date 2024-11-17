@@ -42,7 +42,7 @@ using namespace LossMeasures;
 
 namespace LearningRate {
   enum class LearningRateMethod {
-    FIXED = 0,
+      FIXED = 0,
       INCREASING = 1,
       DECREASING = 2,
       };
@@ -78,9 +78,6 @@ namespace ModelContext{
       quietRun{false},
       useWeights{false},
       recursiveFit{false},
-      partitionSizeMethod{PartitionSize::PartitionSizeMethod::FIXED},
-      learningRateMethod{LearningRate::LearningRateMethod::FIXED},
-      stepSizeMethod{StepSize::StepSizeMethod::LOG},
       childPartitionSize{std::vector<std::size_t>()},
       childNumSteps{std::vector<std::size_t>()},
       childLearningRate{std::vector<double>()},
@@ -104,9 +101,11 @@ namespace ModelContext{
       upper_val = rhs.upper_val;
       lower_val = rhs.lower_val;
       partitionSize = rhs.partitionSize;
-      partitionRatio = rhs.partitionRatio;
       learningRate = rhs.learningRate;
       activePartitionRatio = rhs.activePartitionRatio;
+      maxDepth = rhs.maxDepth;
+      minLeafSize = rhs.minLeafSize;
+      minimumGainSplit = rhs.minimumGainSplit;
       steps = rhs.steps;
       if (rhs.baseSteps > 0) {
 	baseSteps = rhs.baseSteps;
@@ -120,9 +119,6 @@ namespace ModelContext{
       rowSubsampleRatio = rhs.rowSubsampleRatio;
       colSubsampleRatio = rhs.colSubsampleRatio;
       recursiveFit = rhs.recursiveFit;
-      partitionSizeMethod = rhs.partitionSizeMethod;
-      learningRateMethod = rhs.learningRateMethod;
-      stepSizeMethod = rhs.stepSizeMethod;
       childPartitionSize = rhs.childPartitionSize;
       childNumSteps = rhs.childNumSteps;
       childLearningRate = rhs.childLearningRate;
@@ -130,9 +126,6 @@ namespace ModelContext{
       childMinLeafSize = rhs.childMinLeafSize;
       childMaxDepth = rhs.childMaxDepth;
       childMinimumGainSplit = rhs.childMinimumGainSplit;
-      minLeafSize = rhs.minLeafSize;
-      maxDepth = rhs.maxDepth;
-      minimumGainSplit = rhs.minimumGainSplit;
       numTrees = rhs.numTrees;
       serializeModel = rhs.serializeModel;
       serializePrediction = rhs.serializePrediction;
@@ -146,55 +139,58 @@ namespace ModelContext{
 
     template<class Archive>
     void serialize(Archive &ar) {
-      ar(loss);
-      ar(lossPower);
-      ar(clamp_gradient);
-      ar(upper_val);
-      ar(lower_val);
-      ar(partitionSize);
-      ar(partitionRatio);
-      ar(learningRate);
-      ar(activePartitionRatio);
-      ar(steps);
-      ar(baseSteps);
-      ar(symmetrizeLabels);
-      ar(removeRedundantLabels);
-      ar(quietRun);
-      ar(useWeights);
-      ar(rowSubsampleRatio);
-      ar(colSubsampleRatio);
-      ar(recursiveFit);
-      ar(partitionSizeMethod);
-      ar(learningRateMethod);
-      ar(stepSizeMethod);
-      ar(childPartitionSize);
-      ar(childNumSteps);
-      ar(childLearningRate);
-      ar(childActivePartitionRatio);
-      ar(childMinLeafSize);
-      ar(childMinimumGainSplit);
-      ar(childMaxDepth);
-      ar(numTrees);
-      ar(serializeModel);
-      ar(serializePrediction);
-      ar(serializeColMask);
-      ar(serializeDataset);
-      ar(serializeLabels);
-      ar(serializationWindow);
-      ar(depth);
+      ar(CEREAL_NVP(steps),
+	 CEREAL_NVP(baseSteps),
+	 CEREAL_NVP(recursiveFit),
+	 CEREAL_NVP(useWeights),
+	 CEREAL_NVP(rowSubsampleRatio),
+	 CEREAL_NVP(colSubsampleRatio),
+	 CEREAL_NVP(removeRedundantLabels),
+	 CEREAL_NVP(symmetrizeLabels),
+	 
+	 // Loss
+	 CEREAL_NVP(loss),
+	 CEREAL_NVP(lossPower),
+	 CEREAL_NVP(clamp_gradient),
+	 CEREAL_NVP(upper_val),
+	 CEREAL_NVP(lower_val),
+
+	 // Unused
+	 CEREAL_NVP(numTrees),
+	 CEREAL_NVP(depth),
+
+	 // Array types
+	 CEREAL_NVP(childPartitionSize),
+	 CEREAL_NVP(childNumSteps),
+	 CEREAL_NVP(childLearningRate),
+	 CEREAL_NVP(childActivePartitionRatio),
+	 CEREAL_NVP(childMinLeafSize),
+	 CEREAL_NVP(childMinimumGainSplit),
+	 CEREAL_NVP(childMaxDepth),
+
+	 // Serialization
+	 CEREAL_NVP(serializeModel),
+	 CEREAL_NVP(serializePrediction),
+	 CEREAL_NVP(serializeColMask),
+	 CEREAL_NVP(serializeDataset),
+	 CEREAL_NVP(serializeLabels),
+	 CEREAL_NVP(serializationWindow),
+
+	 CEREAL_NVP(quietRun)
+
+	 );
     }
-      
+
     std::variant<classifierLossFunction, regressorLossFunction> loss;
     float lossPower;
     bool clamp_gradient;
     double upper_val;
     double lower_val;
     std::size_t partitionSize;
-    double partitionRatio;
     double learningRate;
     double activePartitionRatio;
-    std::size_t minLeafSize;
     std::size_t maxDepth;
+    std::size_t minLeafSize;
     double minimumGainSplit;
     std::size_t numTrees;
     int steps;
@@ -206,9 +202,6 @@ namespace ModelContext{
     double rowSubsampleRatio;
     double colSubsampleRatio;
     bool recursiveFit;
-    PartitionSize::PartitionSizeMethod partitionSizeMethod;
-    LearningRate::LearningRateMethod learningRateMethod;
-    StepSize::StepSizeMethod stepSizeMethod;
     std::vector<std::size_t> childPartitionSize;
     std::vector<std::size_t> childNumSteps;
     std::vector<double> childLearningRate;
@@ -678,6 +671,11 @@ namespace IB_utils {
   using tstring = std::basic_string<CharT, std::char_traits<CharT>, std::allocator<CharT>>;
   template<typename CharT>
   using tstringstream = std::basic_stringstream<CharT, std::char_traits<CharT>, std::allocator<CharT>>;
+
+  template<typename CharT>
+  inline void strReplace(tstring<CharT>& text, tstring<CharT> from, tstring<CharT> to) {
+    text.replace(text.find(from), from.length(), to);
+  }
 
   template<typename CharT>
   inline std::vector<tstring<CharT>> strSplit(tstring<CharT> text, CharT const delimiter) {
