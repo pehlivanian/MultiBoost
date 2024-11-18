@@ -21,7 +21,6 @@ ContextManager::contextInit(CompositeRegressor<RegressorType>& r,
   r.maxDepth_			= context.childMaxDepth[0];
   r.minimumGainSplit_		= context.childMinimumGainSplit[0];
 
-  r.baseSteps_			= context.baseSteps;
   r.quietRun_			= context.quietRun;
   r.row_subsample_ratio_	= context.rowSubsampleRatio;
   r.col_subsample_ratio_	= context.colSubsampleRatio;
@@ -66,7 +65,6 @@ ContextManager::contextInit(CompositeClassifier<ClassifierType>& c, const Contex
   c.maxDepth_			= context.childMaxDepth[0];
   c.minimumGainSplit_		= context.childMinimumGainSplit[0];
   
-  c.baseSteps_			= context.baseSteps;
   c.symmetrized_		= context.symmetrizeLabels;
   c.removeRedundantLabels_	= context.removeRedundantLabels;
   c.quietRun_			= context.quietRun;
@@ -114,7 +112,6 @@ ContextManager::childContext(Context& context, const CompositeRegressor<Regresso
   context.clamp_gradient	= r.clamp_gradient_;
   context.upper_val		= r.upper_val_;
   context.lower_val		= r.lower_val_;
-  context.baseSteps		= r.baseSteps_;
   context.symmetrizeLabels	= false;
   context.removeRedundantLabels	= false;
   context.rowSubsampleRatio	= r.row_subsample_ratio_;
@@ -176,7 +173,6 @@ ContextManager::childContext(Context& context, const CompositeClassifier<Classif
   context.clamp_gradient	= c.clamp_gradient_;
   context.upper_val		= c.upper_val_;
   context.lower_val		= c.lower_val_;
-  context.baseSteps		= c.baseSteps_;
   context.symmetrizeLabels	= false;
   context.removeRedundantLabels	= true;
   context.rowSubsampleRatio	= c.row_subsample_ratio_;

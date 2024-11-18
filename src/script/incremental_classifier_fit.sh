@@ -52,7 +52,7 @@ declare -a lower_val
 declare -a runOnTestDataset
 
 dataname=""
-basesteps=""
+steps=""
 colsubsample_ratio=""
 split_ratio=""
 
@@ -96,7 +96,7 @@ while (( $# )); do
   done
 
   dataname+=$1; shift
-  basesteps+=$1; shift
+  steps+=$1; shift
   loss_fn+=$1; shift
   loss_power+=${1:0}; shift
   colsubsample_ratio+=$1; shift
@@ -128,7 +128,7 @@ STEPS=1
 CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCreifissa.cxt
 CONTEXT_PATH_RUNS=__CTX_RUNS_EtxetnoC7txetnoCreifissa.cxt
 
-((ITERS=$basesteps / $STEPS))
+((ITERS=$steps / $STEPS))
 PREFIX="["${dataname}"]"
 
 echo -n $PREFIX" "
@@ -143,7 +143,7 @@ $EXEC_CC \
 --childNumSteps ${childnumsteps[@]} \
 --childLearningRate ${childlearningrate[@]} \
 --childActivePartitionRatio ${childactivepartitionratio[@]} \
---baseSteps ${basesteps} \
+--steps ${steps} \
 --symmetrizeLabels true \
 --removeRedundantLabels false \
 --quietRun true \
@@ -173,7 +173,7 @@ $EXEC_CC \
 --childNumSteps ${childnumsteps[@]} \
 --childLearningRate ${childlearningrate[@]} \
 --childActivePartitionRatio ${childactivepartitionratio[@]} \
---baseSteps ${basesteps} \
+--steps ${steps} \
 --symmetrizeLabels true \
 --removeRedundantLabels false \
 --quietRun true \

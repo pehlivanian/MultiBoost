@@ -73,7 +73,7 @@ namespace ModelContext{
   struct Context {
 
     Context() :
-      baseSteps{-1},
+      steps{-1},
       removeRedundantLabels{false},
       quietRun{false},
       useWeights{false},
@@ -107,11 +107,6 @@ namespace ModelContext{
       minLeafSize = rhs.minLeafSize;
       minimumGainSplit = rhs.minimumGainSplit;
       steps = rhs.steps;
-      if (rhs.baseSteps > 0) {
-	baseSteps = rhs.baseSteps;
-      } else {
-	baseSteps = rhs.steps;
-      }
       symmetrizeLabels = rhs.symmetrizeLabels;
       removeRedundantLabels = rhs.removeRedundantLabels;
       quietRun = rhs.quietRun;
@@ -140,7 +135,6 @@ namespace ModelContext{
     template<class Archive>
     void serialize(Archive &ar) {
       ar(CEREAL_NVP(steps),
-	 CEREAL_NVP(baseSteps),
 	 CEREAL_NVP(recursiveFit),
 	 CEREAL_NVP(useWeights),
 	 CEREAL_NVP(rowSubsampleRatio),
@@ -194,7 +188,6 @@ namespace ModelContext{
     double minimumGainSplit;
     std::size_t numTrees;
     int steps;
-    int baseSteps;
     bool symmetrizeLabels;
     bool removeRedundantLabels;
     bool quietRun;

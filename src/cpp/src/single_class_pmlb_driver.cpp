@@ -54,7 +54,7 @@ auto main() -> int {
   context.childMaxDepth = std::vector<std::size_t>{10, 10, 10, 10, 10};
   context.childMinimumGainSplit = std::vector<double>{0., 0., 0., 0., 0.};
   context.activePartitionRatio = .25;
-  context.baseSteps = 1000;
+  context.steps = 1000;
   context.symmetrizeLabels = true;
   context.serializationWindow = 1000;
   context.removeRedundantLabels = false;

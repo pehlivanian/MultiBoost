@@ -1328,7 +1328,7 @@ TEST(GradientBoostRegressorTest, TestPredictionRoundTrip) {
   context.childMaxDepth = std::vector<std::size_t>{5, 5};
   context.childMinimumGainSplit = std::vector<double>{0., 0.};
   context.activePartitionRatio = .25;
-  context.baseSteps = 35;
+  context.steps = 35;
   context.quietRun = true;
   context.symmetrizeLabels = false;
   context.rowSubsampleRatio = 1.;
@@ -1367,7 +1367,7 @@ TEST(GradientBoostRegressorTest, TestPredictionRoundTrip) {
     // We have archive prediction for an intermiediate point [1..22..106]
     // Create a regressor over the entire period and fit
     context.childNumSteps = std::vector<std::size_t>{35};
-    context.baseSteps = 35;
+    context.steps = 35;
     T secondRegressor;
     secondRegressor = T(trainDataset, trainLabels, testDataset, testLabels, context);
     secondRegressor.fit();
@@ -1375,7 +1375,7 @@ TEST(GradientBoostRegressorTest, TestPredictionRoundTrip) {
 
     // Compare with 24 steps from archivePrediction
     context.childNumSteps = std::vector<std::size_t>{14};
-    context.baseSteps = 35;
+    context.steps = 35;
     T archiveRegressor = T(trainDataset, trainLabels, testDataset, testLabels, archivePrediction, context);
     archiveRegressor.fit();
     archiveRegressor.Predict(archivePrediction);
@@ -1414,7 +1414,7 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
   context.childMinimumGainSplit = std::vector<double>{0., 0.};
   context.activePartitionRatio = .25;
   context.quietRun = true;
-  context.baseSteps = 214;
+  context.steps = 214;
   context.symmetrizeLabels = true;
   context.quietRun = true;
   context.rowSubsampleRatio = 1.;
@@ -1456,7 +1456,7 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
     // We have archive prediction for an intermediate point [1..114..214]
     // Create a classifier over the entire period and fit
     context.childNumSteps = std::vector<std::size_t>{214};
-    context.baseSteps = 214;
+    context.steps = 214;
     T secondClassifier;
     secondClassifier = T(trainDataset, trainLabels, testDataset, testLabels, context);
     secondClassifier.fit();
@@ -1464,7 +1464,7 @@ TEST(GradientBoostClassifierTest, TestPredictionRoundTrip) {
 
     // Compare with 100 steps from archivePrediction
     context.childNumSteps = std::vector<std::size_t>{100};
-    context.baseSteps = 214;
+    context.steps = 214;
     T archiveClassifier = T(trainDataset, trainLabels, testDataset, testLabels, archivePrediction, context);
     archiveClassifier.fit();
     archiveClassifier.Predict(archivePrediction);
@@ -1832,7 +1832,7 @@ TEST(GradientBoostRegressorTest, TestPerfectInSampleFit) {
     context.childMaxDepth = std::vector<std::size_t>{5, 5};
     context.childMinimumGainSplit = std::vector<double>{0., 0.};    
     context.activePartitionRatio = .25;
-    context.baseSteps = 1000;
+    context.steps = 1000;
     context.symmetrizeLabels = true;
     context.serializationWindow = 1000;
     context.removeRedundantLabels = false;
@@ -1916,7 +1916,7 @@ TEST(GradientBoostRegressorTest, TestOutofSampleFit) {
     context.childMaxDepth = std::vector<std::size_t>{5, 5};
     context.childMinimumGainSplit = std::vector<double>{0., 0.};
     context.activePartitionRatio = .25;
-    context.baseSteps = 1000;
+    context.steps = 1000;
     context.symmetrizeLabels = true;
     context.serializationWindow = 1000;
     context.removeRedundantLabels = false;

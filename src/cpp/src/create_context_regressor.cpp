@@ -63,7 +63,6 @@ auto main(int argc, char **argv) -> int {
      context.partitionRatio = .25;
      context.learningRate = .0001;
      context.steps = 10000;
-     context.baseSteps = 10000;
      context.symmetrizeLabels = true;
      context.rowSubsampleRatio = 1.;
      context.colSubsampleRatio = .25; // .75
@@ -80,7 +79,6 @@ auto main(int argc, char **argv) -> int {
   double				upper_val		  = 0.;
   double				lower_val		  = 0.;
   int					steps			  = 10000;
-  int					baseSteps		  = 10000;
   bool					symmetrizeLabels	  = true;
   bool					removeRedundantLabels	  = true;
   bool					quietRun		  = false;
@@ -116,7 +114,6 @@ auto main(int argc, char **argv) -> int {
     ("upper_val",		value<double>(&upper_val),					"upper_val")
     ("lower_val",		value<double>(&lower_val),					"lower_val")
     ("steps",			value<int>(&steps),						"steps")
-    ("baseSteps",		value<int>(&baseSteps),						"baseSteps")
     ("symmetrizeLabels",	value<bool>(&symmetrizeLabels),					"symmetrizeLabels")
     ("removeRedundantLabels",	value<bool>(&removeRedundantLabels),				"removeRedundantLabels")
     ("quietRun",		value<bool>(&quietRun),						"quietRun")
@@ -169,7 +166,6 @@ auto main(int argc, char **argv) -> int {
   context.lower_val = lower_val;
   context.activePartitionRatio = activePartitionRatio;
   context.steps = steps;
-  context.baseSteps = baseSteps;
   context.symmetrizeLabels = symmetrizeLabels;
   context.removeRedundantLabels = removeRedundantLabels;
   context.quietRun = quietRun;

@@ -47,7 +47,7 @@ auto main() -> int {
   // context.loss = regressorLossFunction::SyntheticVar1;
   // context.loss = regressorLossFunction::SyntheticVar2;
   context.activePartitionRatio = 1.;
-  context.baseSteps = 1;
+  context.steps = 1;
   context.symmetrizeLabels = false;
   context.serializationWindow = 10;
   context.removeRedundantLabels = false;

@@ -562,7 +562,6 @@ private:
   AllClassifierArgs allClassifierArgs(std::size_t);
 
   int steps_;
-  int baseSteps_;
   Mat<DataType> dataset_;
   Row<DataType> labels_;
   Row<DataType> weights_;
