@@ -259,6 +259,13 @@ if (BUILD_CONTEXT_BUILDER)
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 endif()
 
+# Regressor JSON context creation
+if (BUILD_CONTEXT_BUILDER)
+  add_executable(create_context_from_JSON_regressor create_context_from_JSON_regressor.cpp)
+  target_link_libraries(create_context_from_JSON_regressor LINK_PUBLIC ${Boost_LIBRARIES} utils
+        $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+endif()
+
 # DP solver example	
 if (BUILD_DP_SOLVER_EX)
   add_executable(DP_solver_ex DP_solver_ex.cpp)

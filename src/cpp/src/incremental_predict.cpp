@@ -6,13 +6,14 @@ using namespace mlpack;
 using namespace ModelContext;
 using namespace IB_utils;
 
-using CerealT = Context;
-using CerealIArch = cereal::BinaryInputArchive;
-using CerealOArch = cereal::BinaryOutputArchive;
-
 const std::string DELIM = ";";
 
 using namespace boost::program_options;
+
+bool strEndsWith(const std::string& a, const std::string& b) {
+  if (b.size() > a.size()) return false;
+  return std::equal(a.begin() + a.size() - b.size(), a.end(), b.begin());
+}
 
 auto main(int argc, char **argv) -> int {
 
@@ -57,10 +58,21 @@ auto main(int argc, char **argv) -> int {
     std::cerr << "ERROR [INCREMENTAL_PREDICT]: " << e.what() << std::endl;
     std::cerr << desc << std::endl;
   }
-  
-  // Get context
-  loads<CerealT, CerealIArch, CerealOArch>(context, contextFileName);
 
+  // Get context
+  if (strEndsWith(contextFileName, ".json")) {
+    
+    loads<Context,
+      cereal::JSONInputArchive,
+      cereal::JSONOutputArchive>(context, contextFileName);
+    
+  } else {
+    
+    loads<Context,
+      cereal::BinaryInputArchive,
+      cereal::BinaryOutputArchive>(context, contextFileName);
+  }
+    
   context.quietRun = quietRun;
 
   // Get data
@@ -129,8 +141,8 @@ auto main(int argc, char **argv) -> int {
   if (warmStart) {
     std::cout << indexNameNew << std::endl;
   } else {
-      std::cout << indexNameNew << DELIM
-		<< fldr.string() << std::endl;
+    std::cout << indexNameNew << DELIM
+	      << fldr.string() << std::endl;
   }
 
   return 0;

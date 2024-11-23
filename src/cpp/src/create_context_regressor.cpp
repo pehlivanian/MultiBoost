@@ -16,14 +16,14 @@ using namespace LossMeasures;
 using namespace boost::program_options;
 
 std::string path_(std::string inputString) {
-    std::string fileName;
-    for (auto it = inputString.rbegin(); it != inputString.rend() &&
-	   fileName.size() != 24; ++it)
-      {
-	if (std::isalnum(*it))
-	  fileName.push_back(*it);
-      }
-    return fileName;
+  std::string fileName;
+  for (auto it = inputString.rbegin(); it != inputString.rend() &&
+	 fileName.size() != 24; ++it)
+    {
+      if (std::isalnum(*it))
+	fileName.push_back(*it);
+    }
+  return fileName;
 }
 
 namespace std {
@@ -139,8 +139,8 @@ auto main(int argc, char **argv) -> int {
     ("fileName",		value<std::string>(&fileName),					"fileName for Context");
 
 
-    variables_map vm;
-  
+  variables_map vm;
+    
   try {
     store(parse_command_line(argc, argv, desc), vm);
 
@@ -207,10 +207,6 @@ auto main(int argc, char **argv) -> int {
   // Create json archive
   std::string fileNameJSON = fileName + ".json";
   dumps<Context, cereal::JSONInputArchive, cereal::JSONOutputArchive>(context, fileNameJSON, fldr);  
-
-  Context context_json;
-  loads<Context, cereal::JSONInputArchive, cereal::JSONOutputArchive>(context_json, fileNameJSON, fldr);
-  dumps<CerealT, CerealIArch, CerealOArch>(context_json, fileName, fldr);
 
   return 0;
 }
