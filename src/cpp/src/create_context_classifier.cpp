@@ -238,5 +238,9 @@ auto main(int argc, char **argv) -> int {
   // Context context_archive;
   // loads<CerealT, CerealIArch, CerealOArch>(context_archive, fileName, fldr);
 
+  // Create json archive
+  std::string fileNameJSON = fileName + ".json";
+  dumps<Context, cereal::JSONInputArchive, cereal::JSONOutputArchive>(context, fileNameJSON, fldr);
+
   return 0;
 }

@@ -266,6 +266,13 @@ if (BUILD_CONTEXT_BUILDER)
         $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 endif()
 
+# Classifier JSON context creation
+if (BUILD_CONTEXT_BUILDER)
+  add_executable(create_context_from_JSON_classifier create_context_from_JSON_classifier.cpp)
+  target_link_libraries(create_context_from_JSON_classifier LINK_PUBLIC ${Boost_LIBRARIES} utils
+        $<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+endif()
+
 # DP solver example	
 if (BUILD_DP_SOLVER_EX)
   add_executable(DP_solver_ex DP_solver_ex.cpp)
