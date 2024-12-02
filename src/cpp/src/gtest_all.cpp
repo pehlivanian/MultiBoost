@@ -218,7 +218,6 @@ void exec(std::string cmd) {
   pclose(pipe);
 }
 
-
 TEST(DPSolverTest, TestUnsortedIndWorksAsARMAIndexer) {
   
   int n = 500;
@@ -1875,40 +1874,40 @@ TEST(GradientBoostRegressorTest, TestOutofSampleFit) {
 
   for (std::size_t i=0; i<4; ++i) {
     dataset(44,i) = i;
-    dataset_oos(44,i) = i;
+    dataset_oos(44,i) = 2*i;
     labels[i] = 2.;
-    labels_oos[i] = 4.;
+    labels_oos[i] = 2*2.;
   }
   for (std::size_t i=4; i<8; ++i) {
     dataset(44,i) = i;
-    dataset_oos(44,i) = i;
+    dataset_oos(44,i) = 2*i;
     labels[i] = 4.;
-    labels_oos[i] = 8.;
+    labels_oos[i] = 2*4.;
   }
   for (std::size_t i=8; i<12; ++i) {
     dataset(44,i) = i;
-    dataset_oos(44,i) = i;
+    dataset_oos(44,i) = 2*i;
     labels[i] = 6.;
-    labels_oos[i] = 12.;
+    labels_oos[i] = 2*6.;
   }
   for (std::size_t i=12; i<16; ++i) {
     dataset(44,i) = i;
-    dataset_oos(44,i) = i;
+    dataset_oos(44,i) = 2*i;
     labels[i] = 8.;
-    labels_oos[i] = 16.;
+    labels_oos[i] = 2*8.;
   }
   for (std::size_t i=16; i<20; ++i) {
     dataset(44,i) = i;
-    dataset_oos(44,i) = i;
+    dataset_oos(44,i) = 2*i;
     labels[i] = 10.;
-    labels_oos[i] = 20.;
+    labels_oos[i] = 2*10.;
   }
 
   for (auto recursive_ : recursive) {
     Context context{};
     
     context.loss = regressorLossFunction::MSE;
-    context.childPartitionSize = std::vector<std::size_t>{10, 4};
+    context.childPartitionSize = std::vector<std::size_t>{20, 4};
     context.childNumSteps = std::vector<std::size_t>{5, 6};
     context.childLearningRate = std::vector<double>{1., 1.};
     context.childActivePartitionRatio = std::vector<double>{0.2, 0.3};
@@ -1949,6 +1948,7 @@ TEST(GradientBoostRegressorTest, TestOutofSampleFit) {
   
 }
 
+
 TEST(GradientBoostRegressorTest, TestIncrementalRegressorScript) {
   // use folder to determine pwd
   boost::filesystem::path folder("../data/");
@@ -1956,16 +1956,15 @@ TEST(GradientBoostRegressorTest, TestIncrementalRegressorScript) {
   ipstream pipe_stream;
   char dataset_name_train[50] = "Regression/606_fri_c2_1000_10_train";
   char dataset_name_test[50] = "Regression/606_fri_c2_1000_10_test";
-  char abs_path[100] = "/home/charles/src/C++/sandbox/Inductive-Boost/";
 
   char rg_ex[50];
-  char cmd[200];
+  char cmd[500];
   sprintf(rg_ex, "\\[%s\\]\\sOOS[\\s]*:[\\s]*.*:[\\s]+\\((.*)\\)", dataset_name_test);
-  sprintf(cmd, "%ssrc/script/incremental_regressor_fit.sh 2 10 10 1 1 0.01 0.01 0.5 0.5 0 0 1 1 0 0 %s 10 2 1 1 1 1 -1 1 .2", abs_path, dataset_name_train);
+  sprintf(cmd, "/home/charles/src/C++/sandbox/Inductive-Boost/src/script/incremental_regressor_fit.sh 2 10 10 1 1 0.01 0.01 0.5 0.5 0 0 1 1 0 0 %s 10 1 1 1 1 1 -1 1 .2", dataset_name_train);
 
-  std::array<float, 11> rsquared = {0.0494059, 0.100179, 0.147325, 0.191885, 0.235369, 
-				    0.277301, 0.313569, 0.347098, 0.379328, 0.410435, 
-				    0.410435};
+  std::array<float, 11> rsquared = {0.0433046, 0.0870988, 0.118315, 0.14776, 0.174561, 
+				    0.189737, 0.208556, 0.225737, 0.24033, 0.253228, 
+				    0.253228};
   std::string cmd_str{cmd};
 
   child c(cmd_str, std_out > pipe_stream);
@@ -1996,9 +1995,9 @@ TEST(GradientBoostClassifierTest, TestIncrementalClassifierScript) {
   char abs_path[100] = "/home/charles/src/C++/sandbox/Inductive-Boost/";
 
   char rg_ex[50];
-  char cmd[200];
+  char cmd[500];
   sprintf(rg_ex, "\\[%s\\]\\sOOS[\\s]*:[\\s]*.*:[\\s]+\\((.*)\\)", dataset_name_test);
-  sprintf(cmd, "%ssrc/script/incremental_classifier_fit.sh 1 250 1 0.1 0.75 0 1 0 %s 20 8 2.15 1 1 1 1 -1 1", abs_path, dataset_name_train);
+  sprintf(cmd, "%ssrc/script/incremental_classifier_fit.sh 18 800 250 500 100 250 20 100 75 50 40 35 25 20 10 7 4 2 1 1 1 1 1 1 1 2 1 3 1 2 1 1 1 1 1 1 1 0.00015 0.00015 0.00015 0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0002 0.0002 0.0002 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 %s 10 8 2.4 1 1 1 4 -4 0", abs_path, dataset_name_train);
 
   std::string cmd_str{cmd};
 
@@ -2009,10 +2008,10 @@ TEST(GradientBoostClassifierTest, TestIncrementalClassifierScript) {
   std::string line;
   std::size_t cnt=0;
 
-  std::array<float, 21> errors = {22,22,16,18,17,15,12,11,15,14,15,14,14,14,13,13,13,13,13,13,13};
-  std::array<float, 21> precision = {0.803571,0.793103,0.87037,0.851852,0.854545,0.901961,0.907407,0.909091,0.872727,0.888889,0.872727,0.875,0.875,0.875,0.877193,0.877193,0.877193,0.877193,0.877193,0.877193,0.877193};
-  std::array<float, 21> recall = {0.803571,0.821429,0.839286,0.821429,0.839286,0.821429,0.875,0.892857,0.857143,0.857143,0.857143,0.875,0.875,0.875,0.892857,0.892857,0.892857,0.892857,0.892857,0.892857,0.892857};
-  std::array<float, 21> F1 = {0.803571,0.807018,0.854545,0.836364,0.846847,0.859813,0.890909,0.900901,0.864865,0.872727,0.864865,0.875,0.875,0.875,0.884956,0.884956,0.884956,0.884956,0.884956,0.884956,0.884956};
+  std::array<float, 11> errors = {44,44,44,25,21,16,16,16,16,15,15};
+  std::array<float, 11> precision = {.56,.56,.56,.701299,.739726,.794118,.80303,.80303,.80303,.815385,.815385};
+  std::array<float, 11> recall = {1.,1.,1.,.964286,.964286,.964286,.946429,.946429,.946429,.946429,.946429};
+  std::array<float, 11> F1 = {.717949,.717949,.717949,.81203,.837209,.870968,.868852,.868852,.868852,.876033,.876033};
   float imbalance = 0.9604;
   
   while (pipe_stream && std::getline(pipe_stream, line) && !line.empty()) {

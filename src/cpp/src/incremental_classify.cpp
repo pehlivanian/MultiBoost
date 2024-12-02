@@ -104,7 +104,7 @@ auto main(int argc, char **argv) -> int {
 	      testLabels, 
 	      splitRatio);
 
-  if (!warmStart) {
+  if (false && !warmStart) {
     std::cerr << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
 	      << trainDataset.n_rows << ")" << std::endl;
     std::cerr << "TEST DATASET:  (" << testDataset.n_cols << " x " 
