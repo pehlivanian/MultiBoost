@@ -1,7 +1,10 @@
 #ifndef __CONSTANTREGRESSOR_HPP__
 #define __CONSTANTREGRESSOR_HPP__
 
-#define UNUSED(expr) do { (void)(expr); } while (0)
+#define UNUSED(expr) \
+  do {               \
+    (void)(expr);    \
+  } while (0)
 #include <mlpack/core.hpp>
 
 using namespace arma;
@@ -11,16 +14,17 @@ public:
   ConstantTreeRegressor() = default;
   ConstantTreeRegressor(ConstantTreeRegressor&) = default;
 
-  ConstantTreeRegressor(const Mat<double>& dataset,
-			Row<double>& labels)
-  { UNUSED(dataset); init_(labels); }
+  ConstantTreeRegressor(const Mat<double>& dataset, Row<double>& labels) {
+    UNUSED(dataset);
+    init_(labels);
+  }
 
-  ConstantTreeRegressor(const Mat<float>& dataset,
-			Row<float>& labels)
-  { UNUSED(dataset); init_(labels); }
+  ConstantTreeRegressor(const Mat<float>& dataset, Row<float>& labels) {
+    UNUSED(dataset);
+    init_(labels);
+  }
 
-  ConstantTreeRegressor(double leafValue) : leafValue_{leafValue}
-  {}
+  ConstantTreeRegressor(double leafValue) : leafValue_{leafValue} {}
 
   void Predict(const Mat<double>& dataset, Row<double>& prediction) {
     prediction = ones<Row<double>>(dataset.n_cols);
@@ -32,14 +36,13 @@ public:
     prediction.fill(leafValue_);
   }
 
-  template<class Archive>
-  void serialize(Archive &ar) {
+  template <class Archive>
+  void serialize(Archive& ar) {
     ar(leafValue_);
   }
 
 private:
-
-  template<typename F>
+  template <typename F>
   void init_(Row<F>& labels) {
     Row<F> uniqueVals = unique(labels);
     assert(uniqueVals.n_cols == 1);

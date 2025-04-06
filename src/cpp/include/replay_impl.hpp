@@ -1,20 +1,18 @@
 #ifndef __REPLAY_IMPL_HPP__
 #define __REPLAY_IMPL_HPP__
 
-template<typename DataType, typename ClassifierType>
-void
-Replay<DataType, ClassifierType>::desymmetrize(Row<DataType>& prediction, double a, double b) {
-
-  prediction = (sign(prediction) - b)/ a;
+template <typename DataType, typename ClassifierType>
+void Replay<DataType, ClassifierType>::desymmetrize(Row<DataType>& prediction, double a, double b) {
+  prediction = (sign(prediction) - b) / a;
 }
 
-template<typename DataType, typename ClassifierType>
-void
-Replay<DataType, ClassifierType>::ClassifyStep(std::string classifierFileName,
-					       std::string datasetFileName,
-					       Row<DataType>& prediction,
-					       bool deSymmetrize,
-					       boost::filesystem::path folderName) {
+template <typename DataType, typename ClassifierType>
+void Replay<DataType, ClassifierType>::ClassifyStep(
+    std::string classifierFileName,
+    std::string datasetFileName,
+    Row<DataType>& prediction,
+    bool deSymmetrize,
+    boost::filesystem::path folderName) {
   bool ignoreSymmetrization = true;
   std::pair<double, double> ab;
 
@@ -29,18 +27,15 @@ Replay<DataType, ClassifierType>::ClassifyStep(std::string classifierFileName,
 
   ab = classifier->getAB();
 
-  if (deSymmetrize)
-    desymmetrize(prediction, ab.first, ab.second);
-
+  if (deSymmetrize) desymmetrize(prediction, ab.first, ab.second);
 }
 
-template<typename DataType, typename RegressorType>
-void
-Replay<DataType, RegressorType>::PredictStep(std::string regressorFileName,
-					     std::string datasetFileName,
-					     Row<DataType>& prediction,
-					     boost::filesystem::path folderName) {
-  
+template <typename DataType, typename RegressorType>
+void Replay<DataType, RegressorType>::PredictStep(
+    std::string regressorFileName,
+    std::string datasetFileName,
+    Row<DataType>& prediction,
+    boost::filesystem::path folderName) {
   using R = GradientBoostRegressor<RegressorType>;
   std::unique_ptr<R> regressor = std::make_unique<R>();
   read(*regressor, regressorFileName, folderName);
@@ -51,42 +46,40 @@ Replay<DataType, RegressorType>::PredictStep(std::string regressorFileName,
   regressor->Predict(dataset, prediction);
 }
 
-template<typename DataType, typename ClassifierType>
-void
-Replay<DataType, ClassifierType>::ClassifyStep(std::string classifierFileName,
-					       std::string datasetFileName,
-					       std::string outFileName,
-					       bool deSymmetrize,
-					       boost::filesystem::path folderName) {
-
+template <typename DataType, typename ClassifierType>
+void Replay<DataType, ClassifierType>::ClassifyStep(
+    std::string classifierFileName,
+    std::string datasetFileName,
+    std::string outFileName,
+    bool deSymmetrize,
+    boost::filesystem::path folderName) {
   Row<DataType> prediction;
   ClassifyStep(classifierFileName, datasetFileName, prediction, deSymmetrize, folderName);
 
   writePrediction(prediction, outFileName, folderName);
 }
 
-template<typename DataType, typename RegressorType>
-void
-Replay<DataType, RegressorType>::PredictStep(std::string regressorFileName,
-					     std::string datasetFileName,
-					     std::string outFileName,
-					     boost::filesystem::path folderName) {
+template <typename DataType, typename RegressorType>
+void Replay<DataType, RegressorType>::PredictStep(
+    std::string regressorFileName,
+    std::string datasetFileName,
+    std::string outFileName,
+    boost::filesystem::path folderName) {
   Row<DataType> prediction;
   PredictStep(regressorFileName, datasetFileName, prediction, folderName);
 
   writePrediction(prediction, outFileName, folderName);
 }
 
-template<typename DataType, typename ClassifierType>
-typename Replay<DataType, ClassifierType>::optCV
-Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
-						   Row<DataType>& prediction,
-						   Row<DataType>& labels_oos,
-						   bool deSymmetrize, 
-						   bool distribute,
-						   bool include_loss,
-						   boost::filesystem::path folderName) {
-  
+template <typename DataType, typename ClassifierType>
+typename Replay<DataType, ClassifierType>::optCV Replay<DataType, ClassifierType>::ClassifyStepwise(
+    std::string indexName,
+    Row<DataType>& prediction,
+    Row<DataType>& labels_oos,
+    bool deSymmetrize,
+    bool distribute,
+    bool include_loss,
+    boost::filesystem::path folderName) {
   std::vector<std::string> fileNames, predictionFileNames, predictionFileNamesIS;
   Row<DataType> prediction_is;
   readIndex(indexName, fileNames, folderName);
@@ -102,140 +95,132 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
   std::string outFilePref = "classification_STEP_";
 
   // First pass - get dataset, labels
-  for (const auto &fileName : fileNames) {
+  for (const auto& fileName : fileNames) {
     auto tokens = strSplit(fileName, '_');
     auto fileName_short = strJoin(tokens, '_', 1);
-    if (tokens[0] == "DIS") { // Dataset In Sample
+    if (tokens[0] == "DIS") {  // Dataset In Sample
       read(dataset, datasetFileName = fileName_short, folderName);
       n_cols_is = dataset.n_cols;
-    }
-    else if (tokens[0] == "DOOS") { // Dataset Out Of Sample
+    } else if (tokens[0] == "DOOS") {  // Dataset Out Of Sample
       read(dataset_oos, datasetOOSFileName = fileName_short, folderName);
       n_cols = dataset_oos.n_cols;
-    }
-    else if (tokens[0] == "LIS") { // Labels In Sample
+    } else if (tokens[0] == "LIS") {  // Labels In Sample
       read(labels, labelsFileName = fileName_short, folderName);
-    }
-    else if (tokens[0] == "LOOS") { // Labels Out Of Sample
+    } else if (tokens[0] == "LOOS") {  // Labels Out Of Sample
       read(labels_oos, labelsOOSFileName = fileName_short, folderName);
     }
   }
 
-  distribute = false; // before enabling, make sure we have the machine resources
+  distribute = false;  // before enabling, make sure we have the machine resources
 
   // Next pass - generate prediction
   if (distribute) {
-
-    
-
     /*
 
     ThreadsafeQueue<Row<double>> results_queue;
     std::vector<ThreadPool::TaskFuture<int>> futures;
-    
+
     for (auto &fileName : fileNames) {
       auto tokens = strSplit(fileName, '_');
       if (tokens[0] == "CLS") {
-	classifierFileName = strJoin(tokens, '_', 1);
-	
-	auto task = [&results_queue, classifierFileName, datasetOOSFileName, folderName](Row<DataType>& prediction){
-	  ClassifyStep(classifierFileName,
-		       datasetOOSFileName,
-		       prediction,
-		       false,
-		       folderName);
-	  results_queue.push(prediction);
-	  return 0;
-	};
+        classifierFileName = strJoin(tokens, '_', 1);
 
-	Row<DataType> prediction;
-	futures.push_back(DefaultThreadPool::submitJob_n<3>(task, std::ref(prediction)));
-	
-	classifierNum++;
+        auto task = [&results_queue, classifierFileName, datasetOOSFileName,
+    folderName](Row<DataType>& prediction){ ClassifyStep(classifierFileName, datasetOOSFileName,
+                       prediction,
+                       false,
+                       folderName);
+          results_queue.push(prediction);
+          return 0;
+        };
+
+        Row<DataType> prediction;
+        futures.push_back(DefaultThreadPool::submitJob_n<3>(task, std::ref(prediction)));
+
+        classifierNum++;
       }
     }
 
     prediction = zeros<Row<DataType>>(n_cols);
-    
+
     for (auto &item : futures) {
       item.get();
     }
-    
+
     while (!results_queue.empty()) {
       Row<DataType> predictionStep;
       results_queue.waitPop(predictionStep);
       prediction += predictionStep;
     }
     */
-    
-  } else {
 
-    for (auto &fileName : fileNames) {
+  } else {
+    for (auto& fileName : fileNames) {
       auto tokens = strSplit(fileName, '_');
       if (tokens[0] == "CLS") {
-	classifierFileName = strJoin(tokens, '_', 1);
-	std::string outFile = outFilePref + std::to_string(classifierNum) + ".prd";
-	std::string outFile_is = outFilePref + std::to_string(classifierNum) + ".is.prd";
+        classifierFileName = strJoin(tokens, '_', 1);
+        std::string outFile = outFilePref + std::to_string(classifierNum) + ".prd";
+        std::string outFile_is = outFilePref + std::to_string(classifierNum) + ".is.prd";
 
-	// Call ClassifyStep at this point, but 
-	// wrapped in another process we can launch as a 
-	// true subprocess
-	
-	ipstream pipe_stream;
-	// child c("gcc --version", std_out > pipe_stream);
-	std::string cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/replay_classify_stepwise";
+        // Call ClassifyStep at this point, but
+        // wrapped in another process we can launch as a
+        // true subprocess
 
-	cmd += " --datasetFileName "	+ datasetOOSFileName;
-	cmd += " --classifierFileName " + classifierFileName;
-	cmd += " --outFileName "	+ outFile;
-	cmd += " --folderName "		+ folderName.string();
-	
-	child c(cmd, std_out > pipe_stream);
-      
-	std::string line;
-	while (pipe_stream && std::getline(pipe_stream, line) && !line.empty())
-	  std::cerr << line << std::endl;
-	
-	c.wait();
+        ipstream pipe_stream;
+        // child c("gcc --version", std_out > pipe_stream);
+        std::string cmd =
+            "/home/charles/src/C++/sandbox/Inductive-Boost/build/replay_classify_stepwise";
 
-	predictionFileNames.push_back(outFile);
+        cmd += " --datasetFileName " + datasetOOSFileName;
+        cmd += " --classifierFileName " + classifierFileName;
+        cmd += " --outFileName " + outFile;
+        cmd += " --folderName " + folderName.string();
 
-	ipstream pipe_stream_is;
-	cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/replay_classify_stepwise";
+        child c(cmd, std_out > pipe_stream);
 
-	cmd += " --datasetFileName "	+ datasetFileName;
-	cmd += " --classifierFileName " + classifierFileName;
-	cmd += " --outFileName "	+ outFile_is;
-	cmd += " --folderName "		+ folderName.string();
+        std::string line;
+        while (pipe_stream && std::getline(pipe_stream, line) && !line.empty())
+          std::cerr << line << std::endl;
 
-	child c_is(cmd, std_out > pipe_stream_is);
+        c.wait();
 
-	while (pipe_stream_is && std::getline(pipe_stream_is, line) && !line.empty())
-	  std::cerr << line << std::endl;
+        predictionFileNames.push_back(outFile);
 
-	c.wait();
+        ipstream pipe_stream_is;
+        cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/replay_classify_stepwise";
 
-	predictionFileNamesIS.push_back(outFile_is);
+        cmd += " --datasetFileName " + datasetFileName;
+        cmd += " --classifierFileName " + classifierFileName;
+        cmd += " --outFileName " + outFile_is;
+        cmd += " --folderName " + folderName.string();
 
-	classifierNum++;
+        child c_is(cmd, std_out > pipe_stream_is);
+
+        while (pipe_stream_is && std::getline(pipe_stream_is, line) && !line.empty())
+          std::cerr << line << std::endl;
+
+        c.wait();
+
+        predictionFileNamesIS.push_back(outFile_is);
+
+        classifierNum++;
       }
     }
 
     prediction = zeros<Row<DataType>>(n_cols);
-  
-    for (auto &fileName : predictionFileNames) {
+
+    for (auto& fileName : predictionFileNames) {
       read(predictionStep, fileName, folderName);
-      prediction+= predictionStep;
-    }    
+      prediction += predictionStep;
+    }
 
     prediction_is = zeros<Row<DataType>>(n_cols_is);
 
-    for (auto &fileName : predictionFileNamesIS) {
+    for (auto& fileName : predictionFileNamesIS) {
       Row<DataType> predictionStep_is;
       read(predictionStep_is, fileName, folderName);
       prediction_is += predictionStep_is;
     }
-
   }
 
   /*
@@ -244,12 +229,12 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
     std::cout << "IS: (avg_neg, avg_pos): ("
     << mean(prediction_is.elem(negInd_IS)) << ", "
     << mean(prediction_is.elem(posInd_IS)) << ")" << std::endl;
-    
+
     uvec negInd_OOS = find(prediction < 0);
     uvec posInd_OOS = find(prediction > 0);
     std::cout << "OOS: (avg_neg, avg_pos): ("
     << mean(prediction.elem(negInd_OOS)) << ", "
-    << mean(prediction.elem(posInd_OOS)) << ")" << std::endl;    
+    << mean(prediction.elem(posInd_OOS)) << ")" << std::endl;
   */
 
   /*
@@ -258,7 +243,7 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
     << prediction[i] << ", "
     << labels_oos[i] << ")" << std::endl;
     }
-    
+
     for (int i=0; i<15; ++i) {
     std::cout << "IS: (labels_hat, raw labels): ("
     << prediction_is[i] << ", "
@@ -266,7 +251,6 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
     }
   */
 
-  
   if (deSymmetrize) {
     using C = GradientBoostClassifier<ClassifierType>;
     std::unique_ptr<C> c_archive = std::make_unique<C>();
@@ -277,7 +261,7 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
     desymmetrize(prediction, ab.first, ab.second);
     desymmetrize(prediction_is, ab.first, ab.second);
   }
-   
+
   /*
     for (int i=0; i<10; ++i) {
     std::cout << "OOS: (y_hat, sym y): ("
@@ -285,7 +269,7 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
     << labels_oos[i] << ")" << std::endl;
     }
     std::cout << std::endl;
-    
+
     for (int i=0; i<10; ++i) {
     std::cout << "IS: (labels_hat, labels): ("
     << prediction_is[i] << ", "
@@ -294,82 +278,77 @@ Replay<DataType, ClassifierType>::ClassifyStepwise(std::string indexName,
   */
 
   if (include_loss) {
-
     // Pile on the metrics
 
     //
     // 1. error
-    // 
+    //
     double error_OOS = err(prediction, labels_oos);
     double error_IS = err(prediction_is, labels);
 
     // Now symmetrize labels, labels_oos for remaining metrics
-    
+
     using C = GradientBoostClassifier<ClassifierType>;
     std::unique_ptr<C> c_archive = std::make_unique<C>();
     read(*c_archive, classifierFileName, folderName);
 
-    
     c_archive->symmetrizeLabels(labels);
     c_archive->symmetrizeLabels(labels_oos);
     c_archive->symmetrizeLabels(prediction_is);
     c_archive->symmetrizeLabels(prediction);
-    
+
     Row<int> labels_is_i = conv_to<Row<int>>::from(labels);
     Row<int> labels_oos_i = conv_to<Row<int>>::from(labels_oos);
     Row<int> prediction_is_i = conv_to<Row<int>>::from(prediction_is);
     Row<int> prediction_oos_i = conv_to<Row<int>>::from(prediction);
 
     auto [precision_IS, recall_IS, F1_IS] = precision(labels_is_i, prediction_is_i);
-    auto [precision_OOS, recall_OOS, F1_OOS] = precision(labels_oos_i, prediction_oos_i);    
-    
-    // 
+    auto [precision_OOS, recall_OOS, F1_OOS] = precision(labels_oos_i, prediction_oos_i);
+
+    //
     // 2. imbalance
     //
     double imbalance_OOS = imbalance(labels_oos);
     double imbalance_IS = imbalance(labels);
 
-    return std::make_tuple(error_OOS, 
-			   precision_OOS, 
-			   recall_OOS, 
-			   F1_OOS, 
-			   imbalance_OOS,
-			   error_IS, 
-			   precision_IS, 
-			   recall_IS, 
-			   F1_IS, 
-			   imbalance_IS);
-  
-  } else {
-    return std::make_tuple(std::nullopt,
-			   std::nullopt,
-			   std::nullopt,
-			   std::nullopt,
-			   std::nullopt,
-			   std::nullopt,
-			   std::nullopt,
-			   std::nullopt,
-			   std::nullopt,
-			   std::nullopt);
-  }
+    return std::make_tuple(
+        error_OOS,
+        precision_OOS,
+        recall_OOS,
+        F1_OOS,
+        imbalance_OOS,
+        error_IS,
+        precision_IS,
+        recall_IS,
+        F1_IS,
+        imbalance_IS);
 
+  } else {
+    return std::make_tuple(
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt);
+  }
 }
 
-
-template<typename DataType, typename RegressorType>
-typename Replay<DataType, RegressorType>::optRV
-Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
-						 Row<DataType>& prediction,
-						 Row<DataType>& labels_oos,
-						 bool distribute,
-						 bool include_loss,
-						 boost::filesystem::path folderName) {
-  
+template <typename DataType, typename RegressorType>
+typename Replay<DataType, RegressorType>::optRV Replay<DataType, RegressorType>::PredictStepwise(
+    std::string indexName,
+    Row<DataType>& prediction,
+    Row<DataType>& labels_oos,
+    bool distribute,
+    bool include_loss,
+    boost::filesystem::path folderName) {
   std::vector<std::string> fileNames, predictionFileNames, predictionFileNamesIS;
   Row<DataType> prediction_is;
   readIndex(indexName, fileNames, folderName);
-
-
 
   int n_cols;
   int n_cols_is;
@@ -382,147 +361,139 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
   std::string outFilePref = "prediction_STEP_";
 
   // First pass - get dataset, labels
-  for (const auto &fileName : fileNames) {
+  for (const auto& fileName : fileNames) {
     auto tokens = strSplit(fileName, '_');
     auto fileName_short = strJoin(tokens, '_', 1);
-    if (tokens[0] == "DIS") { // Dataset In Sample
+    if (tokens[0] == "DIS") {  // Dataset In Sample
       read(dataset, datasetFileName = fileName_short, folderName);
       n_cols_is = dataset.n_cols;
-    }
-    else if (tokens[0] == "DOOS") { // Dataset Out Of Sample
+    } else if (tokens[0] == "DOOS") {  // Dataset Out Of Sample
       read(dataset_oos, datasetOOSFileName = fileName_short, folderName);
       n_cols = dataset_oos.n_cols;
-    }
-    else if (tokens[0] == "LIS") { // Labels In Sample
+    } else if (tokens[0] == "LIS") {  // Labels In Sample
       read(labels, labelsFileName = fileName_short, folderName);
-    }
-    else if (tokens[0] == "LOOS") { // Labels Out Of Sample
+    } else if (tokens[0] == "LOOS") {  // Labels Out Of Sample
       read(labels_oos, labelsOOSFileName = fileName_short, folderName);
     }
   }
 
-  distribute = false; // before enabling, make sure we don't start paging
+  distribute = false;  // before enabling, make sure we don't start paging
 
   // Next pass - generate prediction
   if (distribute) {
-
     ThreadsafeQueue<Row<DataType>> results_queue;
     std::vector<ThreadPool::TaskFuture<int>> futures;
-    
-    for (auto &fileName : fileNames) {
+
+    for (auto& fileName : fileNames) {
       auto tokens = strSplit(fileName, '_');
       if (tokens[0] == "REG") {
-	regressorFileName = strJoin(tokens, '_', 1);
-	
-	auto task = [&results_queue, regressorFileName, datasetOOSFileName, folderName](Row<DataType>& prediction){
-	  PredictStep(regressorFileName,
-		      datasetOOSFileName,
-		      prediction,
-		      folderName);
-	  results_queue.push(prediction);
-	  return 0;
-	};
+        regressorFileName = strJoin(tokens, '_', 1);
 
-	Row<DataType> prediction;
-	futures.push_back(DefaultThreadPool::submitJob_n<3>(task, std::ref(prediction)));
-	
-	regressorNum++;
+        auto task = [&results_queue, regressorFileName, datasetOOSFileName, folderName](
+                        Row<DataType>& prediction) {
+          PredictStep(regressorFileName, datasetOOSFileName, prediction, folderName);
+          results_queue.push(prediction);
+          return 0;
+        };
+
+        Row<DataType> prediction;
+        futures.push_back(DefaultThreadPool::submitJob_n<3>(task, std::ref(prediction)));
+
+        regressorNum++;
       }
     }
 
     prediction = zeros<Row<DataType>>(n_cols);
-    
-    for (auto &item : futures) {
+
+    for (auto& item : futures) {
       item.get();
     }
-    
+
     while (!results_queue.empty()) {
       Row<DataType> predictionStep;
       results_queue.waitPop(predictionStep);
       prediction += predictionStep;
     }
-    
-  } else {
 
-    for (auto &fileName : fileNames) {
+  } else {
+    for (auto& fileName : fileNames) {
       auto tokens = strSplit(fileName, '_');
       if (tokens[0] == "REG") {
-	regressorFileName = strJoin(tokens, '_', 1);
-	std::string outFile = outFilePref + std::to_string(regressorNum) + ".prd";
-	std::string outFile_is = outFilePref + std::to_string(regressorNum) + ".is.prd";
-	// Call PredictStep at this point, but 
-	// wrapped in another process we can launch as a 
-	// true subprocess
-	
-	ipstream pipe_stream;
-	// child c("gcc --version", std_out > pipe_stream);
-	std::string cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/replay_predict_stepwise";
+        regressorFileName = strJoin(tokens, '_', 1);
+        std::string outFile = outFilePref + std::to_string(regressorNum) + ".prd";
+        std::string outFile_is = outFilePref + std::to_string(regressorNum) + ".is.prd";
+        // Call PredictStep at this point, but
+        // wrapped in another process we can launch as a
+        // true subprocess
 
-	cmd += " --datasetFileName "	+ datasetOOSFileName;
-	cmd += " --regressorFileName "  + regressorFileName;
-	cmd += " --outFileName "	+ outFile;
-	cmd += " --folderName "		+ folderName.string();
-	
-	child c(cmd, std_out > pipe_stream);
-      
-	std::string line;
-	while (pipe_stream && std::getline(pipe_stream, line) && !line.empty())
-	  std::cerr << line << std::endl;
-	
-	c.wait();
+        ipstream pipe_stream;
+        // child c("gcc --version", std_out > pipe_stream);
+        std::string cmd =
+            "/home/charles/src/C++/sandbox/Inductive-Boost/build/replay_predict_stepwise";
 
-	predictionFileNames.push_back(outFile);
+        cmd += " --datasetFileName " + datasetOOSFileName;
+        cmd += " --regressorFileName " + regressorFileName;
+        cmd += " --outFileName " + outFile;
+        cmd += " --folderName " + folderName.string();
 
-	ipstream pipe_stream_is;
-	cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/replay_predict_stepwise";
-	
-	cmd += " --datasetFileName "	+ datasetFileName;
-	cmd += " --regressorFileName "  + regressorFileName;
-	cmd += " --outFileName "	+ outFile_is;
-	cmd += " --folderName "		+ folderName.string();
+        child c(cmd, std_out > pipe_stream);
 
-	child c_is(cmd, std_out > pipe_stream_is);
+        std::string line;
+        while (pipe_stream && std::getline(pipe_stream, line) && !line.empty())
+          std::cerr << line << std::endl;
 
-	while (pipe_stream_is && std::getline(pipe_stream_is, line) && !line.empty())
-	  std::cerr << line << std::endl;
+        c.wait();
 
-	c.wait();
+        predictionFileNames.push_back(outFile);
 
-	predictionFileNamesIS.push_back(outFile_is);
-	
-	regressorNum++;
+        ipstream pipe_stream_is;
+        cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/replay_predict_stepwise";
+
+        cmd += " --datasetFileName " + datasetFileName;
+        cmd += " --regressorFileName " + regressorFileName;
+        cmd += " --outFileName " + outFile_is;
+        cmd += " --folderName " + folderName.string();
+
+        child c_is(cmd, std_out > pipe_stream_is);
+
+        while (pipe_stream_is && std::getline(pipe_stream_is, line) && !line.empty())
+          std::cerr << line << std::endl;
+
+        c.wait();
+
+        predictionFileNamesIS.push_back(outFile_is);
+
+        regressorNum++;
       }
     }
 
     prediction = zeros<Row<DataType>>(n_cols);
-  
-    for (auto &fileName : predictionFileNames) {
+
+    for (auto& fileName : predictionFileNames) {
       read(predictionStep, fileName, folderName);
-      prediction+= predictionStep;
-    }    
+      prediction += predictionStep;
+    }
 
     prediction_is = zeros<Row<DataType>>(n_cols_is);
 
-    for (auto &fileName : predictionFileNamesIS) {
+    for (auto& fileName : predictionFileNamesIS) {
       Row<DataType> predictionStep_is;
       read(predictionStep_is, fileName, folderName);
       prediction_is += predictionStep_is;
     }
-
   }
 
   if (include_loss) {
-
     /*
       for (int i=0; i<10; ++i) {
-      std::cout << "OOS: (y_hat, y): (" 
+      std::cout << "OOS: (y_hat, y): ("
       << prediction[i] << ", "
       << labels_oos[i] << ")" << std::endl;
       }
       std::cout << std::endl;
-      
+
       for (int i=0; i<10; ++i) {
-      std::cout << "IS: (labels_hat, labels): (" 
+      std::cout << "IS: (labels_hat, labels): ("
       << prediction_is[i] << ", "
       << labels[i] << ")" << std::endl;
       }
@@ -531,12 +502,11 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
     // Pile on the metrics here
     //
     // 1. OOS r squared
-    // 
+    //
     auto mn = mean(labels_oos);
     auto num = sum(pow((labels_oos - prediction), 2));
     auto den = sum(pow((labels_oos - mn), 2));
-    double r_squared_OOS = 1. - (num/den);
-
+    double r_squared_OOS = 1. - (num / den);
 
     //
     // 2 IS r squared
@@ -544,7 +514,7 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
     mn = mean(labels);
     num = sum(pow((labels - prediction_is), 2));
     den = sum(pow((labels - mn), 2));
-    double r_squared_IS = 1. - (num/den);
+    double r_squared_IS = 1. - (num / den);
 
     // Rank-based statistics, see
     // @article{article,
@@ -558,52 +528,48 @@ Replay<DataType, RegressorType>::PredictStepwise(std::string indexName,
     // doi = {10.1109/ICDM.2005.126}
     // }
     auto [tau_OOS, rho_OOS] = Perlich_rank_scores(prediction, labels_oos);
-    auto [tau_IS, rho_IS]   = Perlich_rank_scores(prediction_is, labels);
+    auto [tau_IS, rho_IS] = Perlich_rank_scores(prediction_is, labels);
 
     //
     // 2. OOS loss
-    // 
+    //
     using R = GradientBoostRegressor<RegressorType>;
     std::unique_ptr<R> regressor = std::make_unique<R>();
 
     read(*regressor, regressorFileName, folderName);
     auto lossFn = regressorLossMap<DataType>[regressor->getLoss()];
-    
+
     double r_OOS = std::sqrt(lossFn->loss(prediction, labels_oos));
 
-    // 
+    //
     // 3. IS loss
-    // 
+    //
     double r_IS = std::sqrt(lossFn->loss(prediction_is, labels));
-    
-    return std::make_tuple(r_OOS, r_squared_OOS, tau_OOS, rho_OOS,
-			   r_IS, r_squared_IS, tau_IS, rho_IS);
-    
-    
+
+    return std::make_tuple(
+        r_OOS, r_squared_OOS, tau_OOS, rho_OOS, r_IS, r_squared_IS, tau_IS, rho_IS);
+
   } else {
-    return std::make_tuple(std::nullopt, 
-			   std::nullopt, 
-			   std::nullopt,
-			   std::nullopt,
-			   std::nullopt,
-			   std::nullopt,
-			   std::nullopt, 
-			   std::nullopt);
+    return std::make_tuple(
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt);
   }
-  
 }
 
-template<typename DataType, typename ClassifierType>
-void
-Replay<DataType, ClassifierType>::Classify(std::string indexName, 
-					   Row<DataType>& prediction,
-					   boost::filesystem::path fldr) {
-
+template <typename DataType, typename ClassifierType>
+void Replay<DataType, ClassifierType>::Classify(
+    std::string indexName, Row<DataType>& prediction, boost::filesystem::path fldr) {
   Row<DataType> predictionNew;
   std::vector<std::string> fileNames;
   readIndex(indexName, fileNames, fldr);
 
-  for  (auto &fileName : fileNames) {
+  for (auto& fileName : fileNames) {
     auto tokens = strSplit(fileName, '_');
     if (tokens[0] == "PRED") {
       fileName = strJoin(tokens, '_', 1);
@@ -611,18 +577,15 @@ Replay<DataType, ClassifierType>::Classify(std::string indexName,
       prediction = predictionNew;
     }
   }
-
 }
 
-
-template<typename DataType, typename ClassifierType>
-void
-Replay<DataType, ClassifierType>::Classify(std::string indexName,
-					   const Mat<DataType>& dataset,
-					   Row<DataType>& prediction,
-					   boost::filesystem::path fldr,
-					   bool deSymmetrize) {
-
+template <typename DataType, typename ClassifierType>
+void Replay<DataType, ClassifierType>::Classify(
+    std::string indexName,
+    const Mat<DataType>& dataset,
+    Row<DataType>& prediction,
+    boost::filesystem::path fldr,
+    bool deSymmetrize) {
   std::vector<std::string> fileNames;
   readIndex(indexName, fileNames, fldr);
 
@@ -635,7 +598,7 @@ Replay<DataType, ClassifierType>::Classify(std::string indexName,
   std::pair<double, double> ab;
 
   bool ignoreSymmetrization = true;
-  for (auto & fileName : fileNames) {
+  for (auto& fileName : fileNames) {
     auto tokens = strSplit(fileName, '_');
     if (tokens[0] == "CLS") {
       fileName = strJoin(tokens, '_', 1);
@@ -647,16 +610,15 @@ Replay<DataType, ClassifierType>::Classify(std::string indexName,
     }
   }
 
-  if (deSymmetrize)
-    desymmetrize(prediction, ab.first, ab.second);
+  if (deSymmetrize) desymmetrize(prediction, ab.first, ab.second);
 }
 
-template<typename DataType, typename RegressorType>
-void
-Replay<DataType, RegressorType>::Predict(std::string indexName,
-					 const Mat<DataType>& dataset,
-					 Row<DataType>& prediction,
-					 boost::filesystem::path fldr) {
+template <typename DataType, typename RegressorType>
+void Replay<DataType, RegressorType>::Predict(
+    std::string indexName,
+    const Mat<DataType>& dataset,
+    Row<DataType>& prediction,
+    boost::filesystem::path fldr) {
   std::vector<std::string> fileNames;
   readIndex(indexName, fileNames, fldr);
 
@@ -666,7 +628,7 @@ Replay<DataType, RegressorType>::Predict(std::string indexName,
   prediction = zeros<Row<DataType>>(dataset.n_cols);
   Row<DataType> predictionStep;
 
-  for (auto & fileName : fileNames) {
+  for (auto& fileName : fileNames) {
     auto tokens = strSplit(fileName, '_');
     if (tokens[0] == "REG") {
       fileName = strJoin(tokens, '_', 1);
@@ -677,17 +639,14 @@ Replay<DataType, RegressorType>::Predict(std::string indexName,
   }
 }
 
-template<typename DataType, typename RegressorType>
-void
-Replay<DataType, RegressorType>::Predict(std::string indexName, 
-					 Row<DataType>& prediction,
-					 boost::filesystem::path fldr) {
-
+template <typename DataType, typename RegressorType>
+void Replay<DataType, RegressorType>::Predict(
+    std::string indexName, Row<DataType>& prediction, boost::filesystem::path fldr) {
   Row<DataType> predictionNew;
   std::vector<std::string> fileNames;
   readIndex(indexName, fileNames, fldr);
 
-  for  (auto &fileName : fileNames) {
+  for (auto& fileName : fileNames) {
     auto tokens = strSplit(fileName, '_');
     if (tokens[0] == "PRED") {
       fileName = strJoin(tokens, '_', 1);
@@ -695,7 +654,6 @@ Replay<DataType, RegressorType>::Predict(std::string indexName,
       prediction = predictionNew;
     }
   }
-  
 }
 
 #endif

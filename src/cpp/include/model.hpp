@@ -1,26 +1,25 @@
 #ifndef __MODEL_HPP__
 #define __MODEL_HPP__
 
-#include <memory>
 #include <exception>
-
+#include <memory>
 #include <mlpack/core.hpp>
 
 using namespace arma;
 
 struct predictionAfterClearedModelException : public std::exception {
-  const char* what() const throw () {
+  const char* what() const throw() {
     return "Attempting to predict on a classifier that has been serialized and cleared";
   }
 };
 
 // Helpers for gdb
-template<class Matrix>
+template <class Matrix>
 void print_matrix(Matrix matrix) {
   matrix.print(std::cout);
 }
 
-template<class Row>
+template <class Row>
 void print_vector(Row row) {
   row.print(std::cout);
 }
@@ -28,7 +27,7 @@ void print_vector(Row row) {
 template void print_matrix<arma::mat>(arma::mat matrix);
 template void print_vector<arma::rowvec>(arma::rowvec row);
 
-template<typename DataType>
+template <typename DataType>
 class Model {
 public:
   Model() = default;
@@ -36,16 +35,14 @@ public:
 
   virtual ~Model() = default;
 
-  void Project(const Mat<DataType>& data, Row<DataType>& projection) { 
-    Project_(data, projection); 
-  }
+  void Project(const Mat<DataType>& data, Row<DataType>& projection) { Project_(data, projection); }
 
   void purge() { purge_(); }
 
   std::string get_id() const { return id_; }
 
-  template<class Archive>
-  void serialize(Archive &ar) {
+  template <class Archive>
+  void serialize(Archive& ar) {
     ar(id_);
   }
 

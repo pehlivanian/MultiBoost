@@ -1,7 +1,7 @@
 #include "single_class_pmlb_driver.hpp"
 
 namespace {
-  using DataType = Model_Traits::model_traits<DecisionTreeClassifier>::datatype;
+using DataType = Model_Traits::model_traits<DecisionTreeClassifier>::datatype;
 }
 
 using namespace arma;
@@ -13,7 +13,6 @@ using namespace ModelContext;
 using namespace IB_utils;
 
 auto main() -> int {
-
   Mat<DataType> dataset, trainDataset, testDataset;
   // Mat<double> dataset, trainDataset, testDataset;
   Row<std::size_t> labels, trainLabels, testLabels;
@@ -24,18 +23,12 @@ auto main() -> int {
   if (!data::Load("/home/charles/Data/diabetes_y.csv", labels))
     throw std::runtime_error("Could not load file");
 
-  data::Split(dataset, 
-	      labels, 
-	      trainDataset, 
-	      testDataset, 
-	      trainLabels, 
-	      testLabels, 0.2);
-  std::cout << "TRAIN DATASET: (" << trainDataset.n_cols << " x " 
-	    << trainDataset.n_rows << ")" << std::endl;
-  std::cout << "TEST DATASET:  (" << testDataset.n_cols << " x " 
-	    << testDataset.n_rows << ")" << std::endl;
-  
-  
+  data::Split(dataset, labels, trainDataset, testDataset, trainLabels, testLabels, 0.2);
+  std::cout << "TRAIN DATASET: (" << trainDataset.n_cols << " x " << trainDataset.n_rows << ")"
+            << std::endl;
+  std::cout << "TEST DATASET:  (" << testDataset.n_cols << " x " << testDataset.n_rows << ")"
+            << std::endl;
+
   Context context{};
   // context.loss = classifierLossFunction::Savage;
   context.loss = classifierLossFunction::BinomialDeviance;
@@ -59,7 +52,7 @@ auto main() -> int {
   context.serializationWindow = 1000;
   context.removeRedundantLabels = false;
   context.rowSubsampleRatio = 1.;
-  context.colSubsampleRatio = .25; // .75
+  context.colSubsampleRatio = .25;  // .75
   context.recursiveFit = true;
   context.serializeModel = false;
   context.serializePrediction = false;
@@ -68,12 +61,9 @@ auto main() -> int {
   context.serializationWindow = 1;
 
   using classifier = GradientBoostClassifier<DecisionTreeClassifier>;
-  auto c = std::make_unique<classifier>(trainDataset, 
-					trainLabels,
-					testDataset,
-					testLabels,
-					context);
-  
+  auto c =
+      std::make_unique<classifier>(trainDataset, trainLabels, testDataset, testLabels, context);
+
   c->fit();
 
   c->Predict(trainDataset, trainPrediction);

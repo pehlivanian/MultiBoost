@@ -1,20 +1,18 @@
 #ifndef __INCREMENTAL_PREDICT_HPP__
 #define __INCREMENTAL_PREDICT_HPP__
 
-#include <iostream>
-#include <numeric>
-#include <string>
+#include <boost/program_options.hpp>
 #include <cstring>
 #include <exception>
+#include <iostream>
 #include <memory>
-
 #include <mlpack/core.hpp>
-#include <boost/program_options.hpp>
+#include <numeric>
+#include <string>
 
-#include "utils.hpp"
 #include "gradientboostregressor.hpp"
+#include "utils.hpp"
 
 using namespace arma;
 
 #endif
-

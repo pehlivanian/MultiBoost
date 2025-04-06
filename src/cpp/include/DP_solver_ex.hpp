@@ -2,12 +2,12 @@
 #define __DP_SOLVER_EX_HPP__
 
 #include <iostream>
-#include <vector>
 #include <iterator>
 #include <random>
+#include <vector>
 
-#include "score2.hpp"
 #include "DP.hpp"
+#include "score2.hpp"
 
 using namespace Objectives;
 

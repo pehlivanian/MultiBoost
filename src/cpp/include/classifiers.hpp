@@ -1,192 +1,141 @@
 #ifndef __CLASSIFIERS_HPP__
 #define __CLASSIFIERS_HPP__
 
-#define UNUSED(expr) do { (void)(expr); } while (0)
+#define UNUSED(expr) \
+  do {               \
+    (void)(expr);    \
+  } while (0)
 
-#include <utility>
-#include <tuple>
-
-#include <cereal/types/polymorphic.hpp>
-#include <cereal/types/base_class.hpp>
-#include <cereal/archives/portable_binary.hpp>
+#include <cereal/access.hpp>
 #include <cereal/archives/binary.hpp>
 #include <cereal/archives/json.hpp>
+#include <cereal/archives/portable_binary.hpp>
 #include <cereal/archives/xml.hpp>
-#include <cereal/types/memory.hpp>
+#include <cereal/types/base_class.hpp>
 #include <cereal/types/map.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/polymorphic.hpp>
 #include <cereal/types/vector.hpp>
-#include <cereal/access.hpp>
+#include <tuple>
+#include <utility>
 
-#include "model_traits.hpp"
 #include "classifier.hpp"
+#include "model_traits.hpp"
 
-template<typename DecoratedType, typename... Args>
-class DecoratorClassifierBase :
-  public DiscreteClassifierBase<typename Model_Traits::model_traits<DecoratedType>::datatype,
-				typename Model_Traits::model_traits<DecoratedType>::model,
-				Args...> {
-
+template <typename DecoratedType, typename... Args>
+class DecoratorClassifierBase : public DiscreteClassifierBase<
+                                    typename Model_Traits::model_traits<DecoratedType>::datatype,
+                                    typename Model_Traits::model_traits<DecoratedType>::model,
+                                    Args...> {
 public:
   using DataType = typename Model_Traits::model_traits<DecisionTreeClassifier>::datatype;
   using ClassifierType = typename Model_Traits::model_traits<DecoratedType>::model;
 
   DecoratorClassifierBase() = default;
 
-  DecoratorClassifierBase(const Mat<DataType>& dataset,
-			  Row<DataType>& labels,
-			  Args&&... args) :
-    DiscreteClassifierBase<DataType,
-			   ClassifierType,
-			   Args...>(dataset, labels, std::forward<Args>(args)...) 
-  {}
+  DecoratorClassifierBase(const Mat<DataType>& dataset, Row<DataType>& labels, Args&&... args)
+      : DiscreteClassifierBase<DataType, ClassifierType, Args...>(
+            dataset, labels, std::forward<Args>(args)...) {}
 
-  DecoratorClassifierBase(const Mat<DataType>& dataset,
-			  Row<DataType>& labels,
-			  Args const&... args) :
-    DiscreteClassifierBase<DataType,
-			   ClassifierType,
-			   Args...>(dataset, labels, args...)
-  {}
+  DecoratorClassifierBase(const Mat<DataType>& dataset, Row<DataType>& labels, Args const&... args)
+      : DiscreteClassifierBase<DataType, ClassifierType, Args...>(dataset, labels, args...) {}
 
-  DecoratorClassifierBase(const Mat<DataType>& dataset,
-			  Row<DataType>& labels,
-			  Row<DataType>& weights,
-			  Args&&... args) :
-    DiscreteClassifierBase<DataType,
-			   ClassifierType,
-			   Args...>(dataset, labels, weights, std::forward<Args>(args)...) {}
+  DecoratorClassifierBase(
+      const Mat<DataType>& dataset, Row<DataType>& labels, Row<DataType>& weights, Args&&... args)
+      : DiscreteClassifierBase<DataType, ClassifierType, Args...>(
+            dataset, labels, weights, std::forward<Args>(args)...) {}
 
-  DecoratorClassifierBase(const Mat<DataType>& dataset,
-			  Row<DataType>& labels,
-			  Row<DataType>& weights,
-			  Args const&... args) :
-    DiscreteClassifierBase<DataType,
-			   ClassifierType,
-			   Args...>(dataset, labels, weights, const_cast<Args&>(args)...)
-  {}
-
+  DecoratorClassifierBase(
+      const Mat<DataType>& dataset,
+      Row<DataType>& labels,
+      Row<DataType>& weights,
+      Args const&... args)
+      : DiscreteClassifierBase<DataType, ClassifierType, Args...>(
+            dataset, labels, weights, const_cast<Args&>(args)...) {}
 };
 
-template<typename DecoratedType, typename... Args>
+template <typename DecoratedType, typename... Args>
 class DecoratorClassifier : public DecoratorClassifierBase<DecoratedType, Args...> {
-
 public:
   using tupArgs = typename Model_Traits::model_traits<DecisionTreeClassifier>::modelArgs;
   using DataType = typename Model_Traits::model_traits<DecisionTreeClassifier>::datatype;
 
   DecoratorClassifier() = default;
 
-  DecoratorClassifier(const Mat<DataType>& dataset,
-		      Row<DataType>& labels,
-		      Args &&... args) :
-    DecoratorClassifierBase<DecoratedType, Args...>(dataset,
-						    labels,
-						    std::forward<Args>(args)...)
-  {}
+  DecoratorClassifier(const Mat<DataType>& dataset, Row<DataType>& labels, Args&&... args)
+      : DecoratorClassifierBase<DecoratedType, Args...>(
+            dataset, labels, std::forward<Args>(args)...) {}
 
-  DecoratorClassifier(const Mat<DataType>& dataset,
-		      Row<DataType>& labels,
-		      Args const&... args) :
-    DecoratorClassifierBase<DecoratedType, Args...>(dataset,
-						    labels,
-						    args...)
-  {}
+  DecoratorClassifier(const Mat<DataType>& dataset, Row<DataType>& labels, Args const&... args)
+      : DecoratorClassifierBase<DecoratedType, Args...>(dataset, labels, args...) {}
 
-  DecoratorClassifier(const Mat<DataType>& dataset,
-		      Row<DataType>& labels,
-		      Row<DataType>& weights,
-		      Args &&... args) :
-    DecoratorClassifierBase<DecoratedType, Args...>(dataset,
-						    labels,
-						    weights,
-						    std::forward<Args>(args)...)
-  {}
+  DecoratorClassifier(
+      const Mat<DataType>& dataset, Row<DataType>& labels, Row<DataType>& weights, Args&&... args)
+      : DecoratorClassifierBase<DecoratedType, Args...>(
+            dataset, labels, weights, std::forward<Args>(args)...) {}
 
-  DecoratorClassifier(const Mat<DataType>& dataset,
-		      Row<DataType>& labels,
-		      Row<DataType>& weights,
-		      Args const&... args) :
-    DecoratorClassifierBase<DecoratedType, Args...>(dataset,
-						    labels,
-						    weights,
-						    args...)
-  {}
-	
-  static tupArgs _args(const Model_Traits::AllClassifierArgs& p) {
-    return DecoratedType::_args(p);
-  }
-  
+  DecoratorClassifier(
+      const Mat<DataType>& dataset,
+      Row<DataType>& labels,
+      Row<DataType>& weights,
+      Args const&... args)
+      : DecoratorClassifierBase<DecoratedType, Args...>(dataset, labels, weights, args...) {}
+
+  static tupArgs _args(const Model_Traits::AllClassifierArgs& p) { return DecoratedType::_args(p); }
 };
 
-template<typename DecoratedType, typename... DecoratedArgs>
+template <typename DecoratedType, typename... DecoratedArgs>
 class NegativeFeedback : public DecoratorClassifier<DecoratedType, DecoratedArgs...> {
-
 public:
   using Args = typename Model_Traits::model_traits<DecoratedType>::modelArgs;
   using DataType = typename Model_Traits::model_traits<DecoratedType>::datatype;
-  
+
   NegativeFeedback() : beta_{.001}, iterations_{3} {}
 
-  NegativeFeedback(float beta, std::size_t iterations) :
-    beta_{beta},
-    iterations_{iterations}
-  {}
+  NegativeFeedback(float beta, std::size_t iterations) : beta_{beta}, iterations_{iterations} {}
 
-  NegativeFeedback(const Mat<DataType>& dataset,
-		   Row<DataType>& labels,
-		   DecoratedArgs &&... args) : 
-    DecoratorClassifier<DecoratedType, DecoratedArgs...>(dataset,
-							 labels,
-							 std::forward<DecoratedArgs>(args)...)
-  {}
+  NegativeFeedback(const Mat<DataType>& dataset, Row<DataType>& labels, DecoratedArgs&&... args)
+      : DecoratorClassifier<DecoratedType, DecoratedArgs...>(
+            dataset, labels, std::forward<DecoratedArgs>(args)...) {}
 
-  NegativeFeedback(const Mat<DataType>& dataset,
-		   Row<DataType>& labels,
-		   DecoratedArgs const&... args) :
-    DecoratorClassifier<DecoratedType, DecoratedArgs...>(dataset,
-							 labels,
-							 args...)
-  {}
+  NegativeFeedback(
+      const Mat<DataType>& dataset, Row<DataType>& labels, DecoratedArgs const&... args)
+      : DecoratorClassifier<DecoratedType, DecoratedArgs...>(dataset, labels, args...) {}
 
-  NegativeFeedback(const Mat<DataType>& dataset,
-		   Row<DataType>& labels,
-		   Row<DataType>& weights,
-		   DecoratedArgs &&... args) :
-    DecoratorClassifier<DecoratedType, DecoratedArgs...>(dataset,
-							 labels,
-							 weights,
-							 std::forward<DecoratedArgs>(args)...)
-  {}
+  NegativeFeedback(
+      const Mat<DataType>& dataset,
+      Row<DataType>& labels,
+      Row<DataType>& weights,
+      DecoratedArgs&&... args)
+      : DecoratorClassifier<DecoratedType, DecoratedArgs...>(
+            dataset, labels, weights, std::forward<DecoratedArgs>(args)...) {}
 
-  NegativeFeedback(const Mat<DataType>& dataset,
-		   Row<DataType>& labels,
-		   Row<DataType>& weights,
-		   DecoratedArgs const&... args) :
-    DecoratorClassifier<DecoratedType, DecoratedArgs...>(dataset,
-							 labels,
-							 weights,
-							 args...)
-  {}
+  NegativeFeedback(
+      const Mat<DataType>& dataset,
+      Row<DataType>& labels,
+      Row<DataType>& weights,
+      DecoratedArgs const&... args)
+      : DecoratorClassifier<DecoratedType, DecoratedArgs...>(dataset, labels, weights, args...) {}
 
-  template<typename... Ts>
-  void setRootClassifier(std::unique_ptr<DecoratedType>&,
-			 const Mat<DataType>&,
-			 Row<DataType>&,
-			 std::tuple<Ts...> const&);
+  template <typename... Ts>
+  void setRootClassifier(
+      std::unique_ptr<DecoratedType>&,
+      const Mat<DataType>&,
+      Row<DataType>&,
+      std::tuple<Ts...> const&);
 
-  template<typename... Ts>
-  void setRootClassifier(std::unique_ptr<DecoratedType>&,
-			 const Mat<DataType>&,
-			 Row<DataType>&,
-			 Row<DataType>&,
-			 std::tuple<Ts...> const&);
+  template <typename... Ts>
+  void setRootClassifier(
+      std::unique_ptr<DecoratedType>&,
+      const Mat<DataType>&,
+      Row<DataType>&,
+      Row<DataType>&,
+      std::tuple<Ts...> const&);
 
-  static Args _args(const Model_Traits::AllClassifierArgs& p) {
-    return DecoratedType::_args(p);
-  }
+  static Args _args(const Model_Traits::AllClassifierArgs& p) { return DecoratedType::_args(p); }
 
-  template<class Archive>
-  void serialize(Archive &ar) {
+  template <class Archive>
+  void serialize(Archive& ar) {
     ar(beta_);
     ar(iterations_);
   }
@@ -194,202 +143,172 @@ public:
 private:
   float beta_;
   std::size_t iterations_;
-
 };
 
-template<typename... Args>
-class RandomForestClassifierBase : 
-  public DiscreteClassifierBase<Model_Traits::model_traits<RandomForestClassifier>::datatype,
-				Model_Traits::ClassifierTypes::RandomForestClassifierType,
-				Args...> {
+template <typename... Args>
+class RandomForestClassifierBase : public DiscreteClassifierBase<
+                                       Model_Traits::model_traits<RandomForestClassifier>::datatype,
+                                       Model_Traits::ClassifierTypes::RandomForestClassifierType,
+                                       Args...> {
 public:
   using DataType = Model_Traits::model_traits<RandomForestClassifier>::datatype;
   using ClassifierType = Model_Traits::ClassifierTypes::RandomForestClassifierType;
 
   RandomForestClassifierBase() = default;
-  
-  RandomForestClassifierBase(const Mat<DataType>& dataset,
-			     Row<DataType>& labels,
-			     Args&&... args) :
-    DiscreteClassifierBase<DataType, 
-			   ClassifierType, 
-			   Args...>(dataset, labels, std::forward<Args>(args)...) {}
 
-  RandomForestClassifierBase(const Mat<DataType>& dataset,
-			     Row<DataType>& labels,
-			     Row<DataType>& weights,
-			     Args&&... args) :
-    DiscreteClassifierBase<DataType, 
-			   ClassifierType, 
-			   Args...>(dataset, labels, weights, std::forward<Args>(args)...) {}
-  
+  RandomForestClassifierBase(const Mat<DataType>& dataset, Row<DataType>& labels, Args&&... args)
+      : DiscreteClassifierBase<DataType, ClassifierType, Args...>(
+            dataset, labels, std::forward<Args>(args)...) {}
+
+  RandomForestClassifierBase(
+      const Mat<DataType>& dataset, Row<DataType>& labels, Row<DataType>& weights, Args&&... args)
+      : DiscreteClassifierBase<DataType, ClassifierType, Args...>(
+            dataset, labels, weights, std::forward<Args>(args)...) {}
 };
 
-class RandomForestClassifier : 
-  public RandomForestClassifierBase<std::size_t, std::size_t, std::size_t> {
-
+class RandomForestClassifier
+    : public RandomForestClassifierBase<std::size_t, std::size_t, std::size_t> {
 public:
-
   using Args = std::tuple<std::size_t, std::size_t, std::size_t>;
   using DataType = Model_Traits::model_traits<RandomForestClassifier>::datatype;
 
   RandomForestClassifier() = default;
 
-  RandomForestClassifier(const Mat<DataType>& dataset,
-			 Row<DataType>& labels,
-			 std::size_t numClasses=1,
-			 std::size_t numTrees=10,
-			 std::size_t minLeafSize=2) :
-    RandomForestClassifierBase<std::size_t, std::size_t, std::size_t>(dataset, 
-								      labels, 
-								      std::move(numClasses),
-								      std::move(numTrees),
-								      std::move(minLeafSize)) {}
-  
-  RandomForestClassifier(const Mat<DataType>& dataset,
-			 Row<DataType>& labels,
-			 Row<DataType>& weights,
-			 std::size_t numClasses=1,
-			 std::size_t numTrees=10,
-			 std::size_t minLeafSize=2) :
-    RandomForestClassifierBase<std::size_t, std::size_t, std::size_t>(dataset,
-								      labels,
-								      weights,
-								      std::move(numClasses),
-								      std::move(numTrees),
-								      std::move(minLeafSize)) {}
+  RandomForestClassifier(
+      const Mat<DataType>& dataset,
+      Row<DataType>& labels,
+      std::size_t numClasses = 1,
+      std::size_t numTrees = 10,
+      std::size_t minLeafSize = 2)
+      : RandomForestClassifierBase<std::size_t, std::size_t, std::size_t>(
+            dataset, labels, std::move(numClasses), std::move(numTrees), std::move(minLeafSize)) {}
+
+  RandomForestClassifier(
+      const Mat<DataType>& dataset,
+      Row<DataType>& labels,
+      Row<DataType>& weights,
+      std::size_t numClasses = 1,
+      std::size_t numTrees = 10,
+      std::size_t minLeafSize = 2)
+      : RandomForestClassifierBase<std::size_t, std::size_t, std::size_t>(
+            dataset,
+            labels,
+            weights,
+            std::move(numClasses),
+            std::move(numTrees),
+            std::move(minLeafSize)) {}
 
   static Args _args(const Model_Traits::AllClassifierArgs& p) {
-    return std::make_tuple(std::get<0>(p),	// numClasses
-			   std::get<3>(p),	// numTrees
-			   std::get<1>(p));	// minLeafSize
+    return std::make_tuple(
+        std::get<0>(p),   // numClasses
+        std::get<3>(p),   // numTrees
+        std::get<1>(p));  // minLeafSize
   }
-
 };
 
-template<typename... Args>
-class DecisionTreeClassifierBase : 
-  public DiscreteClassifierBase<Model_Traits::model_traits<DecisionTreeClassifier>::datatype,
-				Model_Traits::ClassifierTypes::DecisionTreeClassifierType,
-				Args...> {
+template <typename... Args>
+class DecisionTreeClassifierBase : public DiscreteClassifierBase<
+                                       Model_Traits::model_traits<DecisionTreeClassifier>::datatype,
+                                       Model_Traits::ClassifierTypes::DecisionTreeClassifierType,
+                                       Args...> {
 public:
-
   using DataType = Model_Traits::model_traits<DecisionTreeClassifier>::datatype;
   using ClassifierType = Model_Traits::ClassifierTypes::DecisionTreeClassifierType;
 
   DecisionTreeClassifierBase() = default;
-  
-  DecisionTreeClassifierBase(const Mat<DataType>& dataset,
-			     Row<DataType>& labels,
-			     Args&&... args) :
-    DiscreteClassifierBase<DataType, 
-			   ClassifierType, 
-			   Args...>(dataset, labels, std::forward<Args>(args)...) {}
 
-  DecisionTreeClassifierBase(const Mat<DataType>& dataset,
-			     Row<DataType>& labels,
-			     Row<DataType>& weights,
-			     Args&&... args) :
-    DiscreteClassifierBase<DataType, 
-			   ClassifierType, 
-			   Args...>(dataset, labels, weights, std::forward<Args>(args)...) {}
+  DecisionTreeClassifierBase(const Mat<DataType>& dataset, Row<DataType>& labels, Args&&... args)
+      : DiscreteClassifierBase<DataType, ClassifierType, Args...>(
+            dataset, labels, std::forward<Args>(args)...) {}
+
+  DecisionTreeClassifierBase(
+      const Mat<DataType>& dataset, Row<DataType>& labels, Row<DataType>& weights, Args&&... args)
+      : DiscreteClassifierBase<DataType, ClassifierType, Args...>(
+            dataset, labels, weights, std::forward<Args>(args)...) {}
 };
 
-class DecisionTreeClassifier : 
-  public DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t> {
-
+class DecisionTreeClassifier
+    : public DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t> {
 public:
   using Args = std::tuple<std::size_t, std::size_t, double, std::size_t>;
   using DataType = Model_Traits::model_traits<DecisionTreeClassifier>::datatype;
 
   DecisionTreeClassifier() = default;
-  
-  DecisionTreeClassifier(const Mat<DataType>& dataset,
-			 Row<DataType>& labels,
-			 std::size_t numClasses,
-			 std::size_t minLeafSize,
-			 double minGainSplit,
-			 std::size_t maxDepth) :
-    DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t>(dataset,
-									      labels,
-									      std::move(numClasses),
-									      std::move(minLeafSize),
-									      std::move(minGainSplit),
-									      std::move(maxDepth))
-  {}
 
-  DecisionTreeClassifier(const Mat<DataType>& dataset,
-			 Row<DataType>& labels,
-			 Row<DataType>& weights,
-			 std::size_t numClasses,
-			 std::size_t minLeafSize,
-			 double minGainSplit,
-			 std::size_t maxDepth) :
-    DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t>(dataset,
-									      labels,
-									      weights,
-									      std::move(numClasses),
-									      std::move(minLeafSize),
-									      std::move(minGainSplit),
-									      std::move(maxDepth))
-  {}
-  
+  DecisionTreeClassifier(
+      const Mat<DataType>& dataset,
+      Row<DataType>& labels,
+      std::size_t numClasses,
+      std::size_t minLeafSize,
+      double minGainSplit,
+      std::size_t maxDepth)
+      : DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t>(
+            dataset,
+            labels,
+            std::move(numClasses),
+            std::move(minLeafSize),
+            std::move(minGainSplit),
+            std::move(maxDepth)) {}
+
+  DecisionTreeClassifier(
+      const Mat<DataType>& dataset,
+      Row<DataType>& labels,
+      Row<DataType>& weights,
+      std::size_t numClasses,
+      std::size_t minLeafSize,
+      double minGainSplit,
+      std::size_t maxDepth)
+      : DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t>(
+            dataset,
+            labels,
+            weights,
+            std::move(numClasses),
+            std::move(minLeafSize),
+            std::move(minGainSplit),
+            std::move(maxDepth)) {}
+
   static Args _args(const Model_Traits::AllClassifierArgs& p) {
-    return std::make_tuple(std::get<0>(p),	// numClasses
-			   std::get<1>(p),	// minLeafSize
-			   std::get<2>(p),	// minGainSplit
-			   std::get<4>(p));	// maxDepth
+    return std::make_tuple(
+        std::get<0>(p),   // numClasses
+        std::get<1>(p),   // minLeafSize
+        std::get<2>(p),   // minGainSplit
+        std::get<4>(p));  // maxDepth
   }
 };
 
-template<typename... Args>
-class ConstantTreeClassifierBase :
-  public DiscreteClassifierBase<Model_Traits::model_traits<ConstantTreeClassifier>::datatype,
-				Model_Traits::ClassifierTypes::ConstantTreeClassifierType,
-				Args...> {
+template <typename... Args>
+class ConstantTreeClassifierBase : public DiscreteClassifierBase<
+                                       Model_Traits::model_traits<ConstantTreeClassifier>::datatype,
+                                       Model_Traits::ClassifierTypes::ConstantTreeClassifierType,
+                                       Args...> {
 public:
   using DataType = Model_Traits::model_traits<ConstantTreeClassifier>::datatype;
   using ClassifierType = Model_Traits::ClassifierTypes::ConstantTreeClassifierType;
-  
+
   ConstantTreeClassifierBase() = default;
 
-  ConstantTreeClassifierBase(const Mat<DataType>& dataset,
-			     Row<DataType>& labels,
-			     Args&&... args) :
-    DiscreteClassifierBase<DataType,
-			   ClassifierType,
-			   Args...>(dataset, labels, std::forward<Args>(args)...) {}
-  
-  ConstantTreeClassifierBase(const Mat<DataType>& dataset,
-			     Row<DataType>& labels,
-			     Row<DataType>& weights,
-			     Args&&... args) :
-    DiscreteClassifierBase<DataType,
-			   ClassifierType,
-			   Args...>(dataset, labels, weights, std::forward<Args>(args)...) {}
+  ConstantTreeClassifierBase(const Mat<DataType>& dataset, Row<DataType>& labels, Args&&... args)
+      : DiscreteClassifierBase<DataType, ClassifierType, Args...>(
+            dataset, labels, std::forward<Args>(args)...) {}
+
+  ConstantTreeClassifierBase(
+      const Mat<DataType>& dataset, Row<DataType>& labels, Row<DataType>& weights, Args&&... args)
+      : DiscreteClassifierBase<DataType, ClassifierType, Args...>(
+            dataset, labels, weights, std::forward<Args>(args)...) {}
 };
-  
-class ConstantTreeClassifier :
-  public ConstantTreeClassifierBase<> {
+
+class ConstantTreeClassifier : public ConstantTreeClassifierBase<> {
 public:
   using DataType = Model_Traits::model_traits<ConstantTreeClassifier>::datatype;
-    
+
   ConstantTreeClassifier() = default;
 
-  ConstantTreeClassifier(const Mat<DataType>& dataset,
-			 Row<DataType>& labels) :
-    ConstantTreeClassifierBase<>(dataset,
-				 labels)
-  {}
-  
-  ConstantTreeClassifier(const Mat<DataType>& dataset,
-			 Row<DataType>& labels,
-			 Row<DataType>& weights) :
-    ConstantTreeClassifierBase<>(dataset,
-				 labels,
-				 weights)
-  {}
+  ConstantTreeClassifier(const Mat<DataType>& dataset, Row<DataType>& labels)
+      : ConstantTreeClassifierBase<>(dataset, labels) {}
 
+  ConstantTreeClassifier(
+      const Mat<DataType>& dataset, Row<DataType>& labels, Row<DataType>& weights)
+      : ConstantTreeClassifierBase<>(dataset, labels, weights) {}
 };
 
 ////////////////////////////////////////////////////////
@@ -397,50 +316,60 @@ public:
 ////////////////////////////////////////////////////////
 
 // LEVEL 3 using directives
-using DTCB  = DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t>;
-using RFCB  = RandomForestClassifierBase<std::size_t, std::size_t, std::size_t>;
-using CTCB  = ConstantTreeClassifierBase<>;
+using DTCB = DecisionTreeClassifierBase<std::size_t, std::size_t, double, std::size_t>;
+using RFCB = RandomForestClassifierBase<std::size_t, std::size_t, std::size_t>;
+using CTCB = ConstantTreeClassifierBase<>;
 
 // LEVEL 2 using directives
-using DiscreteClassifierBaseDTCD = DiscreteClassifierBase<double, 
-							  Model_Traits::ClassifierTypes::DecisionTreeClassifierType,
-							  std::size_t,
-							  std::size_t,
-							  double,
-							  std::size_t>;
+using DiscreteClassifierBaseDTCD = DiscreteClassifierBase<
+    double,
+    Model_Traits::ClassifierTypes::DecisionTreeClassifierType,
+    std::size_t,
+    std::size_t,
+    double,
+    std::size_t>;
 
-using DiscreteClassifierBaseDTCF = DiscreteClassifierBase<float, 
-							  Model_Traits::ClassifierTypes::DecisionTreeClassifierType,
-							  std::size_t,
-							  std::size_t,
-							  double,
-							  std::size_t>;
+using DiscreteClassifierBaseDTCF = DiscreteClassifierBase<
+    float,
+    Model_Traits::ClassifierTypes::DecisionTreeClassifierType,
+    std::size_t,
+    std::size_t,
+    double,
+    std::size_t>;
 
-using DiscreteClassifierBaseRFCD = DiscreteClassifierBase<double,
-							  Model_Traits::ClassifierTypes::RandomForestClassifierType,
-							  std::size_t,
-							  std::size_t,
-							  std::size_t>;
+using DiscreteClassifierBaseRFCD = DiscreteClassifierBase<
+    double,
+    Model_Traits::ClassifierTypes::RandomForestClassifierType,
+    std::size_t,
+    std::size_t,
+    std::size_t>;
 
-using DiscreteClassifierBaseRFCF = DiscreteClassifierBase<float,
-							  Model_Traits::ClassifierTypes::RandomForestClassifierType,
-							  std::size_t,
-							  std::size_t,
-							  std::size_t>;
+using DiscreteClassifierBaseRFCF = DiscreteClassifierBase<
+    float,
+    Model_Traits::ClassifierTypes::RandomForestClassifierType,
+    std::size_t,
+    std::size_t,
+    std::size_t>;
 
-using DiscreteClassifierBaseCTCD = DiscreteClassifierBase<double,
-							  Model_Traits::ClassifierTypes::ConstantTreeClassifierType>;
+using DiscreteClassifierBaseCTCD =
+    DiscreteClassifierBase<double, Model_Traits::ClassifierTypes::ConstantTreeClassifierType>;
 
-using DiscreteClassifierBaseCTCF = DiscreteClassifierBase<float,
-							  Model_Traits::ClassifierTypes::ConstantTreeClassifierType>;
+using DiscreteClassifierBaseCTCF =
+    DiscreteClassifierBase<float, Model_Traits::ClassifierTypes::ConstantTreeClassifierType>;
 
 // LEVEL 1 using directives
-using ClassifierBaseDTCD  = ClassifierBase<double, Model_Traits::ClassifierTypes::DecisionTreeClassifierType>;
-using ClassifierBaseDTCF  = ClassifierBase<float,  Model_Traits::ClassifierTypes::DecisionTreeClassifierType>;
-using ClassifierBaseRFCD  = ClassifierBase<double, Model_Traits::ClassifierTypes::RandomForestClassifierType>;
-using ClassifierBaseRFCF  = ClassifierBase<float,  Model_Traits::ClassifierTypes::RandomForestClassifierType>;
-using ClassifierBaseCTCD  = ClassifierBase<double, Model_Traits::ClassifierTypes::ConstantTreeClassifierType>;
-using ClassifierBaseCTCF  = ClassifierBase<float,  Model_Traits::ClassifierTypes::ConstantTreeClassifierType>;
+using ClassifierBaseDTCD =
+    ClassifierBase<double, Model_Traits::ClassifierTypes::DecisionTreeClassifierType>;
+using ClassifierBaseDTCF =
+    ClassifierBase<float, Model_Traits::ClassifierTypes::DecisionTreeClassifierType>;
+using ClassifierBaseRFCD =
+    ClassifierBase<double, Model_Traits::ClassifierTypes::RandomForestClassifierType>;
+using ClassifierBaseRFCF =
+    ClassifierBase<float, Model_Traits::ClassifierTypes::RandomForestClassifierType>;
+using ClassifierBaseCTCD =
+    ClassifierBase<double, Model_Traits::ClassifierTypes::ConstantTreeClassifierType>;
+using ClassifierBaseCTCF =
+    ClassifierBase<float, Model_Traits::ClassifierTypes::ConstantTreeClassifierType>;
 
 // LEVEL 0 using directives
 using ModelD = Model<double>;
@@ -448,10 +377,10 @@ using ModelF = Model<float>;
 
 /*
 // Decorator class using directives
-using DC5  = NegativeFeedback<DecisionTreeClassifier, std::size_t, std::size_t, double, std::size_t>;
-using DC4  = DecoratorClassifier<DecisionTreeClassifier, std::size_t, std::size_t, double, std::size_t>;
-using DC3  = DecoratorClassifierBase<DecisionTreeClassifier, std::size_t, std::size_t, double, std::size_t>;
-using DC2D = DiscreteClassifierBase<double,
+using DC5  = NegativeFeedback<DecisionTreeClassifier, std::size_t, std::size_t, double,
+std::size_t>; using DC4  = DecoratorClassifier<DecisionTreeClassifier, std::size_t, std::size_t,
+double, std::size_t>; using DC3  = DecoratorClassifierBase<DecisionTreeClassifier, std::size_t,
+std::size_t, double, std::size_t>; using DC2D = DiscreteClassifierBase<double,
 Model_Traits::ClassifierTypes::NegativeFeedbackDecisionTreeClassifierType,
 std::size_t,
 std::size_t,
@@ -463,10 +392,10 @@ std::size_t,
 std::size_t,
 double,
 std::size_t>;
-using DC1D = ClassifierBase<double, Model_Traits::ClassifierTypes::NegativeFeedbackDecisionTreeClassifierType>;
-using DC1F = ClassifierBase<float, Model_Traits::ClassifierTypes::NegativeFeedbackDecisionTreeClassifierType>;
+using DC1D = ClassifierBase<double,
+Model_Traits::ClassifierTypes::NegativeFeedbackDecisionTreeClassifierType>; using DC1F =
+ClassifierBase<float, Model_Traits::ClassifierTypes::NegativeFeedbackDecisionTreeClassifierType>;
 */
-
 
 // LEVEL 0 ~ Model<DataType>
 // No registration needed

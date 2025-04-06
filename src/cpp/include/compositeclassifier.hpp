@@ -1,60 +1,57 @@
 #ifndef __COMPOSITE_CLASSIFIER_HPP__
 #define __COMPOSITE_CLASSIFIER_HPP__
 
-#include <tuple>
-#include <memory>
-#include <vector>
-#include <unordered_map>
-#include <optional>
-
 #include <boost/filesystem.hpp>
-
+#include <memory>
 #include <mlpack/core.hpp>
+#include <optional>
+#include <tuple>
+#include <unordered_map>
+#include <vector>
 
-#include "utils.hpp"
 #include "DP.hpp"
-#include "score2.hpp"
+#include "classifier.hpp"
+#include "classifier_loss.hpp"
 #include "constantclassifier.hpp"
 #include "contextmanager.hpp"
-#include "classifier.hpp"
-#include "recursivemodel.hpp"
 #include "model_traits.hpp"
-#include "classifier_loss.hpp"
+#include "recursivemodel.hpp"
+#include "score2.hpp"
+#include "utils.hpp"
 
 using namespace arma;
 
 using namespace ModelContext;
 using namespace Model_Traits;
 
-template<typename ClassifierType>
-class CompositeClassifier : 
-  public ClassifierBase<typename model_traits<ClassifierType>::datatype,
-			typename model_traits<ClassifierType>::model>,
-  public RecursiveModel<typename model_traits<ClassifierType>::datatype,
-			CompositeClassifier<ClassifierType>>
-{
-  
-public:  
-  using DataType		= typename model_traits<ClassifierType>::datatype;
-  using IntegralLabelType	= typename model_traits<ClassifierType>::integrallabeltype;
-  using Classifier		= typename model_traits<ClassifierType>::model;
-  using ClassifierList		= typename std::vector<std::unique_ptr<Model<DataType>>>;
+template <typename ClassifierType>
+class CompositeClassifier : public ClassifierBase<
+                                typename model_traits<ClassifierType>::datatype,
+                                typename model_traits<ClassifierType>::model>,
+                            public RecursiveModel<
+                                typename model_traits<ClassifierType>::datatype,
+                                CompositeClassifier<ClassifierType>> {
+public:
+  using DataType = typename model_traits<ClassifierType>::datatype;
+  using IntegralLabelType = typename model_traits<ClassifierType>::integrallabeltype;
+  using Classifier = typename model_traits<ClassifierType>::model;
+  using ClassifierList = typename std::vector<std::unique_ptr<Model<DataType>>>;
 
-  using Leaves			= Row<DataType>;
-  using Prediction		= Row<DataType>;
-  using PredictionList		= std::vector<Prediction>;
-  using optLeavesInfo		= std::tuple<std::optional<std::vector<std::vector<int>>>,
-					     Leaves>;
-  using childModelInfo		= std::tuple<std::size_t, std::size_t, double>;
-  using childPartitionInfo	= std::tuple<std::size_t, std::size_t, double, double>;
+  using Leaves = Row<DataType>;
+  using Prediction = Row<DataType>;
+  using PredictionList = std::vector<Prediction>;
+  using optLeavesInfo = std::tuple<std::optional<std::vector<std::vector<int>>>, Leaves>;
+  using childModelInfo = std::tuple<std::size_t, std::size_t, double>;
+  using childPartitionInfo = std::tuple<std::size_t, std::size_t, double, double>;
 
-  using BaseModel_t		= RecursiveModel<typename model_traits<ClassifierType>::datatype,
-						 CompositeClassifier<ClassifierType>>;
-  
+  using BaseModel_t = RecursiveModel<
+      typename model_traits<ClassifierType>::datatype,
+      CompositeClassifier<ClassifierType>>;
 
   friend ContextManager;
-  friend RecursiveModel<typename model_traits<ClassifierType>::datatype,
-			CompositeClassifier<ClassifierType>>;
+  friend RecursiveModel<
+      typename model_traits<ClassifierType>::datatype,
+      CompositeClassifier<ClassifierType>>;
 
   CompositeClassifier() = default;
 
@@ -62,21 +59,23 @@ public:
   // mat	: arma::Mat<double>
   // labels	: arma::Row<std::size_t> <- CONVERTED TO Row<double>
   // context	: ModelContext::Context
-  CompositeClassifier(const Mat<DataType>& dataset, 
-		      const Row<std::size_t>& labels,
-		      Context context,
-		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
-    RecursiveModel<typename model_traits<ClassifierType>::datatype,
-		   CompositeClassifier<ClassifierType>>(),
-    dataset_{dataset},
-    labels_{conv_to<Row<DataType>>::from(labels)},
-    hasOOSData_{false},
-    hasInitialPrediction_{false},
-    reuseColMask_{false},
-    folderName_{folderName}
-  { 
+  CompositeClassifier(
+      const Mat<DataType>& dataset,
+      const Row<std::size_t>& labels,
+      Context context,
+      const std::string& folderName = std::string{})
+      : ClassifierBase<
+            typename model_traits<ClassifierType>::datatype,
+            typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+        RecursiveModel<
+            typename model_traits<ClassifierType>::datatype,
+            CompositeClassifier<ClassifierType>>(),
+        dataset_{dataset},
+        labels_{conv_to<Row<DataType>>::from(labels)},
+        hasOOSData_{false},
+        hasInitialPrediction_{false},
+        reuseColMask_{false},
+        folderName_{folderName} {
     init_(std::move(context));
   }
 
@@ -84,22 +83,24 @@ public:
   // mat	: arma::Mat<double>
   // labels	: arma::Row<double>
   // context	: ModelContext::Context
-  CompositeClassifier(const Mat<DataType>& dataset,
-		      const Row<DataType>& labels,
-		      Context context,
-		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
-    RecursiveModel<typename model_traits<ClassifierType>::datatype,
-		   CompositeClassifier<ClassifierType>>(),
+  CompositeClassifier(
+      const Mat<DataType>& dataset,
+      const Row<DataType>& labels,
+      Context context,
+      const std::string& folderName = std::string{})
+      : ClassifierBase<
+            typename model_traits<ClassifierType>::datatype,
+            typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+        RecursiveModel<
+            typename model_traits<ClassifierType>::datatype,
+            CompositeClassifier<ClassifierType>>(),
 
-    dataset_{dataset},
-    labels_{labels},
-    hasOOSData_{false},
-    hasInitialPrediction_{false},
-    reuseColMask_{false},
-    folderName_{folderName}
-  { 
+        dataset_{dataset},
+        labels_{labels},
+        hasOOSData_{false},
+        hasInitialPrediction_{false},
+        reuseColMask_{false},
+        folderName_{folderName} {
     init_(std::move(context));
   }
 
@@ -108,24 +109,26 @@ public:
   // labels		: arma::Row<std::size_t> <- CONVERTED TO Row<double>
   // colMask		: uvec
   // context		: ModelContext::Context
-  CompositeClassifier(const Mat<DataType>& dataset,
-		      const Row<std::size_t>& labels,
-		      const uvec& colMask,
-		      Context context,
-		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
-    RecursiveModel<typename model_traits<ClassifierType>::datatype,
-		   CompositeClassifier<ClassifierType>>(colMask),
+  CompositeClassifier(
+      const Mat<DataType>& dataset,
+      const Row<std::size_t>& labels,
+      const uvec& colMask,
+      Context context,
+      const std::string& folderName = std::string{})
+      : ClassifierBase<
+            typename model_traits<ClassifierType>::datatype,
+            typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+        RecursiveModel<
+            typename model_traits<ClassifierType>::datatype,
+            CompositeClassifier<ClassifierType>>(colMask),
 
-    dataset_{dataset},
-    labels_{conv_to<Row<DataType>>::from(labels)},
-    hasOOSData_{false},
-    hasInitialPrediction_{false},
-    reuseColMask_{true},
-    colMask_{colMask},
-    folderName_{folderName}
-  { 
+        dataset_{dataset},
+        labels_{conv_to<Row<DataType>>::from(labels)},
+        hasOOSData_{false},
+        hasInitialPrediction_{false},
+        reuseColMask_{true},
+        colMask_{colMask},
+        folderName_{folderName} {
     init_(std::move(context));
   }
 
@@ -134,28 +137,28 @@ public:
   // labels		: arma::Row<double>
   // colMask		: uvec
   // context		: ModelContext::Context
-  CompositeClassifier(const Mat<DataType>& dataset,
-		      const Row<DataType>& labels,
-		      const uvec& colMask,
-		      Context context,
-		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
-    RecursiveModel<typename model_traits<ClassifierType>::datatype,
-		   CompositeClassifier<ClassifierType>>(colMask),
+  CompositeClassifier(
+      const Mat<DataType>& dataset,
+      const Row<DataType>& labels,
+      const uvec& colMask,
+      Context context,
+      const std::string& folderName = std::string{})
+      : ClassifierBase<
+            typename model_traits<ClassifierType>::datatype,
+            typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+        RecursiveModel<
+            typename model_traits<ClassifierType>::datatype,
+            CompositeClassifier<ClassifierType>>(colMask),
 
-    dataset_{dataset},
-    labels_{labels},
-    hasOOSData_{false},
-    hasInitialPrediction_{false},
-    reuseColMask_{true},
-    colMask_{colMask},
-    folderName_{folderName}
-  { 
+        dataset_{dataset},
+        labels_{labels},
+        hasOOSData_{false},
+        hasInitialPrediction_{false},
+        reuseColMask_{true},
+        colMask_{colMask},
+        folderName_{folderName} {
     init_(std::move(context));
   }
-
-
 
   // 3
   // mat		: arma::Mat<double>
@@ -163,25 +166,27 @@ public:
   // dataset_oos	: arma::Mat<double>
   // labels_oos		: Row<std::size_t> <- CONVERTED TO Row<double>
   // context		: ModelContext::Context
-  CompositeClassifier(const Mat<DataType>& dataset,
-		      const Row<std::size_t>& labels,
-		      const Mat<DataType>& dataset_oos,
-		      const Row<std::size_t>& labels_oos,
-		      Context context,
-		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
-    RecursiveModel<typename model_traits<ClassifierType>::datatype,
-		   CompositeClassifier<ClassifierType>>(),
-    dataset_{dataset},
-    labels_{conv_to<Row<DataType>>::from(labels)},
-    dataset_oos_{dataset_oos},
-    labels_oos_{conv_to<Row<DataType>>::from(labels_oos)},
-    hasOOSData_{true},
-    hasInitialPrediction_{false},
-    reuseColMask_{false},
-    folderName_{folderName}
-  {
+  CompositeClassifier(
+      const Mat<DataType>& dataset,
+      const Row<std::size_t>& labels,
+      const Mat<DataType>& dataset_oos,
+      const Row<std::size_t>& labels_oos,
+      Context context,
+      const std::string& folderName = std::string{})
+      : ClassifierBase<
+            typename model_traits<ClassifierType>::datatype,
+            typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+        RecursiveModel<
+            typename model_traits<ClassifierType>::datatype,
+            CompositeClassifier<ClassifierType>>(),
+        dataset_{dataset},
+        labels_{conv_to<Row<DataType>>::from(labels)},
+        dataset_oos_{dataset_oos},
+        labels_oos_{conv_to<Row<DataType>>::from(labels_oos)},
+        hasOOSData_{true},
+        hasInitialPrediction_{false},
+        reuseColMask_{false},
+        folderName_{folderName} {
     init_(std::move(context));
   }
 
@@ -191,25 +196,27 @@ public:
   // dataset_oos	: arma::Mat<double>
   // labels_oos		: Row<double>
   // context		: ModelContext::Context
-  CompositeClassifier(const Mat<DataType>& dataset,
-		      const Row<DataType>& labels,
-		      const Mat<DataType>& dataset_oos,
-		      const Row<DataType>& labels_oos,
-		      Context context,
-		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
-    RecursiveModel<typename model_traits<ClassifierType>::datatype,
-		   CompositeClassifier<ClassifierType>>(),
-    dataset_{dataset},
-    labels_{labels},
-    dataset_oos_{dataset_oos},
-    labels_oos_{labels_oos},
-    hasOOSData_{true},
-    hasInitialPrediction_{false},
-    reuseColMask_{false},
-    folderName_{folderName}
-  {
+  CompositeClassifier(
+      const Mat<DataType>& dataset,
+      const Row<DataType>& labels,
+      const Mat<DataType>& dataset_oos,
+      const Row<DataType>& labels_oos,
+      Context context,
+      const std::string& folderName = std::string{})
+      : ClassifierBase<
+            typename model_traits<ClassifierType>::datatype,
+            typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+        RecursiveModel<
+            typename model_traits<ClassifierType>::datatype,
+            CompositeClassifier<ClassifierType>>(),
+        dataset_{dataset},
+        labels_{labels},
+        dataset_oos_{dataset_oos},
+        labels_oos_{labels_oos},
+        hasOOSData_{true},
+        hasInitialPrediction_{false},
+        reuseColMask_{false},
+        folderName_{folderName} {
     init_(std::move(context));
   }
 
@@ -221,24 +228,26 @@ public:
   // labels_oos		: Row<double>
   // colMask		: uvec
   // context		: ModelContext::Context
-  CompositeClassifier(const Mat<DataType>& dataset,
-		      const Row<std::size_t>& labels,
-		      const Row<DataType>& latestPrediction,
-		      const uvec& colMask,
-		      Context context,
-		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
-    RecursiveModel<typename model_traits<ClassifierType>::datatype,CompositeClassifier<ClassifierType>>(latestPrediction,
-													colMask),
-    dataset_{dataset},
-    labels_{conv_to<Row<DataType>>::from(labels)},
-    hasOOSData_{false},
-    hasInitialPrediction_{true},
-    reuseColMask_{true},
-    colMask_{colMask},
-    folderName_{folderName}
-  {
+  CompositeClassifier(
+      const Mat<DataType>& dataset,
+      const Row<std::size_t>& labels,
+      const Row<DataType>& latestPrediction,
+      const uvec& colMask,
+      Context context,
+      const std::string& folderName = std::string{})
+      : ClassifierBase<
+            typename model_traits<ClassifierType>::datatype,
+            typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+        RecursiveModel<
+            typename model_traits<ClassifierType>::datatype,
+            CompositeClassifier<ClassifierType>>(latestPrediction, colMask),
+        dataset_{dataset},
+        labels_{conv_to<Row<DataType>>::from(labels)},
+        hasOOSData_{false},
+        hasInitialPrediction_{true},
+        reuseColMask_{true},
+        colMask_{colMask},
+        folderName_{folderName} {
     init_(std::move(context));
   }
 
@@ -247,50 +256,53 @@ public:
   // labels		: arma::Row<std::size_t> <- CONVERTED TO Row<double>
   // latestPrediction	: arma::Mat<double>
   // context		: ModelContext::Context
-  CompositeClassifier(const Mat<DataType>& dataset,
-		      const Row<std::size_t>& labels,
-		      const Row<DataType>& latestPrediction,
-		      Context context,
-		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
-    RecursiveModel<typename model_traits<ClassifierType>::datatype,
-		   CompositeClassifier<ClassifierType>>(latestPrediction),
-    dataset_{dataset},
-    labels_{conv_to<Row<DataType>>::from(labels)},
-    hasOOSData_{false},
-    hasInitialPrediction_{true},
-    reuseColMask_{false},
-    folderName_{folderName}
-  {
+  CompositeClassifier(
+      const Mat<DataType>& dataset,
+      const Row<std::size_t>& labels,
+      const Row<DataType>& latestPrediction,
+      Context context,
+      const std::string& folderName = std::string{})
+      : ClassifierBase<
+            typename model_traits<ClassifierType>::datatype,
+            typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+        RecursiveModel<
+            typename model_traits<ClassifierType>::datatype,
+            CompositeClassifier<ClassifierType>>(latestPrediction),
+        dataset_{dataset},
+        labels_{conv_to<Row<DataType>>::from(labels)},
+        hasOOSData_{false},
+        hasInitialPrediction_{true},
+        reuseColMask_{false},
+        folderName_{folderName} {
     init_(std::move(context));
   }
-   
+
   // 7
   // mat		: arma::Mat<double>
   // labels		: arma::Row<double>
   // latestPrediction	: arma::Mat<double>
   // colMask		: uvec
   // context		: ModelContext::Context
-  CompositeClassifier(const Mat<DataType>& dataset,
-		      const Row<DataType>& labels,
-		      const Row<DataType>& latestPrediction,
-		      const uvec& colMask,
-		      Context context,
-		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
-    RecursiveModel<typename model_traits<ClassifierType>::datatype,
-		   CompositeClassifier<ClassifierType>>(latestPrediction,
-							colMask),
-    dataset_{dataset},
-    labels_{labels},
-    hasOOSData_{false},
-    hasInitialPrediction_{true},
-    reuseColMask_{true},
-    colMask_{colMask},
-    folderName_{folderName}
-  {
+  CompositeClassifier(
+      const Mat<DataType>& dataset,
+      const Row<DataType>& labels,
+      const Row<DataType>& latestPrediction,
+      const uvec& colMask,
+      Context context,
+      const std::string& folderName = std::string{})
+      : ClassifierBase<
+            typename model_traits<ClassifierType>::datatype,
+            typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+        RecursiveModel<
+            typename model_traits<ClassifierType>::datatype,
+            CompositeClassifier<ClassifierType>>(latestPrediction, colMask),
+        dataset_{dataset},
+        labels_{labels},
+        hasOOSData_{false},
+        hasInitialPrediction_{true},
+        reuseColMask_{true},
+        colMask_{colMask},
+        folderName_{folderName} {
     init_(std::move(context));
   }
 
@@ -299,22 +311,24 @@ public:
   // labels		: arma::Row<double>
   // latestPrediction	: arma::Mat<double>
   // context		: ModelContext::Context
-  CompositeClassifier(const Mat<DataType>& dataset,
-		      const Row<DataType>& labels,
-		      const Row<DataType>& latestPrediction,
-		      Context context,
-		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
-    RecursiveModel<typename model_traits<ClassifierType>::datatype,
-		   CompositeClassifier<ClassifierType>>(latestPrediction),
-    dataset_{dataset},
-    labels_{labels},
-    hasOOSData_{false},
-    hasInitialPrediction_{true},
-    reuseColMask_{false},
-    folderName_{folderName}
-  {
+  CompositeClassifier(
+      const Mat<DataType>& dataset,
+      const Row<DataType>& labels,
+      const Row<DataType>& latestPrediction,
+      Context context,
+      const std::string& folderName = std::string{})
+      : ClassifierBase<
+            typename model_traits<ClassifierType>::datatype,
+            typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+        RecursiveModel<
+            typename model_traits<ClassifierType>::datatype,
+            CompositeClassifier<ClassifierType>>(latestPrediction),
+        dataset_{dataset},
+        labels_{labels},
+        hasOOSData_{false},
+        hasInitialPrediction_{true},
+        reuseColMask_{false},
+        folderName_{folderName} {
     init_(std::move(context));
   }
 
@@ -326,29 +340,30 @@ public:
   // latestPrediction	: arma::Mat<double>
   // colMask		: uvec
   // context		: ModelContext::Context
-  CompositeClassifier(const Mat<DataType>& dataset,
-		      const Row<std::size_t>& labels,
-		      const Mat<DataType>& dataset_oos,
-		      const Row<std::size_t>& labels_oos,
-		      const Row<DataType>& latestPrediction,
-		      const uvec& colMask,
-		      Context context,
-		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
-    RecursiveModel<typename model_traits<ClassifierType>::datatype,
-		   CompositeClassifier<ClassifierType>>(latestPrediction,
-							colMask),
-    dataset_{dataset},
-    labels_{conv_to<Row<DataType>>::from(labels)},
-    dataset_oos_{dataset_oos},
-    labels_oos_{conv_to<Row<DataType>>::from(labels_oos)},
-    hasOOSData_{true},
-    hasInitialPrediction_{true},
-    reuseColMask_{true},
-    colMask_{colMask},
-    folderName_{folderName}
-  {
+  CompositeClassifier(
+      const Mat<DataType>& dataset,
+      const Row<std::size_t>& labels,
+      const Mat<DataType>& dataset_oos,
+      const Row<std::size_t>& labels_oos,
+      const Row<DataType>& latestPrediction,
+      const uvec& colMask,
+      Context context,
+      const std::string& folderName = std::string{})
+      : ClassifierBase<
+            typename model_traits<ClassifierType>::datatype,
+            typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+        RecursiveModel<
+            typename model_traits<ClassifierType>::datatype,
+            CompositeClassifier<ClassifierType>>(latestPrediction, colMask),
+        dataset_{dataset},
+        labels_{conv_to<Row<DataType>>::from(labels)},
+        dataset_oos_{dataset_oos},
+        labels_oos_{conv_to<Row<DataType>>::from(labels_oos)},
+        hasOOSData_{true},
+        hasInitialPrediction_{true},
+        reuseColMask_{true},
+        colMask_{colMask},
+        folderName_{folderName} {
     init_(std::move(context));
   }
 
@@ -359,26 +374,28 @@ public:
   // labels_oos		: Row<std::size_t> <- CONVERTED TO Row<double>
   // latestPrediction	: arma::Mat<double>
   // context		: ModelContext::Context
-  CompositeClassifier(const Mat<DataType>& dataset,
-		      const Row<std::size_t>& labels,
-		      const Mat<DataType>& dataset_oos,
-		      const Row<std::size_t>& labels_oos,
-		      const Row<DataType>& latestPrediction,
-		      Context context,
-		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
-    RecursiveModel<typename model_traits<ClassifierType>::datatype,
-		   CompositeClassifier<ClassifierType>>(latestPrediction),
-    dataset_{dataset},
-    labels_{conv_to<Row<DataType>>::from(labels)},
-    dataset_oos_{dataset_oos},
-    labels_oos_{conv_to<Row<DataType>>::from(labels_oos)},
-    hasOOSData_{true},
-    hasInitialPrediction_{true},
-    reuseColMask_{false},
-    folderName_{folderName}
-  {
+  CompositeClassifier(
+      const Mat<DataType>& dataset,
+      const Row<std::size_t>& labels,
+      const Mat<DataType>& dataset_oos,
+      const Row<std::size_t>& labels_oos,
+      const Row<DataType>& latestPrediction,
+      Context context,
+      const std::string& folderName = std::string{})
+      : ClassifierBase<
+            typename model_traits<ClassifierType>::datatype,
+            typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+        RecursiveModel<
+            typename model_traits<ClassifierType>::datatype,
+            CompositeClassifier<ClassifierType>>(latestPrediction),
+        dataset_{dataset},
+        labels_{conv_to<Row<DataType>>::from(labels)},
+        dataset_oos_{dataset_oos},
+        labels_oos_{conv_to<Row<DataType>>::from(labels_oos)},
+        hasOOSData_{true},
+        hasInitialPrediction_{true},
+        reuseColMask_{false},
+        folderName_{folderName} {
     init_(std::move(context));
   }
 
@@ -390,29 +407,30 @@ public:
   // latestPrediction	: arma::Mat<double>
   // colMask		: uvec
   // context		: ModelContext::Context
-  CompositeClassifier(const Mat<DataType>& dataset,
-		      const Row<DataType>& labels,
-		      const Mat<DataType>& dataset_oos,
-		      const Row<DataType>& labels_oos,
-		      const Row<DataType>& latestPrediction,
-		      const uvec& colMask,
-		      Context context,
-		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
-    RecursiveModel<typename model_traits<ClassifierType>::datatype,
-		   CompositeClassifier<ClassifierType>>(latestPrediction,
-							colMask),
-    dataset_{dataset},
-    labels_{labels},
-    dataset_oos_{dataset_oos},
-    labels_oos_{labels_oos},
-    hasOOSData_{true},
-    hasInitialPrediction_{true},
-    reuseColMask_{true},
-    colMask_{colMask},
-    folderName_{folderName}
-  {
+  CompositeClassifier(
+      const Mat<DataType>& dataset,
+      const Row<DataType>& labels,
+      const Mat<DataType>& dataset_oos,
+      const Row<DataType>& labels_oos,
+      const Row<DataType>& latestPrediction,
+      const uvec& colMask,
+      Context context,
+      const std::string& folderName = std::string{})
+      : ClassifierBase<
+            typename model_traits<ClassifierType>::datatype,
+            typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+        RecursiveModel<
+            typename model_traits<ClassifierType>::datatype,
+            CompositeClassifier<ClassifierType>>(latestPrediction, colMask),
+        dataset_{dataset},
+        labels_{labels},
+        dataset_oos_{dataset_oos},
+        labels_oos_{labels_oos},
+        hasOOSData_{true},
+        hasInitialPrediction_{true},
+        reuseColMask_{true},
+        colMask_{colMask},
+        folderName_{folderName} {
     init_(std::move(context));
   }
 
@@ -423,26 +441,28 @@ public:
   // labels_oos		: Row<double>
   // latestPrediction	: arma::Mat<double>
   // context		: ClassifierContext::Context
-  CompositeClassifier(const Mat<DataType>& dataset,
-		      const Row<DataType>& labels,
-		      const Mat<DataType>& dataset_oos,
-		      const Row<DataType>& labels_oos,
-		      const Row<DataType>& latestPrediction,
-		      Context context,
-		      const std::string& folderName=std::string{}) :
-    ClassifierBase<typename model_traits<ClassifierType>::datatype,
-		   typename model_traits<ClassifierType>::model>(typeid(*this).name()),
-    RecursiveModel<typename model_traits<ClassifierType>::datatype,
-		   CompositeClassifier<ClassifierType>>(latestPrediction),    
-    dataset_{dataset},
-    labels_{labels},
-    dataset_oos_{dataset_oos},
-    labels_oos_{labels_oos},
-    hasOOSData_{true},
-    hasInitialPrediction_{true},
-    reuseColMask_{false},
-    folderName_{folderName}
-  {
+  CompositeClassifier(
+      const Mat<DataType>& dataset,
+      const Row<DataType>& labels,
+      const Mat<DataType>& dataset_oos,
+      const Row<DataType>& labels_oos,
+      const Row<DataType>& latestPrediction,
+      Context context,
+      const std::string& folderName = std::string{})
+      : ClassifierBase<
+            typename model_traits<ClassifierType>::datatype,
+            typename model_traits<ClassifierType>::model>(typeid(*this).name()),
+        RecursiveModel<
+            typename model_traits<ClassifierType>::datatype,
+            CompositeClassifier<ClassifierType>>(latestPrediction),
+        dataset_{dataset},
+        labels_{labels},
+        dataset_oos_{dataset_oos},
+        labels_oos_{labels_oos},
+        hasOOSData_{true},
+        hasInitialPrediction_{true},
+        reuseColMask_{false},
+        folderName_{folderName} {
     init_(std::move(context));
   }
 
@@ -455,8 +475,8 @@ public:
   // predict on subset of dataset defined by uvec; sum step prediction vectors
   virtual void Predict(Row<DataType>&, const uvec&);
   // predict OOS, loop through and call Classify_ on individual classifiers, sum
-  virtual void Predict(const Mat<DataType>&, Row<DataType>&, bool=false);
-  virtual void Predict(Mat<DataType>&&, Row<DataType>&, bool=false);
+  virtual void Predict(const Mat<DataType>&, Row<DataType>&, bool = false);
+  virtual void Predict(Mat<DataType>&&, Row<DataType>&, bool = false);
 
   // 3 overloaded versions of above based based on label datatype
   virtual void Predict(Row<IntegralLabelType>&);
@@ -465,16 +485,15 @@ public:
   virtual void Predict(Mat<DataType>&&, Row<IntegralLabelType>&);
 
   // 2 overloaded versions for archive classifier
-  virtual void Predict(std::string, Row<DataType>&, bool=false);
-  virtual void Predict(std::string, const Mat<DataType>&, Row<DataType>&, bool=false);
-  virtual void Predict(std::string, Mat<DataType>&&, Row<DataType>&, bool=false);
+  virtual void Predict(std::string, Row<DataType>&, bool = false);
+  virtual void Predict(std::string, const Mat<DataType>&, Row<DataType>&, bool = false);
+  virtual void Predict(std::string, Mat<DataType>&&, Row<DataType>&, bool = false);
 
-  template<typename MatType>
-  void _predict_in_loop(MatType&&, Row<DataType>&, bool=false);
-  
-  template<typename MatType>
-  void _predict_in_loop_archive(std::vector<std::string>&, MatType&&, Row<DataType>&, bool=false);
+  template <typename MatType>
+  void _predict_in_loop(MatType&&, Row<DataType>&, bool = false);
 
+  template <typename MatType>
+  void _predict_in_loop_archive(std::vector<std::string>&, MatType&&, Row<DataType>&, bool = false);
 
   Mat<DataType> getDataset() const { return dataset_; }
   int getNRows() const { return n_; }
@@ -487,10 +506,10 @@ public:
   void symmetrizeLabels(Row<DataType>&);
   void symmetrizeLabels();
 
-  std::pair<double, double> getAB() const {return std::make_pair(a_, b_); }
-  
+  std::pair<double, double> getAB() const { return std::make_pair(a_, b_); }
+
   virtual void printStats(int);
-  std::string write();  
+  std::string write();
   std::string writeDataset();
   std::string writeDatasetOOS();
   std::string writeLabels();
@@ -502,9 +521,10 @@ public:
   void commit();
   void checkAccuracyOfArchive();
 
-  template<class Archive>
-  void serialize(Archive &ar) {
-    ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), CEREAL_NVP(BaseModel_t::models_));
+  template <class Archive>
+  void serialize(Archive& ar) {
+    ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this),
+       CEREAL_NVP(BaseModel_t::models_));
     ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), symmetrized_);
     ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), a_);
     ar(cereal::base_class<ClassifierBase<DataType, Classifier>>(this), b_);
@@ -525,38 +545,42 @@ private:
 
   void fit_step(std::size_t);
 
-  void Classify_(const Mat<DataType>& dataset, Row<DataType>& prediction) override { 
-    Predict(dataset, prediction); 
+  void Classify_(const Mat<DataType>& dataset, Row<DataType>& prediction) override {
+    Predict(dataset, prediction);
   }
   void Classify_(Mat<DataType>&& dataset, Row<DataType>& prediction) override {
     Predict(std::move(dataset), prediction);
   }
 
   void purge_() override;
-  
+
   void createRootClassifier(std::unique_ptr<ClassifierType>&, const Row<DataType>&);
 
-  template<typename... Ts>
-  void setRootClassifier(std::unique_ptr<ClassifierType>&,
-			 const Mat<DataType>&,
-			 Row<DataType>&,
-			 Row<DataType>&,
-			 std::tuple<Ts...> const&);
-  
-  template<typename... Ts>
-  void setRootClassifier(std::unique_ptr<ClassifierType>&, 
-			 const Mat<DataType>&,
-			 Row<DataType>&,
-			 std::tuple<Ts...> const&);
-  
+  template <typename... Ts>
+  void setRootClassifier(
+      std::unique_ptr<ClassifierType>&,
+      const Mat<DataType>&,
+      Row<DataType>&,
+      Row<DataType>&,
+      std::tuple<Ts...> const&);
+
+  template <typename... Ts>
+  void setRootClassifier(
+      std::unique_ptr<ClassifierType>&,
+      const Mat<DataType>&,
+      Row<DataType>&,
+      std::tuple<Ts...> const&);
 
   // void updateClassifiers(std::unique_ptr<Model<DataType>>&&, Row<DataType>&);
   // void updateModels(std::unique_ptr<Model<DataType>>&&, Row<DataType>&);
 
   void calcWeights();
   void setWeights();
-  auto generate_coefficients(const Row<DataType>&, const uvec&) -> std::pair<Row<DataType>, Row<DataType>>;
-  auto computeOptimalSplit(Row<DataType>&, Row<DataType>&, std::size_t, std::size_t, double, double, bool=false) -> optLeavesInfo;
+  auto generate_coefficients(const Row<DataType>&, const uvec&)
+      -> std::pair<Row<DataType>, Row<DataType>>;
+  auto computeOptimalSplit(
+      Row<DataType>&, Row<DataType>&, std::size_t, std::size_t, double, double, bool = false)
+      -> optLeavesInfo;
 
   void setNextClassifier(const ClassifierType&);
   AllClassifierArgs allClassifierArgs(std::size_t);
@@ -582,7 +606,7 @@ private:
 
   bool clamp_gradient_;
   double upper_val_, lower_val_;
-  
+
   double learningRate_;
   double activePartitionRatio_;
 
@@ -607,7 +631,7 @@ private:
   AllClassifierArgs classifierArgs_;
 
   PredictionList predictions_;
- 
+
   std::mt19937 mersenne_engine_{std::random_device{}()};
   std::default_random_engine default_engine_;
   std::uniform_int_distribution<std::size_t> partitionDist_;
@@ -639,7 +663,6 @@ private:
   std::size_t depth_;
 
   boost::filesystem::path fldr_{};
-
 };
 
 #include "compositeclassifier_impl.hpp"
