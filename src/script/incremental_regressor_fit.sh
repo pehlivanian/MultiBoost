@@ -1,7 +1,13 @@
 #!/bin/bash
 
+# Get project root directory if not set
+if [ -z "${IB_PROJECT_ROOT}" ]; then
+  # Try to find the project root (the directory containing CMakeLists.txt)
+  export IB_PROJECT_ROOT=$(cd "$(dirname "$0")/../.." && pwd)
+fi
+
 DELIM=';'
-PATH=/home/charles/src/C++/sandbox/Inductive-Boost/build/
+PATH=${IB_PROJECT_ROOT}/build/
 
 SHOW_OOS=0
 USE_WEIGHTS=0

@@ -23,4 +23,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Define project root directory
+set(IB_PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+message(STATUS "Project root directory: ${IB_PROJECT_ROOT}")
+
+# Add definition for preprocessor
+add_definitions(-DIB_PROJECT_ROOT="${IB_PROJECT_ROOT}")
+
 add_subdirectory(src/cpp/src)

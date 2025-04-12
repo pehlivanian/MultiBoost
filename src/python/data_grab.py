@@ -2,8 +2,9 @@ import os
 import openml
 import numpy as np
 import pandas as pd
+from path_utils import get_data_dir
 
-ROOT_DATA = "/home/charles/Data/"
+ROOT_DATA = get_data_dir()
 
 ################################
 # OPENML tabular data datasets #
@@ -89,8 +90,8 @@ import pandas as pd
 from pmlb import classification_dataset_names, regression_dataset_names
 from sklearn.model_selection import train_test_split
 
-# ROOT_DATA = "/home/charles/Data/"
-ROOT_DATA = "/home/charles/Data/tabular_benchmark/"
+# Use data directory from environment or default
+ROOT_DATA = os.path.join(get_data_dir(), "tabular_benchmark/")
 # MODEL_TYPE = "Classification"
 MODEL_TYPE = "Regression"
 
@@ -126,12 +127,9 @@ MODEL_TYPE = "Regression"
 # dataset_name = "diamonds"
 dataset_name = "house_sales"
 
-# X = pd.read_csv("/home/charles/Data/income_train_X.csv")
-# y = pd.read_csv("/home/charles/Data/income_train_y.csv")
-X = pd.read_csv("/home/charles/Data/tabular_benchmark/Regression/"+dataset_name+"_X.csv")
-y = pd.read_csv("/home/charles/Data/tabular_benchmark/Regression/"+dataset_name+"_y.csv")
-# X = pd.read_csv("/home/charles/Data/Regression/"+dataset_name+"_X.csv")
-# y = pd.read_csv("/home/charles/Data/Regression/"+dataset_name+"_y.csv")
+# Use joined paths instead of hardcoded paths
+X = pd.read_csv(os.path.join(ROOT_DATA, "Regression", dataset_name+"_X.csv"))
+y = pd.read_csv(os.path.join(ROOT_DATA, "Regression", dataset_name+"_y.csv"))
 # X,y = pmlb.fetch_data(dataset_name, return_X_y=True)
 # X_train, X_test, y_train, y_test = train_test_split(X, y)
 # X = X_train; y = y_train

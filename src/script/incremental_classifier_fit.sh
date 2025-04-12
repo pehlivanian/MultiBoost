@@ -2,7 +2,7 @@
 
 # Examples
 # 
-# /home/charles/src/C++/sandbox/Inductive-Boost/src/script/incremental_classifier_fit.sh 1 250 1 0.01 0.75 0 1 0 buggyCrx_train 10 12 1.56 1 1 1 1 -1 1 .2
+# ${IB_PROJECT_ROOT}/src/script/incremental_classifier_fit.sh 1 250 1 0.01 0.75 0 1 0 buggyCrx_train 10 12 1.56 1 1 1 1 -1 1 .2
 ## SPLIT RATIO: .2
 ## RUN ON TEST DATASET: 1
 ## TEST OOS EACH IT: 
@@ -10,7 +10,7 @@
 # 
 # So IS, OOS information will be shown for each iteration if $SHOW_OOS=1
 # 
-# /home/charles/src/C++/sandbox/Inductive-Boost/src/script/incremental_classifier_fit.sh 1 250 1 0.01 0.75 0 1 0 buggyCrx_train 10 12 1.56 1 1 1 1 -1 0 .2
+# ${IB_PROJECT_ROOT}/src/script/incremental_classifier_fit.sh 1 250 1 0.01 0.75 0 1 0 buggyCrx_train 10 12 1.56 1 1 1 1 -1 0 .2
 ## SPLIT RATIO: .2
 ## RUN ON TEST DATASET: 0
 ## TEST OOS EACH IT: 
@@ -19,8 +19,14 @@
 # So IS, OOS information will be shown for each iteration if $SHOW_OOS=1 and after the last
 # iteration if $SHOW_OOS -ne 1
 
+# Get project root directory if not set
+if [ -z "${IB_PROJECT_ROOT}" ]; then
+  # Try to find the project root (the directory containing CMakeLists.txt)
+  export IB_PROJECT_ROOT=$(cd "$(dirname "$0")/../.." && pwd)
+fi
+
 DELIM=';'
-PATH=/home/charles/src/C++/sandbox/Inductive-Boost/build/
+PATH=${IB_PROJECT_ROOT}/build/
 
 SHOW_OOS=0
 USE_WEIGHTS=0

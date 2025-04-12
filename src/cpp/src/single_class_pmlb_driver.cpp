@@ -1,4 +1,5 @@
 #include "single_class_pmlb_driver.hpp"
+#include "path_utils.hpp"
 
 namespace {
 using DataType = Model_Traits::model_traits<DecisionTreeClassifier>::datatype;
@@ -18,9 +19,9 @@ auto main() -> int {
   Row<std::size_t> labels, trainLabels, testLabels;
   Row<std::size_t> trainPrediction, testPrediction;
 
-  if (!data::Load("/home/charles/Data/diabetes_X.csv", dataset))
+  if (!data::Load(resolve_data_path("diabetes_X.csv"), dataset))
     throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/diabetes_y.csv", labels))
+  if (!data::Load(resolve_data_path("diabetes_y.csv"), labels))
     throw std::runtime_error("Could not load file");
 
   data::Split(dataset, labels, trainDataset, testDataset, trainLabels, testLabels, 0.2);
