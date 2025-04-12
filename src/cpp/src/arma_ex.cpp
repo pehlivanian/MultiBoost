@@ -1,10 +1,6 @@
 #include <mlpack/core.hpp>
 #include <mlpack/methods/decision_tree/decision_tree.hpp>
 #include <mlpack/methods/decision_tree/decision_tree_regressor.hpp>
-#include <mlpack/methods/decision_tree/gini_gain.hpp>
-#include <mlpack/methods/decision_tree/information_gain.hpp>
-#include <mlpack/methods/decision_tree/multiple_random_dimension_select.hpp>
-#include <mlpack/methods/decision_tree/random_dimension_select.hpp>
 #include <unordered_map>
 
 using namespace arma;
