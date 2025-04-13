@@ -30,4 +30,33 @@ message(STATUS "Project root directory: ${IB_PROJECT_ROOT}")
 # Add definition for preprocessor
 add_definitions(-DIB_PROJECT_ROOT="${IB_PROJECT_ROOT}")
 
+# Define test data directory - this is also used in C++ code
+set(IB_TEST_DATA_DIR "${IB_PROJECT_ROOT}/test_data")
+add_definitions(-DIB_TEST_DATA_DIR="${IB_TEST_DATA_DIR}")
+
+# Make test data available to the build
+message(STATUS "Test data directory: ${IB_TEST_DATA_DIR}")
+
+# Create digest directories needed at runtime
+file(MAKE_DIRECTORY ${IB_PROJECT_ROOT}/digest/classify)
+file(MAKE_DIRECTORY ${IB_PROJECT_ROOT}/digest/regress)
+message(STATUS "Created digest directories for models")
+
+# Custom target to ensure digest directories exist at build time
+add_custom_target(create_digest_dirs ALL
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${IB_PROJECT_ROOT}/digest/classify"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${IB_PROJECT_ROOT}/digest/regress"
+    COMMENT "Ensuring digest directories exist")
+
+# Install test data as part of the package
+install(DIRECTORY ${IB_PROJECT_ROOT}/test_data/
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME}/data
+        FILES_MATCHING PATTERN "*.csv")
+
+# Create and install digest directories
+install(DIRECTORY 
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME}/digest/classify)
+install(DIRECTORY 
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME}/digest/regress)
+
 add_subdirectory(src/cpp/src)

@@ -59,6 +59,34 @@ inline std::string resolve_data_path(std::string_view filename) {
   return std::string(filename);
 }
 
+/**
+ * Resolves a path to a test data file.
+ * Test data files are expected to be in the test_data directory defined by the build
+ * or a default location.
+ * 
+ * @param filename The name of the test data file
+ * @return The absolute path to the test data file
+ */
+inline std::string resolve_test_data_path(std::string_view filename) {
+  // First check if we have test data in the user's data directory
+  std::string data_path = resolve_data_path(filename);
+  if (std::filesystem::exists(data_path)) {
+    return data_path;
+  }
+  
+  // If not found in data dir, use the test data directory from build
+  static const std::string test_data_dir = 
+#ifdef IB_TEST_DATA_DIR
+    IB_TEST_DATA_DIR;
+#else
+    (std::filesystem::path(IB_PROJECT_ROOT) / "test_data").string();
+#endif
+  
+  std::filesystem::path test_path(test_data_dir);
+  std::filesystem::path file_path(filename);
+  return (test_path / file_path).string();
+}
+
 } // namespace IB_utils
 
 #endif // PATH_UTILS_HPP

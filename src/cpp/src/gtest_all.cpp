@@ -22,6 +22,7 @@
 #include "classifiers.hpp"
 #include "gradientboostclassifier.hpp"
 #include "gradientboostregressor.hpp"
+#include "path_utils.hpp"
 #include "replay.hpp"
 #include "score2.hpp"
 #include "utils.hpp"
@@ -182,16 +183,16 @@ float mixture_of_uniforms(int n) {
 }
 
 void loadClassifierDatasets(dataset_t& dataset, labels_t& labels) {
-  if (!data::Load("/home/charles/Data/sonar_X.csv", dataset))
+  if (!data::Load(IB_utils::resolve_test_data_path("sonar_X.csv"), dataset))
     throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/sonar_y.csv", labels))
+  if (!data::Load(IB_utils::resolve_test_data_path("sonar_y.csv"), labels))
     throw std::runtime_error("Could not load file");
 }
 
 void loadRegressorDatasets(dataset_regress_t& dataset, labels_regress_d& labels) {
-  if (!data::Load("/home/charles/Data/Regression/1193_BNG_lowbwt_X.csv", dataset))
+  if (!data::Load(IB_utils::resolve_test_data_path("Regression/1193_BNG_lowbwt_X.csv"), dataset))
     throw std::runtime_error("Could not load file");
-  if (!data::Load("/home/charles/Data/Regression/1193_BNG_lowbwt_y.csv", labels))
+  if (!data::Load(IB_utils::resolve_test_data_path("Regression/1193_BNG_lowbwt_y.csv"), labels))
     throw std::runtime_error("Could not load file");
 }
 
@@ -1026,7 +1027,7 @@ TEST(GradientBoostRegressorTest, TestContextWrittenWithCorrectValues) {
   Context context_archive;
 
   std::string fileName = "./ctx_cls.dat";
-  std::string cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/create_context_regressor ";
+  std::string cmd = IB_utils::resolve_path("build/create_context_regressor ");
 
   cmd += "--loss 0 ";
   cmd += "--steps 4122 --symmetrizeLabels false ";
@@ -1073,8 +1074,7 @@ TEST(GradientBoostClassifierTest, TestContextWrittenWithCorrectValues) {
   Context context_archive;
 
   std::string fileName = "ctx_reg.dat";
-  std::string cmd =
-      "/home/charles/src/C++/sandbox/Inductive-Boost/build/create_context_classifier ";
+  std::string cmd = IB_utils::resolve_path("build/create_context_classifier ");
 
   cmd += "--loss 7 ";
   cmd += "--learningRate .01 --steps 1010 --symmetrizeLabels true ";
@@ -1796,10 +1796,12 @@ TEST(GradientBoostRegressorTest, TestIncrementalRegressorScript) {
   char rg_ex[50];
   char cmd[500];
   sprintf(rg_ex, "\\[%s\\]\\sOOS[\\s]*:[\\s]*.*:[\\s]+\\((.*)\\)", dataset_name_test);
+  
+  std::string script_path = IB_utils::resolve_path("src/script/incremental_regressor_fit.sh");
   sprintf(
       cmd,
-      "/home/charles/src/C++/sandbox/Inductive-Boost/src/script/incremental_regressor_fit.sh 2 10 "
-      "10 1 1 0.01 0.01 0.5 0.5 0 0 1 1 0 0 %s 10 1 1 1 1 1 -1 1 .2",
+      "%s 2 10 10 1 1 0.01 0.01 0.5 0.5 0 0 1 1 0 0 %s 10 1 1 1 1 1 -1 1 .2",
+      script_path.c_str(),
       dataset_name_train);
 
   std::array<float, 11> rsquared = {
@@ -1840,20 +1842,21 @@ TEST(GradientBoostClassifierTest, TestIncrementalClassifierScript) {
   ipstream pipe_stream;
   char dataset_name_train[50] = "buggyCrx_train";
   char dataset_name_test[50] = "buggyCrx_test";
-  char abs_path[100] = "/home/charles/src/C++/sandbox/Inductive-Boost/";
 
   char rg_ex[50];
   char cmd[500];
   sprintf(rg_ex, "\\[%s\\]\\sOOS[\\s]*:[\\s]*.*:[\\s]+\\((.*)\\)", dataset_name_test);
+  
+  std::string script_path = IB_utils::resolve_path("src/script/incremental_classifier_fit.sh");
   sprintf(
       cmd,
-      "%ssrc/script/incremental_classifier_fit.sh 18 800 250 500 100 250 20 100 75 50 40 35 25 20 "
+      "%s 18 800 250 500 100 250 20 100 75 50 40 35 25 20 "
       "10 7 4 2 1 1 1 1 1 1 1 2 1 3 1 2 1 1 1 1 1 1 1 0.00015 0.00015 0.00015 0.0001 0.0001 0.0001 "
       "0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0002 0.0002 0.0002 0.35 "
       "0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0 0 0 "
       "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 "
       "0 0 0 0 0 %s 10 8 2.4 1 1 1 4 -4 0",
-      abs_path,
+      script_path.c_str(),
       dataset_name_train);
 
   std::string cmd_str{cmd};

@@ -47,6 +47,8 @@ cmake -S . -B build && cmake --build build
 - `src/rust`: Rust utilities and experiments
 - `benchmarks`: Performance benchmarks
 - `docs`: Documentation
+- `test_data`: Test datasets used by unit tests
+  - Contains smaller datasets for testing algorithms
 
 ## Path Handling
 
