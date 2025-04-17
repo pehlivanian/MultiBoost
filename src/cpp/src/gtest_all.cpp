@@ -1797,10 +1797,13 @@ TEST(GradientBoostRegressorTest, TestIncrementalRegressorScript) {
   char cmd[500];
   sprintf(rg_ex, "\\[%s\\]\\sOOS[\\s]*:[\\s]*.*:[\\s]+\\((.*)\\)", dataset_name_test);
   
+  // Set data directory to test_data directory in the project root
+  std::string data_dir = "TEST_DATA_DIR=" + IB_utils::resolve_test_data_path("");
   std::string script_path = IB_utils::resolve_path("src/script/incremental_regressor_fit.sh");
   sprintf(
       cmd,
-      "%s 2 10 10 1 1 0.01 0.01 0.5 0.5 0 0 1 1 0 0 %s 10 1 1 1 1 1 -1 1 .2",
+      "%s %s 2 10 10 1 1 0.01 0.01 0.5 0.5 0 0 1 1 0 0 %s 10 1 1 1 1 1 -1 1 .2",
+      data_dir.c_str(),
       script_path.c_str(),
       dataset_name_train);
 
@@ -1847,15 +1850,18 @@ TEST(GradientBoostClassifierTest, TestIncrementalClassifierScript) {
   char cmd[500];
   sprintf(rg_ex, "\\[%s\\]\\sOOS[\\s]*:[\\s]*.*:[\\s]+\\((.*)\\)", dataset_name_test);
   
+  // Set data directory to test_data directory in the project root
+  std::string data_dir = "TEST_DATA_DIR=" + IB_utils::resolve_test_data_path("");
   std::string script_path = IB_utils::resolve_path("src/script/incremental_classifier_fit.sh");
   sprintf(
       cmd,
-      "%s 18 800 250 500 100 250 20 100 75 50 40 35 25 20 "
+      "%s %s 18 800 250 500 100 250 20 100 75 50 40 35 25 20 "
       "10 7 4 2 1 1 1 1 1 1 1 2 1 3 1 2 1 1 1 1 1 1 1 0.00015 0.00015 0.00015 0.0001 0.0001 0.0001 "
       "0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0002 0.0002 0.0002 0.35 "
       "0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0 0 0 "
       "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 "
       "0 0 0 0 0 %s 10 8 2.4 1 1 1 4 -4 0",
+      data_dir.c_str(),
       script_path.c_str(),
       dataset_name_train);
 

@@ -6,6 +6,11 @@ if [ -z "${IB_PROJECT_ROOT}" ]; then
   export IB_PROJECT_ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 fi
 
+# Allow test data directory to be overridden
+if [ ! -z "${TEST_DATA_DIR}" ]; then
+  export IB_DATA_DIR="${TEST_DATA_DIR}"
+fi
+
 DELIM=';'
 PATH=${IB_PROJECT_ROOT}/build/
 
