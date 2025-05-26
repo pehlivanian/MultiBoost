@@ -20,7 +20,7 @@
 # iteration if $SHOW_OOS -ne 1
 
 DELIM=';'
-PATH=/home/charles/src/C++/sandbox/Inductive-Boost/build/
+PATH=${IB_PROJECT_ROOT}/build/
 
 SHOW_OOS=0
 USE_WEIGHTS=0
