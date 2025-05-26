@@ -1,4 +1,5 @@
 #include "incremental_classify.hpp"
+#include "path_utils.hpp"
 
 namespace {
 using DataType = Model_Traits::model_traits<DecisionTreeClassifier>::datatype;
@@ -71,9 +72,8 @@ auto main(int argc, char** argv) -> int {
   context.quietRun = quietRun;
 
   // Get data
-  std::string absPath = "/home/charles/Data/";
-  std::string XPath = absPath + dataName + "_X.csv";
-  std::string yPath = absPath + dataName + "_y.csv";
+  std::string XPath = IB_utils::resolve_data_path(dataName + "_X.csv");
+  std::string yPath = IB_utils::resolve_data_path(dataName + "_y.csv");
 
   Mat<DataType> dataset, trainDataset, testDataset;
   Row<std::size_t> labels, trainLabels, testLabels;

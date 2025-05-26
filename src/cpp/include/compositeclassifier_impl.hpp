@@ -1,6 +1,8 @@
 #ifndef __COMPOSITECLASSIFIER_IMPL_HPP__
 #define __COMPOSITECLASSIFIER_IMPL_HPP__
 
+#include "path_utils.hpp"
+
 using namespace PartitionSize;
 using namespace LearningRate;
 using namespace LossMeasures;
@@ -15,7 +17,7 @@ const bool NEW_COLMASK_FOR_CHILD = false;
 const bool DIAGNOSTICS_0_ = false;
 const bool DIAGNOSTICS_1_ = false;
 const bool SUBSET_DIAGNOSTICS = false;
-const std::string DIGEST_PATH = "/home/charles/src/C++/sandbox/Inductive-Boost/digest/classify";
+const std::string DIGEST_PATH = IB_utils::resolve_path("digest/classify");
 }  // namespace ClassifierFileScope
 
 template <typename ClassifierType>

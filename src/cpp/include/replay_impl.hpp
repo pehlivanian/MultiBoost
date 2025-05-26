@@ -1,6 +1,8 @@
 #ifndef __REPLAY_IMPL_HPP__
 #define __REPLAY_IMPL_HPP__
 
+#include "path_utils.hpp"
+
 template <typename DataType, typename ClassifierType>
 void Replay<DataType, ClassifierType>::desymmetrize(Row<DataType>& prediction, double a, double b) {
   prediction = (sign(prediction) - b) / a;
@@ -168,8 +170,7 @@ typename Replay<DataType, ClassifierType>::optCV Replay<DataType, ClassifierType
 
         ipstream pipe_stream;
         // child c("gcc --version", std_out > pipe_stream);
-        std::string cmd =
-            "/home/charles/src/C++/sandbox/Inductive-Boost/build/replay_classify_stepwise";
+        std::string cmd = IB_utils::resolve_path("build/replay_classify_stepwise");
 
         cmd += " --datasetFileName " + datasetOOSFileName;
         cmd += " --classifierFileName " + classifierFileName;
@@ -187,7 +188,7 @@ typename Replay<DataType, ClassifierType>::optCV Replay<DataType, ClassifierType
         predictionFileNames.push_back(outFile);
 
         ipstream pipe_stream_is;
-        cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/replay_classify_stepwise";
+        cmd = IB_utils::resolve_path("build/replay_classify_stepwise");
 
         cmd += " --datasetFileName " + datasetFileName;
         cmd += " --classifierFileName " + classifierFileName;
@@ -428,8 +429,7 @@ typename Replay<DataType, RegressorType>::optRV Replay<DataType, RegressorType>:
 
         ipstream pipe_stream;
         // child c("gcc --version", std_out > pipe_stream);
-        std::string cmd =
-            "/home/charles/src/C++/sandbox/Inductive-Boost/build/replay_predict_stepwise";
+        std::string cmd = IB_utils::resolve_path("build/replay_predict_stepwise");
 
         cmd += " --datasetFileName " + datasetOOSFileName;
         cmd += " --regressorFileName " + regressorFileName;
@@ -447,7 +447,7 @@ typename Replay<DataType, RegressorType>::optRV Replay<DataType, RegressorType>:
         predictionFileNames.push_back(outFile);
 
         ipstream pipe_stream_is;
-        cmd = "/home/charles/src/C++/sandbox/Inductive-Boost/build/replay_predict_stepwise";
+        cmd = IB_utils::resolve_path("build/replay_predict_stepwise");
 
         cmd += " --datasetFileName " + datasetFileName;
         cmd += " --regressorFileName " + regressorFileName;

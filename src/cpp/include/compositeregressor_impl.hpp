@@ -3,6 +3,8 @@
 
 #define DEBUG() __debug dd{__FILE__, __FUNCTION__, __LINE__};
 
+#include "path_utils.hpp"
+
 using namespace PartitionSize;
 using namespace LearningRate;
 using namespace LossMeasures;
@@ -16,7 +18,7 @@ const bool W_CYCLE_PREFIT = true;
 const bool DIAGNOSTICS_0_ = false;
 const bool DIAGNOSTICS_1_ = false;
 const bool TIMER = true;
-const std::string DIGEST_PATH = "/home/charles/src/C++/sandbox/Inductive-Boost/digest/regress";
+const std::string DIGEST_PATH = IB_utils::resolve_path("digest/regress");
 }  // namespace RegressorFileScope
 
 template <typename RegressorType>

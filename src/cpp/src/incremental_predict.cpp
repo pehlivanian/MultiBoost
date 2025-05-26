@@ -1,4 +1,5 @@
 #include "incremental_predict.hpp"
+#include "path_utils.hpp"
 
 using namespace arma;
 using namespace mlpack;
@@ -66,9 +67,8 @@ auto main(int argc, char** argv) -> int {
   context.quietRun = quietRun;
 
   // Get data
-  std::string absPath = "/home/charles/Data/";
-  std::string XPath = absPath + dataName + "_X.csv";
-  std::string yPath = absPath + dataName + "_y.csv";
+  std::string XPath = IB_utils::resolve_data_path(dataName + "_X.csv");
+  std::string yPath = IB_utils::resolve_data_path(dataName + "_y.csv");
 
   Mat<double> dataset, trainDataset, testDataset;
   Row<double> labels, trainLabels, testLabels;
