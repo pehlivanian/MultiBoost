@@ -127,14 +127,12 @@ public:
    * Submit a job to be run by the thread pool.
    */
   template <typename Func, typename... Args>
-  // auto submit(Func&& func, Args&&... args) -> TaskFuture<typename
-  // std::result_of<Func(Args...)>::type>
   auto submit(Func&& func, Args&&... args)
-      -> TaskFuture<typename std::invoke_result<std::decay_t<Func>, std::decay_t<Args>...>::type>
+      -> TaskFuture<std::invoke_result_t<std::decay_t<Func>, std::decay_t<Args>...>>
 
   {
     auto boundTask = std::bind(std::forward<Func>(func), std::forward<Args>(args)...);
-    using ResultType = typename std::result_of<decltype(boundTask)()>::type;
+    using ResultType = std::invoke_result_t<decltype(boundTask)>;
     using PackagedTask = std::packaged_task<ResultType()>;
     using TaskType = ThreadTask<PackagedTask>;
 
@@ -196,12 +194,12 @@ inline ThreadPool& getThreadPool_n(std::uint32_t numThreads) {
  */
 template <typename Func, typename... Args>
 inline auto submitJob(Func&& func, Args&&... args)
-    -> ThreadPool::TaskFuture<typename std::result_of<Func(Args...)>::type> {
+    -> ThreadPool::TaskFuture<std::invoke_result_t<Func, Args...>> {
   return getThreadPool().submit(std::forward<Func>(func), std::forward<Args>(args)...);
 }
 template <std::uint32_t n, typename Func, typename... Args>
 inline auto submitJob_n(Func&& func, Args&&... args)
-    -> ThreadPool::TaskFuture<typename std::result_of<Func(Args...)>::type> {
+    -> ThreadPool::TaskFuture<std::invoke_result_t<Func, Args...>> {
   return getThreadPool_n(n).submit(std::forward<Func>(func), std::forward<Args>(args)...);
 }
 }  // namespace DefaultThreadPool
