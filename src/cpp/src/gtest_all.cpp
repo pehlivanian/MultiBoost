@@ -1785,7 +1785,7 @@ TEST(GradientBoostRegressorTest, TestOutofSampleFit) {
 }
 
 
-TEST(GradientBoostRegressorTest, DISABLED_TestIncrementalRegressorScript) {
+TEST(GradientBoostRegressorTest, TestIncrementalRegressorScript) {
   // use folder to determine pwd
   boost::filesystem::path folder("../data/");
 
@@ -1837,38 +1837,28 @@ TEST(GradientBoostRegressorTest, DISABLED_TestIncrementalRegressorScript) {
 }
 
 
-TEST(GradientBoostClassifierTest, DISABLED_TestIncrementalClassifierScript) {
+TEST(GradientBoostClassifierTest, TestIncrementalClassifierScript) {
   // use folder to determine pwd
   boost::filesystem::path folder{"../data/"};
 
   ipstream pipe_stream;
-  char dataset_name_train[50] = "buggyCrx_train";
-  char dataset_name_test[50] = "buggyCrx_test";
+  const std::string dataset_name_train = "buggyCrx_train";
+  const std::string dataset_name_test = "buggyCrx_test";
 
-  char rg_ex[50];
-  char cmd[500];
-  sprintf(rg_ex, "\\[%s\\]\\sOOS[\\s]*:[\\s]*.*:[\\s]+\\((.*)\\)", dataset_name_test);
-  
   // Set data directory to test_data directory in the project root
   std::string data_dir = "TEST_DATA_DIR=" + IB_utils::resolve_test_data_path("");
   std::string script_path = IB_utils::resolve_path("src/script/incremental_classifier_fit.sh");
-  sprintf(
-      cmd,
-      "%s 18 800 250 500 100 250 20 100 75 50 40 35 25 20 "
+  
+  std::string cmd_str = script_path + 
+      " 18 800 250 500 100 250 20 100 75 50 40 35 25 20 "
       "10 7 4 2 1 1 1 1 1 1 1 2 1 3 1 2 1 1 1 1 1 1 1 0.00015 0.00015 0.00015 0.0001 0.0001 0.0001 "
       "0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0002 0.0002 0.0002 0.35 "
       "0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0 0 0 "
       "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 "
-      "0 0 0 0 0 %s 10 8 2.4 1 1 1 4 -4 0",
-      script_path.c_str(),
-      dataset_name_train);
-
-  std::string cmd_str{cmd};
+      "0 0 0 0 0 " + dataset_name_train + " 10 8 2.4 1 1 1 4 -4 0";
 
   child c(cmd_str, std_out > pipe_stream);
 
-  std::regex ws_re{rg_ex};
-  std::smatch sm;
   std::string line;
   std::size_t cnt = 0;
 
@@ -1892,14 +1882,36 @@ TEST(GradientBoostClassifierTest, DISABLED_TestIncrementalClassifierScript) {
   float imbalance = 0.9604;
 
   while (pipe_stream && std::getline(pipe_stream, line) && !line.empty()) {
-    if (std::regex_match(line, ws_re)) {
-      std::regex_match(line.cbegin(), line.cend(), sm, ws_re);
-      std::vector<std::string> res = tokenize(sm[1], ", ");
-      ASSERT_EQ(std::stof(res[0]), errors[cnt]);
-      ASSERT_EQ(std::stof(res[1]), precision[cnt]);
-      ASSERT_EQ(std::stof(res[2]), recall[cnt]);
-      ASSERT_EQ(std::stof(res[3]), F1[cnt++]);
-      ASSERT_EQ(std::stof(res[4]), imbalance);
+    // Look for lines containing OOS results, but skip header lines
+    if (line.find("[buggyCrx_test] OOS:") != std::string::npos && 
+        line.find("error, precision, recall, F1, imbalance") == std::string::npos) {
+      // Find the parentheses containing the values
+      size_t start = line.find("(");
+      size_t end = line.find(")", start);
+      if (start != std::string::npos && end != std::string::npos && start < end) {
+        std::string values_str = line.substr(start + 1, end - start - 1);
+        std::vector<std::string> res = tokenize(values_str, ", ");
+        if (res.size() >= 5 && cnt < errors.size()) {
+          try {
+            float error_val = std::stof(res[0]);
+            float precision_val = std::stof(res[1]);
+            float recall_val = std::stof(res[2]);
+            float f1_val = std::stof(res[3]);
+            float imbalance_val = std::stof(res[4]);
+            
+            ASSERT_EQ(error_val, errors[cnt]);
+            ASSERT_EQ(precision_val, precision[cnt]);
+            ASSERT_EQ(recall_val, recall[cnt]);
+            ASSERT_EQ(f1_val, F1[cnt++]);
+            ASSERT_EQ(imbalance_val, imbalance);
+          } catch (const std::exception& e) {
+            std::cerr << "Error parsing values from line: " << line << std::endl;
+            std::cerr << "Values string: " << values_str << std::endl;
+            std::cerr << "Exception: " << e.what() << std::endl;
+            throw;
+          }
+        }
+      }
     }
   }
 
