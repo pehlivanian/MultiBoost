@@ -91,6 +91,13 @@ void CompositeRegressor<RegressorType>::init_(Context&& context) {
 
   // set loss function
   lossFn_ = createLoss<DataType>(loss_, lossPower_);
+  if (RegressorFileScope::DIAGNOSTICS_0_) {
+    std::cerr << "Loss Function: [" 
+	      << static_cast<int>(loss_) 
+	      << "] : Loss Power: ["
+	      << lossPower_ 
+	      << "]" << std::endl;
+  }
 
   // ensure this is a leaf regressor for lowest-level call
   if (childPartitionSize_.size() <= 1) {

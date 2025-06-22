@@ -168,7 +168,7 @@ if [[ $# -ne 3 ]]; then
 		--rowSubsampleRatio 1. \
 		--colSubsampleRatio ${colsubsample_ratio} \
 		--recursiveFit ${recursivefit} \
-		--serializeModel true \
+ 		--serializeModel true \
 		--serializePrediction true \
 		--serializeDataset false \
 		--serializeLabels false \
