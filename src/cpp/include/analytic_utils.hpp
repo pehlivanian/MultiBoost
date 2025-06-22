@@ -8,7 +8,7 @@ using namespace arma;
 namespace ANALYTIC_utils {
 
 template <bool B>
-using bool_constant = std::integral_constant<bool, B>;
+using bool_constant = std::bool_constant<B>;
 
 template <typename DataType>
 struct _is_double
@@ -69,7 +69,7 @@ public:
 
   zip_iterator() = delete;
 
-  zip_iterator(Iter1 iter_1_begin, Iter2 iter_2_begin)
+  constexpr zip_iterator(Iter1 iter_1_begin, Iter2 iter_2_begin) noexcept
       : m_iter_1_begin{iter_1_begin}, m_iter_2_begin{iter_2_begin} {}
 
   // Need:

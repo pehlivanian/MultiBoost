@@ -13,21 +13,21 @@ using namespace Objectives;
 using namespace IB_utils;
 
 namespace RegressorFileScope {
-const bool POST_EXTRAPOLATE = false;
-const bool W_CYCLE_PREFIT = true;
-const bool DIAGNOSTICS_0_ = false;
-const bool DIAGNOSTICS_1_ = false;
-const bool TIMER = true;
+constexpr bool POST_EXTRAPOLATE = false;
+constexpr bool W_CYCLE_PREFIT = true;
+constexpr bool DIAGNOSTICS_0_ = false;
+constexpr bool DIAGNOSTICS_1_ = false;
+constexpr bool TIMER = true;
 const std::string DIGEST_PATH = IB_utils::resolve_path("digest/regress");
 }  // namespace RegressorFileScope
 
 template <typename RegressorType>
-AllRegressorArgs CompositeRegressor<RegressorType>::allRegressorArgs() {
+inline AllRegressorArgs CompositeRegressor<RegressorType>::allRegressorArgs() {
   return std::make_tuple(minLeafSize_, minimumGainSplit_, maxDepth_);
 }
 
 template <typename RegressorType>
-void CompositeRegressor<RegressorType>::updateRegressors(
+inline void CompositeRegressor<RegressorType>::updateRegressors(
     std::unique_ptr<Model<DataType>>&& regressor, Row<DataType>& prediction) {
   latestPrediction_ += prediction;
   regressor->purge();
@@ -463,7 +463,7 @@ auto CompositeRegressor<RegressorType>::computeOptimalSplit(
   }
 
   auto subsets = dp.get_optimal_subsets_extern();
-  double end_ratio = 0.10;
+  // double end_ratio = 0.10; // Currently unused
 
   // printSubsets<DataType>(subsets, gv, hv, colMask);
 
@@ -475,12 +475,9 @@ auto CompositeRegressor<RegressorType>::computeOptimalSplit(
     if (T > 1 || risk_partitioning_objective) {
       std::size_t start_ind =
           risk_partitioning_objective ? 0 : static_cast<std::size_t>(T * activePartitionRatio);
-      std::size_t end_ind =
-          risk_partitioning_objective
-              ? subsets.size()
-              : static_cast<std::size_t>((1. - end_ratio) * static_cast<double>(T));
-      // std::size_t end_ind = risk_partitioning_objective ? 0 :
-      // static_cast<std::size_t>(activePartitionRatio*static_cast<double>(subsets.size()));
+      // std::size_t end_ind = risk_partitioning_objective ? subsets.size() :
+      //   static_cast<std::size_t>((1. - end_ratio) * static_cast<double>(T));
+      // Currently unused - kept for potential future use
 
       for (std::size_t i = start_ind; i < subsets.size(); ++i) {
         // for (std::size_t i=start_ind; i<end_ind; ++i) {

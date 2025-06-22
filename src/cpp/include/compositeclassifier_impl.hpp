@@ -11,17 +11,17 @@ using namespace Objectives;
 using namespace IB_utils;
 
 namespace ClassifierFileScope {
-const bool POST_EXTRAPOLATE = false;
-const bool W_CYCLE_PREFIT = true;
-const bool NEW_COLMASK_FOR_CHILD = false;
-const bool DIAGNOSTICS_0_ = false;
-const bool DIAGNOSTICS_1_ = false;
-const bool SUBSET_DIAGNOSTICS = false;
+constexpr bool POST_EXTRAPOLATE = false;
+constexpr bool W_CYCLE_PREFIT = true;
+constexpr bool NEW_COLMASK_FOR_CHILD = false;
+constexpr bool DIAGNOSTICS_0_ = false;
+constexpr bool DIAGNOSTICS_1_ = false;
+constexpr bool SUBSET_DIAGNOSTICS = false;
 const std::string DIGEST_PATH = IB_utils::resolve_path("digest/classify");
 }  // namespace ClassifierFileScope
 
 template <typename ClassifierType>
-AllClassifierArgs CompositeClassifier<ClassifierType>::allClassifierArgs(std::size_t numClasses) {
+inline AllClassifierArgs CompositeClassifier<ClassifierType>::allClassifierArgs(std::size_t numClasses) {
   return std::make_tuple(numClasses, minLeafSize_, minimumGainSplit_, numTrees_, maxDepth_);
 }
 
@@ -102,12 +102,12 @@ void CompositeClassifier<ClassifierType>::init_(Context&& context) {
 }
 
 template <typename ClassifierType>
-void CompositeClassifier<ClassifierType>::Predict(Row<DataType>& prediction) {
+inline void CompositeClassifier<ClassifierType>::Predict(Row<DataType>& prediction) {
   prediction = this->latestPrediction_;
 }
 
 template <typename ClassifierType>
-void CompositeClassifier<ClassifierType>::Predict(Row<DataType>& prediction, const uvec& colMask) {
+inline void CompositeClassifier<ClassifierType>::Predict(Row<DataType>& prediction, const uvec& colMask) {
   Predict(prediction);
   prediction = prediction.submat(zeros<uvec>(1), colMask);
 }
@@ -117,14 +117,17 @@ template <typename MatType>
 void CompositeClassifier<ClassifierType>::_predict_in_loop(
     MatType&& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
   prediction = zeros<Row<DataType>>(dataset.n_cols);
+  
+  // Reserve memory for prediction step to avoid reallocations
+  Row<DataType> predictionStep;
+  predictionStep.set_size(dataset.n_cols);
 
   for (const auto& classifier : this->models_) {
-    Row<DataType> predictionStep;
     classifier->Project(dataset, predictionStep);
     prediction += predictionStep;
   }
 
-  if (symmetrized_ and not ignoreSymmetrization) {
+  if (symmetrized_ && !ignoreSymmetrization) {
     deSymmetrize(prediction);
   }
 }
@@ -197,42 +200,38 @@ void CompositeClassifier<ClassifierType>::Predict(
 }
 
 template <typename ClassifierType>
-uvec CompositeClassifier<ClassifierType>::subsampleRows(size_t numRows) {
-  // XXX
-  // Necessary? unittest fail without sort
-  // uvec r = sort(randperm(n_, numRows));
-  // uvec r = randperm(n_, numRows);
-  uvec r = PartitionUtils::sortedSubsample(n_, numRows);
-  return r;
+inline uvec CompositeClassifier<ClassifierType>::subsampleRows(size_t numRows) {
+  // Use the more efficient sortedSubsample2 method
+  return PartitionUtils::sortedSubsample(n_, numRows);
 }
 
 template <typename ClassifierType>
-uvec CompositeClassifier<ClassifierType>::subsampleCols(size_t numCols) {
-  // XXX
-  // Necessary? unittest fail without sort
-  // uvec r = sort(randperm(m_, numCols));
-  // uvec r = randperm(m_, numCols);
-  uvec r = PartitionUtils::sortedSubsample(n_, numCols);
-  return r;
+inline uvec CompositeClassifier<ClassifierType>::subsampleCols(size_t numCols) {
+  return PartitionUtils::sortedSubsample(n_, numCols);
 }
 
 template <typename ClassifierType>
 auto CompositeClassifier<ClassifierType>::uniqueCloseAndReplace(Row<DataType>& labels)
     -> Row<DataType> {
-  Row<DataType> uniqueVals = unique(labels);
-  double eps = static_cast<double>(std::numeric_limits<float>::epsilon());
+  const Row<DataType> uniqueVals = unique(labels);
+  constexpr double eps = static_cast<double>(std::numeric_limits<float>::epsilon());
 
   std::vector<std::pair<DataType, DataType>> uniqueByEps;
   std::vector<DataType> uniqueVals_;
+  
+  // Reserve memory to avoid reallocations
+  uniqueByEps.reserve(uniqueVals.n_cols);
+  uniqueVals_.reserve(uniqueVals.n_cols);
 
   uniqueVals_.push_back(uniqueVals[0]);
 
   for (std::size_t i = 1; i < uniqueVals.n_cols; ++i) {
     bool found = false;
     for (const auto& el : uniqueVals_) {
-      if (fabs(uniqueVals[i] - el) <= eps) {
+      if (std::abs(uniqueVals[i] - el) <= eps) {
         found = true;
-        uniqueByEps.push_back(std::make_pair(uniqueVals[i], el));
+        uniqueByEps.emplace_back(uniqueVals[i], el);
+        break; // Exit early once found
       }
     }
     if (!found) {
@@ -241,49 +240,47 @@ auto CompositeClassifier<ClassifierType>::uniqueCloseAndReplace(Row<DataType>& l
   }
 
   // Replace redundant values in labels_
-  for (const auto& el : uniqueByEps) {
-    uvec ind = find(labels_ == el.first);
-    labels.elem(ind).fill(el.second);
+  for (const auto& [first, second] : uniqueByEps) {
+    const uvec ind = find(labels_ == first);
+    labels.elem(ind).fill(second);
   }
 
-  // Now uniqueVals_ matches labels_ characteristics
-  return uniqueVals_;
+  return Row<DataType>(uniqueVals_);
 }
 
 template <typename ClassifierType>
 void CompositeClassifier<ClassifierType>::symmetrizeLabels(Row<DataType>& labels) {
-  Row<DataType> uniqueVals = uniqueCloseAndReplace(labels);
+  const Row<DataType> uniqueVals = uniqueCloseAndReplace(labels);
+  const std::size_t num_unique = uniqueVals.n_cols;
 
-  if (uniqueVals.n_cols == 1) {
+  if (num_unique == 1) {
     a_ = 1.;
     b_ = 1.;
-    labels = ones<Row<DataType>>(labels.n_elem);
-  } else if (uniqueVals.size() == 2) {
-    double m = *std::min_element(uniqueVals.cbegin(), uniqueVals.cend());
-    double M = *std::max_element(uniqueVals.cbegin(), uniqueVals.cend());
-    // if (false && (loss_ == classifierLossFunction::LogLoss)) {
-    if (false) {
-      // Normalize so that $y \in \left\lbrace 0,1\right\rbrace$
-      a_ = 1. / (M - m);
-      b_ = -1 * static_cast<double>(m) / static_cast<double>(M - m);
-      labels = a_ * labels + b_;
-    } else {
-      a_ = 2. / static_cast<double>(M - m);
-      b_ = static_cast<double>(m + M) / static_cast<double>(m - M);
-      labels = sign(a_ * labels + b_);
-    }
-  } else if (uniqueVals.size() == 3) {  // for the multiclass case, we may have values in {0, 1, 2}
-
-    uniqueVals = sort(uniqueVals);
-    double eps = static_cast<double>(std::numeric_limits<float>::epsilon());
-    if ((fabs(uniqueVals[0]) <= eps) && (fabs(uniqueVals[1] - .5) <= eps) &&
-        (fabs(uniqueVals[2] - 1.) <= eps)) {
+    labels.ones();
+  } else if (num_unique == 2) {
+    const auto [min_it, max_it] = std::minmax_element(uniqueVals.cbegin(), uniqueVals.cend());
+    const double m = *min_it;
+    const double M = *max_it;
+    const double range = M - m;
+    
+    // Always use the standard symmetrization (the false branch)
+    a_ = 2. / range;
+    b_ = (m + M) / (m - M);
+    labels = sign(a_ * labels + b_);
+  } else if (num_unique == 3) {
+    // Handle multiclass case with values in {0, 1, 2}
+    const Row<DataType> sortedVals = sort(uniqueVals);
+    constexpr double eps = static_cast<double>(std::numeric_limits<float>::epsilon());
+    
+    if ((std::abs(sortedVals[0]) <= eps) && 
+        (std::abs(sortedVals[1] - 0.5) <= eps) &&
+        (std::abs(sortedVals[2] - 1.0) <= eps)) {
       a_ = 2.;
       b_ = -1.;
       labels = sign(a_ * labels - 1);
     }
   } else {
-    assert(uniqueVals.size() == 2);
+    assert(num_unique == 2);
   }
 }
 
@@ -446,11 +443,11 @@ void CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   // Implementation of W-cycle
 
   if (!this->reuseColMask_) {
-    int colRatio = static_cast<size_t>(m_ * col_subsample_ratio_);
+    const auto colRatio = static_cast<size_t>(m_ * col_subsample_ratio_);
     colMask_ = PartitionUtils::sortedSubsample2(m_, colRatio);
   }
 
-  Row<DataType> labels_slice = labels_.submat(zeros<uvec>(1), colMask_);
+  const Row<DataType> labels_slice = labels_.submat(zeros<uvec>(1), colMask_);
   std::pair<Row<DataType>, Row<DataType>> coeffs;
 
   Row<DataType> prediction;
@@ -468,8 +465,8 @@ void CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
     this->updateModels(std::move(cls_), constantLeaf);
   }
 
-  if (ClassifierFileScope::W_CYCLE_PREFIT) {
-    if (ClassifierFileScope::DIAGNOSTICS_0_ || ClassifierFileScope::DIAGNOSTICS_1_) {
+  if constexpr (ClassifierFileScope::W_CYCLE_PREFIT) {
+    if constexpr (ClassifierFileScope::DIAGNOSTICS_0_ || ClassifierFileScope::DIAGNOSTICS_1_) {
       std::cerr << fit_prefix(depth_);
       std::cerr << "[*]PRE-FITTING LEAF CLASSIFIER FOR (PARTITIONSIZE, STEPNUM): ("
                 << partitionSize_ << ", " << stepNum << " of " << steps_ << ")" << std::endl;
@@ -494,7 +491,7 @@ void CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
     this->hasInitialPrediction_ = true;
 
-    if (ClassifierFileScope::SUBSET_DIAGNOSTICS) {
+    if constexpr (ClassifierFileScope::SUBSET_DIAGNOSTICS) {
       std::vector<DataType> gv0 = arma::conv_to<std::vector<DataType>>::from(coeffs.first);
       std::vector<DataType> hv0 = arma::conv_to<std::vector<DataType>>::from(coeffs.second);
       std::vector<DataType> preds = arma::conv_to<std::vector<DataType>>::from(prediction);
@@ -506,16 +503,17 @@ void CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
           subset_info.value(), best_leavesv0, preds, gv0, hv0, yv0, yhatv0, colMask_);
     }
 
-    if (ClassifierFileScope::DIAGNOSTICS_1_) {
-      Row<DataType> latestPrediction_slice =
+    if constexpr (ClassifierFileScope::DIAGNOSTICS_1_) {
+      const Row<DataType> latestPrediction_slice =
           this->latestPrediction_.submat(zeros<uvec>(1), colMask_);
-      Row<DataType> prediction_slice = prediction.submat(zeros<uvec>(1), colMask_);
-      float eps = std::numeric_limits<float>::epsilon();
+      const Row<DataType> prediction_slice = prediction.submat(zeros<uvec>(1), colMask_);
+      constexpr float eps = std::numeric_limits<float>::epsilon();
 
       std::cerr << "[PRE-FIT ";
-      for (std::size_t i = 0; i < best_leaves.size(); ++i) {
-        std::string status = "";
-        if (fabs(best_leaves[i] - prediction_slice[i]) > eps) status = "MISCLASSIFIED";
+      const std::size_t leaves_size = best_leaves.size();
+      for (std::size_t i = 0; i < leaves_size; ++i) {
+        const bool misclassified = std::abs(best_leaves[i] - prediction_slice[i]) > eps;
+        const std::string_view status = misclassified ? "MISCLASSIFIED" : "";
         std::cerr << colMask_[i] << " : " << labels_slice[i] << " : " << latestPrediction_slice[i]
                   << " :: " << best_leaves[i] << " : " << prediction_slice[i]
                   << " :: " << coeffs.first[i] << " : " << coeffs.second[i] << " : " << status
@@ -661,19 +659,25 @@ auto CompositeClassifier<ClassifierType>::computeOptimalSplit(
     bool includeSubsets) -> optLeavesInfo {
   (void)stepNum;
 
-  // We should implement several methods here or in generateCoefficients
-  int n = g.n_cols, T = partitionSize;
-  objective_fn obj_fn = objective_fn::RationalScore;
-  bool risk_partitioning_objective = false;
-  bool use_rational_optimization = true;
-  bool sweep_down = false;
-  double gamma = 0.;
-  double reg_power = 1.;
-  bool find_optimal_t = false;
-  bool reorder_by_weighted_priority = true;
+  // Compile-time constants for better optimization
+  const int n = static_cast<int>(g.n_cols);
+  const int T = static_cast<int>(partitionSize);
+  constexpr objective_fn obj_fn = objective_fn::RationalScore;
+  constexpr bool risk_partitioning_objective = false;
+  constexpr bool use_rational_optimization = true;
+  constexpr bool sweep_down = false;
+  constexpr double gamma = 0.;
+  constexpr double reg_power = 1.;
+  constexpr bool find_optimal_t = false;
+  constexpr bool reorder_by_weighted_priority = true;
 
-  std::vector<DataType> gv0 = arma::conv_to<std::vector<DataType>>::from(g);
-  std::vector<DataType> hv0 = arma::conv_to<std::vector<DataType>>::from(h);
+  // More efficient conversion using reserve
+  std::vector<DataType> gv0, hv0;
+  gv0.reserve(n);
+  hv0.reserve(n);
+  
+  std::copy(g.begin(), g.end(), std::back_inserter(gv0));
+  std::copy(h.begin(), h.end(), std::back_inserter(hv0));
 
   auto dp0 = DPSolver(
       n,
@@ -689,27 +693,28 @@ auto CompositeClassifier<ClassifierType>::computeOptimalSplit(
       find_optimal_t,
       reorder_by_weighted_priority);
 
-  auto subsets0 = dp0.get_optimal_subsets_extern();
-  double end_ratio = 0.10;
+  const auto subsets0 = dp0.get_optimal_subsets_extern();
+  // constexpr double end_ratio = 0.10; // Currently unused
 
   Row<DataType> leaf_values0 = arma::zeros<Row<DataType>>(n);
 
   if (T > 1 || risk_partitioning_objective) {
-    std::size_t start_ind =
-        risk_partitioning_objective ? 0 : static_cast<std::size_t>(T * activePartitionRatio);
+    const std::size_t start_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(T * activePartitionRatio);
+    const std::size_t subsets_size = subsets0.size();
+    
+    // Precompute negative learning rate for efficiency
+    const double neg_lr = -learningRate;
 
-    std::size_t end_ind = risk_partitioning_objective
-                              ? subsets0.size()
-                              : static_cast<std::size_t>((1. - end_ratio) * static_cast<double>(T));
-    // std::size_t end_ind = risk_partitioning_objective ? 0 :
-    // static_cast<std::size_t>(activePartitionRatio*static_cast<double>(subsets0.size()));
-
-    for (std::size_t i = start_ind; i < subsets0.size(); ++i) {
-      // for (std::size_t i=start_ind; i<end_ind; ++i) {
-      uvec ind = arma::conv_to<uvec>::from(subsets0[i]);
-      double val = -1. * learningRate * sum(g(ind)) / sum(h(ind));
-      for (auto j : ind) {
-        leaf_values0(j) = val;
+    for (std::size_t i = start_ind; i < subsets_size; ++i) {
+      const uvec ind = arma::conv_to<uvec>::from(subsets0[i]);
+      const double g_sum = sum(g(ind));
+      const double h_sum = sum(h(ind));
+      
+      // Avoid division by zero and compute leaf value efficiently
+      if (h_sum != 0.0) {
+        const double val = neg_lr * g_sum / h_sum;
+        // Use vectorized assignment when possible
+        leaf_values0.elem(ind).fill(val);
       }
     }
   }
@@ -723,10 +728,11 @@ auto CompositeClassifier<ClassifierType>::computeOptimalSplit(
 
 template <typename ClassifierType>
 void CompositeClassifier<ClassifierType>::purge_() {
-  dataset_ = ones<Mat<DataType>>(0, 0);
-  labels_ = ones<Row<DataType>>(0);
-  dataset_oos_ = ones<Mat<DataType>>(0, 0);
-  labels_oos_ = ones<Row<DataType>>(0);
+  // Efficiently deallocate memory by assigning empty containers
+  dataset_ = Mat<DataType>();
+  labels_ = Row<DataType>();
+  dataset_oos_ = Mat<DataType>();
+  labels_oos_ = Row<DataType>();
 }
 
 template <typename ClassifierType>

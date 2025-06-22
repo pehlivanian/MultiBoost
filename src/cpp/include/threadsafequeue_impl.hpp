@@ -31,25 +31,27 @@ bool ThreadsafeQueue<T>::waitPop(T& out) {
 
 template <typename T>
 void ThreadsafeQueue<T>::push(T value) {
-  std::lock_guard<std::mutex> lock{m_mutex};
-  m_queue.push(std::move(value));
+  {
+    std::lock_guard<std::mutex> lock{m_mutex};
+    m_queue.push(std::move(value));
+  }
   m_condition.notify_one();
 }
 
 template <typename T>
-bool ThreadsafeQueue<T>::size(void) const {
+std::size_t ThreadsafeQueue<T>::size() const {
   std::lock_guard<std::mutex> lock{m_mutex};
   return m_queue.size();
 }
 
 template <typename T>
-bool ThreadsafeQueue<T>::empty(void) const {
+bool ThreadsafeQueue<T>::empty() const {
   std::lock_guard<std::mutex> lock{m_mutex};
   return m_queue.empty();
 }
 
 template <typename T>
-void ThreadsafeQueue<T>::clear(void) {
+void ThreadsafeQueue<T>::clear() {
   std::lock_guard<std::mutex> lock{m_mutex};
   while (!m_queue.empty()) {
     m_queue.pop();
@@ -58,14 +60,14 @@ void ThreadsafeQueue<T>::clear(void) {
 }
 
 template <typename T>
-void ThreadsafeQueue<T>::invalidate(void) {
+void ThreadsafeQueue<T>::invalidate() {
   std::lock_guard<std::mutex> lock{m_mutex};
   m_valid = false;
   m_condition.notify_all();
 }
 
 template <typename T>
-bool ThreadsafeQueue<T>::isValid(void) const {
+bool ThreadsafeQueue<T>::isValid() const {
   std::lock_guard<std::mutex> lock{m_mutex};
   return m_valid;
 }

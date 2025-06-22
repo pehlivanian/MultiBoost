@@ -21,7 +21,7 @@ public:
   bool waitPop(T&);
   void push(T);
   bool empty() const;
-  bool size() const;
+  std::size_t size() const;
   void clear();
   void invalidate();
   bool isValid() const;

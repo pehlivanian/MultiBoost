@@ -141,17 +141,17 @@ using ConstantTreeRegressorRegressorType = ConstantTreeRegressor;
 
 template <typename T>
 struct is_classifier {
-  bool operator()() { return true; }
+  constexpr bool operator()() const noexcept { return true; }
 };
 
 template <>
 struct is_classifier<DecisionTreeRegressorRegressor> {
-  bool operator()() { return false; }
+  constexpr bool operator()() const noexcept { return false; }
 };
 
 template <>
 struct is_classifier<ConstantTreeRegressorRegressor> {
-  bool operator()() { return false; }
+  constexpr bool operator()() const noexcept { return false; }
 };
 
 template <>

@@ -41,7 +41,7 @@ using namespace boost::filesystem;
 using namespace LossMeasures;
 
 namespace LearningRate {
-enum class LearningRateMethod {
+enum class LearningRateMethod : std::uint8_t {
   FIXED = 0,
   INCREASING = 1,
   DECREASING = 2,
@@ -50,7 +50,7 @@ enum class LearningRateMethod {
 }  // namespace LearningRate
 
 namespace PartitionSize {
-enum class PartitionSizeMethod {
+enum class PartitionSizeMethod : std::uint8_t {
   FIXED = 0,
   FIXED_PROPORTION = 1,
   DECREASING = 2,
@@ -62,7 +62,7 @@ enum class PartitionSizeMethod {
 }  // namespace PartitionSize
 
 namespace StepSize {
-enum class StepSizeMethod { LOG = 0, PROPORTION = 1 };
+enum class StepSizeMethod : std::uint8_t { LOG = 0, PROPORTION = 1 };
 }  // namespace StepSize
 
 namespace ModelContext {
@@ -209,9 +209,8 @@ struct Context {
 
 namespace TupleUtils {
 template <typename... Ts>
-decltype(auto) to_tuple(Ts&&... ts) {
-  auto tup = std::make_tuple(std::forward<Ts>(ts)...);
-  return tup;
+constexpr decltype(auto) to_tuple(Ts&&... ts) noexcept {
+  return std::make_tuple(std::forward<Ts>(ts)...);
 }
 
 template <typename T, std::size_t... I>
@@ -226,19 +225,19 @@ void print_tuple(const std::tuple<T...>& tup) {
 }
 
 template <std::size_t Ofst, class Tuple, std::size_t... I>
-constexpr auto slice_impl(Tuple&& t, std::index_sequence<I...>) {
+constexpr auto slice_impl(Tuple&& t, std::index_sequence<I...>) noexcept {
   return std::forward_as_tuple(std::get<I + Ofst>(std::forward<Tuple>(t))...);
 }
 
 template <std::size_t I1, std::size_t I2, class Cont>
-constexpr auto tuple_slice(Cont&& t) {
+constexpr auto tuple_slice(Cont&& t) noexcept {
   static_assert(I2 >= I1, "invalid slice");
   static_assert(std::tuple_size<std::decay_t<Cont>>::value >= I2, "slice index out of bounds");
   return slice_impl<I1>(std::forward<Cont>(t), std::make_index_sequence<I2 - I1>{});
 }
 
 template <std::size_t N, typename... Types>
-auto remove_element_from_tuple(const std::tuple<Types...>& t) {
+constexpr auto remove_element_from_tuple(const std::tuple<Types...>& t) noexcept {
   return std::tuple_cat(tuple_slice<0, N>(t), tuple_slice<N + 1, sizeof...(Types)>(t));
 }
 
@@ -257,7 +256,7 @@ struct remove_first {
 
 class PartitionUtils {
 public:
-  static std::vector<int> _shuffle(int sz) {
+  static std::vector<int> _shuffle(int sz) noexcept {
     std::vector<int> ind(sz), r(sz);
     std::iota(ind.begin(), ind.end(), 0);
 
@@ -273,14 +272,14 @@ public:
     return r;
   }
 
-  static std::vector<std::vector<int>> _fullPartition(int sz) {
+  static std::vector<std::vector<int>> _fullPartition(int sz) noexcept {
     std::vector<int> subset(sz);
     std::iota(subset.begin(), subset.end(), 0);
     std::vector<std::vector<int>> p{1, subset};
     return p;
   }
 
-  static uvec sortedSubsample1(std::size_t n, std::size_t numCols) {
+  static uvec sortedSubsample1(std::size_t n, std::size_t numCols) noexcept {
     float p = static_cast<float>(numCols) / static_cast<float>(n);
     uvec r(numCols);
     int i = 0, j = 0;
@@ -300,7 +299,7 @@ public:
     return r;
   }
 
-  static uvec sortedSubsample2(std::size_t n, std::size_t numCols) {
+  static uvec sortedSubsample2(std::size_t n, std::size_t numCols) noexcept {
     uvec r(numCols);
 
     std::size_t i = 0, j = 0;
@@ -317,7 +316,7 @@ public:
     return r;
   }
 
-  static uvec sortedSubsample(std::size_t n, std::size_t numCols) {
+  static uvec sortedSubsample(std::size_t n, std::size_t numCols) noexcept {
     // Faster option; see benchmarks.cpp
     return sortedSubsample2(n, numCols);
   }
@@ -330,16 +329,16 @@ using CerealIArch = cereal::BinaryInputArchive;
 using CerealOArch = cereal::BinaryOutputArchive;
 
 struct distributionException : public std::exception {
-  const char* what() const throw() { return "Bad distributional assignment"; };
+  const char* what() const noexcept override { return "Bad distributional assignment"; }
 };
 
 class __debug {
 public:
-  __debug(const char* fl, const char* fn, int ln) : fl_{fl}, fn_{fn}, ln_{ln} {
+  __debug(const char* fl, const char* fn, int ln) noexcept : fl_{fl}, fn_{fn}, ln_{ln} {
     std::cerr << "===> ENTER FILE: " << fl_ << " FUNCTION: " << fn_ << " LINE: " << ln_
               << std::endl;
   }
-  ~__debug() {
+  ~__debug() noexcept {
     std::cerr << "===< EXIT FILE:  " << fl_ << " FUNCTION: " << fn_ << " LINE: " << ln_
               << std::endl;
   }
@@ -355,11 +354,11 @@ template <
     typename Units = typename Clock::duration>
 class __timer {
 public:
-  __timer() : start_point_(Clock::now()) {}
-  __timer(std::string& msg) : msg_{msg}, start_point_{Clock::now()} {}
-  __timer(std::string&& msg) : msg_{std::move(msg)}, start_point_{Clock::now()} {}
+  __timer() noexcept : start_point_(Clock::now()) {}
+  __timer(const std::string& msg) noexcept : msg_{msg}, start_point_{Clock::now()} {}
+  __timer(std::string&& msg) noexcept : msg_{std::move(msg)}, start_point_{Clock::now()} {}
 
-  ~__timer() {
+  ~__timer() noexcept {
     unsigned int elapsed = elapsed_time();
     if (!msg_.empty()) {
       std::cerr << msg_ << " :: ";
@@ -367,7 +366,7 @@ public:
     std::cerr << "ELAPSED: " << elapsed << std::endl;
   }
 
-  unsigned int elapsed_time() const {
+  unsigned int elapsed_time() const noexcept {
     std::atomic_thread_fence(std::memory_order_relaxed);
     auto counted_time = std::chrono::duration_cast<Units>(Clock::now() - start_point_).count();
     std::atomic_thread_fence(std::memory_order_relaxed);
@@ -383,7 +382,7 @@ using precise_timer = __timer<std::chrono::high_resolution_clock, std::chrono::m
 using system_timer = __timer<std::chrono::system_clock, std::chrono::microseconds>;
 using monotonic_timer = __timer<std::chrono::steady_clock, std::chrono::microseconds>;
 
-enum class SerializedType {
+enum class SerializedType : std::uint8_t {
   CLASSIFIER = 0,
   PREDICTION = 1,
   COLMASK = 2,
@@ -400,8 +399,8 @@ template <typename DataType>
 class DatasetArchive {
 public:
   DatasetArchive() = default;
-  DatasetArchive(Mat<DataType> dataset) : dataset_{dataset} {}
-  DatasetArchive(Mat<DataType>&& dataset) : dataset_{std::move(dataset)} {}
+  explicit DatasetArchive(const Mat<DataType>& dataset) : dataset_{dataset} {}
+  explicit DatasetArchive(Mat<DataType>&& dataset) noexcept : dataset_{std::move(dataset)} {}
 
   template <class Archive>
   void serialize(Archive& ar) {
@@ -416,8 +415,8 @@ template <typename DataType>
 class PredictionArchive {
 public:
   PredictionArchive() = default;
-  PredictionArchive(Row<DataType> prediction) : prediction_{prediction} {}
-  PredictionArchive(Row<DataType>&& prediction) : prediction_{std::move(prediction)} {}
+  explicit PredictionArchive(const Row<DataType>& prediction) : prediction_{prediction} {}
+  explicit PredictionArchive(Row<DataType>&& prediction) noexcept : prediction_{std::move(prediction)} {}
 
   template <class Archive>
   void serialize(Archive& ar) {
@@ -432,8 +431,8 @@ template <typename DataType>
 class LabelsArchive {
 public:
   LabelsArchive() = default;
-  LabelsArchive(Row<DataType> labels) : labels_{labels} {}
-  LabelsArchive(Row<DataType>&& labels) : labels_{labels} {}
+  explicit LabelsArchive(const Row<DataType>& labels) : labels_{labels} {}
+  explicit LabelsArchive(Row<DataType>&& labels) noexcept : labels_{std::move(labels)} {}
 
   template <class Archive>
   void serialize(Archive& ar) {
@@ -447,8 +446,8 @@ public:
 class ColMaskArchive {
 public:
   ColMaskArchive() = default;
-  ColMaskArchive(uvec colMask) : colMask_{colMask} {}
-  ColMaskArchive(uvec&& colMask) : colMask_{std::move(colMask)} {}
+  explicit ColMaskArchive(const uvec& colMask) : colMask_{colMask} {}
+  explicit ColMaskArchive(uvec&& colMask) noexcept : colMask_{std::move(colMask)} {}
 
   template <class Archive>
   void serialize(Archive& ar) {
@@ -651,12 +650,12 @@ using tstringstream =
     std::basic_stringstream<CharT, std::char_traits<CharT>, std::allocator<CharT>>;
 
 template <typename CharT>
-inline void strReplace(tstring<CharT>& text, tstring<CharT> from, tstring<CharT> to) {
+inline void strReplace(tstring<CharT>& text, const tstring<CharT>& from, const tstring<CharT>& to) {
   text.replace(text.find(from), from.length(), to);
 }
 
 template <typename CharT>
-inline std::vector<tstring<CharT>> strSplit(tstring<CharT> text, CharT const delimiter) {
+inline std::vector<tstring<CharT>> strSplit(const tstring<CharT>& text, CharT const delimiter) {
   auto sstr = tstringstream<CharT>{text};
   auto tokens = std::vector<tstring<CharT>>{};
   auto token = tstring<CharT>{};
@@ -667,7 +666,7 @@ inline std::vector<tstring<CharT>> strSplit(tstring<CharT> text, CharT const del
 }
 
 template <typename CharT>
-tstring<CharT> strJoin(const std::vector<tstring<CharT>>& tokens, char delim, int firstInd) {
+tstring<CharT> strJoin(const std::vector<tstring<CharT>>& tokens, CharT delim, int firstInd) {
   tstring<CharT> r;
   int size_ = static_cast<int>(tokens.size());
   for (int i = firstInd; i < size_; ++i) {
@@ -770,7 +769,7 @@ void mergeIndices(
     bool = false);
 
 template <typename DataType>
-std::vector<DataType> sort_not_in_place(std::vector<DataType> v) {
+std::vector<DataType> sort_not_in_place(std::vector<DataType> v) noexcept {
   std::sort(v.begin(), v.end());
   return v;
 }

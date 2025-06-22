@@ -22,8 +22,8 @@ inline std::string resolve_path(std::string_view relative_path) {
     return std::string(relative_path);
   }
   
-  std::filesystem::path base_path(project_root);
-  std::filesystem::path rel_path(relative_path);
+  const std::filesystem::path base_path(project_root);
+  const std::filesystem::path rel_path(relative_path);
   
   return (base_path / rel_path).string();
 }
@@ -38,20 +38,17 @@ inline std::string resolve_path(std::string_view relative_path) {
  */
 inline std::string resolve_data_path(std::string_view filename) {
   // Try to get the data directory from environment variable
-  const char* data_dir_env = std::getenv("IB_DATA_DIR");
-  
-  if (data_dir_env != nullptr) {
-    std::filesystem::path data_path(data_dir_env);
-    std::filesystem::path file_path(filename);
+  if (const char* data_dir_env = std::getenv("IB_DATA_DIR")) {
+    const std::filesystem::path data_path(data_dir_env);
+    const std::filesystem::path file_path(filename);
     return (data_path / file_path).string();
   }
   
   // Default to ~/Data if environment variable not set
-  const char* home_dir = std::getenv("HOME");
-  if (home_dir != nullptr) {
-    std::filesystem::path home_path(home_dir);
-    std::filesystem::path data_path = home_path / "Data";
-    std::filesystem::path file_path(filename);
+  if (const char* home_dir = std::getenv("HOME")) {
+    const std::filesystem::path home_path(home_dir);
+    const std::filesystem::path data_path = home_path / "Data";
+    const std::filesystem::path file_path(filename);
     return (data_path / file_path).string();
   }
   
