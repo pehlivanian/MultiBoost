@@ -416,7 +416,8 @@ class PredictionArchive {
 public:
   PredictionArchive() = default;
   explicit PredictionArchive(const Row<DataType>& prediction) : prediction_{prediction} {}
-  explicit PredictionArchive(Row<DataType>&& prediction) noexcept : prediction_{std::move(prediction)} {}
+  explicit PredictionArchive(Row<DataType>&& prediction) noexcept
+      : prediction_{std::move(prediction)} {}
 
   template <class Archive>
   void serialize(Archive& ar) {

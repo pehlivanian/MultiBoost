@@ -38,9 +38,10 @@ using ConstantTreeClassifierType = ConstantTree;
 using NegativeFeedbackDecisionTreeClassifierType = DecisionTree<>;
 using NegativeFeedbackRandomForestClassifierType = RandomForest<>;
 // using NegativeFeedbackDecisionTreeClassifierType = NegativeFeedback<DecisionTreeClassifier,
-// 									std::size_t, std::size_t, double,
-// std::size_t>; using NegativeFeedbackRandomForestClassifierType =
-// NegativeFeedback<RandomForestClassifier, 								std::size_t, std::size_t, double, std::size_t>;
+// 									std::size_t, std::size_t,
+// double, std::size_t>; using NegativeFeedbackRandomForestClassifierType =
+// NegativeFeedback<RandomForestClassifier, 								std::size_t,
+// std::size_t, double, std::size_t>;
 
 // [==========--===========]
 // [============--=========]

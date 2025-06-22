@@ -21,7 +21,8 @@ const std::string DIGEST_PATH = IB_utils::resolve_path("digest/classify");
 }  // namespace ClassifierFileScope
 
 template <typename ClassifierType>
-inline AllClassifierArgs CompositeClassifier<ClassifierType>::allClassifierArgs(std::size_t numClasses) {
+inline AllClassifierArgs CompositeClassifier<ClassifierType>::allClassifierArgs(
+    std::size_t numClasses) {
   return std::make_tuple(numClasses, minLeafSize_, minimumGainSplit_, numTrees_, maxDepth_);
 }
 
@@ -107,7 +108,8 @@ inline void CompositeClassifier<ClassifierType>::Predict(Row<DataType>& predicti
 }
 
 template <typename ClassifierType>
-inline void CompositeClassifier<ClassifierType>::Predict(Row<DataType>& prediction, const uvec& colMask) {
+inline void CompositeClassifier<ClassifierType>::Predict(
+    Row<DataType>& prediction, const uvec& colMask) {
   Predict(prediction);
   prediction = prediction.submat(zeros<uvec>(1), colMask);
 }
@@ -117,7 +119,7 @@ template <typename MatType>
 void CompositeClassifier<ClassifierType>::_predict_in_loop(
     MatType&& dataset, Row<DataType>& prediction, bool ignoreSymmetrization) {
   prediction = zeros<Row<DataType>>(dataset.n_cols);
-  
+
   // Reserve memory for prediction step to avoid reallocations
   Row<DataType> predictionStep;
   predictionStep.set_size(dataset.n_cols);
@@ -218,7 +220,7 @@ auto CompositeClassifier<ClassifierType>::uniqueCloseAndReplace(Row<DataType>& l
 
   std::vector<std::pair<DataType, DataType>> uniqueByEps;
   std::vector<DataType> uniqueVals_;
-  
+
   // Reserve memory to avoid reallocations
   uniqueByEps.reserve(uniqueVals.n_cols);
   uniqueVals_.reserve(uniqueVals.n_cols);
@@ -231,7 +233,7 @@ auto CompositeClassifier<ClassifierType>::uniqueCloseAndReplace(Row<DataType>& l
       if (std::abs(uniqueVals[i] - el) <= eps) {
         found = true;
         uniqueByEps.emplace_back(uniqueVals[i], el);
-        break; // Exit early once found
+        break;  // Exit early once found
       }
     }
     if (!found) {
@@ -262,7 +264,7 @@ void CompositeClassifier<ClassifierType>::symmetrizeLabels(Row<DataType>& labels
     const double m = *min_it;
     const double M = *max_it;
     const double range = M - m;
-    
+
     // Always use the standard symmetrization (the false branch)
     a_ = 2. / range;
     b_ = (m + M) / (m - M);
@@ -271,9 +273,8 @@ void CompositeClassifier<ClassifierType>::symmetrizeLabels(Row<DataType>& labels
     // Handle multiclass case with values in {0, 1, 2}
     const Row<DataType> sortedVals = sort(uniqueVals);
     constexpr double eps = static_cast<double>(std::numeric_limits<float>::epsilon());
-    
-    if ((std::abs(sortedVals[0]) <= eps) && 
-        (std::abs(sortedVals[1] - 0.5) <= eps) &&
+
+    if ((std::abs(sortedVals[0]) <= eps) && (std::abs(sortedVals[1] - 0.5) <= eps) &&
         (std::abs(sortedVals[2] - 1.0) <= eps)) {
       a_ = 2.;
       b_ = -1.;
@@ -675,7 +676,7 @@ auto CompositeClassifier<ClassifierType>::computeOptimalSplit(
   std::vector<DataType> gv0, hv0;
   gv0.reserve(n);
   hv0.reserve(n);
-  
+
   std::copy(g.begin(), g.end(), std::back_inserter(gv0));
   std::copy(h.begin(), h.end(), std::back_inserter(hv0));
 
@@ -699,9 +700,10 @@ auto CompositeClassifier<ClassifierType>::computeOptimalSplit(
   Row<DataType> leaf_values0 = arma::zeros<Row<DataType>>(n);
 
   if (T > 1 || risk_partitioning_objective) {
-    const std::size_t start_ind = risk_partitioning_objective ? 0 : static_cast<std::size_t>(T * activePartitionRatio);
+    const std::size_t start_ind =
+        risk_partitioning_objective ? 0 : static_cast<std::size_t>(T * activePartitionRatio);
     const std::size_t subsets_size = subsets0.size();
-    
+
     // Precompute negative learning rate for efficiency
     const double neg_lr = -learningRate;
 
@@ -709,7 +711,7 @@ auto CompositeClassifier<ClassifierType>::computeOptimalSplit(
       const uvec ind = arma::conv_to<uvec>::from(subsets0[i]);
       const double g_sum = sum(g(ind));
       const double h_sum = sum(h(ind));
-      
+
       // Avoid division by zero and compute leaf value efficiently
       if (h_sum != 0.0) {
         const double val = neg_lr * g_sum / h_sum;

@@ -1,4 +1,5 @@
 #include "incremental_predict.hpp"
+
 #include "path_utils.hpp"
 
 using namespace arma;

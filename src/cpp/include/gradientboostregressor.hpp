@@ -40,11 +40,12 @@ public:
       const Row<typename CompositeRegressor<RegressorType>::DataType>& labels_oos,
       Context context,
       const std::string& folderName = std::string{})
-      : CompositeRegressor<RegressorType>(dataset, labels, dataset_oos, labels_oos, context, folderName) {}
+      : CompositeRegressor<RegressorType>(
+            dataset, labels, dataset_oos, labels_oos, context, folderName) {}
 
   // Template fallback for other patterns
-  template<typename... Args>
-  explicit GradientBoostRegressor(Args&&... args) 
+  template <typename... Args>
+  explicit GradientBoostRegressor(Args&&... args)
       : CompositeRegressor<RegressorType>(std::forward<Args>(args)...) {}
 };
 

@@ -1,4 +1,5 @@
 #include "incremental_classify.hpp"
+
 #include "path_utils.hpp"
 
 namespace {

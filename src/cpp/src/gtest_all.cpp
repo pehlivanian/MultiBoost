@@ -19,8 +19,8 @@
 #include <vector>
 
 // Force gtest symbols to be available before other includes
-using ::testing::Values;
 using ::testing::TestWithParam;
+using ::testing::Values;
 
 #include "DP.hpp"
 #include "classifiers.hpp"
@@ -1784,7 +1784,6 @@ TEST(GradientBoostRegressorTest, TestOutofSampleFit) {
   }
 }
 
-
 TEST(GradientBoostRegressorTest, TestIncrementalRegressorScript) {
   // use folder to determine pwd
   boost::filesystem::path folder("../data/");
@@ -1796,7 +1795,7 @@ TEST(GradientBoostRegressorTest, TestIncrementalRegressorScript) {
   char rg_ex[50];
   char cmd[500];
   sprintf(rg_ex, "\\[%s\\]\\sOOS[\\s]*:[\\s]*.*:[\\s]+\\((.*)\\)", dataset_name_test);
-  
+
   // Set data directory to test_data directory in the project root
   std::string script_path = IB_utils::resolve_path("src/script/incremental_regressor_fit.sh");
   sprintf(
@@ -1836,7 +1835,6 @@ TEST(GradientBoostRegressorTest, TestIncrementalRegressorScript) {
   }
 }
 
-
 TEST(GradientBoostClassifierTest, TestIncrementalClassifierScript) {
   // use folder to determine pwd
   boost::filesystem::path folder{"../data/"};
@@ -1848,14 +1846,16 @@ TEST(GradientBoostClassifierTest, TestIncrementalClassifierScript) {
   // Set data directory to test_data directory in the project root
   std::string data_dir = "TEST_DATA_DIR=" + IB_utils::resolve_test_data_path("");
   std::string script_path = IB_utils::resolve_path("src/script/incremental_classifier_fit.sh");
-  
-  std::string cmd_str = script_path + 
+
+  std::string cmd_str =
+      script_path +
       " 18 800 250 500 100 250 20 100 75 50 40 35 25 20 "
       "10 7 4 2 1 1 1 1 1 1 1 2 1 3 1 2 1 1 1 1 1 1 1 0.00015 0.00015 0.00015 0.0001 0.0001 0.0001 "
       "0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0001 0.0002 0.0002 0.0002 0.35 "
       "0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0 0 0 "
       "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 "
-      "0 0 0 0 0 " + dataset_name_train + " 10 8 2.4 1 1 1 4 -4 0";
+      "0 0 0 0 0 " +
+      dataset_name_train + " 10 8 2.4 1 1 1 4 -4 0";
 
   child c(cmd_str, std_out > pipe_stream);
 
@@ -1883,7 +1883,7 @@ TEST(GradientBoostClassifierTest, TestIncrementalClassifierScript) {
 
   while (pipe_stream && std::getline(pipe_stream, line) && !line.empty()) {
     // Look for lines containing OOS results, but skip header lines
-    if (line.find("[buggyCrx_test] OOS:") != std::string::npos && 
+    if (line.find("[buggyCrx_test] OOS:") != std::string::npos &&
         line.find("error, precision, recall, F1, imbalance") == std::string::npos) {
       // Find the parentheses containing the values
       size_t start = line.find("(");
@@ -1898,7 +1898,7 @@ TEST(GradientBoostClassifierTest, TestIncrementalClassifierScript) {
             float recall_val = std::stof(res[2]);
             float f1_val = std::stof(res[3]);
             float imbalance_val = std::stof(res[4]);
-            
+
             ASSERT_EQ(error_val, errors[cnt]);
             ASSERT_EQ(precision_val, precision[cnt]);
             ASSERT_EQ(recall_val, recall[cnt]);
@@ -1920,11 +1920,11 @@ TEST(GradientBoostClassifierTest, TestIncrementalClassifierScript) {
   ASSERT_EQ(1, 1);
 }
 
-
 // TODO: Parameterized tests disabled due to namespace conflict with cereal/rapidjson
 // The original code was:
-// INSTANTIATE_TEST_SUITE_P(DPSolverTests, DPSolverTestFixture, 
-//     ::testing::Values(objective_fn::Gaussian, objective_fn::Poisson, objective_fn::RationalScore));
+// INSTANTIATE_TEST_SUITE_P(DPSolverTests, DPSolverTestFixture,
+//     ::testing::Values(objective_fn::Gaussian, objective_fn::Poisson,
+//     objective_fn::RationalScore));
 
 auto main(int argc, char** argv) -> int {
   testing::InitGoogleTest(&argc, argv);

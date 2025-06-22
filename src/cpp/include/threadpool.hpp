@@ -170,7 +170,7 @@ private:
 
 private:
   std::atomic_bool m_done;
-  ThreadsafeQueue<std::unique_ptr<IThreadTask> > m_workQueue;
+  ThreadsafeQueue<std::unique_ptr<IThreadTask>> m_workQueue;
   std::vector<std::thread> m_threads;
 };
 

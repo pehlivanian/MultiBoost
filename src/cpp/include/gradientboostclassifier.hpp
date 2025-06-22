@@ -82,11 +82,12 @@ public:
       const Row<std::size_t>& labels_oos,
       Context context,
       const std::string& folderName = std::string{})
-      : CompositeClassifier<ClassifierType>(dataset, labels, dataset_oos, labels_oos, context, folderName) {}
+      : CompositeClassifier<ClassifierType>(
+            dataset, labels, dataset_oos, labels_oos, context, folderName) {}
 
   // Template fallback for other patterns
-  template<typename... Args>
-  explicit GradientBoostClassifier(Args&&... args) 
+  template <typename... Args>
+  explicit GradientBoostClassifier(Args&&... args)
       : CompositeClassifier<ClassifierType>(std::forward<Args>(args)...) {}
 };
 
