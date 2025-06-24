@@ -1,0 +1,132 @@
+FROM ubuntu:22.04
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Update and install required packages
+RUN apt-get update && apt-get install -y \
+    cmake \
+    clang \
+    build-essential \
+    libboost-all-dev \
+    liblapack-dev \
+    libblas-dev \
+    libopenblas-dev \
+    git \
+    doxygen \
+    wget \
+    unzip \
+    sudo \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create group and user (in Docker we'll use a non-root user for final operations)
+RUN groupadd developers && \
+    useradd -m -s /bin/bash -g developers charles
+
+# Create the necessary directories
+RUN mkdir -p /opt/multiboost /opt/eigen /opt/armadillo /opt/googletest /opt/benchmark \
+    /opt/mlpack /opt/ensmallen /opt/cereal /opt/data/Regression && \
+    chown -R charles:developers /opt && \
+    chmod -R 750 /opt && \
+    chmod -R g+w /opt
+
+# Clone repositories
+WORKDIR /opt
+
+RUN git clone https://github.com/pehlivanian/MultiBoost.git /opt/multiboost && \
+    git clone https://gitlab.com/libeigen/eigen.git /opt/eigen && \
+    git clone --branch release-1.12.1 https://github.com/google/googletest.git /opt/googletest && \
+    git clone https://github.com/google/benchmark.git /opt/benchmark && \
+    git clone https://github.com/mlpack/mlpack.git /opt/mlpack && \
+    git clone https://github.com/USCiLab/cereal.git /opt/cereal
+
+# Download Armadillo
+RUN wget https://sourceforge.net/projects/arma/files/armadillo-12.6.7.tar.xz -O /opt/armadillo/armadillo.tar.xz && \
+    tar -xf /opt/armadillo/armadillo.tar.xz -C /opt/armadillo && \
+    rm /opt/armadillo/armadillo.tar.xz
+
+# Download Ensmallen
+RUN wget https://ensmallen.org/files/ensmallen-2.22.1.tar.gz -O /opt/ensmallen/ensmallen-2.22.1.tar.gz && \
+    tar -xzf /opt/ensmallen/ensmallen-2.22.1.tar.gz -C /opt/ensmallen && \
+    rm /opt/ensmallen/ensmallen-2.22.1.tar.gz
+
+# Build and install Eigen
+RUN mkdir -p /opt/eigen/build && \
+    cd /opt/eigen/build && \
+    cmake .. && \
+    make install
+
+# Build and install Armadillo
+RUN mkdir -p /opt/armadillo/armadillo-12.6.7/build && \
+    cd /opt/armadillo/armadillo-12.6.7/build && \
+    cmake .. && \
+    make && \
+    make install
+
+# Build and install Google Test
+RUN mkdir -p /opt/googletest/build && \
+    cd /opt/googletest/build && \
+    cmake .. && \
+    make && \
+    make install
+
+# Build and install Google Benchmark
+RUN mkdir -p /opt/benchmark/build && \
+    cd /opt/benchmark/build && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DBENCHMARK_ENABLE_GTEST_TESTS=OFF .. && \
+    make && \
+    make install
+
+# Build and install Ensmallen
+RUN mkdir -p /opt/ensmallen/ensmallen-2.22.1/build && \
+    cd /opt/ensmallen/ensmallen-2.22.1/build && \
+    cmake .. && \
+    make install
+
+# Build and install cereal
+RUN mkdir -p /opt/cereal/build && \
+    cd /opt/cereal/build && \
+    cmake -DJUST_INSTALL_CEREAL=ON .. && \
+    make install
+
+# Build and install mlpack
+RUN mkdir -p /opt/mlpack/build && \
+    cd /opt/mlpack/build && \
+    cmake -DBUILD_TESTS=OFF -DBUILD_CLI_EXECUTABLES=OFF -DBUILD_PYTHON_BINDINGS=OFF \
+    -DBUILD_JULIA_BINDINGS=OFF -DBUILD_GO_BINDINGS=OFF -DBUILD_R_BINDINGS=OFF .. && \
+    make && \
+    make install
+
+# Add environment setup to root's bashrc so variables persist
+RUN echo 'source /opt/multiboost/setup_env.sh' >> /root/.bashrc
+
+# Run setup environment script
+RUN cd /opt/multiboost && \
+    /bin/bash -c "source ./setup_env.sh"
+
+# Build multiboost target
+RUN cd /opt/multiboost && \
+    cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build build -- -j4
+
+# Note: For test data, you'll need to add your data files
+COPY sonar_X.csv /opt/data/
+COPY sonar_y.csv /opt/data
+COPY 1193_BNG_lowbwt_X.csv /opt/data/Regression/
+COPY 1193_BNG_lowbwt_y.csv /opt/data/Regression/
+
+# Update file paths in source files
+RUN find /opt/multiboost -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.sh" \) \
+    -exec sed -i 's|/home/charles/Data|/opt/data|g' {} \; && \
+    find /opt/multiboost -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.sh" \) \
+    -exec sed -i 's|/home/charles/src/C++/sandbox/Inductive-Boost|/opt/multiboost|g' {} \;
+
+# Switch to non-root user for security
+USER charles
+WORKDIR /opt/multiboost
+
+# Set the default command
+CMD ["/bin/bash"]
+
+
