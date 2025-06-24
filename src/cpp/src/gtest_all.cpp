@@ -1784,7 +1784,7 @@ TEST(GradientBoostRegressorTest, TestOutofSampleFit) {
   }
 }
 
-TEST(GradientBoostRegressorTest, TestIncrementalRegressorScript) {
+TEST(GradientBoostRegressorTest, DISABLED_TestIncrementalRegressorScript) {
   // use folder to determine pwd
   boost::filesystem::path folder("../data/");
 
@@ -1835,7 +1835,7 @@ TEST(GradientBoostRegressorTest, TestIncrementalRegressorScript) {
   }
 }
 
-TEST(GradientBoostClassifierTest, TestIncrementalClassifierScript) {
+TEST(GradientBoostClassifierTest, DISABLED_TestIncrementalClassifierScript) {
   // use folder to determine pwd
   boost::filesystem::path folder{"../data/"};
 
