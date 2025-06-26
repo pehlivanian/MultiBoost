@@ -151,13 +151,7 @@ RUN chown -R charles:developers /opt/multiboost && \
     mkdir -p /opt/multiboost/digest/regress && \
     mkdir -p /opt/multiboost/digest/classify && \
     chown -R charles:developers /opt/multiboost/digest && \
-    chmod -R 755 /opt/multiboost/digest && \
-    # Give charles write permissions to all files and directories
-    find /opt/multiboost -type f -exec chmod 644 {} \; && \
-    find /opt/multiboost -type d -exec chmod 755 {} \; && \
-    # Ensure executables remain executable
-    find /opt/multiboost -name "*.sh" -exec chmod 755 {} \; && \
-    find /opt/multiboost -path "*/build/*" -type f -executable -exec chmod 755 {} \;
+    chmod -R 755 /opt/multiboost/digest
 
 # Switch to non-root user for security
 USER charles
