@@ -17,6 +17,12 @@ RUN apt-get update && apt-get install -y \
     wget \
     unzip \
     sudo \
+    python3 \
+    python3-pip \
+    python3-venv \
+    gawk \
+    vim \
+    nano \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -28,8 +34,7 @@ RUN groupadd developers && \
 RUN mkdir -p /opt/multiboost /opt/eigen /opt/armadillo /opt/googletest /opt/benchmark \
     /opt/mlpack /opt/ensmallen /opt/cereal /opt/data/Regression && \
     chown -R charles:developers /opt && \
-    chmod -R 750 /opt && \
-    chmod -R g+w /opt
+    chmod -R 755 /opt
 
 # Clone repositories
 WORKDIR /opt
@@ -115,6 +120,10 @@ COPY sonar_X.csv /opt/data/
 COPY sonar_y.csv /opt/data
 COPY 1193_BNG_lowbwt_X.csv /opt/data/Regression/
 COPY 1193_BNG_lowbwt_y.csv /opt/data/Regression/
+COPY 1193_BNG_lowbwt_train_X.csv /opt/data/Regression/
+COPY 1193_BNG_lowbwt_train_y.csv /opt/data/Regression/
+COPY 1193_BNG_lowbwt_test_X.csv /opt/data/Regression/
+COPY 1193_BNG_lowbwt_test_y.csv /opt/data/Regression/
 
 # Update file paths in source files
 RUN find /opt/multiboost -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.sh" \) \
@@ -122,11 +131,39 @@ RUN find /opt/multiboost -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.s
     find /opt/multiboost -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.sh" \) \
     -exec sed -i 's|/home/charles/src/C++/sandbox/Inductive-Boost|/opt/multiboost|g' {} \;
 
+# Install Python dependencies
+RUN pip3 install flask
+
+# Create scripts directory and copy the incremental regression script
+RUN mkdir -p /opt/multiboost/scripts
+COPY incremental_regression_fit.sh /opt/multiboost/scripts/incremental_regression_fit.sh
+RUN chmod +x /opt/multiboost/scripts/incremental_regression_fit.sh
+
+# Copy the API server
+COPY api_server.py /opt/multiboost/
+
+# Expose port 8002
+EXPOSE 8002
+
+# Ensure charles user has proper permissions for all created directories and files
+RUN chown -R charles:developers /opt/multiboost && \
+    chmod -R 755 /opt/multiboost && \
+    mkdir -p /opt/multiboost/digest/regress && \
+    mkdir -p /opt/multiboost/digest/classify && \
+    chown -R charles:developers /opt/multiboost/digest && \
+    chmod -R 755 /opt/multiboost/digest && \
+    # Give charles write permissions to all files and directories
+    find /opt/multiboost -type f -exec chmod 644 {} \; && \
+    find /opt/multiboost -type d -exec chmod 755 {} \; && \
+    # Ensure executables remain executable
+    find /opt/multiboost -name "*.sh" -exec chmod 755 {} \; && \
+    find /opt/multiboost -path "*/build/*" -type f -executable -exec chmod 755 {} \;
+
 # Switch to non-root user for security
 USER charles
 WORKDIR /opt/multiboost
 
-# Set the default command
-CMD ["/bin/bash"]
+# Set the default command to run the API server
+CMD ["python3", "/opt/multiboost/api_server.py"]
 
 

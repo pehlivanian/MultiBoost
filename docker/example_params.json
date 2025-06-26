@@ -1,0 +1,36 @@
+{
+  "x": {
+    "dataname": "1193_BNG_lowbwt_train",
+    "steps": 50,
+    "recursiveFit": true,
+    "useWeights": false,
+    "rowSubsampleRatio": 1.0,
+    "colSubsampleRatio": 0.8,
+    "removeRedundantLabels": false,
+    "symmetrizeLabels": true,
+    "loss": {
+      "index": 1,
+      "data": 1
+    },
+    "lossPower": 2.0,
+    "clamp_gradient": true,
+    "upper_val": -1.0,
+    "lower_val": 1.0,
+    "numTrees": 20,
+    "depth": 0,
+    "childPartitionSize": [300, 100],
+    "childNumSteps": [1, 1],
+    "childLearningRate": [0.05, 0.02],
+    "childActivePartitionRatio": [0.6, 0.4],
+    "childMinLeafSize": [5, 10],
+    "childMinimumGainSplit": [0.001, 0.001],
+    "childMaxDepth": [3, 2],
+    "serializeModel": true,
+    "serializePrediction": true,
+    "serializeColMask": false,
+    "serializeDataset": true,
+    "serializeLabels": true,
+    "serializationWindow": 5,
+    "quietRun": true
+  }
+}
