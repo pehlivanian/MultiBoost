@@ -118,7 +118,6 @@ if [[ $# -ne 3 ]]; then
 
 	    if [ -z "$split_ratio" ]; then
 		split_ratio=0
-		test_OOS_each_it=1
 	    fi
 
 
@@ -177,6 +176,7 @@ if [[ $# -ne 3 ]]; then
 		--childMinimumGainSplit ${childminimumgainsplit[@]} \
 		--serializationWindow 10 \
 		--fileName $CONTEXT_PATH_RUNS
+    
 else
 
     CONTEXT_PATH_RUN1=__CTX_RUN1_EtxetnoC7txetnoCrosserge.json

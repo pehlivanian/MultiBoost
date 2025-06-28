@@ -128,7 +128,6 @@ if [[ $# -ne 3 ]]; then
 
 	    if [ -z "$split_ratio" ]; then
 		split_ratio=0
-		test_OOS_each_it=1
 		SHOW_OOS=0
 	    fi
 	    
