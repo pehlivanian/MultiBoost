@@ -6,13 +6,22 @@ This Docker container exposes the MultiBoost incremental regression fit script a
 
 ```bash
 cd /home/charles/src/devops/sandbox/MultiBoost/docker
-docker build -t multiboost-api .
+docker build -f dockerfile -t multiboost_image .
 ```
 
 ## Running the Container
 
 ```bash
-docker run -p 8002:8002 multiboost-api
+docker run --name multiboost_container -v /home/charles/Data:/opt/data -p 8002:8002 multiboost_image
+```
+
+## Example runs
+```bash
+# Classification
+curl -X POST http://localhost:8002/classifier-fit -H "Content-Type: application/json" -d @example_params_class.json
+
+# Regression  
+curl -X POST http://localhost:8002/regression-fit -H "Content-Type: application/json" -d @example_params_reg.json
 ```
 
 The API will be available at `http://localhost:8002`
@@ -20,65 +29,69 @@ The API will be available at `http://localhost:8002`
 ## API Endpoints
 
 ### Health Check
-- **URL**: `GET /health`
+```bash
+curl -X GET http://localhost:8002/health
+```
 - **Description**: Check if the service is running
 - **Response**: `{"status": "healthy", "service": "multiboost-regression-fit"}`
 
 ### Available Datasets
-- **URL**: `GET /available-datasets`
+```bash
+curl -X GET http://localhost:8002/available-datasets
+```
 - **Description**: List available datasets in the container
 - **Response**: JSON list of available datasets
 
+### Classification Fit
+```bash
+curl -X POST http://localhost:8002/classifier-fit \
+  -H "Content-Type: application/json" \
+  -d @example_params_class.json
+```
+- **Description**: Run incremental classification fit with provided parameters
+- **Supports**: Multi-child parameter arrays for complex ensemble configurations
+
 ### Regression Fit
-- **URL**: `POST /regression-fit`
-- **Content-Type**: `application/json`
+```bash
+curl -X POST http://localhost:8002/regression-fit \
+  -H "Content-Type: application/json" \
+  -d @example_params_reg.json
+```
 - **Description**: Run incremental regression fit with provided parameters
 
-#### Request Payload Format
+## Using Local Datasets
 
-The payload should match the structure in `params.json`:
+Mount your data directory to the container and specify dataset paths:
 
-```json
-{
-  "x": {
-    "steps": 200,
-    "recursiveFit": true,
-    "useWeights": false,
-    "rowSubsampleRatio": 1.0,
-    "colSubsampleRatio": 1.0,
-    "removeRedundantLabels": false,
-    "symmetrizeLabels": true,
-    "loss": {
-      "index": 1,
-      "data": 1
-    },
-    "lossPower": 2.4,
-    "clamp_gradient": true,
-    "upper_val": -1.0,
-    "lower_val": 1.0,
-    "numTrees": 10,
-    "depth": 0,
-    "childPartitionSize": [500, 50],
-    "childNumSteps": [1, 1],
-    "childLearningRate": [0.01, 0.01],
-    "childActivePartitionRatio": [0.5, 0.5],
-    "childMinLeafSize": [1, 1],
-    "childMinimumGainSplit": [0.0, 0.0],
-    "childMaxDepth": [0, 0],
-    "serializeModel": true,
-    "serializePrediction": true,
-    "serializeColMask": false,
-    "serializeDataset": true,
-    "serializeLabels": true,
-    "serializationWindow": 10,
-    "quietRun": true,
-    "dataname": "1193_BNG_lowbwt_train"
-  }
-}
+```bash
+docker run --name multiboost_container -v /home/charles/Data:/opt/data -p 8002:8002 multiboost_image
 ```
 
-#### Response Format
+**Classification datasets:** Use `"dataname": "Classification/dataset_name"`
+**Regression datasets:** Use `"dataname": "Regression/dataset_name"`
 
+**Expected file structure:**
+```
+/home/charles/Data/
+├── Classification/
+│   ├── dataset_name_X.csv
+│   ├── dataset_name_y.csv
+│   ├── dataset_name_train_X.csv
+│   ├── dataset_name_train_y.csv
+│   ├── dataset_name_test_X.csv
+│   └── dataset_name_test_y.csv
+└── Regression/
+    ├── dataset_name_X.csv
+    ├── dataset_name_y.csv
+    ├── dataset_name_train_X.csv
+    ├── dataset_name_train_y.csv
+    ├── dataset_name_test_X.csv
+    └── dataset_name_test_y.csv
+```
+
+## Response Format
+
+All endpoints return:
 ```json
 {
   "success": true,
@@ -89,58 +102,54 @@ The payload should match the structure in `params.json`:
 }
 ```
 
-## Example Usage
+## Parameter Examples
 
-### Using curl
-
-```bash
-# Health check
-curl http://localhost:8002/health
-
-# List datasets
-curl http://localhost:8002/available-datasets
-
-# Run regression fit
-curl -X POST http://localhost:8002/regression-fit \
-  -H "Content-Type: application/json" \
-  -d @params.json
+### Classification Parameters
+```json
+{
+  "x": {
+    "dataname": "buggyCrx_train",
+    "steps": 10,
+    "childPartitionSize": [800, 250, 500, 100],
+    "childNumSteps": [1, 1, 1, 1],
+    "childLearningRate": [0.00015, 0.00015, 0.0001, 0.0001],
+    "childActivePartitionRatio": [0.35, 0.35, 0.35, 0.35],
+    "childMaxDepth": [0, 0, 0, 0],
+    "childMinLeafSize": [1, 1, 1, 1],
+    "childMinimumGainSplit": [0.0, 0.0, 0.0, 0.0],
+    "loss": { "data": 8 },
+    "lossPower": 2.4,
+    "recursiveFit": true,
+    "clamp_gradient": true,
+    "upper_val": 4,
+    "lower_val": -4,
+    "numTrees": 10
+  }
+}
 ```
 
-### Using Python
-
-```python
-import requests
-import json
-
-# Load parameters
-with open('params.json', 'r') as f:
-    payload = json.load(f)
-
-# Make request
-response = requests.post('http://localhost:8002/regression-fit', json=payload)
-result = response.json()
-
-if result['success']:
-    print("Script executed successfully!")
-    print("Output:", result['stdout'])
-else:
-    print("Script failed:", result['stderr'])
+### Regression Parameters
+```json
+{
+  "x": {
+    "dataname": "Regression/boston_train",
+    "steps": 50,
+    "childPartitionSize": [300, 100],
+    "childLearningRate": [0.1, 0.1],
+    "childActivePartitionRatio": [0.2, 0.2],
+    "childMaxDepth": [3, 2],
+    "childMinLeafSize": [5, 10],
+    "childMinimumGainSplit": [0.001, 0.001],
+    "loss": { "data": 1 },
+    "lossPower": 2.0,
+    "recursiveFit": true,
+    "clamp_gradient": true,
+    "upper_val": -1.0,
+    "lower_val": 1.0,
+    "numTrees": 20
+  }
+}
 ```
-
-## Testing
-
-A test script is provided to verify the API functionality:
-
-```bash
-python3 test_api.py
-```
-
-## Available Datasets
-
-The container includes the following datasets:
-- `sonar` (sonar_X.csv, sonar_y.csv)
-- `1193_BNG_lowbwt_train` (1193_BNG_lowbwt_train_X.csv, 1193_BNG_lowbwt_train_y.csv)
-- `1193_BNG_lowbwt_test` (1193_BNG_lowbwt_test_X.csv, 1193_BNG_lowbwt_test_y.csv)
 
 ## Notes
 
@@ -148,3 +157,5 @@ The container includes the following datasets:
 - Script execution has a 1-hour timeout
 - Temporary files are automatically cleaned up after execution
 - The service runs as a non-root user for security
+- Classification supports multi-child parameter arrays for complex ensemble configurations
+- Data files are mounted at runtime via volume mounts (no datasets included in container)
