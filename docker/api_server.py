@@ -264,6 +264,9 @@ def run_classifier_fit():
             temp_json_path = temp_file.name
         
         try:
+            # Check if user wants to show OOS at each step
+            show_oos_each_step = params.get('showOOSEachStep', False)
+            
             # Set up environment
             env = os.environ.copy()
             env['IB_PROJECT_ROOT'] = '/opt/multiboost'

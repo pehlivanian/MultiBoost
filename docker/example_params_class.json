@@ -1,7 +1,7 @@
 {
     "x": {
 	"dataname": "buggyCrx_train",
-        "steps": 50,
+        "steps": 10,
         "recursiveFit": true,
         "useWeights": false,
         "rowSubsampleRatio": 1.0,
@@ -164,6 +164,7 @@
         "serializeDataset": true,
         "serializeLabels": true,
         "serializationWindow": 10,
-        "quietRun": true
+        "quietRun": true,
+        "showOOSEachStep": true
     }
 }

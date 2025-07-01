@@ -22,7 +22,7 @@
 DELIM=';'
 PATH=${IB_PROJECT_ROOT}/build/
 
-SHOW_OOS=0
+SHOW_OOS=${SHOW_OOS:-0}
 USE_WEIGHTS=0
 
 # Context creation
@@ -128,7 +128,11 @@ if [[ $# -ne 3 ]]; then
 
 	    if [ -z "$split_ratio" ]; then
 		split_ratio=0
-		SHOW_OOS=0
+		if [ $SHOW_OOS -eq 1 ]; then
+		    test_OOS_each_it=1
+		fi
+	    elif [ $SHOW_OOS -eq 1 ]; then
+		test_OOS_each_it=1
 	    fi
 	    
 
