@@ -14,7 +14,7 @@ fi
 DELIM=';'
 PATH=${IB_PROJECT_ROOT}/build/
 
-SHOW_OOS=0
+SHOW_OOS=${SHOW_OOS:-0}
 USE_WEIGHTS=0
 
 # Context creation

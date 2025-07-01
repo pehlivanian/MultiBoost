@@ -1,7 +1,7 @@
 {
   "x": {
     "dataname": "Regression/boston_train",
-    "steps": 500,
+    "steps": 10,
     "recursiveFit": true,
     "useWeights": false,
     "rowSubsampleRatio": 1.0,
@@ -31,6 +31,7 @@
     "serializeDataset": true,
     "serializeLabels": true,
     "serializationWindow": 5,
-    "quietRun": true
+    "quietRun": true,
+    "showOOSEachStep": false
   }
 }

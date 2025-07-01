@@ -100,10 +100,21 @@ def run_regression_fit():
             temp_json_path = temp_file.name
         
         try:
+            # Extract parameters (dataname already handled above)
+            steps = params.get('steps', 200)
+            split_ratio = params.get('split_ratio', 0.1)  # Default to 0.1 to suppress OOS at each step
+            
+            # Check if user wants to show OOS at each step
+            show_oos_each_step = params.get('showOOSEachStep', False)  # New parameter for stepwise OOS
+            
             # Set environment variables for script
             env = os.environ.copy()
             env['IB_PROJECT_ROOT'] = '/opt/multiboost'
             env['IB_DATA_DIR'] = '/opt/data'
+            
+            # Set SHOW_OOS environment variable if stepwise OOS is requested
+            if show_oos_each_step:
+                env['SHOW_OOS'] = '1'
             # Set the data directory for regression datasets
             if 'BNG_lowbwt' in dataname:
                 env['IB_DATA_DIR'] = '/opt/data/Regression'
@@ -111,15 +122,8 @@ def run_regression_fit():
                 # Local dataset with full path - preserve the full path
                 env['IB_DATA_DIR'] = '/opt/data'
             
-            # Extract parameters (dataname already handled above)
-            steps = params.get('steps', 200)
-            split_ratio = params.get('split_ratio', 0.1)  # Default to 0.1 to suppress OOS at each step
-            
-            # Check if user wants to suppress OOS at each step
-            suppress_oos = params.get('suppressOOSEachStep', True)  # Default to suppress
-            
-            if suppress_oos:
-                # Use command line mode with split_ratio to suppress OOS at each step
+            # Always use command line mode (JSON mode has bugs)
+            if True:
                 # Extract parameters for command line mode
                 child_partition_size = params.get('childPartitionSize', [500, 50])
                 child_learning_rate = params.get('childLearningRate', [0.01, 0.01])
@@ -159,15 +163,6 @@ def run_regression_fit():
                     str(lower_val),
                     str(run_on_test),
                     str(split_ratio)  # This suppresses OOS at each step
-                ]
-            else:
-                # Use JSON mode (will show OOS at each step)
-                cmd = [
-                    '/bin/bash',
-                    SCRIPT_PATH,
-                    dataname,
-                    temp_json_path,
-                    str(steps)
                 ]
             
             # Execute the script
@@ -273,6 +268,10 @@ def run_classifier_fit():
             env = os.environ.copy()
             env['IB_PROJECT_ROOT'] = '/opt/multiboost'
             env['IB_DATA_DIR'] = '/opt/data'
+            
+            # Set SHOW_OOS environment variable if stepwise OOS is requested
+            if show_oos_each_step:
+                env['SHOW_OOS'] = '1'
             
             # Set the data directory for specific datasets
             if 'BNG_lowbwt' in dataname:
