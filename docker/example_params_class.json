@@ -1,6 +1,7 @@
 {
     "x": {
-	"dataname": "buggyCrx_train",
+	"traindataname": "buggyCrx_train",
+	"testdataname": "buggyCrx_test",
         "steps": 10,
         "recursiveFit": true,
         "useWeights": false,
@@ -12,7 +13,7 @@
             "index": 0,
             "data": 8
         },
-        "lossPower": 2.4000000953674318,
+        "lossPower": 1.8000000953674318,
         "clamp_gradient": true,
         "upper_val": 4.0,
         "lower_val": -4.0,

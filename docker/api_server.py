@@ -62,6 +62,8 @@ def run_regression_fit():
     Expected JSON payload format matches params.json structure:
     {
         "x": {
+            "traindataname": "dataset_train",
+            "testdataname": "dataset_test",  // Optional: specify separate test dataset
             "steps": 200,
             "recursiveFit": true,
             "useWeights": false,
@@ -83,13 +85,14 @@ def run_regression_fit():
         params = payload['x']
         
         # Handle local data sources
-        dataname = params.get('dataname', '1193_BNG_lowbwt_train')
+        dataname = params.get('traindataname', params.get('dataname', '1193_BNG_lowbwt_train'))  # Support both old and new parameter names
+        testdataname = params.get('testdataname')  # Optional separate test dataset
         local_data_path = params.get('localDataPath')
         
         if local_data_path:
             # User specifies local path - assume it's mounted as a volume
             dataname = handle_local_dataset(local_data_path, params)
-            params['dataname'] = dataname
+            params['traindataname'] = dataname
         
         # Create temporary JSON file with parameters
         # The MultiBoost executable expects the JSON structure without the 'x' wrapper
@@ -164,6 +167,10 @@ def run_regression_fit():
                     str(run_on_test),
                     str(split_ratio)  # This suppresses OOS at each step
                 ]
+                
+                # Add optional test dataset name if specified
+                if testdataname:
+                    cmd.append(testdataname)
             
             # Execute the script
             result = subprocess.run(
@@ -213,6 +220,8 @@ def run_classifier_fit():
     Expected JSON payload format similar to regression but for classification:
     {
         "x": {
+            "traindataname": "dataset_train",
+            "testdataname": "dataset_test",  // Optional: specify separate test dataset
             "steps": 200,
             "childPartitionSize": 250,
             "childNumSteps": 1,
@@ -221,7 +230,6 @@ def run_classifier_fit():
             "childMaxDepth": 0,
             "childMinLeafSize": 1,
             "childMinimumGainSplit": 0.0,
-            "dataname": "dataset_name",
             "numTrees": 10,
             "lossFn": 12,
             "lossPower": 1.56,
@@ -248,13 +256,14 @@ def run_classifier_fit():
         params = payload['x']
         
         # Handle local data sources
-        dataname = params.get('dataname', 'sonar')
+        dataname = params.get('traindataname', params.get('dataname', 'sonar'))  # Support both old and new parameter names
+        testdataname = params.get('testdataname')  # Optional separate test dataset
         local_data_path = params.get('localDataPath')
         
         if local_data_path:
             # User specifies local path - assume it's mounted as a volume
             dataname = handle_local_dataset(local_data_path, params)
-            params['dataname'] = dataname
+            params['traindataname'] = dataname
         
         # Create temporary JSON file with parameters
         multiboost_params = params.copy()
@@ -346,8 +355,13 @@ def run_classifier_fit():
                 str(recursive_fit),  # appears twice in working command
                 str(upper_val),
                 str(lower_val),
-                str(run_on_test)
+                str(run_on_test),
+                str(split_ratio)  # Add split_ratio parameter
             ])
+            
+            # Add optional test dataset name if specified
+            if testdataname:
+                cmd.append(testdataname)
             
             # Execute the script
             result = subprocess.run(

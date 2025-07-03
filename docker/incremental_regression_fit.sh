@@ -53,6 +53,7 @@ if [[ $# -ne 3 ]]; then
 	    declare -a runOnTestDataset
 
 	    dataname=""
+	    testdataname=""
 	    steps=""
 	    colsubsample_ratio=""
 	    split_ratio=""
@@ -107,6 +108,11 @@ if [[ $# -ne 3 ]]; then
 		    lower_val+=${1:0}; shift
 		    runOnTestDataset+=${1:0}; shift
 		    split_ratio+=$1; shift
+		    
+		    # Check if optional test dataset name is provided
+		    if [[ $# -gt 0 ]]; then
+		        testdataname+=$1; shift
+		    fi
 
 	    done
 
@@ -118,6 +124,12 @@ if [[ $# -ne 3 ]]; then
 
 	    if [ -z "$split_ratio" ]; then
 		split_ratio=0
+		test_OOS_each_it=1
+	    fi
+	    
+	    # Check if we should test on custom test dataset at each step
+	    # Only enable if testdataname is provided AND showOOSEachStep is true (SHOW_OOS=1)
+	    if [ ! -z "$testdataname" ] && [ $SHOW_OOS -eq 1 ]; then
 		test_OOS_each_it=1
 	    fi
 
@@ -233,8 +245,11 @@ echo ${PREFIX}" ITER: 1"
 
 if [ ! -z "$test_OOS_each_it" ]; then
 
-    testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
-    testdataname=${testdataname}"_test"
+    # Use custom test dataset name if provided, otherwise derive from train dataset name
+    if [ -z "$testdataname" ]; then
+        testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
+        testdataname=${testdataname}"_test"
+    fi
 
     EXEC_TEST_OOS=${PATH}OOS_predict
     PREFIX="["${testdataname}"]"
@@ -276,8 +291,11 @@ for (( ; ; ));
 
   if [ ! -z "$test_OOS_each_it" ]; then
 
-      testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
-      testdataname=${testdataname}"_test"
+      # Use custom test dataset name if provided, otherwise derive from train dataset name
+      if [ -z "$testdataname" ]; then
+          testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
+          testdataname=${testdataname}"_test"
+      fi
 
       EXEC_TEST_OOS=${PATH}OOS_predict
       PREFIX="["${testdataname}"]"
@@ -327,8 +345,11 @@ if [ $SHOW_OOS -ne 1 ]; then
 	    --prefixStr $PREFIX
 
     # OOS
-	testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
-	testdataname=${testdataname}"_test"
+	# Use custom test dataset name if provided, otherwise derive from train dataset name
+	if [ -z "$testdataname" ]; then
+	    testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
+	    testdataname=${testdataname}"_test"
+	fi
 
 	EXEC_TEST_OOS=${PATH}OOS_predict
 	PREFIX="["${testdataname}"]"
