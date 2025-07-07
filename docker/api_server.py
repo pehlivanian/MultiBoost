@@ -106,15 +106,20 @@ def run_regression_fit():
             # Extract parameters (dataname already handled above)
             steps = params.get('steps', 200)
             split_ratio = params.get('split_ratio', 0.1)  # Default to 0.1 to suppress OOS at each step
-            
+
+            # Check if user wants to show IS at each step
+            show_is_each_step = params.get('showISEachStep', False)
             # Check if user wants to show OOS at each step
-            show_oos_each_step = params.get('showOOSEachStep', False)  # New parameter for stepwise OOS
+            show_oos_each_step = params.get('showOOSEachStep', False)
             
             # Set environment variables for script
             env = os.environ.copy()
             env['IB_PROJECT_ROOT'] = '/opt/multiboost'
             env['IB_DATA_DIR'] = '/opt/data'
-            
+
+            # Set SHOW_IS environment variable if stepwise IS is requested
+            if show_is_each_step:
+                env['SHOW_IS'] = '1'
             # Set SHOW_OOS environment variable if stepwise OOS is requested
             if show_oos_each_step:
                 env['SHOW_OOS'] = '1'
@@ -280,7 +285,10 @@ def run_classifier_fit():
             env = os.environ.copy()
             env['IB_PROJECT_ROOT'] = '/opt/multiboost'
             env['IB_DATA_DIR'] = '/opt/data'
-            
+
+            # Set SHOW_IS environment variable if stepwise IS is requested
+            if show_is_each_step:
+                env['SHOW_IS'] = '1'
             # Set SHOW_OOS environment variable if stepwise OOS is requested
             if show_oos_each_step:
                 env['SHOW_OOS'] = '1'

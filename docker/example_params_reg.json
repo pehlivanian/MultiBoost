@@ -32,7 +32,7 @@
     "serializeDataset": true,
     "serializeLabels": true,
     "serializationWindow": 5,
-    "quietRun": true,
+    "showISEachStep": true,
     "showOOSEachStep": false
   }
 }
