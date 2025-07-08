@@ -928,7 +928,8 @@ void CompositeClassifier<ClassifierType>::printStats(int stepNum) {
 
   // Only print stats for top level of recursive call
   if (hasOOSData_) {
-    double error_is = err(yhat, labels_);
+    // Use latestPrediction_ directly for error calculation since it contains the correct accumulated predictions
+    double error_is = err(this->latestPrediction_, labels_);
     std::cout << suff << ": "
               << "(PARTITION SIZE = " << partitionSize_ << ", STEPS = " << steps_ << ")"
               << " STEP: " << stepNum << " IS ERROR: " << error_is << "%" << std::endl;

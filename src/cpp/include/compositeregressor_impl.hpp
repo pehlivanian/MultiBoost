@@ -670,9 +670,10 @@ void CompositeRegressor<RegressorType>::printStats(int stepNum) {
     Predict(yhat);
   }
 
+  // Use latestPrediction_ directly for R² calculation since it contains the correct accumulated predictions
   auto mn = mean(labels_);
   auto den = sum(pow((labels_ - mn), 2));
-  auto num = sum(pow((labels_ - yhat), 2));
+  auto num = sum(pow((labels_ - latestPrediction_), 2));
   r_squared_IS = 1. - (num / den);
 
   auto now = std::chrono::system_clock::now();
@@ -691,7 +692,7 @@ void CompositeRegressor<RegressorType>::printStats(int stepNum) {
               << "STEP: " << stepNum << " IS R^2: " << r_squared_IS << std::endl;
   }
 
-  if (hasOOSData_) {
+  if (false and hasOOSData_) {
     Row<DataType> yhat_oos;
     if (serializeModel_) {
       Predict(indexName_, dataset_oos_, yhat_oos);
