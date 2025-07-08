@@ -433,8 +433,8 @@ void CompositeClassifier<ClassifierType>::fit() {
   // Serialize residual
   if (serializeModel_) commit();
 
-  // print final stats
-  if (!quietRun_) {
+  // print final stats (only if more than 1 step to avoid duplication)
+  if (!quietRun_ && steps_ > 1) {
     printStats(steps_);
   }
 }
