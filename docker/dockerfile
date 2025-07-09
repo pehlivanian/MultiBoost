@@ -115,29 +115,36 @@ RUN cd /opt/multiboost && \
     cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release && \
     cmake --build build -- -j4
 
-# Note: For test data, you'll need to add your data files
-COPY sonar_X.csv /opt/data/
-COPY sonar_y.csv /opt/data
-COPY 1193_BNG_lowbwt_X.csv /opt/data/Regression/
-COPY 1193_BNG_lowbwt_y.csv /opt/data/Regression/
-COPY 1193_BNG_lowbwt_train_X.csv /opt/data/Regression/
-COPY 1193_BNG_lowbwt_train_y.csv /opt/data/Regression/
-COPY 1193_BNG_lowbwt_test_X.csv /opt/data/Regression/
-COPY 1193_BNG_lowbwt_test_y.csv /opt/data/Regression/
+# Data files will be mounted at runtime via volume mounts
 
-# Update file paths in source files
+# Update file paths in source files (do this before cleanup)
 RUN find /opt/multiboost -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.sh" \) \
     -exec sed -i 's|/home/charles/Data|/opt/data|g' {} \; && \
     find /opt/multiboost -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.sh" \) \
     -exec sed -i 's|/home/charles/src/C++/sandbox/Inductive-Boost|/opt/multiboost|g' {} \;
 
+# Clean up source code after build, keeping only required runtime files
+RUN cd /opt/multiboost && \
+    find build -name "*.o" -delete && \
+    find build -name "*.a" -delete && \
+    find build -name "CMakeFiles" -type d -exec rm -rf {} + 2>/dev/null || true && \
+    find build -name "*.cmake" -delete && \
+    find build -name "Makefile" -delete && \
+    rm -rf src/ include/ tests/ docs/ examples/ && \
+    find . -maxdepth 1 -name "*.cpp" -delete && \
+    find . -maxdepth 1 -name "*.hpp" -delete && \
+    find . -maxdepth 1 -name "*.h" -delete && \
+    rm -f CMakeLists.txt
+
 # Install Python dependencies
 RUN pip3 install flask
 
-# Create scripts directory and copy the incremental regression script
+# Create scripts directory and copy the incremental scripts
 RUN mkdir -p /opt/multiboost/scripts
 COPY incremental_regression_fit.sh /opt/multiboost/scripts/incremental_regression_fit.sh
+COPY incremental_classifier_fit.sh /opt/multiboost/scripts/incremental_classifier_fit.sh
 RUN chmod +x /opt/multiboost/scripts/incremental_regression_fit.sh
+RUN chmod +x /opt/multiboost/scripts/incremental_classifier_fit.sh
 
 # Copy the API server
 COPY api_server.py /opt/multiboost/
