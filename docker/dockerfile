@@ -121,14 +121,6 @@ RUN cd /opt/multiboost && \
     cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release && \
     cmake --build build -- -j4
 
-# Data files will be mounted at runtime via volume mounts
-
-# Update file paths in source files (do this before cleanup)
-RUN find /opt/multiboost -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.sh" \) \
-    -exec sed -i 's|/home/[^/]*/Data|/opt/data|g' {} \; && \
-    find /opt/multiboost -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.sh" \) \
-    -exec sed -i 's|/home/.*/Inductive-Boost|/opt/multiboost|g' {} \;
-
 # Clean up source code after build, keeping only required runtime files
 RUN cd /opt/multiboost && \
     find build -name "*.o" -delete && \
