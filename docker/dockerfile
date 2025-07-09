@@ -1,5 +1,11 @@
 FROM ubuntu:22.04
 
+# Build arguments for customization
+ARG USERNAME=appuser
+ARG GROUPNAME=developers
+ARG USER_UID=1000
+ARG USER_GID=1000
+
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -27,13 +33,13 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Create group and user (in Docker we'll use a non-root user for final operations)
-RUN groupadd developers && \
-    useradd -m -s /bin/bash -g developers charles
+RUN groupadd --gid $USER_GID $GROUPNAME && \
+    useradd --uid $USER_UID --gid $USER_GID -m -s /bin/bash $USERNAME
 
 # Create the necessary directories
 RUN mkdir -p /opt/multiboost /opt/eigen /opt/armadillo /opt/googletest /opt/benchmark \
     /opt/mlpack /opt/ensmallen /opt/cereal /opt/data/Regression && \
-    chown -R charles:developers /opt && \
+    chown -R $USERNAME:$GROUPNAME /opt && \
     chmod -R 755 /opt
 
 # Clone repositories
@@ -119,9 +125,9 @@ RUN cd /opt/multiboost && \
 
 # Update file paths in source files (do this before cleanup)
 RUN find /opt/multiboost -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.sh" \) \
-    -exec sed -i 's|/home/charles/Data|/opt/data|g' {} \; && \
+    -exec sed -i 's|/home/[^/]*/Data|/opt/data|g' {} \; && \
     find /opt/multiboost -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.sh" \) \
-    -exec sed -i 's|/home/charles/src/C++/sandbox/Inductive-Boost|/opt/multiboost|g' {} \;
+    -exec sed -i 's|/home/.*/Inductive-Boost|/opt/multiboost|g' {} \;
 
 # Clean up source code after build, keeping only required runtime files
 RUN cd /opt/multiboost && \
@@ -152,16 +158,16 @@ COPY api_server.py /opt/multiboost/
 # Expose port 8002
 EXPOSE 8002
 
-# Ensure charles user has proper permissions for all created directories and files
-RUN chown -R charles:developers /opt/multiboost && \
+# Ensure user has proper permissions for all created directories and files
+RUN chown -R $USERNAME:$GROUPNAME /opt/multiboost && \
     chmod -R 755 /opt/multiboost && \
     mkdir -p /opt/multiboost/digest/regress && \
     mkdir -p /opt/multiboost/digest/classify && \
-    chown -R charles:developers /opt/multiboost/digest && \
+    chown -R $USERNAME:$GROUPNAME /opt/multiboost/digest && \
     chmod -R 755 /opt/multiboost/digest
 
 # Switch to non-root user for security
-USER charles
+USER $USERNAME
 WORKDIR /opt/multiboost
 
 # Set the default command to run the API server
