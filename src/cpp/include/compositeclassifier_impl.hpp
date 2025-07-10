@@ -928,21 +928,24 @@ void CompositeClassifier<ClassifierType>::printStats(int stepNum) {
 
   // Only print stats for top level of recursive call
   if (hasOOSData_) {
-    // Use latestPrediction_ directly for error calculation since it contains the correct accumulated predictions
-    double error_is = err(this->latestPrediction_, labels_);
+    // Convert continuous predictions to binary class predictions for classification error
+    Row<DataType> predicted_classes = sign(this->latestPrediction_);
+    double error_is = err(predicted_classes, labels_);
     std::cout << suff << ": "
               << "(PARTITION SIZE = " << partitionSize_ << ", STEPS = " << steps_ << ")"
               << " STEP: " << stepNum << " IS ERROR: " << error_is << "%" << std::endl;
   }
 
-  if (hasOOSData_) {
+  if (false and hasOOSData_) {
     Row<DataType> yhat_oos;
     if (serializeModel_) {
       Predict(indexName_, dataset_oos_, yhat_oos, true);
     } else {
       Predict(dataset_oos_, yhat_oos);
     }
-    double error_oos = err(yhat_oos, labels_oos_);
+    // Convert OOS predictions to binary class predictions for classification error
+    Row<DataType> predicted_classes_oos = sign(yhat_oos);
+    double error_oos = err(predicted_classes_oos, labels_oos_);
     std::cout << suff << ": "
               << "(PARTITION SIZE = " << partitionSize_ << ", STEPS = " << steps_ << ")"
               << " STEP: " << stepNum << " OOS ERROR: " << error_oos << "%" << std::endl;

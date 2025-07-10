@@ -23,6 +23,8 @@ DELIM=';'
 PATH=${IB_PROJECT_ROOT}/build/
 
 SHOW_OOS=${SHOW_OOS:-0}
+SHOW_IS=${SHOW_IS:-0}
+QUIET_RUN=$((1 - SHOW_IS))
 USE_WEIGHTS=0
 
 # Context creation
@@ -243,14 +245,44 @@ STEP_INFO=$($EXEC_INC \
 --dataName ${dataname} \
 --splitRatio ${split_ratio} \
 --mergeIndexFiles false \
+--quietRun ${QUIET_RUN} \
 --warmStart false)
 
-set -- "$STEP_INFO"
-IFS=$DELIM; declare -a res=($*)
-arg0="${res[0]}"
-arg1="${res[1]}"
-INDEX_NAME_STEP=$arg0
-FOLDER_STEP=$arg1
+if [ ${QUIET_RUN} -eq 1 ]; then
+    # Quiet mode - parse semicolon-delimited output
+    set -- "$STEP_INFO"
+    IFS=$DELIM; declare -a res=($*)
+    arg0="${res[0]}"
+    arg1="${res[1]}"
+    INDEX_NAME_STEP=$arg0
+    FOLDER_STEP=$arg1
+else
+    # Verbose mode - extract the semicolon-delimited line from multi-line output
+    semicolon_line=""
+    while IFS= read -r line; do
+        case "$line" in
+            *";"*)
+                semicolon_line="$line"
+                ;;
+            *"IS accuracy:"*)
+                # Extract and display IS accuracy value using shell parameter expansion
+                temp_line="${line#*IS accuracy: }"
+                is_accuracy="${temp_line% *}"
+                if [ -z "$is_accuracy" ]; then
+                    is_accuracy="$temp_line"
+                fi
+                echo "${PREFIX} IS: (accuracy): ($is_accuracy)"
+                ;;
+        esac
+    done <<< "$STEP_INFO"
+    
+    set -- "$semicolon_line"
+    IFS=$DELIM; declare -a res=($*)
+    arg0="${res[0]}"
+    arg1="${res[1]}"
+    INDEX_NAME_STEP=$arg0
+    FOLDER_STEP=$arg1
+fi
 
 echo ${PREFIX}" FOLDER: "${FOLDER_STEP}
 echo ${PREFIX}" INDEX: "${INDEX_NAME_STEP}
@@ -297,15 +329,41 @@ do
   fi
 
   # Fit step
-  INDEX_NAME_STEP=$($EXEC_INC \
+  STEP_INFO=$($EXEC_INC \
   --contextFileName ${FOLDER_STEP}/${CONTEXT_PATH_RUNS} \
   --dataName ${dataname} \
   --splitRatio ${split_ratio} \
-  --quietRun true \
+  --quietRun ${QUIET_RUN} \
   --mergeIndexFiles true \
   --warmStart true \
   --indexName $INDEX_NAME_STEP \
   --folderName $FOLDER_STEP)
+  
+  if [ ${QUIET_RUN} -eq 1 ]; then
+      # Quiet mode - direct output is the index name
+      INDEX_NAME_STEP=$STEP_INFO
+  else
+      # Verbose mode - extract index name and display IS accuracy values
+      INDEX_NAME_STEP=""
+      while IFS= read -r line; do
+          case "$line" in
+              *"IS accuracy:"*)
+                  # Extract and display IS accuracy value using shell parameter expansion
+                  temp_line="${line#*IS accuracy: }"
+                  is_accuracy="${temp_line% *}"
+                  if [ -z "$is_accuracy" ]; then
+                      is_accuracy="$temp_line"
+                  fi
+                  echo "${PREFIX} IS: (accuracy): ($is_accuracy)"
+                  ;;
+              *)
+                  if [ -n "$line" ]; then
+                      INDEX_NAME_STEP="$line"
+                  fi
+                  ;;
+          esac
+      done <<< "$STEP_INFO"
+  fi
 
   echo ${PREFIX}" ITER: ${n}"
 

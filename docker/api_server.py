@@ -278,6 +278,8 @@ def run_classifier_fit():
             temp_json_path = temp_file.name
         
         try:
+            # Check if user wants to show IS at each step
+            show_is_each_step = params.get('showISEachStep', False)
             # Check if user wants to show OOS at each step
             show_oos_each_step = params.get('showOOSEachStep', False)
             
