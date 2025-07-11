@@ -331,7 +331,7 @@ def run_classifier_fit():
             loss_fn = params.get('loss', {}).get('data', params.get('lossFn', 12))
             loss_power = params.get('lossPower', 1.56)
             recursive_fit = 1 if params.get('recursiveFit', True) else 0
-            clamp_gradient = 1 if params.get('clamp_gradient', True) else 0
+            clamp_gradient = 1 if params.get('clampGradient', True) else 0
             upper_val = int(params.get('upper_val', params.get('upperVal', 1)))
             lower_val = int(params.get('lower_val', params.get('lowerVal', 1)))
             run_on_test = 0 if params.get('runOnTestDataset', True) else 1  # Note: 0 means run on test

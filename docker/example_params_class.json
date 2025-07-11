@@ -165,7 +165,6 @@
         "serializeDataset": true,
         "serializeLabels": true,
         "serializationWindow": 10,
-        "quietRun": true,
         "showISEachStep": true,
         "showOOSEachStep": true
     }

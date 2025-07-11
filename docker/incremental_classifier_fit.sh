@@ -165,7 +165,7 @@ if [[ $# -ne 3 ]]; then
 		--steps ${steps} \
 		--symmetrizeLabels true \
 		--removeRedundantLabels false \
-		--quietRun true \
+		--quietRun ${QUIET_RUN} \
 		--useWeights ${use_weights} \
 		--rowSubsampleRatio 1. \
 		--colSubsampleRatio ${colsubsample_ratio} \
@@ -195,7 +195,7 @@ if [[ $# -ne 3 ]]; then
 		--steps ${steps} \
 		--symmetrizeLabels true \
 		--removeRedundantLabels false \
-		--quietRun true \
+		--quietRun ${QUIET_RUN} \
 		--useWeights ${use_weights} \
 		--rowSubsampleRatio 1. \
 		--colSubsampleRatio ${colsubsample_ratio} \
