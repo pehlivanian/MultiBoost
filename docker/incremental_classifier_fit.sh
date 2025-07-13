@@ -273,6 +273,14 @@ else
                 fi
                 echo "${PREFIX} IS: (accuracy): ($is_accuracy)"
                 ;;
+            *"IS (error, precision, recall, F1, imbalance)"*)
+                # Extract and display IS metrics: error, precision, recall, F1, imbalance
+                # Format: IS (error, precision, recall, F1, imbalance) : (17, 0.791045, 0.946429, 0.861789, 0.9604)
+                temp_line="${line#*: (}"
+                metrics="${temp_line%)*}"
+                IFS=', ' read -r error precision recall f1 imbalance <<< "$metrics"
+                echo "${PREFIX} IS: (error, precision, recall, F1, imbalance): ($error, $precision, $recall, $f1, $imbalance)"
+                ;;
         esac
     done <<< "$STEP_INFO"
     
@@ -355,6 +363,14 @@ do
                       is_accuracy="$temp_line"
                   fi
                   echo "${PREFIX} IS: (accuracy): ($is_accuracy)"
+                  ;;
+              *"IS (error, precision, recall, F1, imbalance)"*)
+                  # Extract and display IS metrics: error, precision, recall, F1, imbalance
+                  # Format: IS (error, precision, recall, F1, imbalance) : (17, 0.791045, 0.946429, 0.861789, 0.9604)
+                  temp_line="${line#*: (}"
+                  metrics="${temp_line%)*}"
+                  IFS=', ' read -r error precision recall f1 imbalance <<< "$metrics"
+                  echo "${PREFIX} IS: (error, precision, recall, F1, imbalance): ($error, $precision, $recall, $f1, $imbalance)"
                   ;;
               *)
                   if [ -n "$line" ]; then
