@@ -2,6 +2,7 @@
 #define __COMPOSITECLASSIFIER_IMPL_HPP__
 
 #include "path_utils.hpp"
+#include "utils.hpp"
 
 using namespace PartitionSize;
 using namespace LearningRate;
@@ -930,10 +931,20 @@ void CompositeClassifier<ClassifierType>::printStats(int stepNum) {
   if (hasOOSData_) {
     // Convert continuous predictions to binary class predictions for classification error
     Row<DataType> predicted_classes = sign(this->latestPrediction_);
+
+    Row<int> labels_i = conv_to<Row<int>>::from(labels_);
+    Row<int> predicted_classes_i = conv_to<Row<int>>::from(predicted_classes);    
+
     double error_is = err(predicted_classes, labels_);
-    std::cout << suff << ": "
-              << "(PARTITION SIZE = " << partitionSize_ << ", STEPS = " << steps_ << ")"
-              << " STEP: " << stepNum << " IS ERROR: " << error_is << "%" << std::endl;
+    auto [prec, recall, F1] = precision(labels_i, predicted_classes_i);
+    double imb = imbalance(labels_);
+
+    std::cout << suff << " IS (error, precision, recall, F1, imbalance) : (" << error_is << ", "
+	      << prec << ", " << recall << ", " << F1 << ", " << imb << ")" << std::endl;
+
+    // std::cout << suff << ": "
+    //           << "(PARTITION SIZE = " << partitionSize_ << ", STEPS = " << steps_ << ")"
+    //           << " STEP: " << stepNum << " IS ERROR: " << error_is << "%" << std::endl;
   }
 
   if (false and hasOOSData_) {
