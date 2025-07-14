@@ -17,11 +17,17 @@ docker run --name multiboost_container -v /home/charles/Data:/opt/data -p 8002:8
 
 ## Example runs
 ```bash
-# Classification
+# Classification (local datasets)
 curl -X POST http://localhost:8002/classifier-fit -H "Content-Type: application/json" -d @example_params_class.json
 
-# Regression  
+# Regression (local datasets)
 curl -X POST http://localhost:8002/regression-fit -H "Content-Type: application/json" -d @example_params_reg.json
+
+# Classification (S3 datasets)
+curl -X POST http://localhost:8002/classifier-fit -H "Content-Type: application/json" -d @example_params_s3_class.json
+
+# Regression (S3 datasets)  
+curl -X POST http://localhost:8002/regression-fit -H "Content-Type: application/json" -d @example_params_s3_reg.json
 ```
 
 The API will be available at `http://localhost:8002`
@@ -59,7 +65,9 @@ curl -X POST http://localhost:8002/regression-fit \
 ```
 - **Description**: Run incremental regression fit with provided parameters
 
-## Using Local Datasets
+## Dataset Sources
+
+### Option 1: Local Datasets (Volume Mount)
 
 Mount your data directory to the container and specify dataset paths:
 
@@ -88,6 +96,40 @@ docker run --name multiboost_container -v /home/charles/Data:/opt/data -p 8002:8
     ├── dataset_name_test_X.csv
     └── dataset_name_test_y.csv
 ```
+
+### Option 2: S3 Datasets
+
+Use the `s3Config` parameter to download datasets directly from S3:
+
+```json
+{
+  "x": {
+    "datasetName": "my_dataset",
+    "s3Config": {
+      "bucket": "my-ml-datasets",
+      "prefix": "path/to/dataset",
+      "access_key": "YOUR_AWS_ACCESS_KEY", 
+      "secret_key": "YOUR_AWS_SECRET_KEY",
+      "region": "us-east-1"
+    },
+    "steps": 50,
+    ...
+  }
+}
+```
+
+**Expected S3 file structure:**
+```
+s3://my-ml-datasets/path/to/dataset/
+├── my_dataset_train_X.csv
+├── my_dataset_train_y.csv
+├── my_dataset_test_X.csv
+├── my_dataset_test_y.csv
+├── my_dataset_X.csv
+└── my_dataset_y.csv
+```
+
+The container will automatically download the required files to a temporary directory and clean them up after processing.
 
 ## Response Format
 

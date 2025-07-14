@@ -307,8 +307,12 @@ if [ ! -z "$test_OOS_each_it" ]; then
 
   # Use custom test dataset name if provided, otherwise derive from train dataset name
   if [ -z "$testdataname" ]; then
-      testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
-      testdataname=${testdataname}"_test"
+      if [[ ${dataname} == *"_train" ]]; then
+          testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
+          testdataname=${testdataname}"_test"
+      else
+          testdataname=${dataname}"_test"
+      fi
   fi
 
   EXEC_TEST_OOS=${PATH}OOS_classify
@@ -387,8 +391,12 @@ do
 
     # Use custom test dataset name if provided, otherwise derive from train dataset name
     if [ -z "$testdataname" ]; then
-        testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
-        testdataname=${testdataname}"_test"
+        if [[ ${dataname} == *"_train" ]]; then
+            testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
+            testdataname=${testdataname}"_test"
+        else
+            testdataname=${dataname}"_test"
+        fi
     fi
 
     EXEC_TEST_OOS=${PATH}OOS_classify
@@ -430,8 +438,12 @@ if [ $SHOW_OOS -ne 1 ]; then
 
     # Use custom test dataset name if provided, otherwise derive from train dataset name
     if [ -z "$testdataname" ]; then
-        testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
-        testdataname=${testdataname}"_test"
+        if [[ ${dataname} == *"_train" ]]; then
+            testdataname=`echo ${dataname} | /usr/bin/gawk '{split($0,a,"_train"); print a[1]}'`
+            testdataname=${testdataname}"_test"
+        else
+            testdataname=${dataname}"_test"
+        fi
     fi
 
     EXEC_TEST_OOS=${PATH}OOS_classify

@@ -135,7 +135,7 @@ RUN cd /opt/multiboost && \
     rm -f CMakeLists.txt
 
 # Install Python dependencies
-RUN pip3 install flask
+RUN pip3 install flask boto3
 
 # Create scripts directory and copy the incremental scripts
 RUN mkdir -p /opt/multiboost/scripts

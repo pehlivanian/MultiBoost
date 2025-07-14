@@ -1,7 +1,12 @@
 {
     "x": {
-	"traindataname": "buggyCrx_train",
-	"testdataname": "buggyCrx_test",
+	"traindataname": "synthetic_train",
+	"testdataname": "synthetic_test",
+	"s3Config" : {
+	  "bucket": "multiboost-datasets",
+	  "prefix": "classification",
+	  "region": "us-east-1"
+	},
         "steps": 10,
         "recursiveFit": true,
         "useWeights": false,
@@ -166,6 +171,6 @@
         "serializeLabels": true,
         "serializationWindow": 10,
         "showISEachStep": true,
-        "showOOSEachStep": true
+        "showOOSEachStep": false
     }
 }

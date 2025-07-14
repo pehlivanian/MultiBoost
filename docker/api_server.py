@@ -13,6 +13,8 @@ import urllib.parse
 import shutil
 from pathlib import Path
 from flask import Flask, request, jsonify
+import boto3
+from botocore.exceptions import ClientError, NoCredentialsError
 
 app = Flask(__name__)
 
@@ -49,6 +51,95 @@ def handle_local_dataset(local_data_path, params):
     except Exception as e:
         raise ValueError(f"Failed to handle local dataset: {str(e)}")
 
+def download_s3_dataset(s3_config, train_dataset_name, test_dataset_name=None):
+    """
+    Download dataset files from S3 to local temporary directory.
+    
+    s3_config should contain:
+    {
+        "bucket": "bucket-name",
+        "prefix": "path/to/dataset/",  # optional
+        "access_key": "AWS_ACCESS_KEY",
+        "secret_key": "AWS_SECRET_KEY",
+        "region": "us-east-1"  # optional, defaults to us-east-1
+    }
+    
+    train_dataset_name: Name for training dataset (e.g., "synthetic_train")
+    test_dataset_name: Optional name for test dataset (e.g., "synthetic_test")
+    
+    Returns tuple: (train_path, test_path) where test_path is None if no test dataset
+    """
+    try:
+        # Extract S3 configuration
+        bucket = s3_config['bucket']
+        prefix = s3_config.get('prefix', '').rstrip('/')
+        access_key = s3_config['access_key']
+        secret_key = s3_config['secret_key']
+        region = s3_config.get('region', 'us-east-1')
+        
+        # Initialize S3 client
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            region_name=region
+        )
+        
+        # Create temporary directory for dataset
+        temp_dir = tempfile.mkdtemp(prefix='s3_dataset_')
+        
+        # Build file patterns based on provided dataset names
+        file_patterns = []
+        
+        # Add training files
+        file_patterns.extend([
+            f"{train_dataset_name}_X.csv",
+            f"{train_dataset_name}_y.csv"
+        ])
+        
+        # Add test files if test dataset name provided
+        if test_dataset_name:
+            file_patterns.extend([
+                f"{test_dataset_name}_X.csv", 
+                f"{test_dataset_name}_y.csv"
+            ])
+        
+        downloaded_files = []
+        
+        # Download each file that exists
+        for pattern in file_patterns:
+            s3_key = f"{prefix}/{pattern}" if prefix else pattern
+            local_file_path = os.path.join(temp_dir, pattern)
+            
+            try:
+                s3_client.download_file(bucket, s3_key, local_file_path)
+                downloaded_files.append(pattern)
+                print(f"Downloaded {s3_key} to {local_file_path}")
+            except ClientError as e:
+                if e.response['Error']['Code'] == '404':
+                    # File doesn't exist, skip it
+                    continue
+                else:
+                    raise
+        
+        if not downloaded_files:
+            raise ValueError(f"No dataset files found in S3 bucket {bucket} with prefix {prefix}")
+        
+        print(f"Successfully downloaded {len(downloaded_files)} files: {downloaded_files}")
+        
+        # Return paths for train and test datasets
+        train_path = f"{temp_dir}/{train_dataset_name}"
+        test_path = f"{temp_dir}/{test_dataset_name}" if test_dataset_name else None
+        
+        return train_path, test_path
+        
+    except NoCredentialsError:
+        raise ValueError("AWS credentials not provided or invalid")
+    except ClientError as e:
+        raise ValueError(f"S3 error: {str(e)}")
+    except Exception as e:
+        raise ValueError(f"Failed to download S3 dataset: {str(e)}")
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint."""
@@ -84,12 +175,28 @@ def run_regression_fit():
         
         params = payload['x']
         
-        # Handle local data sources
+        # Handle data sources (local, S3, or built-in)
         dataname = params.get('traindataname', params.get('dataname', '1193_BNG_lowbwt_train'))  # Support both old and new parameter names
         testdataname = params.get('testdataname')  # Optional separate test dataset
         local_data_path = params.get('localDataPath')
+        s3_config = params.get('s3Config')
         
-        if local_data_path:
+        # Track temporary directories for cleanup
+        temp_dirs_to_cleanup = []
+        
+        if s3_config:
+            # User specifies S3 configuration - download dataset
+            train_name = params.get('traindataname', dataname)
+            test_name = params.get('testdataname')
+            
+            train_path, test_path = download_s3_dataset(s3_config, train_name, test_name)
+            params['traindataname'] = train_path
+            if test_path:
+                params['testdataname'] = test_path
+            
+            # Remember temp directory for cleanup
+            temp_dirs_to_cleanup.append(os.path.dirname(train_path))
+        elif local_data_path:
             # User specifies local path - assume it's mounted as a volume
             dataname = handle_local_dataset(local_data_path, params)
             params['traindataname'] = dataname
@@ -199,11 +306,18 @@ def run_regression_fit():
             return jsonify(response)
             
         finally:
-            # Clean up temporary file
+            # Clean up temporary files and directories
             try:
                 os.unlink(temp_json_path)
             except:
                 pass
+            
+            # Clean up S3 downloaded datasets
+            for temp_dir in temp_dirs_to_cleanup:
+                try:
+                    shutil.rmtree(temp_dir)
+                except:
+                    pass
                 
     except subprocess.TimeoutExpired:
         return jsonify({
@@ -260,12 +374,28 @@ def run_classifier_fit():
         
         params = payload['x']
         
-        # Handle local data sources
+        # Handle data sources (local, S3, or built-in)
         dataname = params.get('traindataname', params.get('dataname', 'sonar'))  # Support both old and new parameter names
         testdataname = params.get('testdataname')  # Optional separate test dataset
         local_data_path = params.get('localDataPath')
+        s3_config = params.get('s3Config')
         
-        if local_data_path:
+        # Track temporary directories for cleanup
+        temp_dirs_to_cleanup = []
+        
+        if s3_config:
+            # User specifies S3 configuration - download dataset
+            train_name = params.get('traindataname', dataname)
+            test_name = params.get('testdataname')
+            
+            train_path, test_path = download_s3_dataset(s3_config, train_name, test_name)
+            params['traindataname'] = train_path
+            if test_path:
+                params['testdataname'] = test_path
+            
+            # Remember temp directory for cleanup
+            temp_dirs_to_cleanup.append(os.path.dirname(train_path))
+        elif local_data_path:
             # User specifies local path - assume it's mounted as a volume
             dataname = handle_local_dataset(local_data_path, params)
             params['traindataname'] = dataname
@@ -395,11 +525,18 @@ def run_classifier_fit():
             return jsonify(response)
             
         finally:
-            # Clean up temporary file
+            # Clean up temporary files and directories
             try:
                 os.unlink(temp_json_path)
             except:
                 pass
+            
+            # Clean up S3 downloaded datasets
+            for temp_dir in temp_dirs_to_cleanup:
+                try:
+                    shutil.rmtree(temp_dir)
+                except:
+                    pass
                 
     except subprocess.TimeoutExpired:
         return jsonify({
