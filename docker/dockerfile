@@ -141,8 +141,10 @@ RUN pip3 install flask boto3
 RUN mkdir -p /opt/multiboost/scripts
 COPY incremental_regression_fit.sh /opt/multiboost/scripts/incremental_regression_fit.sh
 COPY incremental_classifier_fit.sh /opt/multiboost/scripts/incremental_classifier_fit.sh
+COPY s3_download_helper.py /opt/multiboost/scripts/s3_download_helper.py
 RUN chmod +x /opt/multiboost/scripts/incremental_regression_fit.sh
 RUN chmod +x /opt/multiboost/scripts/incremental_classifier_fit.sh
+RUN chmod +x /opt/multiboost/scripts/s3_download_helper.py
 
 # Copy the API server
 COPY api_server.py /opt/multiboost/

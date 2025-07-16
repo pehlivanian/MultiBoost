@@ -184,18 +184,13 @@ def run_regression_fit():
         # Track temporary directories for cleanup
         temp_dirs_to_cleanup = []
         
+        # Handle S3 configuration by creating temp config file for C++ executables
+        s3_config_file = None
         if s3_config:
-            # User specifies S3 configuration - download dataset
-            train_name = params.get('traindataname', dataname)
-            test_name = params.get('testdataname')
-            
-            train_path, test_path = download_s3_dataset(s3_config, train_name, test_name)
-            params['traindataname'] = train_path
-            if test_path:
-                params['testdataname'] = test_path
-            
-            # Remember temp directory for cleanup
-            temp_dirs_to_cleanup.append(os.path.dirname(train_path))
+            # Create temporary S3 config file for C++ executables to use
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_s3_file:
+                json.dump(s3_config, temp_s3_file, indent=2)
+                s3_config_file = temp_s3_file.name
         elif local_data_path:
             # User specifies local path - assume it's mounted as a volume
             dataname = handle_local_dataset(local_data_path, params)
@@ -230,6 +225,10 @@ def run_regression_fit():
             # Set SHOW_OOS environment variable if stepwise OOS is requested
             if show_oos_each_step:
                 env['SHOW_OOS'] = '1'
+            
+            # Pass S3 config file to C++ executables if available
+            if s3_config_file:
+                env['IB_S3_CONFIG_FILE'] = s3_config_file
             # Set the data directory for regression datasets
             if 'BNG_lowbwt' in dataname:
                 env['IB_DATA_DIR'] = '/opt/data/Regression'
@@ -312,6 +311,13 @@ def run_regression_fit():
             except:
                 pass
             
+            # Clean up S3 config file
+            if s3_config_file:
+                try:
+                    os.unlink(s3_config_file)
+                except:
+                    pass
+            
             # Clean up S3 downloaded datasets
             for temp_dir in temp_dirs_to_cleanup:
                 try:
@@ -383,18 +389,13 @@ def run_classifier_fit():
         # Track temporary directories for cleanup
         temp_dirs_to_cleanup = []
         
+        # Handle S3 configuration by creating temp config file for C++ executables
+        s3_config_file = None
         if s3_config:
-            # User specifies S3 configuration - download dataset
-            train_name = params.get('traindataname', dataname)
-            test_name = params.get('testdataname')
-            
-            train_path, test_path = download_s3_dataset(s3_config, train_name, test_name)
-            params['traindataname'] = train_path
-            if test_path:
-                params['testdataname'] = test_path
-            
-            # Remember temp directory for cleanup
-            temp_dirs_to_cleanup.append(os.path.dirname(train_path))
+            # Create temporary S3 config file for C++ executables to use
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_s3_file:
+                json.dump(s3_config, temp_s3_file, indent=2)
+                s3_config_file = temp_s3_file.name
         elif local_data_path:
             # User specifies local path - assume it's mounted as a volume
             dataname = handle_local_dataset(local_data_path, params)
@@ -424,6 +425,10 @@ def run_classifier_fit():
             # Set SHOW_OOS environment variable if stepwise OOS is requested
             if show_oos_each_step:
                 env['SHOW_OOS'] = '1'
+            
+            # Pass S3 config file to C++ executables if available
+            if s3_config_file:
+                env['IB_S3_CONFIG_FILE'] = s3_config_file
             
             # Set the data directory for specific datasets
             if 'BNG_lowbwt' in dataname:
@@ -530,6 +535,13 @@ def run_classifier_fit():
                 os.unlink(temp_json_path)
             except:
                 pass
+            
+            # Clean up S3 config file
+            if s3_config_file:
+                try:
+                    os.unlink(s3_config_file)
+                except:
+                    pass
             
             # Clean up S3 downloaded datasets
             for temp_dir in temp_dirs_to_cleanup:
