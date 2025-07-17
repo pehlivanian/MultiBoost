@@ -184,13 +184,43 @@ def run_regression_fit():
         # Track temporary directories for cleanup
         temp_dirs_to_cleanup = []
         
-        # Handle S3 configuration by creating temp config file for C++ executables
-        s3_config_file = None
+        # Set environment variables for script
+        env = os.environ.copy()
+        env['IB_PROJECT_ROOT'] = '/opt/multiboost'
+        env['IB_DATA_DIR'] = '/opt/data'
+        
+        # Handle S3 configuration by downloading data to temp directory
         if s3_config:
-            # Create temporary S3 config file for C++ executables to use
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_s3_file:
-                json.dump(s3_config, temp_s3_file, indent=2)
-                s3_config_file = temp_s3_file.name
+            # Download S3 data to temporary directory
+            temp_dir = tempfile.mkdtemp(prefix='ib_s3_data_')
+            temp_dirs_to_cleanup.append(temp_dir)
+            
+            try:
+                # Download the dataset from S3
+                train_path, test_path = download_s3_dataset(
+                    s3_config.get('bucket'),
+                    s3_config.get('access_key'),
+                    s3_config.get('secret_key'),
+                    s3_config.get('region', 'us-east-1'),
+                    s3_config.get('prefix', ''),
+                    dataname,
+                    testdataname,
+                    temp_dir
+                )
+                
+                # Set the data directory to the temp directory for C++ executables
+                env['IB_DATA_DIR'] = temp_dir
+                print(f"S3 data downloaded to: {temp_dir}")
+                
+            except Exception as e:
+                print(f"Failed to download S3 data: {e}")
+                # Clean up temp dir on failure
+                try:
+                    shutil.rmtree(temp_dir)
+                    temp_dirs_to_cleanup.remove(temp_dir)
+                except:
+                    pass
+                return jsonify({"error": f"S3 download failed: {str(e)}", "success": False}), 500
         elif local_data_path:
             # User specifies local path - assume it's mounted as a volume
             dataname = handle_local_dataset(local_data_path, params)
@@ -213,11 +243,6 @@ def run_regression_fit():
             show_is_each_step = params.get('showISEachStep', False)
             # Check if user wants to show OOS at each step
             show_oos_each_step = params.get('showOOSEachStep', False)
-            
-            # Set environment variables for script
-            env = os.environ.copy()
-            env['IB_PROJECT_ROOT'] = '/opt/multiboost'
-            env['IB_DATA_DIR'] = '/opt/data'
 
             # Set SHOW_IS environment variable if stepwise IS is requested
             if show_is_each_step:
@@ -226,15 +251,13 @@ def run_regression_fit():
             if show_oos_each_step:
                 env['SHOW_OOS'] = '1'
             
-            # Pass S3 config file to C++ executables if available
-            if s3_config_file:
-                env['IB_S3_CONFIG_FILE'] = s3_config_file
-            # Set the data directory for regression datasets
-            if 'BNG_lowbwt' in dataname:
-                env['IB_DATA_DIR'] = '/opt/data/Regression'
-            elif '/' in dataname and not dataname.startswith('1193_BNG') and not dataname.startswith('sonar'):
-                # Local dataset with full path - preserve the full path
-                env['IB_DATA_DIR'] = '/opt/data'
+            # Set the data directory for regression datasets (only if not S3)
+            if not s3_config:
+                if 'BNG_lowbwt' in dataname:
+                    env['IB_DATA_DIR'] = '/opt/data/Regression'
+                elif '/' in dataname and not dataname.startswith('1193_BNG') and not dataname.startswith('sonar'):
+                    # Local dataset with full path - preserve the full path
+                    env['IB_DATA_DIR'] = '/opt/data'
             
             # Always use command line mode (JSON mode has bugs)
             if True:
@@ -311,12 +334,6 @@ def run_regression_fit():
             except:
                 pass
             
-            # Clean up S3 config file
-            if s3_config_file:
-                try:
-                    os.unlink(s3_config_file)
-                except:
-                    pass
             
             # Clean up S3 downloaded datasets
             for temp_dir in temp_dirs_to_cleanup:
@@ -389,13 +406,43 @@ def run_classifier_fit():
         # Track temporary directories for cleanup
         temp_dirs_to_cleanup = []
         
-        # Handle S3 configuration by creating temp config file for C++ executables
-        s3_config_file = None
+        # Set environment variables for script
+        env = os.environ.copy()
+        env['IB_PROJECT_ROOT'] = '/opt/multiboost'
+        env['IB_DATA_DIR'] = '/opt/data'
+        
+        # Handle S3 configuration by downloading data to temp directory
         if s3_config:
-            # Create temporary S3 config file for C++ executables to use
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_s3_file:
-                json.dump(s3_config, temp_s3_file, indent=2)
-                s3_config_file = temp_s3_file.name
+            # Download S3 data to temporary directory
+            temp_dir = tempfile.mkdtemp(prefix='ib_s3_data_')
+            temp_dirs_to_cleanup.append(temp_dir)
+            
+            try:
+                # Download the dataset from S3
+                train_path, test_path = download_s3_dataset(
+                    s3_config.get('bucket'),
+                    s3_config.get('access_key'),
+                    s3_config.get('secret_key'),
+                    s3_config.get('region', 'us-east-1'),
+                    s3_config.get('prefix', ''),
+                    dataname,
+                    testdataname,
+                    temp_dir
+                )
+                
+                # Set the data directory to the temp directory for C++ executables
+                env['IB_DATA_DIR'] = temp_dir
+                print(f"S3 data downloaded to: {temp_dir}")
+                
+            except Exception as e:
+                print(f"Failed to download S3 data: {e}")
+                # Clean up temp dir on failure
+                try:
+                    shutil.rmtree(temp_dir)
+                    temp_dirs_to_cleanup.remove(temp_dir)
+                except:
+                    pass
+                return jsonify({"error": f"S3 download failed: {str(e)}", "success": False}), 500
         elif local_data_path:
             # User specifies local path - assume it's mounted as a volume
             dataname = handle_local_dataset(local_data_path, params)
@@ -413,11 +460,6 @@ def run_classifier_fit():
             show_is_each_step = params.get('showISEachStep', False)
             # Check if user wants to show OOS at each step
             show_oos_each_step = params.get('showOOSEachStep', False)
-            
-            # Set up environment
-            env = os.environ.copy()
-            env['IB_PROJECT_ROOT'] = '/opt/multiboost'
-            env['IB_DATA_DIR'] = '/opt/data'
 
             # Set SHOW_IS environment variable if stepwise IS is requested
             if show_is_each_step:
@@ -426,16 +468,13 @@ def run_classifier_fit():
             if show_oos_each_step:
                 env['SHOW_OOS'] = '1'
             
-            # Pass S3 config file to C++ executables if available
-            if s3_config_file:
-                env['IB_S3_CONFIG_FILE'] = s3_config_file
-            
-            # Set the data directory for specific datasets
-            if 'BNG_lowbwt' in dataname:
-                env['IB_DATA_DIR'] = '/opt/data/Regression'
-            elif '/' in dataname and not dataname.startswith('1193_BNG') and not dataname.startswith('sonar'):
-                # Local dataset with full path - preserve the full path
-                env['IB_DATA_DIR'] = '/opt/data'
+            # Set the data directory for specific datasets (only if not S3)
+            if not s3_config:
+                if 'BNG_lowbwt' in dataname:
+                    env['IB_DATA_DIR'] = '/opt/data/Regression'
+                elif '/' in dataname and not dataname.startswith('1193_BNG') and not dataname.startswith('sonar'):
+                    # Local dataset with full path - preserve the full path
+                    env['IB_DATA_DIR'] = '/opt/data'
             
             # Extract parameters - handle both arrays and single values
             child_partition_size = params.get('childPartitionSize', [250])
@@ -536,12 +575,6 @@ def run_classifier_fit():
             except:
                 pass
             
-            # Clean up S3 config file
-            if s3_config_file:
-                try:
-                    os.unlink(s3_config_file)
-                except:
-                    pass
             
             # Clean up S3 downloaded datasets
             for temp_dir in temp_dirs_to_cleanup:
