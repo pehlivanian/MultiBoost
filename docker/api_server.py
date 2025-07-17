@@ -219,7 +219,6 @@ def run_regression_fit():
                 print(f"Setting IB_DATA_DIR={temp_dir}")
                 
                 # Debug: List files in temp directory
-                import os
                 print(f"Files in {temp_dir}: {os.listdir(temp_dir)}")
                 
             except Exception as e:
@@ -435,7 +434,6 @@ def run_classifier_fit():
                 print(f"Setting IB_DATA_DIR={temp_dir}")
                 
                 # Debug: List files in temp directory
-                import os
                 print(f"Files in {temp_dir}: {os.listdir(temp_dir)}")
                 
             except Exception as e:
