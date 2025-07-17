@@ -247,12 +247,10 @@ def run_regression_fit():
             # Check if user wants to show OOS at each step
             show_oos_each_step = params.get('showOOSEachStep', False)
 
-            # Set SHOW_IS environment variable if stepwise IS is requested
-            if show_is_each_step:
-                env['SHOW_IS'] = '1'
-            # Set SHOW_OOS environment variable if stepwise OOS is requested
-            if show_oos_each_step:
-                env['SHOW_OOS'] = '1'
+            # Set SHOW_IS environment variable based on stepwise IS request
+            env['SHOW_IS'] = '1' if show_is_each_step else '0'
+            # Set SHOW_OOS environment variable based on stepwise OOS request
+            env['SHOW_OOS'] = '1' if show_oos_each_step else '0'
             
             # Set the data directory for regression datasets (only if not S3)
             if not s3_config:
@@ -457,12 +455,10 @@ def run_classifier_fit():
             # Check if user wants to show OOS at each step
             show_oos_each_step = params.get('showOOSEachStep', False)
 
-            # Set SHOW_IS environment variable if stepwise IS is requested
-            if show_is_each_step:
-                env['SHOW_IS'] = '1'
-            # Set SHOW_OOS environment variable if stepwise OOS is requested
-            if show_oos_each_step:
-                env['SHOW_OOS'] = '1'
+            # Set SHOW_IS environment variable based on stepwise IS request
+            env['SHOW_IS'] = '1' if show_is_each_step else '0'
+            # Set SHOW_OOS environment variable based on stepwise OOS request
+            env['SHOW_OOS'] = '1' if show_oos_each_step else '0'
             
             # Set the data directory for specific datasets (only if not S3)
             if not s3_config:
