@@ -120,6 +120,8 @@ endif()
 
 find_package(Armadillo REQUIRED)
 find_package(BLAS REQUIRED)
+find_package(CURL REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 if (USE_OPENMP)
   find_package(OpenMP)
@@ -162,6 +164,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 add_library(DP OBJECT DP.cpp)
 add_library(analyticutils OBJECT analytic_utils.cpp)
 add_library(utils OBJECT utils.cpp)
+add_library(s3utils OBJECT s3_utils.cpp)
+add_library(pathutils OBJECT path_utils.cpp)
 # add_library(loss OBJECT loss.cpp)
 add_library(classifier_loss OBJECT classifier_loss.cpp)
 add_library(regressor_loss OBJECT regressor_loss.cpp)
@@ -183,6 +187,12 @@ add_library(contextmanager OBJECT contextmanager.cpp)
 ###########
 # LINKAGE #
 ###########
+target_link_libraries(s3utils PUBLIC ${CURL_LIBRARIES} OpenSSL::Crypto
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+
+target_link_libraries(pathutils PUBLIC s3utils
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+
 target_link_libraries(DP PUBLIC utils score2
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 
@@ -304,7 +314,7 @@ endif()
 if (BUILD_INC_CLASSIFY)
   add_executable(incremental_classify incremental_classify.cpp)
   target_link_libraries(incremental_classify LINK_PUBLIC ${Boost_LIBRARIES} 
-	${Boost_SYSTEM_LIBRARY} utils 
+	${Boost_SYSTEM_LIBRARY} utils pathutils s3utils
 	gradientboostclassifier 
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES} 
@@ -315,7 +325,7 @@ endif()
 if (BUILD_INC_PREDICT)
   add_executable(incremental_predict incremental_predict.cpp)
   target_link_libraries(incremental_predict LINK_PUBLIC 
-	${Boost_LIBRARIES} utils 
+	${Boost_LIBRARIES} utils pathutils s3utils
 	gradientboostclassifier 
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES} 
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES} 

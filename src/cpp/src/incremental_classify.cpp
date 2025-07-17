@@ -72,9 +72,12 @@ auto main(int argc, char** argv) -> int {
 
   context.quietRun = quietRun;
 
-  // Get data
-  std::string XPath = IB_utils::resolve_data_path(dataName + "_X.csv");
-  std::string yPath = IB_utils::resolve_data_path(dataName + "_y.csv");
+  // Initialize S3 if present in context
+  IB_utils::initialize_s3_from_context(contextFileName);
+
+  // Get data - use S3-enhanced path resolution
+  std::string XPath = IB_utils::resolve_data_path_with_s3(dataName + "_X.csv", dataName);
+  std::string yPath = IB_utils::resolve_data_path_with_s3(dataName + "_y.csv", dataName);
 
   Mat<DataType> dataset, trainDataset, testDataset;
   Row<std::size_t> labels, trainLabels, testLabels;
@@ -121,6 +124,9 @@ auto main(int argc, char** argv) -> int {
   } else {
     std::cout << indexNameNew << DELIM << fldr.string() << std::endl;
   }
+
+  // Clean up S3 temporary files
+  IB_utils::cleanup_s3_temp_files();
 
   return 0;
 }
