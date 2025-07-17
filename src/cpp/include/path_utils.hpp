@@ -5,16 +5,9 @@
 #include <string>
 #include <string_view>
 #include <cstdlib>
-#include <fstream>
 #include <iostream>
-#include "s3_utils.hpp"
 
 namespace IB_utils {
-
-// Global variables to track S3 context and temp directory
-extern std::string g_s3_temp_dir;
-extern S3Config g_s3_config;
-extern bool g_use_s3;
 
 /**
  * Resolves a path relative to the project root.
@@ -154,38 +147,6 @@ inline std::string resolve_test_data_path(std::string_view filename) {
   return (test_path / file_path).string();
 }
 
-/**
- * Initialize S3 configuration from JSON context file.
- * Parses the context file and sets up S3 configuration if present.
- * 
- * @param context_file_path Path to the JSON context file
- * @return true if S3 config was found and initialized, false otherwise
- */
-bool initialize_s3_from_context(const std::string& context_file_path);
-
-/**
- * Downloads a dataset from S3 to a temporary directory.
- * 
- * @param dataset_name The base name of the dataset (e.g., "synthetic_train")
- * @return true if download was successful, false otherwise
- */
-bool download_s3_dataset_to_temp(const std::string& dataset_name);
-
-/**
- * Enhanced resolve_data_path that supports S3 downloads.
- * If S3 is configured and the file doesn't exist locally, it will attempt
- * to download from S3 to a temporary directory.
- * 
- * @param filename The name of the data file
- * @param dataset_name Optional dataset name for S3 download (if empty, extracted from filename)
- * @return The absolute path to the data file (local or downloaded temp file)
- */
-std::string resolve_data_path_with_s3(std::string_view filename, const std::string& dataset_name = "");
-
-/**
- * Clean up temporary S3 files and directory.
- */
-void cleanup_s3_temp_files();
 
 }  // namespace IB_utils
 

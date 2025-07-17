@@ -67,12 +67,9 @@ auto main(int argc, char** argv) -> int {
 
   context.quietRun = quietRun;
 
-  // Initialize S3 if present in context
-  IB_utils::initialize_s3_from_context(contextFileName);
-
-  // Get data - use S3-enhanced path resolution
-  std::string XPath = IB_utils::resolve_data_path_with_s3(dataName + "_X.csv", dataName);
-  std::string yPath = IB_utils::resolve_data_path_with_s3(dataName + "_y.csv", dataName);
+  // Get data - resolve_data_path now handles S3 via Python helper
+  std::string XPath = IB_utils::resolve_data_path(dataName + "_X.csv");
+  std::string yPath = IB_utils::resolve_data_path(dataName + "_y.csv");
 
   Mat<double> dataset, trainDataset, testDataset;
   Row<double> labels, trainLabels, testLabels;
@@ -120,8 +117,7 @@ auto main(int argc, char** argv) -> int {
     std::cout << indexNameNew << DELIM << fldr.string() << std::endl;
   }
 
-  // Clean up S3 temporary files
-  IB_utils::cleanup_s3_temp_files();
+  // S3 cleanup is handled by Python API if needed
 
   return 0;
 }
