@@ -73,17 +73,22 @@ def download_s3_dataset(s3_config, train_dataset_name, test_dataset_name=None):
         # Extract S3 configuration
         bucket = s3_config['bucket']
         prefix = s3_config.get('prefix', '').rstrip('/')
-        access_key = s3_config['access_key']
-        secret_key = s3_config['secret_key']
         region = s3_config.get('region', 'us-east-1')
         
-        # Initialize S3 client
-        s3_client = boto3.client(
-            's3',
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key,
-            region_name=region
-        )
+        # Initialize S3 client - use environment variables or IAM role for credentials
+        access_key = s3_config.get('access_key') or os.getenv('AWS_ACCESS_KEY_ID')
+        secret_key = s3_config.get('secret_key') or os.getenv('AWS_SECRET_ACCESS_KEY')
+        
+        if access_key and secret_key:
+            s3_client = boto3.client(
+                's3',
+                aws_access_key_id=access_key,
+                aws_secret_access_key=secret_key,
+                region_name=region
+            )
+        else:
+            # Use default credentials (environment variables, IAM role, etc.)
+            s3_client = boto3.client('s3', region_name=region)
         
         # Create temporary directory for dataset
         temp_dir = tempfile.mkdtemp(prefix='s3_dataset_')
@@ -181,6 +186,11 @@ def run_regression_fit():
         local_data_path = params.get('localDataPath')
         s3_config = params.get('s3Config')
         
+        print(f"DEBUG: dataname={dataname}")
+        print(f"DEBUG: testdataname={testdataname}")
+        print(f"DEBUG: s3_config={s3_config}")
+        print(f"DEBUG: local_data_path={local_data_path}")
+        
         # Track temporary directories for cleanup
         temp_dirs_to_cleanup = []
         
@@ -191,35 +201,29 @@ def run_regression_fit():
         
         # Handle S3 configuration by downloading data to temp directory
         if s3_config:
-            # Download S3 data to temporary directory
-            temp_dir = tempfile.mkdtemp(prefix='ib_s3_data_')
-            temp_dirs_to_cleanup.append(temp_dir)
-            
             try:
                 # Download the dataset from S3
                 train_path, test_path = download_s3_dataset(
-                    s3_config.get('bucket'),
-                    s3_config.get('access_key'),
-                    s3_config.get('secret_key'),
-                    s3_config.get('region', 'us-east-1'),
-                    s3_config.get('prefix', ''),
+                    s3_config,
                     dataname,
-                    testdataname,
-                    temp_dir
+                    testdataname
                 )
+                
+                # Extract the temp directory from the returned path
+                temp_dir = os.path.dirname(train_path)
+                temp_dirs_to_cleanup.append(temp_dir)
                 
                 # Set the data directory to the temp directory for C++ executables
                 env['IB_DATA_DIR'] = temp_dir
                 print(f"S3 data downloaded to: {temp_dir}")
+                print(f"Setting IB_DATA_DIR={temp_dir}")
+                
+                # Debug: List files in temp directory
+                import os
+                print(f"Files in {temp_dir}: {os.listdir(temp_dir)}")
                 
             except Exception as e:
                 print(f"Failed to download S3 data: {e}")
-                # Clean up temp dir on failure
-                try:
-                    shutil.rmtree(temp_dir)
-                    temp_dirs_to_cleanup.remove(temp_dir)
-                except:
-                    pass
                 return jsonify({"error": f"S3 download failed: {str(e)}", "success": False}), 500
         elif local_data_path:
             # User specifies local path - assume it's mounted as a volume
@@ -413,35 +417,29 @@ def run_classifier_fit():
         
         # Handle S3 configuration by downloading data to temp directory
         if s3_config:
-            # Download S3 data to temporary directory
-            temp_dir = tempfile.mkdtemp(prefix='ib_s3_data_')
-            temp_dirs_to_cleanup.append(temp_dir)
-            
             try:
                 # Download the dataset from S3
                 train_path, test_path = download_s3_dataset(
-                    s3_config.get('bucket'),
-                    s3_config.get('access_key'),
-                    s3_config.get('secret_key'),
-                    s3_config.get('region', 'us-east-1'),
-                    s3_config.get('prefix', ''),
+                    s3_config,
                     dataname,
-                    testdataname,
-                    temp_dir
+                    testdataname
                 )
+                
+                # Extract the temp directory from the returned path
+                temp_dir = os.path.dirname(train_path)
+                temp_dirs_to_cleanup.append(temp_dir)
                 
                 # Set the data directory to the temp directory for C++ executables
                 env['IB_DATA_DIR'] = temp_dir
                 print(f"S3 data downloaded to: {temp_dir}")
+                print(f"Setting IB_DATA_DIR={temp_dir}")
+                
+                # Debug: List files in temp directory
+                import os
+                print(f"Files in {temp_dir}: {os.listdir(temp_dir)}")
                 
             except Exception as e:
                 print(f"Failed to download S3 data: {e}")
-                # Clean up temp dir on failure
-                try:
-                    shutil.rmtree(temp_dir)
-                    temp_dirs_to_cleanup.remove(temp_dir)
-                except:
-                    pass
                 return jsonify({"error": f"S3 download failed: {str(e)}", "success": False}), 500
         elif local_data_path:
             # User specifies local path - assume it's mounted as a volume
