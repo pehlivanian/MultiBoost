@@ -179,7 +179,7 @@ template <typename DataType>
 DataType RegressorPowerLoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* grad) {
   // Proper decomposition of \Phi \left( y,\hat{y}\right) = y\left( 1-y\hat{y}\right)^p
   if (p_ != 1) {
-    vtype f = exp(1.0 / ((-p_ + 1) * pow(y, 2))) % pow(1 - y % yhat, -p_ + 1);
+    vtype f = exp(1.0 / ((-p_ + 1) * pow(y, 2)) % pow(1 - y % yhat, -p_ + 1));
     vtype g = exp(-1.0 / ((-p_ + 1) * pow(y, 2)));
     *grad = -y % f % g;
   } else {
@@ -200,7 +200,7 @@ DataType RegressorPowerLoss<DataType>::gradient_(const vtype& yhat, const vtype&
 template <typename DataType>
 void RegressorPowerLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
   if (p_ != 1) {
-    vtype f = exp(1.0 / ((-p_ + 1) * pow(y, 2))) % pow(1 - y % yhat, -p_ + 1);
+    vtype f = exp(1.0 / ((-p_ + 1) * pow(y, 2)) % pow(1 - y % yhat, -p_ + 1));
     vtype g = exp(-1.0 / ((-p_ + 1) * pow(y, 2)));
     *hess = pow(1 - y % yhat, -p_) % f % g;
   } else {
