@@ -269,7 +269,7 @@ def run_regression_fit():
                 child_max_depth = params.get('childMaxDepth', [0, 0])
                 child_min_leaf_size = params.get('childMinLeafSize', [1, 1])
                 child_min_gain_split = params.get('childMinimumGainSplit', [0.0, 0.0])
-                loss_fn = params.get('loss', {}).get('index', 1)
+                loss_fn = params.get('loss', {}).get('data', params.get('lossFn', 1))
                 loss_power = params.get('lossPower', 2.4)
                 col_subsample_ratio = params.get('colSubsampleRatio', 1.0)
                 recursive_fit = int(params.get('recursiveFit', True))
