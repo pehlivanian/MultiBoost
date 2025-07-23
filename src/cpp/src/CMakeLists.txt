@@ -43,6 +43,12 @@ option(BUILD_TESTS "Build unit tests" ON)
 # benchmarks not required, by default will build
 option(BUILD_BENCHMARKS "Build benchmark tests" ON)
 
+# ThreadPool tests not required, by default will build
+option(BUILD_THREADPOOL_TESTS "Build ThreadPool C++20 tests" ON)
+
+# ThreadPool benchmarks not required, by default will build  
+option(BUILD_THREADPOOL_BENCHMARKS "Build ThreadPool C++20 benchmarks" ON)
+
 # build Inductive Boost Classifier
 option(BUILD_SINGLECLASS "Build inductive boost classifier" ON)
 
@@ -421,12 +427,53 @@ if (BUILD_BENCHMARKS)
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
 endif()
 
+# C++20 ThreadPool Tests
+if (BUILD_THREADPOOL_TESTS)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
+  add_executable(test_threadpool_cpp20 test_threadpool_cpp20.cpp)
+  target_include_directories(test_threadpool_cpp20 PRIVATE ../include)
+  target_link_libraries(test_threadpool_cpp20 pthread
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+  
+  # Add custom target to run ThreadPool tests
+  add_custom_target(run_threadpool_tests
+    COMMAND test_threadpool_cpp20
+    DEPENDS test_threadpool_cpp20
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+    COMMENT "Running C++20 ThreadPool functionality tests")
+endif()
+
+# C++20 ThreadPool Benchmarks
+if (BUILD_THREADPOOL_BENCHMARKS)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/benchmarks)
+  add_executable(benchmark_threadpool benchmark_threadpool.cpp)
+  target_include_directories(benchmark_threadpool PRIVATE ../include)
+  target_link_libraries(benchmark_threadpool pthread
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+  
+  # Add custom target to run ThreadPool benchmarks
+  add_custom_target(run_threadpool_benchmarks
+    COMMAND benchmark_threadpool
+    DEPENDS benchmark_threadpool
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/benchmarks
+    COMMENT "Running C++20 ThreadPool performance benchmarks")
+endif()
+
+# Convenience target to run all ThreadPool tests and benchmarks
+if (BUILD_THREADPOOL_TESTS AND BUILD_THREADPOOL_BENCHMARKS)
+  add_custom_target(run_threadpool_all
+    DEPENDS run_threadpool_tests run_threadpool_benchmarks
+    COMMENT "Running all C++20 ThreadPool tests and benchmarks")
+endif()
+
 # arma ex not required
 MESSAGE(STATUS "Build armadillo ex:                          " ${BUILD_ARMA_EX})
 MESSAGE(STATUS "Build context builder:                       " ${BUILD_CONTEXT_BUILDER})
 MESSAGE(STATUS "Build DP solver ex:                          " ${BUILD_DP_SOLVER_EX})
 MESSAGE(STATUS "Build google tests:                          " ${BUILD_TESTS})
 MESSAGE(STATUS "Build google benchmarks:                     " ${BUILD_BENCHMARKS})
+MESSAGE(STATUS "Build ThreadPool C++20 tests:                " ${BUILD_THREADPOOL_TESTS})
+MESSAGE(STATUS "Build ThreadPool C++20 benchmarks:           " ${BUILD_THREADPOOL_BENCHMARKS})
 MESSAGE(STATUS "Build inductive boost classifier:            " ${BUILD_SINGLECLASS})
 MESSAGE(STATUS "Build inductive boost regressor:             " ${BUILD_REGRESSOR})
 MESSAGE(STATUS "Build incremental classifier:                " ${BUILD_INC_CLASSIFY})

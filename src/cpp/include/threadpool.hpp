@@ -3,11 +3,13 @@
 
 #include <algorithm>
 #include <atomic>
+#include <concepts>
 #include <cstdint>
 #include <functional>
 #include <future>
 #include <iostream>
 #include <memory>
+#include <stop_token>
 #include <thread>
 #include <type_traits>
 #include <utility>
@@ -16,37 +18,39 @@
 #include "port_utils.hpp"
 #include "threadsafequeue.hpp"
 
+// C++20 concepts for better type safety
+template<typename F, typename... Args>
+concept Invocable = std::invocable<F, Args...>;
+
+template<typename F, typename... Args>
+concept InvocableWithResult = Invocable<F, Args...> && 
+    !std::is_void_v<std::invoke_result_t<F, Args...>>;
+
 class ThreadPool {
 private:
   class IThreadTask {
   public:
-    IThreadTask(void) = default;
-    virtual ~IThreadTask(void) = default;
-    IThreadTask(const IThreadTask& rhs) = delete;
-    IThreadTask& operator=(const IThreadTask& rhs) = delete;
-    IThreadTask(IThreadTask&& other) = default;
-    IThreadTask& operator=(IThreadTask&& other) = default;
+    IThreadTask() = default;
+    virtual ~IThreadTask() = default;
+    IThreadTask(const IThreadTask&) = delete;
+    IThreadTask& operator=(const IThreadTask&) = delete;
+    IThreadTask(IThreadTask&&) = default;
+    IThreadTask& operator=(IThreadTask&&) = default;
 
-    /**
-     * Run the task.
-     */
     virtual void execute() = 0;
   };
 
   template <typename Func>
   class ThreadTask : public IThreadTask {
   public:
-    ThreadTask(Func&& func) : m_func{std::move(func)} {}
+    explicit ThreadTask(Func&& func) : m_func{std::move(func)} {}
 
-    ~ThreadTask(void) override = default;
-    ThreadTask(const ThreadTask& rhs) = delete;
-    ThreadTask& operator=(const ThreadTask& rhs) = delete;
-    ThreadTask(ThreadTask&& other) = default;
-    ThreadTask& operator=(ThreadTask&& other) = default;
+    ~ThreadTask() override = default;
+    ThreadTask(const ThreadTask&) = delete;
+    ThreadTask& operator=(const ThreadTask&) = delete;
+    ThreadTask(ThreadTask&&) = default;
+    ThreadTask& operator=(ThreadTask&&) = default;
 
-    /**
-     * Run the task.
-     */
     void execute() override { m_func(); }
 
   private:
@@ -84,23 +88,24 @@ public:
 
 public:
   /**
-   * Constructor.
+   * Constructor - uses optimal thread count.
    */
-  ThreadPool(void) : ThreadPool{std::max(std::thread::hardware_concurrency(), 2u) - 1u} {
+  ThreadPool() : ThreadPool{std::max(std::jthread::hardware_concurrency(), 2u) - 1u} {
     /*
-     * Always create at least one thread.  If hardware_concurrency() returns 0,
+     * Always create at least one thread. If hardware_concurrency() returns 0,
      * subtracting one would turn it to UINT_MAX, so get the maximum of
      * hardware_concurrency() and 2 before subtracting 1.
      */
   }
 
   /**
-   * Constructor.
+   * Constructor with explicit thread count.
    */
-  explicit ThreadPool(const std::uint32_t numThreads) : m_done{false}, m_workQueue{}, m_threads{} {
+  explicit ThreadPool(std::uint32_t numThreads) : m_workQueue{}, m_threads{} {
+    m_threads.reserve(numThreads);
     try {
       for (std::uint32_t i = 0u; i < numThreads; ++i) {
-        m_threads.emplace_back(&ThreadPool::worker, this);
+        m_threads.emplace_back([this](std::stop_token stoken) { worker(stoken); });
       }
     } catch (...) {
       destroy();
@@ -111,32 +116,42 @@ public:
   /**
    * Non-copyable.
    */
-  ThreadPool(const ThreadPool& rhs) = delete;
+  ThreadPool(const ThreadPool&) = delete;
 
   /**
    * Non-assignable.
    */
-  ThreadPool& operator=(const ThreadPool& rhs) = delete;
+  ThreadPool& operator=(const ThreadPool&) = delete;
 
   /**
-   * Destructor.
+   * Destructor - automatically stops all threads.
    */
-  ~ThreadPool(void) { destroy(); }
+  ~ThreadPool() { destroy(); }
 
   /**
    * Submit a job to be run by the thread pool.
+   * C++20 optimized version using perfect forwarding and lambda capture.
    */
   template <typename Func, typename... Args>
+    requires Invocable<Func, Args...>
   auto submit(Func&& func, Args&&... args)
       -> TaskFuture<std::invoke_result_t<std::decay_t<Func>, std::decay_t<Args>...>>
-
   {
-    auto boundTask = std::bind(std::forward<Func>(func), std::forward<Args>(args)...);
-    using ResultType = std::invoke_result_t<decltype(boundTask)>;
+    using ResultType = std::invoke_result_t<std::decay_t<Func>, std::decay_t<Args>...>;
     using PackagedTask = std::packaged_task<ResultType()>;
     using TaskType = ThreadTask<PackagedTask>;
 
-    PackagedTask task{std::move(boundTask)};
+    // C++20: Replace std::bind with lambda capture for better performance
+    auto task_lambda = [func = std::forward<Func>(func), 
+                       ...args = std::forward<Args>(args)]() mutable -> ResultType {
+      if constexpr (std::is_void_v<ResultType>) {
+        std::invoke(std::move(func), std::move(args)...);
+      } else {
+        return std::invoke(std::move(func), std::move(args)...);
+      }
+    };
+
+    PackagedTask task{std::move(task_lambda)};
     TaskFuture<ResultType> result{task.get_future()};
     m_workQueue.push(std::make_unique<TaskType>(std::move(task)));
     return result;
@@ -144,23 +159,32 @@ public:
 
 private:
   /**
-   * Constantly running function each thread uses to acquire work items from the queue.
+   * Worker function using C++20 std::stop_token for cooperative cancellation.
    */
-  void worker(void) {
-    while (!m_done) {
+  void worker(std::stop_token stoken) {
+    while (!stoken.stop_requested()) {
       std::unique_ptr<IThreadTask> pTask{nullptr};
       if (m_workQueue.waitPop(pTask)) {
-        pTask->execute();
+        if (!stoken.stop_requested()) {
+          pTask->execute();
+        }
       }
     }
   }
 
   /**
-   * Invalidates the queue and joins all running threads.
+   * Gracefully stops all threads using C++20 cooperative cancellation.
    */
-  void destroy(void) {
-    m_done = true;
+  void destroy() {
+    // Request stop for all threads
+    for (auto& thread : m_threads) {
+      thread.request_stop();
+    }
+    
+    // Invalidate the queue to wake up waiting threads
     m_workQueue.invalidate();
+    
+    // Join all threads (jthread handles this automatically in destructor, but explicit is clearer)
     for (auto& thread : m_threads) {
       if (thread.joinable()) {
         thread.join();
@@ -169,21 +193,31 @@ private:
   }
 
 private:
-  std::atomic_bool m_done;
   ThreadsafeQueue<std::unique_ptr<IThreadTask>> m_workQueue;
-  std::vector<std::thread> m_threads;
+  std::vector<std::jthread> m_threads;
 };
 
 namespace DefaultThreadPool {
 /**
  * Get the default thread pool for the application.
- * This pool is created with std::thread::hardware_concurrency() - 1 threads.
+ * This pool is created with std::jthread::hardware_concurrency() - 1 threads.
  */
 inline ThreadPool& getThreadPool() {
   static ThreadPool defaultPool;
   return defaultPool;
 }
 
+/**
+ * Get a thread pool with a specific number of threads.
+ * Uses C++20 template parameter for compile-time optimization.
+ */
+template<std::uint32_t NumThreads>
+inline ThreadPool& getThreadPool_n() {
+  static ThreadPool defaultPool{NumThreads};
+  return defaultPool;
+}
+
+// Backward compatibility overload
 inline ThreadPool& getThreadPool_n(std::uint32_t numThreads) {
   static ThreadPool defaultPool{numThreads};
   return defaultPool;
@@ -191,16 +225,32 @@ inline ThreadPool& getThreadPool_n(std::uint32_t numThreads) {
 
 /**
  * Submit a job to the default thread pool.
+ * C++20 optimized with concepts.
  */
 template <typename Func, typename... Args>
+  requires Invocable<Func, Args...>
 inline auto submitJob(Func&& func, Args&&... args)
     -> ThreadPool::TaskFuture<std::invoke_result_t<Func, Args...>> {
   return getThreadPool().submit(std::forward<Func>(func), std::forward<Args>(args)...);
 }
-template <std::uint32_t n, typename Func, typename... Args>
+
+/**
+ * Submit a job to a fixed-size thread pool.
+ * C++20 template parameter version for better performance.
+ */
+template <std::uint32_t NumThreads, typename Func, typename... Args>
+  requires Invocable<Func, Args...>
 inline auto submitJob_n(Func&& func, Args&&... args)
     -> ThreadPool::TaskFuture<std::invoke_result_t<Func, Args...>> {
-  return getThreadPool_n(n).submit(std::forward<Func>(func), std::forward<Args>(args)...);
+  return getThreadPool_n<NumThreads>().submit(std::forward<Func>(func), std::forward<Args>(args)...);
+}
+
+// Backward compatibility overload
+template <typename Func, typename... Args>
+  requires Invocable<Func, Args...>
+inline auto submitJob_n(std::uint32_t numThreads, Func&& func, Args&&... args)
+    -> ThreadPool::TaskFuture<std::invoke_result_t<Func, Args...>> {
+  return getThreadPool_n(numThreads).submit(std::forward<Func>(func), std::forward<Args>(args)...);
 }
 }  // namespace DefaultThreadPool
 

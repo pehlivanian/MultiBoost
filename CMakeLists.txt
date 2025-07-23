@@ -18,8 +18,8 @@ set(CMAKE_CXX_FLAGS "-mavx2 -Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
-# Requires C++17
-set(CMAKE_CXX_STANDARD 17)
+# Requires C++20 for ThreadPool optimizations
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
