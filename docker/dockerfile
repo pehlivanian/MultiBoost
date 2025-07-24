@@ -9,10 +9,18 @@ ARG USER_GID=1000
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Update and install required packages
+# Install prerequisites for adding LLVM repository
+RUN apt-get update && apt-get install -y wget gnupg software-properties-common
+
+# Add LLVM repository for latest clang versions
+RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
+    echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main" >> /etc/apt/sources.list
+
+# Update and install required packages including clang-18
 RUN apt-get update && apt-get install -y \
     cmake \
-    clang \
+    clang-18 \
+    clang++-18 \
     build-essential \
     libboost-all-dev \
     liblapack-dev \
@@ -31,6 +39,10 @@ RUN apt-get update && apt-get install -y \
     nano \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Set clang-18 as the default compiler for C++20 support
+RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 100 && \
+    update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100
 
 # Create group and user (in Docker we'll use a non-root user for final operations)
 RUN groupadd --gid $USER_GID $GROUPNAME && \
