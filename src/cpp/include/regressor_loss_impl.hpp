@@ -177,15 +177,22 @@ autodiff::real LogLoss<DataType>::loss_reverse(const ArrayXreal& yhat, const Arr
 
 template <typename DataType>
 DataType RegressorPowerLoss<DataType>::gradient_(const vtype& yhat, const vtype& y, vtype* grad) {
+
+  vtype f = -2. * sign(y - yhat) % pow(abs(y - yhat), 1 / p_);
+  f.transform([](DataType val) { return (std::isnan(val) ? 0. : val); });
+  *grad = f;
+
+  /*
   // Proper decomposition of \Phi \left( y,\hat{y}\right) = y\left( 1-y\hat{y}\right)^p
   if (p_ != 1) {
-    vtype f = exp(1.0 / ((-p_ + 1) * pow(y, 2)) % pow(1 - y % yhat, -p_ + 1));
-    vtype g = exp(-1.0 / ((-p_ + 1) * pow(y, 2)));
-    *grad = -y % f % g;
+  vtype f = exp(1.0 / ((-p_ + 1) * pow(y, 2)) % pow(1 - y % yhat, -p_ + 1));
+  vtype g = exp(-1.0 / ((-p_ + 1) * pow(y, 2)));
+  *grad = -y % f % g;
   } else {
-    vtype f = exp(log(1 - y % yhat) / pow(y, 2));
-    *grad = -y % f;
+  vtype f = exp(log(1 - y % yhat) / pow(y, 2));
+  *grad = -y % f;
   }
+  */
 
 #ifdef AUTODIFF
   ArrayXreal yhatr = LossUtils::static_cast_eigen<DataType>(yhat).eval();
@@ -199,14 +206,22 @@ DataType RegressorPowerLoss<DataType>::gradient_(const vtype& yhat, const vtype&
 
 template <typename DataType>
 void RegressorPowerLoss<DataType>::hessian_(const vtype& yhat, const vtype& y, vtype* hess) {
-  if (p_ != 1) {
+  
+  UNUSED(yhat);
+
+  vtype f(y.n_cols, arma::fill::ones);
+  *hess = 2 * f;
+  
+  /*
+    if (p_ != 1) {
     vtype f = exp(1.0 / ((-p_ + 1) * pow(y, 2)) % pow(1 - y % yhat, -p_ + 1));
     vtype g = exp(-1.0 / ((-p_ + 1) * pow(y, 2)));
     *hess = pow(1 - y % yhat, -p_) % f % g;
-  } else {
+    } else {
     vtype f = exp(log(1 - y % yhat) / pow(y, 2));
     *hess = (1.0 / (1 - y % yhat)) % f;
-  }
+    }
+  */
 }
 
 template <typename DataType>

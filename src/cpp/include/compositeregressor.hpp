@@ -270,6 +270,7 @@ public:
   boost::filesystem::path getFldr() const { return fldr_; }
 
   regressorLossFunction getLoss() const { return loss_; }
+  float getLossPower() const { return lossPower_; }
 
   double loss(const Row<DataType>& yhat);
   double loss(const Row<DataType>& y, const Row<DataType>& yhat);

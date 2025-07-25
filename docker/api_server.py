@@ -279,12 +279,13 @@ def run_regression_fit():
                 run_on_test = int(params.get('runOnTestDataset', True))
                 
                 # Build command line arguments
+                child_num_steps = params.get('childNumSteps', [1, 1])
                 cmd = [
                     '/bin/bash',
                     SCRIPT_PATH,
                     str(len(child_partition_size)),  # num_args
                 ] + [str(x) for x in child_partition_size] + \
-                  [str(x) for x in [1, 1]] + \
+                  [str(x) for x in child_num_steps] + \
                   [str(x) for x in child_learning_rate] + \
                   [str(x) for x in child_active_partition_ratio] + \
                   [str(x) for x in child_max_depth] + \
