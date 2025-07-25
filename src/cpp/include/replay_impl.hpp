@@ -537,7 +537,7 @@ typename Replay<DataType, RegressorType>::optRV Replay<DataType, RegressorType>:
     std::unique_ptr<R> regressor = std::make_unique<R>();
 
     read(*regressor, regressorFileName, folderName);
-    auto lossFn = regressorLossMap<DataType>[regressor->getLoss()];
+    auto lossFn = createLoss<DataType>(regressor->getLoss(), regressor->getLossPower());
 
     double r_OOS = std::sqrt(lossFn->loss(prediction, labels_oos));
 

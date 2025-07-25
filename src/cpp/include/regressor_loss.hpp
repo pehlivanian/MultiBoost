@@ -92,7 +92,7 @@ private:
 
 public:
   RegressorPowerLoss(float p) : p_{p} {}
-  RegressorPowerLoss<DataType>* create() override { return new RegressorPowerLoss<DataType>{0.}; }
+  RegressorPowerLoss<DataType>* create() override { return new RegressorPowerLoss<DataType>{3.}; }
   RegressorPowerLoss<DataType>* create(float p) { return new RegressorPowerLoss<DataType>{p}; }
 
 private:
