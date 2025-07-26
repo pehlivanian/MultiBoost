@@ -11,6 +11,7 @@ import sys
 import urllib.request
 import urllib.parse
 import shutil
+import re
 from pathlib import Path
 from flask import Flask, request, jsonify
 import boto3
@@ -20,6 +21,163 @@ app = Flask(__name__)
 
 # Script path - will be copied from source during docker build
 SCRIPT_PATH = "/opt/multiboost/scripts/incremental_regression_fit.sh"
+
+def parse_training_output(stdout_text, endpoint_type='regression'):
+    """
+    Parse the stdout output from the training script to extract structured data.
+    
+    Args:
+        stdout_text: Raw stdout string from the training process
+        endpoint_type: 'regression' or 'classification' to handle different output formats
+    
+    Returns:
+        Dictionary with parsed metrics by iteration and summary information
+    """
+    if not stdout_text:
+        return {"iterations": [], "summary": {}}
+    
+    lines = stdout_text.strip().split('\n')
+    iterations = []
+    folder_path = None
+    index_name = None
+    dataset_names = set()
+    
+    # Regex patterns for parsing different output types
+    iter_pattern = r'\[([^\]]+)\]\s+ITER:\s+(\d+)'
+    folder_pattern = r'\[([^\]]+)\]\s+FOLDER:\s+(.+)'
+    index_pattern = r'\[([^\]]+)\]\s+INDEX:\s+(.+)'
+    
+    if endpoint_type == 'regression':
+        # Regression patterns
+        is_pattern = r'\[([^\]]+)\]\s+IS:\s+\(r_squared\):\s+\(([0-9.-]+)\)'
+        oos_pattern = r'\[([^\]]+)\]\s+OOS:\s+\(r_squared\):\s+\(([0-9.-]+)\)'
+    else:
+        # Classification patterns
+        is_pattern = r'\[([^\]]+)\]\s+IS:\s+\(error,\s*precision,\s*recall,\s*F1,\s*imbalance\):\s+\(([0-9., -]+)\)'
+        oos_pattern = r'\[([^\]]+)\]\s+OOS:\s+\(error,\s*precision,\s*recall,\s*F1,\s*imbalance\)\s*:\s+\(([0-9., -]+)\)'
+    
+    # Track iterations by dataset - using list to maintain order
+    iterations_list = []
+    current_iteration = None
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        # Extract dataset name from any bracketed line
+        bracket_match = re.search(r'\[([^\]]+)\]', line)
+        if bracket_match:
+            dataset_names.add(bracket_match.group(1))
+        
+        # Parse folder information
+        folder_match = re.search(folder_pattern, line)
+        if folder_match:
+            folder_path = folder_match.group(2)
+        
+        # Parse index information
+        index_match = re.search(index_pattern, line)
+        if index_match:
+            index_name = index_match.group(2)
+        
+        # Parse IS metrics - these come before ITER
+        is_match = re.search(is_pattern, line)
+        if is_match:
+            dataset = is_match.group(1)
+            metrics_str = is_match.group(2)
+            
+            # Start a new iteration or update existing one
+            if current_iteration is None or current_iteration['dataset'] != dataset:
+                current_iteration = {
+                    'dataset': dataset,
+                    'metrics': {}
+                }
+            
+            if endpoint_type == 'regression':
+                current_iteration['metrics']['is_r_squared'] = float(metrics_str)
+            else:
+                # Parse classification metrics: error, precision, recall, F1, imbalance
+                metrics_values = [float(x.strip()) for x in metrics_str.split(',')]
+                if len(metrics_values) >= 5:
+                    current_iteration['metrics'].update({
+                        'is_error': metrics_values[0],
+                        'is_precision': metrics_values[1],
+                        'is_recall': metrics_values[2],
+                        'is_f1': metrics_values[3],
+                        'is_imbalance': metrics_values[4]
+                    })
+        
+        # Parse OOS metrics - these come before ITER
+        oos_match = re.search(oos_pattern, line)
+        if oos_match:
+            dataset = oos_match.group(1)
+            metrics_str = oos_match.group(2)
+            
+            # Start a new iteration or update existing one
+            if current_iteration is None or current_iteration['dataset'] != dataset:
+                current_iteration = {
+                    'dataset': dataset,
+                    'metrics': {}
+                }
+            
+            if endpoint_type == 'regression':
+                current_iteration['metrics']['oos_r_squared'] = float(metrics_str)
+            else:
+                # Parse classification metrics: error, precision, recall, F1, imbalance
+                metrics_values = [float(x.strip()) for x in metrics_str.split(',')]
+                if len(metrics_values) >= 5:
+                    current_iteration['metrics'].update({
+                        'oos_error': metrics_values[0],
+                        'oos_precision': metrics_values[1],
+                        'oos_recall': metrics_values[2],
+                        'oos_f1': metrics_values[3],
+                        'oos_imbalance': metrics_values[4]
+                    })
+        
+        # Parse iteration number - this finalizes the iteration
+        iter_match = re.search(iter_pattern, line)
+        if iter_match:
+            dataset = iter_match.group(1)
+            iter_num = int(iter_match.group(2))
+            
+            # Complete current iteration or create new one
+            if current_iteration and current_iteration['dataset'] == dataset:
+                current_iteration['iteration'] = iter_num
+                iterations_list.append(current_iteration)
+                current_iteration = None
+            else:
+                # Create iteration with just the iteration number
+                iterations_list.append({
+                    'iteration': iter_num,
+                    'dataset': dataset,
+                    'metrics': {}
+                })
+    
+    # Create summary
+    summary = {
+        'dataset_names': list(dataset_names),
+        'total_iterations': len(iterations_list),
+        'folder_path': folder_path,
+        'index_name': index_name,
+        'endpoint_type': endpoint_type
+    }
+    
+    # Add final metrics if available (from last iteration per dataset)
+    if iterations_list:
+        final_metrics = {}
+        for iteration in iterations_list:
+            dataset = iteration['dataset']
+            if dataset not in final_metrics or iteration['iteration'] > final_metrics[dataset]['iteration']:
+                final_metrics[dataset] = {
+                    'iteration': iteration['iteration'],
+                    'metrics': iteration['metrics']
+                }
+        summary['final_metrics'] = final_metrics
+    
+    return {
+        'iterations': iterations_list,
+        'summary': summary
+    }
 
 def handle_local_dataset(local_data_path, params):
     """
@@ -318,13 +476,17 @@ def run_regression_fit():
                 timeout=3600  # 1 hour timeout
             )
             
+            # Parse the training output to create structured data
+            parsed_data = parse_training_output(result.stdout, 'regression')
+            
             # Prepare response
             response = {
                 "success": result.returncode == 0,
                 "returncode": result.returncode,
                 "stdout": result.stdout,
                 "stderr": result.stderr,
-                "command": ' '.join(cmd)
+                "command": ' '.join(cmd),
+                "data": parsed_data
             }
             
             return jsonify(response)
@@ -550,13 +712,17 @@ def run_classifier_fit():
                 timeout=3600  # 1 hour timeout
             )
             
+            # Parse the training output to create structured data
+            parsed_data = parse_training_output(result.stdout, 'classification')
+            
             # Prepare response
             response = {
                 "success": result.returncode == 0,
                 "returncode": result.returncode,
                 "stdout": result.stdout,
                 "stderr": result.stderr,
-                "command": ' '.join(cmd)
+                "command": ' '.join(cmd),
+                "data": parsed_data
             }
             
             return jsonify(response)
