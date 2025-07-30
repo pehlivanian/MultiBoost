@@ -1,11 +1,11 @@
 #ifndef PATH_UTILS_HPP
 #define PATH_UTILS_HPP
 
+#include <cstdlib>
 #include <filesystem>
+#include <iostream>
 #include <string>
 #include <string_view>
-#include <cstdlib>
-#include <iostream>
 
 namespace IB_utils {
 
@@ -29,7 +29,6 @@ inline std::string resolve_path(std::string_view relative_path) {
 
   return (base_path / rel_path).string();
 }
-
 
 /**
  * Resolves a path to a data file.
@@ -86,7 +85,6 @@ inline std::string resolve_test_data_path(std::string_view filename) {
   std::filesystem::path file_path(filename);
   return (test_path / file_path).string();
 }
-
 
 }  // namespace IB_utils
 

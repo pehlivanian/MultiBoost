@@ -290,11 +290,12 @@ if __name__ == '__main__':
     # dataset_name = "Regression/197_cpu_act"
     # dataset_name = "Regression/606_fri_c2_1000_10"
     # dataset_name = "tabular_benchmark/Regression/cpu_act"
-    # dataset_name = "tabular_benchmark/Regression/pol"
+    dataset_name = "tabular_benchmark/Regression/pol"
     # dataset_name = "tabular_benchmark/Regression/nyc-taxi-green-dec-2016"
     # dataset_name = "Regression/1203_BNG_pwLinear_1000_10"
     # dataset_name = "Regression/1201_BNG_breastTumor_1000_10"
-    dataset_name = "tabular_benchmark/Regression/diamonds"
+    # dataset_name = "tabular_benchmark/Regression/diamonds"
+    # dataset_name = "Regression/synthetic"
     # dataset_name = "tabular_benchmark/Regression/house_sales"
     X_train, y_train, X_test, y_test = _dataset(dataset_name);
 

@@ -701,14 +701,20 @@ auto CompositeClassifier<ClassifierType>::computeOptimalSplit(
   Row<DataType> leaf_values0 = arma::zeros<Row<DataType>>(n);
 
   if (T > 1 || risk_partitioning_objective) {
-    const std::size_t start_ind =
-        risk_partitioning_objective ? 0 : static_cast<std::size_t>(T * activePartitionRatio);
+    // XXX
+    const std::size_t start_ind = static_cast<std::size_t>(T * activePartitionRatio);
+    const std::size_t end_ind =
+        static_cast<std::size_t>((1. - activePartitionRatio) * static_cast<double>(T));
+
+    // const std::size_t start_ind =
+    //     risk_partitioning_objective ? 0 : static_cast<std::size_t>(T * activePartitionRatio);
     const std::size_t subsets_size = subsets0.size();
 
     // Precompute negative learning rate for efficiency
     const double neg_lr = -learningRate;
 
     for (std::size_t i = start_ind; i < subsets_size; ++i) {
+      // for (std::size_t i=0; i<end_ind; ++i) {
       const uvec ind = arma::conv_to<uvec>::from(subsets0[i]);
       const double g_sum = sum(g(ind));
       const double h_sum = sum(h(ind));
@@ -933,14 +939,14 @@ void CompositeClassifier<ClassifierType>::printStats(int stepNum) {
     Row<DataType> predicted_classes = sign(this->latestPrediction_);
 
     Row<int> labels_i = conv_to<Row<int>>::from(labels_);
-    Row<int> predicted_classes_i = conv_to<Row<int>>::from(predicted_classes);    
+    Row<int> predicted_classes_i = conv_to<Row<int>>::from(predicted_classes);
 
     double error_is = err(predicted_classes, labels_);
     auto [prec, recall, F1] = precision(labels_i, predicted_classes_i);
     double imb = imbalance(labels_);
 
     std::cout << suff << " IS (error, precision, recall, F1, imbalance) : (" << error_is << ", "
-	      << prec << ", " << recall << ", " << F1 << ", " << imb << ")" << std::endl;
+              << prec << ", " << recall << ", " << F1 << ", " << imb << ")" << std::endl;
 
     // std::cout << suff << ": "
     //           << "(PARTITION SIZE = " << partitionSize_ << ", STEPS = " << steps_ << ")"

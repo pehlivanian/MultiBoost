@@ -535,7 +535,7 @@ TEST(DPSolverTest, TestOptimalityWithRandomPartitionsRationalScore) {
 }
 
 /*
-// TODO: Parameterized test disabled due to namespace conflict with cereal/rapidjson  
+// TODO: Parameterized test disabled due to namespace conflict with cereal/rapidjson
 TEST_P(DPSolverTestFixture, TestOptimalityWithRandomPartitionsSmallT) {
   int NUM_CASES = 1000, NUM_SUBCASES = 500, T = 3;
 
@@ -1931,7 +1931,6 @@ TEST(GradientBoostClassifierTest, DISABLED_TestIncrementalClassifierScript) {
 // INSTANTIATE_TEST_SUITE_P(DPSolverTests, DPSolverTestFixture,
 //     ::testing::Values(objective_fn::Gaussian, objective_fn::Poisson,
 //     objective_fn::RationalScore));
-
 
 auto main(int argc, char** argv) -> int {
   testing::InitGoogleTest(&argc, argv);

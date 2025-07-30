@@ -19,12 +19,12 @@
 #include "threadsafequeue.hpp"
 
 // C++20 concepts for better type safety
-template<typename F, typename... Args>
+template <typename F, typename... Args>
 concept Invocable = std::invocable<F, Args...>;
 
-template<typename F, typename... Args>
-concept InvocableWithResult = Invocable<F, Args...> && 
-    !std::is_void_v<std::invoke_result_t<F, Args...>>;
+template <typename F, typename... Args>
+concept InvocableWithResult =
+    Invocable<F, Args...> && !std::is_void_v<std::invoke_result_t<F, Args...>>;
 
 class ThreadPool {
 private:
@@ -133,17 +133,16 @@ public:
    * C++20 optimized version using perfect forwarding and lambda capture.
    */
   template <typename Func, typename... Args>
-    requires Invocable<Func, Args...>
+  requires Invocable<Func, Args...>
   auto submit(Func&& func, Args&&... args)
-      -> TaskFuture<std::invoke_result_t<std::decay_t<Func>, std::decay_t<Args>...>>
-  {
+      -> TaskFuture<std::invoke_result_t<std::decay_t<Func>, std::decay_t<Args>...>> {
     using ResultType = std::invoke_result_t<std::decay_t<Func>, std::decay_t<Args>...>;
     using PackagedTask = std::packaged_task<ResultType()>;
     using TaskType = ThreadTask<PackagedTask>;
 
     // C++20: Replace std::bind with lambda capture for better performance
-    auto task_lambda = [func = std::forward<Func>(func), 
-                       ...args = std::forward<Args>(args)]() mutable -> ResultType {
+    auto task_lambda = [func = std::forward<Func>(func),
+                        ... args = std::forward<Args>(args)]() mutable -> ResultType {
       if constexpr (std::is_void_v<ResultType>) {
         std::invoke(std::move(func), std::move(args)...);
       } else {
@@ -180,10 +179,10 @@ private:
     for (auto& thread : m_threads) {
       thread.request_stop();
     }
-    
+
     // Invalidate the queue to wake up waiting threads
     m_workQueue.invalidate();
-    
+
     // Join all threads (jthread handles this automatically in destructor, but explicit is clearer)
     for (auto& thread : m_threads) {
       if (thread.joinable()) {
@@ -211,7 +210,7 @@ inline ThreadPool& getThreadPool() {
  * Get a thread pool with a specific number of threads.
  * Uses C++20 template parameter for compile-time optimization.
  */
-template<std::uint32_t NumThreads>
+template <std::uint32_t NumThreads>
 inline ThreadPool& getThreadPool_n() {
   static ThreadPool defaultPool{NumThreads};
   return defaultPool;
@@ -228,7 +227,7 @@ inline ThreadPool& getThreadPool_n(std::uint32_t numThreads) {
  * C++20 optimized with concepts.
  */
 template <typename Func, typename... Args>
-  requires Invocable<Func, Args...>
+requires Invocable<Func, Args...>
 inline auto submitJob(Func&& func, Args&&... args)
     -> ThreadPool::TaskFuture<std::invoke_result_t<Func, Args...>> {
   return getThreadPool().submit(std::forward<Func>(func), std::forward<Args>(args)...);
@@ -239,15 +238,16 @@ inline auto submitJob(Func&& func, Args&&... args)
  * C++20 template parameter version for better performance.
  */
 template <std::uint32_t NumThreads, typename Func, typename... Args>
-  requires Invocable<Func, Args...>
+requires Invocable<Func, Args...>
 inline auto submitJob_n(Func&& func, Args&&... args)
     -> ThreadPool::TaskFuture<std::invoke_result_t<Func, Args...>> {
-  return getThreadPool_n<NumThreads>().submit(std::forward<Func>(func), std::forward<Args>(args)...);
+  return getThreadPool_n<NumThreads>().submit(
+      std::forward<Func>(func), std::forward<Args>(args)...);
 }
 
 // Backward compatibility overload
 template <typename Func, typename... Args>
-  requires Invocable<Func, Args...>
+requires Invocable<Func, Args...>
 inline auto submitJob_n(std::uint32_t numThreads, Func&& func, Args&&... args)
     -> ThreadPool::TaskFuture<std::invoke_result_t<Func, Args...>> {
   return getThreadPool_n(numThreads).submit(std::forward<Func>(func), std::forward<Args>(args)...);

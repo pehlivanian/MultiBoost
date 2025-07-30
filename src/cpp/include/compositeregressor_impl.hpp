@@ -92,11 +92,8 @@ void CompositeRegressor<RegressorType>::init_(Context&& context) {
   // set loss function
   lossFn_ = createLoss<DataType>(loss_, lossPower_);
   if (RegressorFileScope::DIAGNOSTICS_0_) {
-    std::cerr << "Loss Function: [" 
-	      << static_cast<int>(loss_) 
-	      << "] : Loss Power: ["
-	      << lossPower_ 
-	      << "]" << std::endl;
+    std::cerr << "Loss Function: [" << static_cast<int>(loss_) << "] : Loss Power: [" << lossPower_
+              << "]" << std::endl;
   }
 
   // ensure this is a leaf regressor for lowest-level call
@@ -437,7 +434,10 @@ auto CompositeRegressor<RegressorType>::computeOptimalSplit(
 
   int n = colMask.n_rows, T = partitionSize;
   objective_fn obj_fn = objective_fn::RationalScore;
+
+  // XXX
   bool risk_partitioning_objective = false;
+
   bool use_rational_optimization = true;
   bool sweep_down = false;
   double gamma = 0.;
@@ -480,14 +480,20 @@ auto CompositeRegressor<RegressorType>::computeOptimalSplit(
     // auto timer_ = __timer{"DPSolver set leaves"};
 
     if (T > 1 || risk_partitioning_objective) {
-      std::size_t start_ind =
-          risk_partitioning_objective ? 0 : static_cast<std::size_t>(T * activePartitionRatio);
+      std::size_t start_ind = static_cast<std::size_t>(T * activePartitionRatio);
+      std::size_t end_ind =
+          static_cast<std::size_t>((1. - activePartitionRatio) * static_cast<double>(T));
+
+      // XXX
+      // std::size_t start_ind =
+      //    risk_partitioning_objective ? 0 : static_cast<std::size_t>(T * activePartitionRatio);
+
       // std::size_t end_ind = risk_partitioning_objective ? subsets.size() :
       //   static_cast<std::size_t>((1. - end_ratio) * static_cast<double>(T));
       // Currently unused - kept for potential future use
 
       for (std::size_t i = start_ind; i < subsets.size(); ++i) {
-        // for (std::size_t i=start_ind; i<end_ind; ++i) {
+        // for (std::size_t i=0; i<end_ind; ++i) {
         uvec ind = arma::conv_to<uvec>::from(subsets[i]);
         double val = -1. * learningRate * sum(g(ind)) / sum(h(ind));
         for (auto j : ind) {
@@ -670,7 +676,8 @@ void CompositeRegressor<RegressorType>::printStats(int stepNum) {
     Predict(yhat);
   }
 
-  // Use latestPrediction_ directly for R² calculation since it contains the correct accumulated predictions
+  // Use latestPrediction_ directly for R² calculation since it contains the correct accumulated
+  // predictions
   auto mn = mean(labels_);
   auto den = sum(pow((labels_ - mn), 2));
   auto num = sum(pow((labels_ - latestPrediction_), 2));
