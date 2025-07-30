@@ -13,6 +13,7 @@ EtxetnoC*
 *.o
 *.dat
 *.dot
+*.json
 *.png
 *.csv
 *.tar.gz
