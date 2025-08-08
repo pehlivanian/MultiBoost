@@ -312,6 +312,27 @@ void CompositeClassifier<ClassifierType>::setWeights() {
   ;
 }
 
+// SFINAE helper to detect if ClassifierType has setRootClassifier method
+template<typename T, typename DataType, typename... Args>
+class has_setRootClassifier {
+private:
+    template<typename U>
+    static auto test(int) -> decltype(
+        std::declval<U>().setRootClassifier(
+            std::declval<std::unique_ptr<DecisionTreeClassifier>&>(),
+            std::declval<const Mat<DataType>&>(),
+            std::declval<Row<DataType>&>(),
+            std::declval<std::tuple<Args...> const&>()
+        ),
+        std::true_type{});
+    
+    template<typename>
+    static std::false_type test(...);
+
+public:
+    static constexpr bool value = decltype(test<T>(0))::value;
+};
+
 template <typename ClassifierType>
 template <typename... Ts>
 void CompositeClassifier<ClassifierType>::setRootClassifier(
@@ -320,20 +341,35 @@ void CompositeClassifier<ClassifierType>::setRootClassifier(
     Row<CompositeClassifier<ClassifierType>::DataType>& labels,
     Row<CompositeClassifier<ClassifierType>::DataType>& weights,
     std::tuple<Ts...> const& args) {
-  // The calling convention for mlpack classifiers with weight specification:
-  // cls{dataset, labels, numClasses, weights, args...)
-  // We must remake the tuple in this case
-  std::unique_ptr<ClassifierType> cls;
+  
+  // Check if ClassifierType has setRootClassifier method (decorator pattern)
+  constexpr bool isDecorator = has_setRootClassifier<ClassifierType, DataType, Ts...>::value;
+  
+  if constexpr (isDecorator) {
+    std::cout << "DEBUG: Using decorator pattern - calling classifier's setRootClassifier" << std::endl;
+    // Create decorator instance and call its setRootClassifier method
+    classifier = std::make_unique<ClassifierType>();
+    
+    // Get the decorated type and create a classifier of that type
+    std::unique_ptr<DecisionTreeClassifier> innerClassifier;
+    classifier->setRootClassifier(innerClassifier, dataset, labels, weights, args);
+  } else {
+    std::cout << "DEBUG: Using direct construction for non-decorator classifier" << std::endl;
+    // The calling convention for mlpack classifiers with weight specification:
+    // cls{dataset, labels, numClasses, weights, args...)
+    // We must remake the tuple in this case
+    std::unique_ptr<ClassifierType> cls;
 
-  auto _c = [&cls, &dataset, &labels, &weights](Ts const&... classArgs) {
-    cls = std::make_unique<ClassifierType>(dataset, labels, weights, classArgs...);
-  };
-  std::apply(_c, args);
+    auto _c = [&cls, &dataset, &labels, &weights](Ts const&... classArgs) {
+      cls = std::make_unique<ClassifierType>(dataset, labels, weights, classArgs...);
+    };
+    std::apply(_c, args);
 
-  // Feedback
-  // ...
+    // Feedback
+    // ...
 
-  classifier = std::move(cls);
+    classifier = std::move(cls);
+  }
 }
 
 template <typename ClassifierType>
@@ -343,36 +379,51 @@ void CompositeClassifier<ClassifierType>::setRootClassifier(
     const Mat<DataType>& dataset,
     Row<CompositeClassifier<ClassifierType>::DataType>& labels,
     std::tuple<Ts...> const& args) {
-  std::unique_ptr<ClassifierType> cls;
+  
+  // Check if ClassifierType has setRootClassifier method (decorator pattern)
+  constexpr bool isDecorator = has_setRootClassifier<ClassifierType, DataType, Ts...>::value;
+  
+  if constexpr (isDecorator) {
+    std::cout << "DEBUG: Using decorator pattern - calling classifier's setRootClassifier (no weights)" << std::endl;
+    // Create decorator instance and call its setRootClassifier method
+    classifier = std::make_unique<ClassifierType>();
+    
+    // Get the decorated type and create a classifier of that type
+    std::unique_ptr<DecisionTreeClassifier> innerClassifier;
+    classifier->setRootClassifier(innerClassifier, dataset, labels, args);
+  } else {
+    std::cout << "DEBUG: Using direct construction for non-decorator classifier (no weights)" << std::endl;
+    std::unique_ptr<ClassifierType> cls;
 
-  auto _c = [&cls, &dataset, &labels](Ts const&... classArgs) {
-    cls = std::make_unique<ClassifierType>(dataset, labels, classArgs...);
-  };
-  std::apply(_c, args);
-
-  Row<DataType> labels_it = labels, prediction;
-  float beta = 0.025;
-  const std::size_t FEEDBACK_ITERATIONS = 0;
-
-  if (FEEDBACK_ITERATIONS > 0) {
-    cls->Classify(dataset, prediction);
-
-    auto _c0 = [&cls, &dataset](Row<DataType>& labels, Ts const&... classArgs) {
+    auto _c = [&cls, &dataset, &labels](Ts const&... classArgs) {
       cls = std::make_unique<ClassifierType>(dataset, labels, classArgs...);
     };
+    std::apply(_c, args);
 
-    for (std::size_t i = 0; i < FEEDBACK_ITERATIONS; ++i) {
-      for (std::size_t j = 0; j < 10; ++j) {
-        std::cerr << j << " : " << labels(j) << " : " << prediction(j) << std::endl;
-      }
-      labels_it = labels_it - beta * prediction;
-      auto _cn = [&labels_it, &_c0](Ts const&... classArgs) { _c0(labels_it, classArgs...); };
-      std::apply(_cn, args);
+    Row<DataType> labels_it = labels, prediction;
+    float beta = 0.025;
+    const std::size_t FEEDBACK_ITERATIONS = 0;
+
+    if (FEEDBACK_ITERATIONS > 0) {
       cls->Classify(dataset, prediction);
-    }
-  }
 
-  classifier = std::move(cls);
+      auto _c0 = [&cls, &dataset](Row<DataType>& labels, Ts const&... classArgs) {
+        cls = std::make_unique<ClassifierType>(dataset, labels, classArgs...);
+      };
+
+      for (std::size_t i = 0; i < FEEDBACK_ITERATIONS; ++i) {
+        for (std::size_t j = 0; j < 10; ++j) {
+          std::cerr << j << " : " << labels(j) << " : " << prediction(j) << std::endl;
+        }
+        labels_it = labels_it - beta * prediction;
+        auto _cn = [&labels_it, &_c0](Ts const&... classArgs) { _c0(labels_it, classArgs...); };
+        std::apply(_cn, args);
+        cls->Classify(dataset, prediction);
+      }
+    }
+
+    classifier = std::move(cls);
+  }
 }
 
 template <typename ClassifierType>

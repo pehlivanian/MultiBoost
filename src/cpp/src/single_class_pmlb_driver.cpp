@@ -1,9 +1,60 @@
 #include "single_class_pmlb_driver.hpp"
 
 #include "path_utils.hpp"
+#include "classifiers_impl.hpp"  // Include the NegativeFeedback implementation
 
 namespace {
 using DataType = Model_Traits::model_traits<DecisionTreeClassifier>::datatype;
+
+// Custom NegativeFeedback with beta = 0.15
+class NegativeFeedbackBeta15 : public NegativeFeedback<DecisionTreeClassifier, std::size_t, std::size_t, double, std::size_t> {
+public:
+  using Args = typename Model_Traits::model_traits<DecisionTreeClassifier>::modelArgs;
+  using DataType = typename Model_Traits::model_traits<DecisionTreeClassifier>::datatype;
+
+  // Default constructor - this is what gets called during decorator pattern
+  NegativeFeedbackBeta15() : NegativeFeedback(0.15f, 3) {
+    std::cout << "DEBUG: NegativeFeedbackBeta15 default constructor called" << std::endl;
+  }
+
+  // Constructor with dataset parameters - should delegate to base that properly initializes base classes
+  NegativeFeedbackBeta15(const Mat<DataType>& dataset, Row<DataType>& labels,
+                        std::size_t numClasses, std::size_t minLeafSize, 
+                        double minGainSplit, std::size_t maxDepth)
+      : NegativeFeedback(dataset, labels, numClasses, minLeafSize, minGainSplit, maxDepth) {
+    std::cout << "DEBUG: NegativeFeedbackBeta15 dataset constructor called" << std::endl;
+    // Override beta and iterations after base construction
+    beta_ = 0.15f;
+    iterations_ = 3;
+  }
+
+  // Constructor with weights - should delegate to base that properly initializes base classes 
+  NegativeFeedbackBeta15(const Mat<DataType>& dataset, Row<DataType>& labels,
+                        Row<DataType>& weights,
+                        std::size_t numClasses, std::size_t minLeafSize, 
+                        double minGainSplit, std::size_t maxDepth)
+      : NegativeFeedback(dataset, labels, weights, numClasses, minLeafSize, minGainSplit, maxDepth) {
+    std::cout << "DEBUG: NegativeFeedbackBeta15 weighted constructor called" << std::endl;
+    // Override beta and iterations after base construction
+    beta_ = 0.15f;
+    iterations_ = 3;
+  }
+
+  static Args _args(const Model_Traits::AllClassifierArgs& p) { 
+    return DecisionTreeClassifier::_args(p); 
+  }
+};
+}
+
+// Model traits specialization for the custom class
+namespace Model_Traits {
+template <>
+struct model_traits<NegativeFeedbackBeta15> {
+  using datatype = model_traits<DecisionTreeClassifier>::datatype;
+  using integrallabeltype = model_traits<DecisionTreeClassifier>::integrallabeltype;
+  using model = model_traits<DecisionTreeClassifier>::model;
+  using modelArgs = model_traits<DecisionTreeClassifier>::modelArgs;
+};
 }
 
 using namespace arma;
@@ -48,7 +99,7 @@ auto main() -> int {
   context.childMinLeafSize = std::vector<std::size_t>{1, 1, 1, 1, 1};
   context.childMaxDepth = std::vector<std::size_t>{10, 10, 10, 10, 10};
   context.childMinimumGainSplit = std::vector<double>{0., 0., 0., 0., 0.};
-  context.activePartitionRatio = .25;
+  context.childActivePartitionRatio = std::vector<double>{.25, .25, .25, .25, .25};
   context.steps = 1000;
   context.symmetrizeLabels = true;
   context.serializationWindow = 1000;
@@ -62,7 +113,10 @@ auto main() -> int {
   context.serializeLabels = false;
   context.serializationWindow = 1;
 
-  using classifier = GradientBoostClassifier<DecisionTreeClassifier>;
+  // Using NegativeFeedback decorator with beta=0.15
+  using classifier = GradientBoostClassifier<NegativeFeedbackBeta15>;
+  // Using DecisionTreeClassifier
+  // using classifier = GradientBoostClassifier<DecisionTreeClassifier>;
   auto c =
       std::make_unique<classifier>(trainDataset, trainLabels, testDataset, testLabels, context);
 

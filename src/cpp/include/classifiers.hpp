@@ -38,7 +38,7 @@ public:
             dataset, labels, std::forward<Args>(args)...) {}
 
   DecoratorClassifierBase(const Mat<DataType>& dataset, Row<DataType>& labels, Args const&... args)
-      : DiscreteClassifierBase<DataType, ClassifierType, Args...>(dataset, labels, args...) {}
+      : DiscreteClassifierBase<DataType, ClassifierType, Args...>(dataset, labels, const_cast<Args&&>(args)...) {}
 
   DecoratorClassifierBase(
       const Mat<DataType>& dataset, Row<DataType>& labels, Row<DataType>& weights, Args&&... args)
@@ -51,7 +51,7 @@ public:
       Row<DataType>& weights,
       Args const&... args)
       : DiscreteClassifierBase<DataType, ClassifierType, Args...>(
-            dataset, labels, weights, const_cast<Args&>(args)...) {}
+            dataset, labels, weights, const_cast<Args&&>(args)...) {}
 };
 
 template <typename DecoratedType, typename... Args>
@@ -96,11 +96,11 @@ public:
 
   NegativeFeedback(const Mat<DataType>& dataset, Row<DataType>& labels, DecoratedArgs&&... args)
       : DecoratorClassifier<DecoratedType, DecoratedArgs...>(
-            dataset, labels, std::forward<DecoratedArgs>(args)...) {}
+            dataset, labels, std::forward<DecoratedArgs>(args)...), beta_{.001}, iterations_{3} {}
 
   NegativeFeedback(
       const Mat<DataType>& dataset, Row<DataType>& labels, DecoratedArgs const&... args)
-      : DecoratorClassifier<DecoratedType, DecoratedArgs...>(dataset, labels, args...) {}
+      : DecoratorClassifier<DecoratedType, DecoratedArgs...>(dataset, labels, args...), beta_{.001}, iterations_{3} {}
 
   NegativeFeedback(
       const Mat<DataType>& dataset,
@@ -108,14 +108,14 @@ public:
       Row<DataType>& weights,
       DecoratedArgs&&... args)
       : DecoratorClassifier<DecoratedType, DecoratedArgs...>(
-            dataset, labels, weights, std::forward<DecoratedArgs>(args)...) {}
+            dataset, labels, weights, std::forward<DecoratedArgs>(args)...), beta_{.001}, iterations_{3} {}
 
   NegativeFeedback(
       const Mat<DataType>& dataset,
       Row<DataType>& labels,
       Row<DataType>& weights,
       DecoratedArgs const&... args)
-      : DecoratorClassifier<DecoratedType, DecoratedArgs...>(dataset, labels, weights, args...) {}
+      : DecoratorClassifier<DecoratedType, DecoratedArgs...>(dataset, labels, weights, args...), beta_{.001}, iterations_{3} {}
 
   template <typename... Ts>
   void setRootClassifier(
@@ -140,7 +140,7 @@ public:
     ar(iterations_);
   }
 
-private:
+protected:
   float beta_;
   std::size_t iterations_;
 };
@@ -375,12 +375,14 @@ using ClassifierBaseCTCF =
 using ModelD = Model<double>;
 using ModelF = Model<float>;
 
-/*
 // Decorator class using directives
 using DC5  = NegativeFeedback<DecisionTreeClassifier, std::size_t, std::size_t, double,
-std::size_t>; using DC4  = DecoratorClassifier<DecisionTreeClassifier, std::size_t, std::size_t,
-double, std::size_t>; using DC3  = DecoratorClassifierBase<DecisionTreeClassifier, std::size_t,
-std::size_t, double, std::size_t>; using DC2D = DiscreteClassifierBase<double,
+std::size_t>; 
+using DC4  = DecoratorClassifier<DecisionTreeClassifier, std::size_t, std::size_t,
+double, std::size_t>; 
+using DC3  = DecoratorClassifierBase<DecisionTreeClassifier, std::size_t,
+std::size_t, double, std::size_t>; 
+using DC2D = DiscreteClassifierBase<double,
 Model_Traits::ClassifierTypes::NegativeFeedbackDecisionTreeClassifierType,
 std::size_t,
 std::size_t,
@@ -393,9 +395,8 @@ std::size_t,
 double,
 std::size_t>;
 using DC1D = ClassifierBase<double,
-Model_Traits::ClassifierTypes::NegativeFeedbackDecisionTreeClassifierType>; using DC1F =
-ClassifierBase<float, Model_Traits::ClassifierTypes::NegativeFeedbackDecisionTreeClassifierType>;
-*/
+Model_Traits::ClassifierTypes::NegativeFeedbackDecisionTreeClassifierType>; 
+using DC1F = ClassifierBase<float, Model_Traits::ClassifierTypes::NegativeFeedbackDecisionTreeClassifierType>;
 
 // LEVEL 0 ~ Model<DataType>
 // No registration needed
@@ -433,25 +434,19 @@ CEREAL_REGISTER_TYPE(DTCB);
 CEREAL_REGISTER_TYPE(RFCB);
 CEREAL_REGISTER_TYPE(CTCB);
 
-/*
 // LEVEL 3 Decorator registrations
 CEREAL_REGISTER_TYPE(DC3);
-*/
 
 // LEVEL 4 registrations
 CEREAL_REGISTER_TYPE(DecisionTreeClassifier);
 CEREAL_REGISTER_TYPE(RandomForestClassifier);
 CEREAL_REGISTER_TYPE(ConstantTreeClassifier);
 
-/*
 // LEVEL 4 Decorator registrations
 CEREAL_REGISTER_TYPE(DC4);
-*/
 
-/*
 // LEVEL 5 Decorator registrations
 CEREAL_REGISTER_TYPE(DC5);
-*/
 
 // LEVEL 0 registrations
 CEREAL_REGISTER_TYPE(ModelD);
@@ -465,17 +460,13 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, RandomForestClassifier);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, ConstantTreeClassifier);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, ConstantTreeClassifier);
 
-/*
 // LEVEL 5 Decorator polymorphic relations
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, DC5);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, DC5);
-*/
 
-/*
 // LEVEL 4 Decorator polymorphic relations
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, DC4);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, DC4);
-*/
 
 // LEVEL 3 polymorphic relations
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, DTCB);
@@ -485,11 +476,9 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, RFCB);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, CTCB);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, CTCB);
 
-/*
 // LEVEL 3 Decorator polymorphic relations
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, DC3);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelF, DC3);
-*/
 
 // LEVEL 2 polymorphic relations
 CEREAL_REGISTER_POLYMORPHIC_RELATION(ModelD, DiscreteClassifierBaseDTCD);
