@@ -1005,7 +1005,7 @@ void CompositeClassifier<ClassifierType>::printStats(int stepNum) {
     //           << " STEP: " << stepNum << " IS ERROR: " << error_is << "%" << std::endl;
   }
 
-  if (false and hasOOSData_) {
+  if (true and hasOOSData_) {
     Row<DataType> yhat_oos;
     if (serializeModel_) {
       Predict(indexName_, dataset_oos_, yhat_oos, true);

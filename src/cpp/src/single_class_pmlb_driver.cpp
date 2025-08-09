@@ -1,7 +1,6 @@
 #include "single_class_pmlb_driver.hpp"
 
 #include "path_utils.hpp"
-#include "classifiers_impl.hpp"  // Include the NegativeFeedback implementation
 
 namespace {
 using DataType = Model_Traits::model_traits<DecisionTreeClassifier>::datatype;
@@ -13,7 +12,7 @@ public:
   using DataType = typename Model_Traits::model_traits<DecisionTreeClassifier>::datatype;
 
   // Default constructor - this is what gets called during decorator pattern
-  NegativeFeedbackBeta15() : NegativeFeedback(0.55f, 10) {
+  NegativeFeedbackBeta15() : NegativeFeedback(0.15f, 5) {
     // std::cout << "DEBUG: NegativeFeedbackBeta15 default constructor called" << std::endl;
   }
 
@@ -94,7 +93,7 @@ auto main() -> int {
   // context.loss = classifierLossFunction::SyntheticVar2;
   // context.loss = classifierLossFunction::CrossEntropyLoss;
   context.childPartitionSize = std::vector<std::size_t>{100, 50, 20, 10, 1};
-  context.childNumSteps = std::vector<std::size_t>{100, 2, 4, 2, 1};
+  context.childNumSteps = std::vector<std::size_t>{1000, 2, 4, 2, 1};
   context.childLearningRate = std::vector<double>{.001, .001, .001, .001, .001, .001};
   context.childMinLeafSize = std::vector<std::size_t>{1, 1, 1, 1, 1};
   context.childMaxDepth = std::vector<std::size_t>{10, 10, 10, 10, 10};
@@ -114,9 +113,9 @@ auto main() -> int {
   context.serializationWindow = 1;
 
   // Using NegativeFeedback decorator with beta=0.15
-  using classifier = GradientBoostClassifier<NegativeFeedbackBeta15>;
+  // using classifier = GradientBoostClassifier<NegativeFeedbackBeta15>;
   // Using DecisionTreeClassifier
-  // using classifier = GradientBoostClassifier<DecisionTreeClassifier>;
+  using classifier = GradientBoostClassifier<DecisionTreeClassifier>;
   auto c =
       std::make_unique<classifier>(trainDataset, trainLabels, testDataset, testLabels, context);
 

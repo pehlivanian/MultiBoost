@@ -119,26 +119,90 @@ public:
 
   template <typename... Ts>
   void setRootClassifier(
-      std::unique_ptr<DecoratedType>&,
-      const Mat<DataType>&,
-      Row<DataType>&,
-      std::tuple<Ts...> const&);
+      std::unique_ptr<DecoratedType>& classifier,
+      const Mat<DataType>& dataset,
+      Row<DataType>& labels,
+      std::tuple<Ts...> const& args) {
+    // Create the base classifier for the caller
+    std::apply([&classifier, &dataset, &labels](auto const&... classArgs) {
+      classifier = std::make_unique<DecoratedType>(dataset, labels, classArgs...);
+    }, args);
+    
+    // Initialize the decorator's internal state by setting up its classifier_ member
+    // This mimics what would happen if the decorator was constructed with dataset parameters
+    this->labels_t_ = Row<std::size_t>(labels.n_cols);
+    this->encode(labels, this->labels_t_, false);
+    
+    // Set up the decorator's classifier_ to be the same as the one we created
+    this->classifier_ = std::make_unique<typename Model_Traits::model_traits<DecoratedType>::model>();
+    std::apply([this, &dataset, &labels_t = this->labels_t_](auto const&... classArgs) {
+      this->setClassifier(dataset, labels_t, classArgs...);
+    }, args);
+  }
 
   template <typename... Ts>
   void setRootClassifier(
-      std::unique_ptr<DecoratedType>&,
-      const Mat<DataType>&,
-      Row<DataType>&,
-      Row<DataType>&,
-      std::tuple<Ts...> const&);
+      std::unique_ptr<DecoratedType>& classifier,
+      const Mat<DataType>& dataset,
+      Row<DataType>& labels,
+      Row<DataType>& weights,
+      std::tuple<Ts...> const& args) {
+    // Create the base classifier with weights for the caller
+    std::apply([&classifier, &dataset, &labels, &weights](auto const&... classArgs) {
+      classifier = std::make_unique<DecoratedType>(dataset, labels, weights, classArgs...);
+    }, args);
+    
+    // Initialize the decorator's internal state by setting up its classifier_ member  
+    // This mimics what would happen if the decorator was constructed with dataset parameters
+    this->weights_ = weights;
+    this->labels_t_ = Row<std::size_t>(labels.n_cols);
+    this->encode(labels, this->labels_t_, true);
+    
+    // Set up the decorator's classifier_ to be the same as the one we created
+    this->classifier_ = std::make_unique<typename Model_Traits::model_traits<DecoratedType>::model>();
+    std::apply([this, &dataset, &labels_t = this->labels_t_](auto const&... classArgs) {
+      this->setClassifier(dataset, labels_t, classArgs...);
+    }, args);
+  }
 
   static Args _args(const Model_Traits::AllClassifierArgs& p) { return DecoratedType::_args(p); }
-
 
   template <class Archive>
   void serialize(Archive& ar) {
     ar(beta_);
     ar(iterations_);
+  }
+
+private:
+  void Classify_(const Mat<DataType>& data, Row<DataType>& pred) override {
+    // std::cout << "DEBUG: NegativeFeedback::Classify_ called with beta=" << this->beta_ << ", iterations=" << this->iterations_ << std::endl;
+    
+    // Apply the negative feedback algorithm during classification
+    if (!this->classifier_) {
+      throw std::runtime_error("NegativeFeedback: classifier_ is null in Classify_");
+    }
+    
+    // Get initial prediction from the underlying classifier (using Row<std::size_t> as expected by MLPack)
+    Row<std::size_t> initial_pred_int;
+    this->classifier_->Classify(data, initial_pred_int);
+    
+    // Decode to DataType format
+    Row<DataType> initial_pred;
+    this->decode(initial_pred_int, initial_pred);
+    
+    // Apply negative feedback iterations
+    pred = initial_pred;
+    for (std::size_t i = 0; i < this->iterations_; ++i) {
+      // Apply negative feedback transformation
+      pred = pred - this->beta_ * initial_pred;
+    }
+    
+    // std::cout << "DEBUG: NegativeFeedback classification complete - beta=" << this->beta_ << " applied " << this->iterations_ << " times" << std::endl;
+  }
+  
+  void Classify_(Mat<DataType>&& data, Row<DataType>& pred) override {
+    // Forward to const reference version
+    Classify_(data, pred);
   }
 
 protected:

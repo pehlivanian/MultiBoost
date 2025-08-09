@@ -246,8 +246,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Generate range of lossPower values with 0.10 increments
     let mut results: Vec<(f64, Option<f64>)> = Vec::new(); // (lossPower, r_squared)
     
-    let start_loss_power = 42.80;
-    let end_loss_power = 45.10;
+    let start_loss_power = 50.00;
+    let end_loss_power = 100.00;
     let loss_power_increment = 0.10;
     
     // Old childActivePartitionRatio varying logic (commented out)
