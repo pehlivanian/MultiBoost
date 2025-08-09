@@ -243,29 +243,42 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     println!("Base parameters loaded from: {}", base_params_file);
     
-    // Generate range of childActivePartitionRatio values from 0.0 to 0.75 with 0.01 increments
-    let mut results: Vec<(f64, Option<f64>)> = Vec::new();
+    // Generate range of lossPower values with 0.10 increments
+    let mut results: Vec<(f64, Option<f64>)> = Vec::new(); // (lossPower, r_squared)
     
-    let start_ratio = 0.0;
-    let end_ratio = 0.75;
-    let increment = 0.01;
+    let start_loss_power = 42.80;
+    let end_loss_power = 45.10;
+    let loss_power_increment = 0.10;
     
-    let mut current_ratio = start_ratio;
-    while current_ratio <= end_ratio {
-        let rounded_ratio = (current_ratio * 100.0_f64).round() / 100.0_f64; // Round to 2 decimal places
+    // Old childActivePartitionRatio varying logic (commented out)
+    // let start_ratio = 25.70;
+    // let end_ratio = 50.00; 
+    // let ratio_increment = 0.01;
+    
+    // Create results file at start to write incrementally
+    let results_filename = format!("childpartition_power_results_{}.csv", 
+                                  chrono::Utc::now().format("%Y%m%d_%H%M%S"));
+    
+    let mut results_file = fs::File::create(&results_filename)?;
+    writeln!(results_file, "lossPower,oos_r_squared")?;
+    results_file.flush()?; // Flush header immediately
+    
+    println!("Results will be saved to: {}", results_filename);
+    
+    let mut current_loss_power = start_loss_power;
+    while current_loss_power <= end_loss_power {
+        let rounded_loss_power = (current_loss_power * 100.0_f64).round() / 100.0_f64; // Round to 2 decimal places
         
-        println!("\n=== Testing childActivePartitionRatio = {:.2} ===", rounded_ratio);
+        println!("\n=== Testing lossPower = {:.2} ===", rounded_loss_power);
         
         // Modify the JSON directly
         let mut test_json = base_json.clone();
         if let Some(x) = test_json.get_mut("x") {
-            if let Some(child_ratios) = x.get_mut("childActivePartitionRatio") {
-                if let Some(ratios_array) = child_ratios.as_array_mut() {
-                    for ratio_val in ratios_array.iter_mut() {
-                        *ratio_val = serde_json::json!(rounded_ratio);
-                    }
-                }
-            }
+            // Set lossPower
+            x["lossPower"] = serde_json::json!(rounded_loss_power);
+            
+            // Keep original childActivePartitionRatio values from base params file
+            // (no modification needed - using base file values)
         }
         
         let json_str = serde_json::to_string(&test_json)?;
@@ -273,51 +286,50 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Run the experiment via API
         match run_experiment_with_api(&json_str).await {
             Ok(Some(r_squared)) => {
-                println!("✓ childActivePartitionRatio {:.2} -> OOS R² = {:.6}", rounded_ratio, r_squared);
-                results.push((rounded_ratio, Some(r_squared)));
+                println!("✓ lossPower {:.2} -> OOS R² = {:.6}", rounded_loss_power, r_squared);
+                results.push((rounded_loss_power, Some(r_squared)));
+                // Write result immediately and flush
+                writeln!(results_file, "{:.2},{:.6}", rounded_loss_power, r_squared)?;
+                results_file.flush()?;
             }
             Ok(None) => {
-                println!("✗ childActivePartitionRatio {:.2} -> Failed to extract R² value", rounded_ratio);
-                results.push((rounded_ratio, None));
+                println!("✗ lossPower {:.2} -> Failed to extract R² value", rounded_loss_power);
+                results.push((rounded_loss_power, None));
+                // Write failed result immediately and flush
+                writeln!(results_file, "{:.2},", rounded_loss_power)?; // Empty value for failed experiments
+                results_file.flush()?;
             }
             Err(e) => {
-                println!("✗ childActivePartitionRatio {:.2} -> Error: {}", rounded_ratio, e);
-                results.push((rounded_ratio, None));
+                println!("✗ lossPower {:.2} -> Error: {}", rounded_loss_power, e);
+                results.push((rounded_loss_power, None));
+                // Write failed result immediately and flush
+                writeln!(results_file, "{:.2},", rounded_loss_power)?; // Empty value for failed experiments
+                results_file.flush()?;
             }
         }
         
-        current_ratio += increment;
+        current_loss_power += loss_power_increment;
     }
     
-    // Save results to file
-    let results_filename = format!("childpartition_power_results_{}.csv", 
-                                  chrono::Utc::now().format("%Y%m%d_%H%M%S"));
-    
-    let mut results_file = fs::File::create(&results_filename)?;
-    writeln!(results_file, "childActivePartitionRatio,oos_r_squared")?;
-    
-    for (ratio, r_squared_opt) in &results {
-        match r_squared_opt {
-            Some(r_squared) => writeln!(results_file, "{:.2},{:.6}", ratio, r_squared)?,
-            None => writeln!(results_file, "{:.2},", ratio)?, // Empty value for failed experiments
-        }
-    }
+    // Results have already been written to file during execution
+    // File writing is complete - just ensure final flush
+    results_file.flush()?;
     
     println!("\n=== EXPERIMENT COMPLETE ===");
-    println!("Results saved to: {}", results_filename);
+    println!("Final results saved to: {}", results_filename);
     println!("Summary:");
     
     let successful_results: Vec<_> = results.iter()
-        .filter_map(|(ratio, r_squared_opt)| r_squared_opt.map(|r2| (*ratio, r2)))
+        .filter_map(|(loss_power, r_squared_opt)| r_squared_opt.map(|r2| (*loss_power, r2)))
         .collect();
     
     if !successful_results.is_empty() {
         let best_result = successful_results.iter()
             .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
         
-        if let Some((best_ratio, best_r_squared)) = best_result {
-            println!("Best result: childActivePartitionRatio = {:.2}, OOS R² = {:.6}", 
-                    best_ratio, best_r_squared);
+        if let Some((best_loss_power, best_r_squared)) = best_result {
+            println!("Best result: lossPower = {:.2}, OOS R² = {:.6}", 
+                    best_loss_power, best_r_squared);
         }
         
         println!("Successful experiments: {}/{}", successful_results.len(), results.len());

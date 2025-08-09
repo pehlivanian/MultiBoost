@@ -13,8 +13,8 @@ public:
   using DataType = typename Model_Traits::model_traits<DecisionTreeClassifier>::datatype;
 
   // Default constructor - this is what gets called during decorator pattern
-  NegativeFeedbackBeta15() : NegativeFeedback(0.15f, 3) {
-    std::cout << "DEBUG: NegativeFeedbackBeta15 default constructor called" << std::endl;
+  NegativeFeedbackBeta15() : NegativeFeedback(0.55f, 10) {
+    // std::cout << "DEBUG: NegativeFeedbackBeta15 default constructor called" << std::endl;
   }
 
   // Constructor with dataset parameters - should delegate to base that properly initializes base classes
@@ -22,7 +22,7 @@ public:
                         std::size_t numClasses, std::size_t minLeafSize, 
                         double minGainSplit, std::size_t maxDepth)
       : NegativeFeedback(dataset, labels, numClasses, minLeafSize, minGainSplit, maxDepth) {
-    std::cout << "DEBUG: NegativeFeedbackBeta15 dataset constructor called" << std::endl;
+    // std::cout << "DEBUG: NegativeFeedbackBeta15 dataset constructor called" << std::endl;
     // Override beta and iterations after base construction
     beta_ = 0.15f;
     iterations_ = 3;
@@ -34,7 +34,7 @@ public:
                         std::size_t numClasses, std::size_t minLeafSize, 
                         double minGainSplit, std::size_t maxDepth)
       : NegativeFeedback(dataset, labels, weights, numClasses, minLeafSize, minGainSplit, maxDepth) {
-    std::cout << "DEBUG: NegativeFeedbackBeta15 weighted constructor called" << std::endl;
+    // std::cout << "DEBUG: NegativeFeedbackBeta15 weighted constructor called" << std::endl;
     // Override beta and iterations after base construction
     beta_ = 0.15f;
     iterations_ = 3;

@@ -134,6 +134,7 @@ public:
 
   static Args _args(const Model_Traits::AllClassifierArgs& p) { return DecoratedType::_args(p); }
 
+
   template <class Archive>
   void serialize(Archive& ar) {
     ar(beta_);

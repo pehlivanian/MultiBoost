@@ -85,7 +85,7 @@ public:
     // ar(cereal::base_class<ClassifierBase<DataType, ClassifierType>>(this), CEREAL_NVP(args_));
   }
 
-private:
+protected:
   void init_(const Mat<DataType>&, Row<DataType>&, bool, Args&&...);
 
   void encode(const Row<DataType>&, Row<std::size_t>&, bool);
@@ -97,6 +97,7 @@ private:
   std::unique_ptr<ClassifierType> classifier_;
   std::tuple<Args...> args_;
 
+private:
   void Classify_(const Mat<DataType>&, Row<DataType>&) override;
   void Classify_(Mat<DataType>&&, Row<DataType>&) override;
   void purge_() override;

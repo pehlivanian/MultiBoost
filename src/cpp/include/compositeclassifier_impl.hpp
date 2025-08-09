@@ -346,15 +346,16 @@ void CompositeClassifier<ClassifierType>::setRootClassifier(
   constexpr bool isDecorator = has_setRootClassifier<ClassifierType, DataType, Ts...>::value;
   
   if constexpr (isDecorator) {
-    std::cout << "DEBUG: Using decorator pattern - calling classifier's setRootClassifier" << std::endl;
+    // std::cout << "DEBUG: Using decorator pattern - calling classifier's setRootClassifier" << std::endl;
     // Create decorator instance and call its setRootClassifier method
     classifier = std::make_unique<ClassifierType>();
     
     // Get the decorated type and create a classifier of that type
     std::unique_ptr<DecisionTreeClassifier> innerClassifier;
     classifier->setRootClassifier(innerClassifier, dataset, labels, weights, args);
+    
   } else {
-    std::cout << "DEBUG: Using direct construction for non-decorator classifier" << std::endl;
+    // std::cout << "DEBUG: Using direct construction for non-decorator classifier" << std::endl;
     // The calling convention for mlpack classifiers with weight specification:
     // cls{dataset, labels, numClasses, weights, args...)
     // We must remake the tuple in this case
@@ -384,7 +385,7 @@ void CompositeClassifier<ClassifierType>::setRootClassifier(
   constexpr bool isDecorator = has_setRootClassifier<ClassifierType, DataType, Ts...>::value;
   
   if constexpr (isDecorator) {
-    std::cout << "DEBUG: Using decorator pattern - calling classifier's setRootClassifier (no weights)" << std::endl;
+    // std::cout << "DEBUG: Using decorator pattern - calling classifier's setRootClassifier (no weights)" << std::endl;
     // Create decorator instance and call its setRootClassifier method
     classifier = std::make_unique<ClassifierType>();
     
@@ -392,7 +393,7 @@ void CompositeClassifier<ClassifierType>::setRootClassifier(
     std::unique_ptr<DecisionTreeClassifier> innerClassifier;
     classifier->setRootClassifier(innerClassifier, dataset, labels, args);
   } else {
-    std::cout << "DEBUG: Using direct construction for non-decorator classifier (no weights)" << std::endl;
+    // std::cout << "DEBUG: Using direct construction for non-decorator classifier (no weights)" << std::endl;
     std::unique_ptr<ClassifierType> cls;
 
     auto _c = [&cls, &dataset, &labels](Ts const&... classArgs) {
