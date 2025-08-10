@@ -20,6 +20,11 @@ class DecoratorClassifier;
 template <typename DecoratedType, typename... Args>
 class NegativeFeedback;
 
+template <typename DecoratedType, typename... Args>
+class DecoratorRegressor;
+template <typename DecoratedType, typename... Args>
+class NegativeFeedbackRegressor;
+
 using namespace mlpack;
 
 namespace Model_Traits {
@@ -169,6 +174,24 @@ struct model_traits<ConstantTreeRegressorRegressor> {
   using integrallabeltype = std::size_t;
   using model = RegressorTypes::ConstantTreeRegressorRegressorType;
   using modelArgs = std::tuple<double>;
+};
+
+template <>
+struct model_traits<
+    DecoratorRegressor<DecisionTreeRegressorRegressor, std::size_t, double, std::size_t>> {
+  using datatype = model_traits<DecisionTreeRegressorRegressor>::datatype;
+  using integrallabeltype = model_traits<DecisionTreeRegressorRegressor>::integrallabeltype;
+  using model = model_traits<DecisionTreeRegressorRegressor>::model;
+  using modelArgs = model_traits<DecisionTreeRegressorRegressor>::modelArgs;
+};
+
+template <>
+struct model_traits<
+    NegativeFeedbackRegressor<DecisionTreeRegressorRegressor, std::size_t, double, std::size_t>> {
+  using datatype = model_traits<DecisionTreeRegressorRegressor>::datatype;
+  using integrallabeltype = model_traits<DecisionTreeRegressorRegressor>::integrallabeltype;
+  using model = model_traits<DecisionTreeRegressorRegressor>::model;
+  using modelArgs = model_traits<DecisionTreeRegressorRegressor>::modelArgs;
 };
 
 }  // namespace Model_Traits

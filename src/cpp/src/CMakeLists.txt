@@ -303,6 +303,14 @@ if (BUILD_REGRESSOR)
         recursivemodel
 	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES}
 	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES} 
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+
+  # Custom regressor decorator pmlb driver
+  add_executable(pmlb_regressor_driver pmlb_regressor_driver.cpp)
+  target_link_libraries(pmlb_regressor_driver utils regressor_loss gradientboostregressor
+        recursivemodel
+	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES}
+	$<IF:$<BOOL:${USE_OPENMP}>,"${OpenMP_CXX_FLAGS}",> ${BLAS_LIBRARIES} 
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)	
 endif()
 
@@ -416,6 +424,22 @@ if (BUILD_TESTS)
 	score2 gradientboostclassifier ${GTEST_LIBRARIES} 
 	${ARMADILLO_LIBRARIES} pthread 
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+  
+  # Regressor Decorator Tests
+  add_executable(test_regressor_decorators test_regressor_decorators.cpp)
+  target_link_libraries(test_regressor_decorators ${ARMADILLO_LIBRARIES}
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+  
+  add_executable(simple_regressor_test simple_regressor_test.cpp)
+  target_link_libraries(simple_regressor_test ${ARMADILLO_LIBRARIES}
+	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
+  
+  # Custom target to run regressor decorator tests
+  add_custom_target(run_regressor_decorator_tests
+    COMMAND test_regressor_decorators
+    DEPENDS test_regressor_decorators
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+    COMMENT "Running regressor decorator comprehensive test suite")
 endif()
 
 if (BUILD_BENCHMARKS)

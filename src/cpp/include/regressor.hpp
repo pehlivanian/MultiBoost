@@ -63,13 +63,14 @@ public:
     // ar(cereal::base_class<RegressorBase<DataType, RegressorType>>(this), CEREAL_NVP(args_));
   }
 
-private:
-  void init_(const Mat<DataType>&, Row<DataType>&, bool, Args&&...);
-
+protected:
   Row<DataType> labels_;
   Row<DataType> weights_;
   std::unique_ptr<RegressorType> regressor_;
   std::tuple<Args...> args_;
+
+private:
+  void init_(const Mat<DataType>&, Row<DataType>&, bool, Args&&...);
 
   void Predict_(const Mat<DataType>&, Row<DataType>&) override;
   void Predict_(Mat<DataType>&&, Row<DataType>&) override;
