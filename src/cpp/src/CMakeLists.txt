@@ -431,7 +431,10 @@ if (BUILD_TESTS)
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
   
   add_executable(simple_regressor_test simple_regressor_test.cpp)
-  target_link_libraries(simple_regressor_test ${ARMADILLO_LIBRARIES}
+  target_link_libraries(simple_regressor_test utils regressor_loss gradientboostregressor
+        recursivemodel
+	$<IF:$<BOOL:${USE_AUTODIFF}>,autodiff::autodiff,> ${ARMADILLO_LIBRARIES}
+	$<IF:$<BOOL:${USE_OPENMP}>,\"${OpenMP_CXX_FLAGS}\",> ${BLAS_LIBRARIES} 
 	$<IF:$<BOOL:${GPROFILE_RESULTS}>,profiler,>)
   
   # Custom target to run regressor decorator tests

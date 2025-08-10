@@ -81,7 +81,7 @@ auto main() -> int {
   Context context{};
   context.loss = regressorLossFunction::MSE;
   context.childPartitionSize = std::vector<std::size_t>{100, 50, 20, 10, 1};
-  context.childNumSteps = std::vector<std::size_t>{1000, 2, 4, 2, 1};
+  context.childNumSteps = std::vector<std::size_t>{50, 2, 4, 2, 1};  // Changed to 50 steps as requested
   context.childLearningRate = std::vector<double>{.001, .001, .001, .001, .001, .001};
   context.childMinLeafSize = std::vector<std::size_t>{1, 1, 1, 1, 1};
   context.childMaxDepth = std::vector<std::size_t>{10, 10, 10, 10, 10};
