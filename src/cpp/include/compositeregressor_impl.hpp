@@ -699,7 +699,7 @@ void CompositeRegressor<RegressorType>::printStats(int stepNum) {
               << "STEP: " << stepNum << " IS R^2: " << r_squared_IS << std::endl;
   }
 
-  if (false and hasOOSData_) {
+  if (hasOOSData_) {
     Row<DataType> yhat_oos;
     if (serializeModel_) {
       Predict(indexName_, dataset_oos_, yhat_oos);

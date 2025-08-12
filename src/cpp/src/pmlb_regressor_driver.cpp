@@ -32,8 +32,8 @@ public:
       : NegativeFeedbackRegressor(dataset, labels, weights, minLeafSize, minGainSplit, maxDepth) {
     // std::cout << "DEBUG: NegativeFeedbackRegressorBeta15 weighted constructor called" << std::endl;
     // Override beta and iterations after base construction
-    beta_ = 0.15f;
-    iterations_ = 5;
+    beta_ = 0.05f;
+    iterations_ = 10;
   }
 
   static Args _args(const Model_Traits::AllRegressorArgs& p) { 
@@ -81,7 +81,7 @@ auto main() -> int {
   Context context{};
   context.loss = regressorLossFunction::MSE;
   context.childPartitionSize = std::vector<std::size_t>{100, 50, 20, 10, 1};
-  context.childNumSteps = std::vector<std::size_t>{50, 2, 4, 2, 1};  // Changed to 50 steps as requested
+  context.childNumSteps = std::vector<std::size_t>{1500, 2, 4, 2, 1};  // Changed to 50 steps as requested
   context.childLearningRate = std::vector<double>{.001, .001, .001, .001, .001, .001};
   context.childMinLeafSize = std::vector<std::size_t>{1, 1, 1, 1, 1};
   context.childMaxDepth = std::vector<std::size_t>{10, 10, 10, 10, 10};
@@ -89,7 +89,7 @@ auto main() -> int {
   context.childActivePartitionRatio = std::vector<double>{.25, .25, .25, .25, .25};
   context.steps = 1000;
   context.symmetrizeLabels = false;
-  context.serializationWindow = 1000;
+  context.serializationWindow = 10;  // Show progress every 10 steps
   context.removeRedundantLabels = false;
   context.rowSubsampleRatio = 1.;
   context.colSubsampleRatio = .25;
@@ -98,14 +98,18 @@ auto main() -> int {
   context.serializePrediction = false;
   context.serializeDataset = false;
   context.serializeLabels = false;
-  context.serializationWindow = 1;
+  context.quietRun = false;  // Enable detailed iterative output
 
   std::cout << "\n=== Testing Standard DecisionTreeRegressor ===" << std::endl;
+  std::cout << "Configuring standard GradientBoostRegressor with " << context.steps << " steps..." << std::endl;
+  std::cout << "Serialization window: " << context.serializationWindow << " (progress shown every " << context.serializationWindow << " steps)" << std::endl;
   
   // Test 1: Standard DecisionTreeRegressor
+  context.childNumSteps = {10, 2, 4, 2, 1};
   using standardRegressor = GradientBoostRegressor<DecisionTreeRegressorRegressor>;
   auto standard_regressor = std::make_unique<standardRegressor>(trainDataset, trainLabels, testDataset, testLabels, context);
 
+  std::cout << "\nStarting iterative fitting process for Standard Regressor..." << std::endl;
   standard_regressor->fit();
 
   Row<DataType> standardTrainPrediction, standardTestPrediction;
@@ -124,11 +128,15 @@ auto main() -> int {
   std::cout << "TEST LOSS     : " << standardTestLoss << std::endl;
 
   std::cout << "\n=== Testing NegativeFeedback Decorated Regressor ===" << std::endl;
+  std::cout << "Configuring NegativeFeedback GradientBoostRegressor (beta=0.15, iterations=5) with " << context.steps << " steps..." << std::endl;
+  std::cout << "Serialization window: " << context.serializationWindow << " (progress shown every " << context.serializationWindow << " steps)" << std::endl;
 
   // Test 2: NegativeFeedback decorated regressor with beta=0.15
+  context.childNumSteps = {50000, 2, 4, 2, 1};
   using decoratedRegressor = GradientBoostRegressor<NegativeFeedbackRegressorBeta15>;
   auto decorated_regressor = std::make_unique<decoratedRegressor>(trainDataset, trainLabels, testDataset, testLabels, context);
 
+  std::cout << "\nStarting iterative fitting process for NegativeFeedback Decorated Regressor..." << std::endl;
   decorated_regressor->fit();
 
   Row<DataType> decoratedTrainPrediction, decoratedTestPrediction;
