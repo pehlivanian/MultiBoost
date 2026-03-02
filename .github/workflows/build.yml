@@ -27,6 +27,7 @@ jobs:
             libboost-program-options-dev \
             libcereal-dev \
             libmlpack-dev \
+            libensmallen-dev \
             libcurl4-openssl-dev \
             libssl-dev \
             libgtest-dev \
