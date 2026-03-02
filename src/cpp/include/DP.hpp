@@ -42,7 +42,11 @@ using namespace IB_utils;
 
 template <typename DataType>
 class DPSolver {
-  using all_scores = std::pair<std::vector<std::vector<int>>, DataType>;
+  struct all_scores {
+    std::vector<std::vector<int>> subsets;
+    DataType                      total_score;
+    std::vector<DataType>         score_by_subset;
+  };
   using all_part_scores = std::vector<all_scores>;
 
 public:

@@ -146,7 +146,7 @@ typename DPSolver<DataType>::all_scores DPSolver<DataType>::optimize_for_fixed_S
     weighted_priority_by_subset_ = weighted_priority_by_subset;
   }
 
-  return all_scores{subsets, optimal_score};
+  return all_scores{subsets, optimal_score, score_by_subset};
 }
 
 #if EIGEN
@@ -163,7 +163,7 @@ void DPSolver<DataType>::find_optimal_t() {
   score_diffs.resize(subsets_and_scores_.size());
   std::transform(
       subsets_and_scores_.begin(), subsets_and_scores_.end(), scores.begin(), [](const auto& a) {
-        return a.second;
+        return a.total_score;
       });
   std::adjacent_difference(scores.begin(), scores.end(), score_diffs.begin());
   for (auto& el : X) el = log(el);
@@ -193,8 +193,8 @@ void DPSolver<DataType>::find_optimal_t() {
     }
   }
   optimal_num_clusters_OLS_ = bestInd + 1;
-  subsets_ = subsets_and_scores_[optimal_num_clusters_OLS_].first;
-  optimal_score_ = subsets_and_scores_[optimal_num_clusters_OLS_].second;
+  subsets_ = subsets_and_scores_[optimal_num_clusters_OLS_].subsets;
+  optimal_score_ = subsets_and_scores_[optimal_num_clusters_OLS_].total_score;
 }
 #endif
 
@@ -208,8 +208,9 @@ void DPSolver<DataType>::optimize() {
       S = static_cast<int>(std::distance(it, beg)) - 1;
       if (S >= 1) {
         auto optimal = optimize_for_fixed_S(S);
-        it->first = optimal.first;
-        it->second = optimal.second;
+        it->subsets = optimal.subsets;
+        it->total_score = optimal.total_score;
+        it->score_by_subset = optimal.score_by_subset;
       }
     }
     if (find_optimal_t_) {
@@ -223,8 +224,8 @@ void DPSolver<DataType>::optimize() {
     }
   } else {
     auto optimal = optimize_for_fixed_S(T_);
-    subsets_ = optimal.first;
-    optimal_score_ = optimal.second;
+    subsets_ = optimal.subsets;
+    optimal_score_ = optimal.total_score;
   }
 }
 

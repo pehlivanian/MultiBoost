@@ -1067,3 +1067,77 @@ auto CompositeClassifier<ClassifierType>::generate_coefficients(
 }
 
 #endif
+
+template <typename ClassifierType>
+auto CompositeClassifier<ClassifierType>::computeMultiScaleOptimalSplit(
+    Row<CompositeClassifier<ClassifierType>::DataType>& g,
+    Row<CompositeClassifier<ClassifierType>::DataType>& h,
+    std::size_t stepNum,
+    std::size_t partitionSize,
+    double learningRate,
+    double activePartitionRatio,
+    bool includeSubsets) -> optLeavesInfo {
+  (void)stepNum;
+
+  const int n = static_cast<int>(g.n_cols);
+  const int T = static_cast<int>(partitionSize);
+  constexpr objective_fn obj_fn = objective_fn::RationalScore;
+  constexpr bool risk_partitioning_objective = false;
+  constexpr bool use_rational_optimization = true;
+  constexpr bool sweep_down = true;   // key difference
+  constexpr double gamma = 0.;
+  constexpr double reg_power = 1.;
+  constexpr bool find_optimal_t = false;
+  constexpr bool reorder_by_weighted_priority = true;
+
+  std::vector<DataType> gv0, hv0;
+  gv0.reserve(n);
+  hv0.reserve(n);
+  std::copy(g.begin(), g.end(), std::back_inserter(gv0));
+  std::copy(h.begin(), h.end(), std::back_inserter(hv0));
+
+  auto dp0 = DPSolver(
+      n, T, gv0, hv0, obj_fn,
+      risk_partitioning_objective, use_rational_optimization,
+      gamma, reg_power, sweep_down, find_optimal_t, reorder_by_weighted_priority);
+
+  const auto& all_ss = dp0.get_all_subsets_and_scores_extern();
+
+  Row<DataType> leaf_values = arma::zeros<Row<DataType>>(n);
+
+  // Total score F*(T) for normalization; guard against zero
+  const DataType total_score = (T >= 1 && all_ss[T].total_score > 0.)
+                                   ? all_ss[T].total_score
+                                   : DataType(1.);
+  const double neg_lr = -learningRate;
+  DataType prev_score = DataType(0.);
+
+  for (int Tp = 1; Tp <= T; ++Tp) {
+    const DataType alpha = (all_ss[Tp].total_score - prev_score) / total_score;
+    prev_score = all_ss[Tp].total_score;
+    if (alpha <= DataType(0.)) continue;
+
+    const auto& subsets_Tp = all_ss[Tp].subsets;
+    const std::size_t subsets_size = subsets_Tp.size();
+    // Same filtering as computeOptimalSplit: skip bottom activePartitionRatio fraction
+    const std::size_t start_ind =
+        static_cast<std::size_t>(static_cast<double>(Tp) * activePartitionRatio);
+
+    for (std::size_t i = start_ind; i < subsets_size; ++i) {
+      const uvec ind = arma::conv_to<uvec>::from(subsets_Tp[i]);
+      const double g_sum = sum(g(ind));
+      const double h_sum = sum(h(ind));
+      if (h_sum != 0.) {
+        const double val = alpha * neg_lr * g_sum / h_sum;
+        leaf_values.elem(ind) += val;
+      }
+    }
+  }
+
+  if (includeSubsets) {
+    // Return the T-scale subsets for subset_info (used for logging/analysis)
+    return std::make_tuple(all_ss[T].subsets, leaf_values);
+  } else {
+    return std::make_tuple(std::nullopt, leaf_values);
+  }
+}
