@@ -85,6 +85,7 @@ void ContextManager::contextInit(CompositeClassifier<ClassifierType>& c, const C
   c.serializationWindow_ = context.serializationWindow;
 
   c.depth_ = context.depth;
+  c.useMultiScaleSplit_ = context.useMultiScaleSplit;
 }
 
 template <typename RegressorType>

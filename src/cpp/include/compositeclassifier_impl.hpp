@@ -528,14 +528,23 @@ void CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
 
     coeffs = generate_coefficients(labels_slice, colMask_);
 
-    auto [subset_info, best_leaves] = computeOptimalSplit(
-        coeffs.first,
-        coeffs.second,
-        stepNum,
-        partitionSize_,
-        learningRate_,
-        activePartitionRatio_,
-        ClassifierFileScope::SUBSET_DIAGNOSTICS);
+    auto [subset_info, best_leaves] = useMultiScaleSplit_
+        ? computeMultiScaleOptimalSplit(
+              coeffs.first,
+              coeffs.second,
+              stepNum,
+              partitionSize_,
+              learningRate_,
+              activePartitionRatio_,
+              ClassifierFileScope::SUBSET_DIAGNOSTICS)
+        : computeOptimalSplit(
+              coeffs.first,
+              coeffs.second,
+              stepNum,
+              partitionSize_,
+              learningRate_,
+              activePartitionRatio_,
+              ClassifierFileScope::SUBSET_DIAGNOSTICS);
 
     createRootClassifier(classifier, best_leaves);
 
@@ -655,14 +664,23 @@ void CompositeClassifier<ClassifierType>::fit_step(std::size_t stepNum) {
   coeffs = generate_coefficients(labels_slice, colMask_);
 
   // Compute optimal leaf choice on unrestricted dataset
-  auto [subset_info, best_leaves] = computeOptimalSplit(
-      coeffs.first,
-      coeffs.second,
-      stepNum,
-      partitionSize_,
-      learningRate_,
-      activePartitionRatio_,
-      ClassifierFileScope::SUBSET_DIAGNOSTICS);
+  auto [subset_info, best_leaves] = useMultiScaleSplit_
+      ? computeMultiScaleOptimalSplit(
+            coeffs.first,
+            coeffs.second,
+            stepNum,
+            partitionSize_,
+            learningRate_,
+            activePartitionRatio_,
+            ClassifierFileScope::SUBSET_DIAGNOSTICS)
+      : computeOptimalSplit(
+            coeffs.first,
+            coeffs.second,
+            stepNum,
+            partitionSize_,
+            learningRate_,
+            activePartitionRatio_,
+            ClassifierFileScope::SUBSET_DIAGNOSTICS);
 
   createRootClassifier(classifier, best_leaves);
 

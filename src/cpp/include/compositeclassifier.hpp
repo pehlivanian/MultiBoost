@@ -661,6 +661,8 @@ private:
   std::vector<std::size_t> childMaxDepth_;
   std::vector<double> childMinimumGainSplit_;
 
+  bool useMultiScaleSplit_;
+
   std::size_t serializationWindow_;
   std::string indexName_;
   std::size_t depth_;
