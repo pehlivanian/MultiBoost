@@ -581,6 +581,9 @@ private:
   auto computeOptimalSplit(
       Row<DataType>&, Row<DataType>&, std::size_t, std::size_t, double, double, bool = false)
       -> optLeavesInfo;
+  auto computeMultiScaleOptimalSplit(
+      Row<DataType>&, Row<DataType>&, std::size_t, std::size_t, double, double, bool = false)
+      -> optLeavesInfo;
 
   void setNextClassifier(const ClassifierType&);
   AllClassifierArgs allClassifierArgs(std::size_t);
@@ -657,6 +660,8 @@ private:
   std::vector<std::size_t> childMinLeafSize_;
   std::vector<std::size_t> childMaxDepth_;
   std::vector<double> childMinimumGainSplit_;
+
+  bool useMultiScaleSplit_;
 
   std::size_t serializationWindow_;
   std::string indexName_;

@@ -87,7 +87,8 @@ struct Context {
         serializeDataset{false},
         serializeLabels{false},
         serializationWindow{500},
-        depth{0} {}
+        depth{0},
+        useMultiScaleSplit{false} {}
 
   Context(const Context& rhs) {
     loss = rhs.loss;
@@ -123,6 +124,7 @@ struct Context {
     serializeDataset = rhs.serializeDataset;
     serializeLabels = rhs.serializeLabels;
     serializationWindow = rhs.serializationWindow;
+    useMultiScaleSplit = rhs.useMultiScaleSplit;
     depth = rhs.depth;
   }
 
@@ -203,6 +205,7 @@ struct Context {
   bool serializeLabels;
   std::size_t serializationWindow;
   std::size_t depth;
+  bool useMultiScaleSplit;
 };
 
 }  // namespace ModelContext
