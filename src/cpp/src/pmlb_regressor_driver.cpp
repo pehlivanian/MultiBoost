@@ -32,8 +32,8 @@ public:
       : NegativeFeedbackRegressor(dataset, labels, weights, minLeafSize, minGainSplit, maxDepth) {
     // std::cout << "DEBUG: NegativeFeedbackRegressorBeta15 weighted constructor called" << std::endl;
     // Override beta and iterations after base construction
-    beta_ = 0.05f;
-    iterations_ = 10;
+    beta_ = 0.001f;
+    iterations_ = 12;
   }
 
   static Args _args(const Model_Traits::AllRegressorArgs& p) { 
